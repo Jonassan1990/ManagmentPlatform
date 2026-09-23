@@ -41,7 +41,13 @@ export default async function DemandPage({
       <div className="mb-5">
         <LifecycleRail current={item.currentStage} />
       </div>
-      <InitiativeTabs initiativeId={item.id} active="demand" />
+      <InitiativeTabs
+        initiativeId={item.id}
+        active="demand"
+        currentStage={item.currentStage}
+        hasGovernance={item.governanceGates.length > 0}
+        hasPoC={Boolean(item.poc)}
+      />
       <Panel className="max-w-3xl">
         <DemandForm initiativeId={item.id} demand={item.demand} />
       </Panel>

@@ -43,7 +43,13 @@ export default async function HistoryPage({
       <div className="mb-5">
         <LifecycleRail current={item.currentStage} />
       </div>
-      <InitiativeTabs initiativeId={item.id} active="history" />
+      <InitiativeTabs
+        initiativeId={item.id}
+        active="history"
+        currentStage={item.currentStage}
+        hasGovernance={item.governanceGates.length > 0}
+        hasPoC={Boolean(item.poc)}
+      />
       <Panel>
         <h2 className="mb-3 font-medium">Lifecycle transitions</h2>
         {item.lifecycleTransitions.length === 0 ? (

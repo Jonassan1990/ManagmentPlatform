@@ -4,9 +4,15 @@
  */
 
 import type {
+  ApprovalRequest,
+  DecisionCondition,
+  DecisionRecord,
   Demand,
+  GovernanceSubmission,
   Initiative,
   InitiativeStage,
+  PoC,
+  PoCSuccessCriterion,
   PreStudyAssessment,
   Requirement,
   Risk,
@@ -14,10 +20,12 @@ import type {
 } from "@prisma/client";
 import {
   REQUIRED_ASSESSMENT_AREAS,
+  RISK_READINESS_POLICY,
   assessmentAreaLabel,
   evaluatePreStudyReadiness,
   isDemandComplete,
 } from "./readiness-policy";
+import { evaluatePoCReadiness } from "@/modules/governance/application/poc-readiness-policy";
 
 export type AttentionSeverity = "blocker" | "warning" | "info";
 
@@ -31,7 +39,11 @@ export type AttentionItem = {
     | "prestudy"
     | "risk"
     | "ownership"
-    | "readiness";
+    | "readiness"
+    | "governance"
+    | "approval"
+    | "decision"
+    | "poc";
 };
 
 export type AttentionSnapshot = {
@@ -42,6 +54,10 @@ export type AttentionSnapshot = {
   alternatives: SolutionAlternative[];
   risks: Risk[];
   documents: { id: string }[];
+  governanceSubmissions?: GovernanceSubmission[];
+  pendingApprovalRequests?: ApprovalRequest[];
+  decisions?: (DecisionRecord & { conditions?: DecisionCondition[] })[];
+  poc?: (PoC & { criteria?: PoCSuccessCriterion[] }) | null;
 };
 
 export function buildAttentionItems(
@@ -127,7 +143,10 @@ export function buildAttentionItems(
     if (risks.length === 0) {
       items.push({
         key: "risks-missing",
-        severity: "warning",
+        severity:
+          RISK_READINESS_POLICY.missingRisks === "blocker"
+            ? "blocker"
+            : "warning",
         message: "No risks recorded",
         area: "risk",
       });
@@ -151,6 +170,119 @@ export function buildAttentionItems(
     }
   }
 
+  const submissions = snapshot.governanceSubmissions ?? [];
+  const activeSubmissions = submissions.filter(
+    (s) =>
+      s.status !== "SUPERSEDED" &&
+      s.status !== "CANCELLED" &&
+      s.status !== "DECISION_RECORDED",
+  );
+
+  for (const submission of activeSubmissions) {
+    if (submission.status === "IN_REVIEW") {
+      const pending = (snapshot.pendingApprovalRequests ?? []).filter(
+        (r) => r.submissionId === submission.id && r.status === "PENDING",
+      );
+      if (pending.length > 0) {
+        items.push({
+          key: `pending-approval:${submission.id}`,
+          severity: "warning",
+          message: `${pending.length} approval(s) pending for governance revision ${submission.revision}`,
+          area: "approval",
+        });
+      }
+    }
+    if (submission.status === "CHANGES_REQUESTED") {
+      items.push({
+        key: `changes-requested:${submission.id}`,
+        severity: "blocker",
+        message: `Governance revision ${submission.revision} has changes requested`,
+        area: "governance",
+      });
+    }
+    if (submission.status === "APPROVALS_COMPLETE") {
+      items.push({
+        key: `decision-required:${submission.id}`,
+        severity: "blocker",
+        message: `Decision required for governance revision ${submission.revision}`,
+        area: "decision",
+      });
+    }
+  }
+
+  const decisions = snapshot.decisions ?? [];
+  for (const decision of decisions) {
+    const openConditions = (decision.conditions ?? []).filter(
+      (c) => c.status === "OPEN" && c.requiredBeforeProgression,
+    );
+    if (openConditions.length > 0) {
+      items.push({
+        key: `open-conditions:${decision.id}`,
+        severity: "blocker",
+        message: `${openConditions.length} blocking decision condition(s) open`,
+        area: "decision",
+      });
+    }
+  }
+
+  const poc = snapshot.poc ?? null;
+  if (poc) {
+    if (poc.status === "DRAFT") {
+      items.push({
+        key: "poc-draft",
+        severity: "info",
+        message: "PoC definition is still in draft",
+        area: "poc",
+      });
+    }
+    const criteria = poc.criteria ?? [];
+    const requiredUnevaluated = criteria.filter(
+      (c) => c.required && c.evaluationState === "NOT_EVALUATED",
+    );
+    if (
+      (poc.status === "EVALUATION" || poc.status === "COMPLETED") &&
+      requiredUnevaluated.length > 0
+    ) {
+      items.push({
+        key: "poc-criteria-unevaluated",
+        severity: "blocker",
+        message: `${requiredUnevaluated.length} required PoC criterion(a) not evaluated`,
+        area: "poc",
+      });
+    }
+    if (
+      poc.status !== "COMPLETED" &&
+      (!poc.results?.trim() || !poc.findings?.trim()) &&
+      (poc.status === "EVALUATION" || poc.status === "IN_PROGRESS")
+    ) {
+      items.push({
+        key: "poc-results-incomplete",
+        severity: "warning",
+        message: "PoC results or findings are incomplete",
+        area: "poc",
+      });
+    }
+
+    const pocReadiness = evaluatePoCReadiness(poc, criteria);
+    if (pocReadiness.ready && initiative.currentStage === "POC") {
+      const awaitingPoCGate = submissions.some(
+        (s) =>
+          s.status === "APPROVALS_COMPLETE" ||
+          s.status === "IN_REVIEW" ||
+          s.status === "SUBMITTED" ||
+          s.status === "DECISION_RECORDED",
+      );
+      if (!awaitingPoCGate) {
+        items.push({
+          key: "poc-ready-for-decision",
+          severity: "info",
+          message: "PoC is ready for governance decision",
+          area: "poc",
+        });
+      }
+    }
+  }
+
   return dedupe(items);
 }
 
@@ -171,6 +303,8 @@ export function stageLabel(stage: InitiativeStage): string {
       return "Requirements";
     case "PRE_STUDY":
       return "Pre-study";
+    case "POC":
+      return "PoC";
     default:
       return stage;
   }

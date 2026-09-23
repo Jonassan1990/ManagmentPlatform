@@ -13,8 +13,15 @@ export default async function HomePage() {
     demand: 0,
     requirements: 0,
     preStudy: 0,
+    poc: 0,
     needsAttention: 0,
     readyForGovernance: 0,
+    waitingForApproval: 0,
+    waitingForDecision: 0,
+    changesRequested: 0,
+    activePocs: 0,
+    pocsReadyForDecision: 0,
+    outstandingConditions: 0,
   };
   let orgCount = 0;
 
@@ -46,7 +53,7 @@ export default async function HomePage() {
       <Breadcrumbs items={[{ label: "Overview" }]} />
       <PageHeader
         title="Overview"
-        description="Management attention across organization setup and initiative lifecycle."
+        description="Management attention across organization setup, initiative lifecycle, and governance."
       />
 
       {authHint ? (
@@ -82,10 +89,32 @@ export default async function HomePage() {
               { label: "In Demand", value: metrics.demand },
               { label: "In Requirements", value: metrics.requirements },
               { label: "In Pre-study", value: metrics.preStudy },
+              { label: "In PoC", value: metrics.poc },
               { label: "Needs attention", value: metrics.needsAttention },
               {
                 label: "Ready for governance review",
                 value: metrics.readyForGovernance,
+              },
+              {
+                label: "Waiting for approval",
+                value: metrics.waitingForApproval,
+              },
+              {
+                label: "Waiting for decision",
+                value: metrics.waitingForDecision,
+              },
+              {
+                label: "Changes requested",
+                value: metrics.changesRequested,
+              },
+              { label: "Active PoCs", value: metrics.activePocs },
+              {
+                label: "PoCs ready for decision",
+                value: metrics.pocsReadyForDecision,
+              },
+              {
+                label: "Outstanding conditions",
+                value: metrics.outstandingConditions,
               },
             ].map((item) => (
               <Panel key={item.label}>
@@ -101,12 +130,26 @@ export default async function HomePage() {
               <p className="text-sm text-[var(--muted)]">
                 Metrics are derived from live database records. Zero is a valid state.
               </p>
-              <Link
-                href="/initiatives"
-                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
-              >
-                Open initiatives
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/approvals"
+                  className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
+                >
+                  Approvals
+                </Link>
+                <Link
+                  href="/decisions"
+                  className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
+                >
+                  Decisions
+                </Link>
+                <Link
+                  href="/initiatives"
+                  className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                >
+                  Open initiatives
+                </Link>
+              </div>
             </div>
           </Panel>
         </div>

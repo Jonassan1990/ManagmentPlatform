@@ -210,7 +210,10 @@ export const createDocumentInputSchema = z.object({
   title: titleSchema,
   category: z.string().trim().min(1).max(100),
   ownerName: z.string().trim().max(200).optional().nullable(),
-  stage: z.enum(["DEMAND", "REQUIREMENTS", "PRE_STUDY"]).optional().nullable(),
+  stage: z
+    .enum(["DEMAND", "REQUIREMENTS", "PRE_STUDY", "POC"])
+    .optional()
+    .nullable(),
   assessmentArea: z
     .enum([
       "BUSINESS",

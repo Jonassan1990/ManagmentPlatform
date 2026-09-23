@@ -2,15 +2,27 @@ import Link from "next/link";
 import type { InitiativeStage } from "@prisma/client";
 import { stageLabel } from "@/modules/initiative/application/attention";
 
-const FUTURE = ["PoC", "Pilot", "Project", "PI Planning"] as const;
-const ACTIVE: InitiativeStage[] = ["DEMAND", "REQUIREMENTS", "PRE_STUDY"];
+const ACTIVE: InitiativeStage[] = [
+  "DEMAND",
+  "REQUIREMENTS",
+  "PRE_STUDY",
+  "POC",
+];
+const FUTURE = ["Pilot", "Project", "PI Planning"] as const;
+
+const STAGE_RANK: Record<InitiativeStage, number> = {
+  DEMAND: 0,
+  REQUIREMENTS: 1,
+  PRE_STUDY: 2,
+  POC: 3,
+};
 
 export function LifecycleRail({ current }: { current: InitiativeStage }) {
   const currentIndex = ACTIVE.indexOf(current);
   return (
     <ol className="flex flex-wrap gap-2 text-sm">
       {ACTIVE.map((stage, index) => {
-        const done = index < currentIndex;
+        const done = currentIndex >= 0 && index < currentIndex;
         const active = index === currentIndex;
         return (
           <li
@@ -32,7 +44,7 @@ export function LifecycleRail({ current }: { current: InitiativeStage }) {
         <li
           key={label}
           className="rounded-md border border-dashed border-[var(--line)] px-3 py-1.5 text-[var(--muted)]"
-          title="Future stage — not available in Phase 2"
+          title="Future stage — not available in Phase 3"
         >
           ○ {label}
         </li>
@@ -41,33 +53,62 @@ export function LifecycleRail({ current }: { current: InitiativeStage }) {
   );
 }
 
+export type InitiativeTabKey =
+  | "overview"
+  | "demand"
+  | "requirements"
+  | "pre-study"
+  | "risks"
+  | "documents"
+  | "history"
+  | "governance"
+  | "decisions"
+  | "poc";
+
 export function InitiativeTabs({
   initiativeId,
   active,
+  currentStage,
+  hasGovernance,
+  hasPoC,
 }: {
   initiativeId: string;
-  active:
-    | "overview"
-    | "demand"
-    | "requirements"
-    | "pre-study"
-    | "risks"
-    | "documents"
-    | "history";
+  active: InitiativeTabKey;
+  currentStage?: InitiativeStage;
+  hasGovernance?: boolean;
+  hasPoC?: boolean;
 }) {
-  const tabs = [
-    ["overview", "Overview"],
-    ["demand", "Demand"],
-    ["requirements", "Requirements"],
-    ["pre-study", "Pre-study"],
-    ["risks", "Risks"],
-    ["documents", "Documents"],
-    ["history", "History"],
-  ] as const;
+  const stageReached =
+    currentStage != null && STAGE_RANK[currentStage] >= STAGE_RANK.PRE_STUDY;
+  const showPhase3 = Boolean(stageReached || hasGovernance || hasPoC);
+
+  const tabs: { key: InitiativeTabKey; label: string }[] = [
+    { key: "overview", label: "Overview" },
+    { key: "demand", label: "Demand" },
+    { key: "requirements", label: "Requirements" },
+    { key: "pre-study", label: "Pre-study" },
+  ];
+
+  if (showPhase3) {
+    tabs.push(
+      { key: "governance", label: "Governance" },
+      { key: "decisions", label: "Decisions" },
+      { key: "poc", label: "PoC" },
+    );
+  }
+
+  tabs.push(
+    { key: "risks", label: "Risks" },
+    { key: "documents", label: "Documents" },
+    { key: "history", label: "History" },
+  );
 
   return (
-    <nav className="mb-5 flex flex-wrap gap-1 border-b border-[var(--line)]" aria-label="Initiative sections">
-      {tabs.map(([key, label]) => {
+    <nav
+      className="mb-5 flex flex-wrap gap-1 border-b border-[var(--line)]"
+      aria-label="Initiative sections"
+    >
+      {tabs.map(({ key, label }) => {
         const href =
           key === "overview"
             ? `/initiatives/${initiativeId}`

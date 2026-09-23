@@ -217,6 +217,7 @@ enum InitiativeStage {
   DEMAND
   REQUIREMENTS
   PRE_STUDY
+  POC
 }
 
 enum InitiativeStatus {
@@ -351,6 +352,15 @@ model Initiative {
   risks               Risk[]
   documents           ManagedDocument[]
   lifecycleTransitions LifecycleTransition[]
+
+  // Phase 3 — Governance + Approvals + Decisions + PoC
+  governanceGates            GovernanceGate[]
+  governanceSubmissions      GovernanceSubmission[]
+  reviewSnapshots            ReviewSnapshot[]
+  decisions                  DecisionRecord[]
+  poc                        PoC?
+  requirementReferenceCounter RequirementReferenceCounter?
+  riskReferenceCounter       RiskReferenceCounter?
 
   @@unique([organizationId, referenceKey])
   @@index([organizationId, currentStage, status])
@@ -563,4 +573,403 @@ model DocumentVersion {
   @@unique([documentId, versionLabel])
   @@index([documentId])
   @@map("document_versions")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — Governance + Approvals + Decisions + PoC
+// ---------------------------------------------------------------------------
+
+enum GateType {
+  PRE_STUDY_GATE
+  POC_GATE
+}
+
+enum GovernanceSubmissionStatus {
+  SUBMITTED
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVALS_COMPLETE
+  DECISION_RECORDED
+  SUPERSEDED
+  CANCELLED
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum ApprovalOutcome {
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+enum DecisionOutcome {
+  GO
+  CONDITIONAL_GO
+  NO_GO
+  HOLD
+}
+
+enum DecisionConditionStatus {
+  OPEN
+  RESOLVED
+  WAIVED
+  CANCELLED
+}
+
+enum PoCStatus {
+  DRAFT
+  READY
+  IN_PROGRESS
+  EVALUATION
+  COMPLETED
+}
+
+enum CriterionEvaluationState {
+  NOT_EVALUATED
+  PASS
+  FAIL
+  INCONCLUSIVE
+}
+
+enum EvidenceEntryKind {
+  DOCUMENT_VERSION
+  REQUIREMENT
+  ASSESSMENT
+  RISK
+  ALTERNATIVE
+  POC_RESULT
+  READINESS_SUMMARY
+  OTHER
+}
+
+enum EvidenceRequirementLevel {
+  REQUIRED
+  OPTIONAL
+}
+
+/// Concurrency-safe per-initiative sequence for REQ-### references.
+model RequirementReferenceCounter {
+  initiativeId String @id @db.Uuid
+  nextValue    Int    @default(1)
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@map("requirement_reference_counters")
+}
+
+/// Concurrency-safe per-initiative sequence for RSK-### references.
+model RiskReferenceCounter {
+  initiativeId String @id @db.Uuid
+  nextValue    Int    @default(1)
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@map("risk_reference_counters")
+}
+
+/// One durable gate row per initiative+gateType; submissions accumulate on the gate.
+model GovernanceGate {
+  id           String          @id @default(uuid()) @db.Uuid
+  initiativeId String          @db.Uuid
+  gateType     GateType
+  stage        InitiativeStage
+  /// OPEN | IN_PROGRESS | DECIDED | CLOSED
+  status       String          @default("OPEN") @db.VarChar(40)
+  version      Int             @default(1)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  initiative  Initiative             @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  submissions GovernanceSubmission[]
+  evidencePackages EvidencePackage[]
+  decisionPackages DecisionPackage[]
+  decisions   DecisionRecord[]
+
+  @@unique([initiativeId, gateType])
+  @@index([initiativeId, status])
+  @@map("governance_gates")
+}
+
+model GovernanceSubmission {
+  id                      String                      @id @default(uuid()) @db.Uuid
+  gateId                  String                      @db.Uuid
+  initiativeId            String                      @db.Uuid
+  revision                Int
+  status                  GovernanceSubmissionStatus  @default(SUBMITTED)
+  submittedByPrincipalId  String                      @db.Uuid
+  submittedAt             DateTime                    @default(now())
+  reviewSnapshotId        String                      @db.Uuid
+  version                 Int                         @default(1)
+  supersededBySubmissionId String?                    @db.Uuid
+  previousSubmissionId    String?                     @db.Uuid
+  notes                   String?                     @db.VarChar(4000)
+
+  gate             GovernanceGate  @relation(fields: [gateId], references: [id], onDelete: Cascade)
+  initiative       Initiative      @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  reviewSnapshot   ReviewSnapshot  @relation(fields: [reviewSnapshotId], references: [id], onDelete: Restrict)
+  supersededBy     GovernanceSubmission?  @relation("SubmissionSupersession", fields: [supersededBySubmissionId], references: [id], onDelete: SetNull)
+  supersedes       GovernanceSubmission[] @relation("SubmissionSupersession")
+  previous         GovernanceSubmission?  @relation("SubmissionRevisionChain", fields: [previousSubmissionId], references: [id], onDelete: SetNull)
+  nextRevisions    GovernanceSubmission[] @relation("SubmissionRevisionChain")
+  evidencePackage  EvidencePackage?
+  approvalRequests ApprovalRequest[]
+  decisionPackage  DecisionPackage?
+  decisionRecord   DecisionRecord?
+
+  @@unique([gateId, revision])
+  @@index([initiativeId, status])
+  @@index([reviewSnapshotId])
+  @@map("governance_submissions")
+}
+
+/// Immutable frozen workspace payload for a governance revision.
+model ReviewSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  initiativeId String   @db.Uuid
+  gateType     GateType
+  revision     Int
+  payload      Json
+  createdAt    DateTime @default(now())
+
+  initiative  Initiative             @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  submissions GovernanceSubmission[]
+  approvalRequests ApprovalRequest[]
+  approvalRecords  ApprovalRecord[]
+  decisions        DecisionRecord[]
+
+  @@index([initiativeId, gateType, revision])
+  @@map("review_snapshots")
+}
+
+model EvidencePackage {
+  id           String   @id @default(uuid()) @db.Uuid
+  submissionId String   @unique @db.Uuid
+  gateId       String   @db.Uuid
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  submission GovernanceSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  gate       GovernanceGate       @relation(fields: [gateId], references: [id], onDelete: Cascade)
+  entries    EvidenceEntry[]
+  decisions  DecisionRecord[]
+
+  @@index([gateId])
+  @@map("evidence_packages")
+}
+
+model EvidenceEntry {
+  id               String                   @id @default(uuid()) @db.Uuid
+  packageId        String                   @db.Uuid
+  kind             EvidenceEntryKind
+  requirementLevel EvidenceRequirementLevel @default(REQUIRED)
+  label            String                   @db.VarChar(300)
+  present          Boolean                  @default(false)
+  referenceType    String?                  @db.VarChar(100)
+  referenceId      String?                  @db.Uuid
+  snapshotBinding  Json?
+  sortOrder        Int                      @default(0)
+
+  package EvidencePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId, sortOrder])
+  @@map("evidence_entries")
+}
+
+/// Bootstrap / central policy templates — org-specific matrices stay data-driven.
+model ApprovalRequirementTemplate {
+  id                 String   @id @default(uuid()) @db.Uuid
+  gateType           GateType
+  /// e.g. business | architecture | security
+  authorityKey       String   @db.VarChar(100)
+  requiredPermission String   @db.VarChar(200)
+  label              String   @db.VarChar(300)
+  required           Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  conditionNote      String?  @db.VarChar(2000)
+  active             Boolean  @default(true)
+
+  approvalRequests ApprovalRequest[]
+
+  @@unique([gateType, authorityKey])
+  @@index([gateType, active])
+  @@map("approval_requirement_templates")
+}
+
+model ApprovalRequest {
+  id                   String                @id @default(uuid()) @db.Uuid
+  submissionId         String                @db.Uuid
+  requirementTemplateId String?              @db.Uuid
+  authorityKey         String                @db.VarChar(100)
+  requiredPermission   String                @db.VarChar(200)
+  label                String                @db.VarChar(300)
+  status               ApprovalRequestStatus @default(PENDING)
+  assignedPrincipalId  String?               @db.Uuid
+  requestedAt          DateTime              @default(now())
+  reviewSnapshotId     String                @db.Uuid
+  version              Int                   @default(1)
+  completedAt          DateTime?
+
+  submission          GovernanceSubmission         @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  requirementTemplate ApprovalRequirementTemplate? @relation(fields: [requirementTemplateId], references: [id], onDelete: SetNull)
+  reviewSnapshot      ReviewSnapshot               @relation(fields: [reviewSnapshotId], references: [id], onDelete: Restrict)
+  record              ApprovalRecord?
+
+  @@index([submissionId, status])
+  @@index([reviewSnapshotId])
+  @@map("approval_requests")
+}
+
+/// Immutable approval outcome — one record per completed request for MVP.
+model ApprovalRecord {
+  id                 String          @id @default(uuid()) @db.Uuid
+  approvalRequestId  String          @unique @db.Uuid
+  approverPrincipalId String         @db.Uuid
+  outcome            ApprovalOutcome
+  comment            String?         @db.VarChar(4000)
+  conditionsText     String?         @db.VarChar(4000)
+  reviewSnapshotId   String          @db.Uuid
+  decidedAt          DateTime        @default(now())
+
+  approvalRequest ApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  reviewSnapshot  ReviewSnapshot  @relation(fields: [reviewSnapshotId], references: [id], onDelete: Restrict)
+
+  @@index([reviewSnapshotId])
+  @@map("approval_records")
+}
+
+model DecisionPackage {
+  id                         String   @id @default(uuid()) @db.Uuid
+  submissionId               String   @unique @db.Uuid
+  gateId                     String   @db.Uuid
+  initiativeId               String   @db.Uuid
+  question                   String   @db.VarChar(2000)
+  whyNeeded                  String   @db.VarChar(4000)
+  /// Recommendation only — NEVER auto-copied into DecisionRecord.outcome.
+  recommendationText         String?  @db.VarChar(4000)
+  recommendationAlternativeId String? @db.Uuid
+  version                    Int      @default(1)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  submission GovernanceSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  gate       GovernanceGate       @relation(fields: [gateId], references: [id], onDelete: Cascade)
+  decision   DecisionRecord?
+
+  @@index([initiativeId])
+  @@index([gateId])
+  @@map("decision_packages")
+}
+
+/// Immutable governance decision — recommendation ≠ decision.
+model DecisionRecord {
+  id                      String          @id @default(uuid()) @db.Uuid
+  referenceKey            String          @db.VarChar(40)
+  gateId                  String          @db.Uuid
+  submissionId            String          @unique @db.Uuid
+  decisionPackageId       String          @unique @db.Uuid
+  initiativeId            String          @db.Uuid
+  question                String          @db.VarChar(2000)
+  optionsConsidered       Json
+  recommendationText      String?         @db.VarChar(4000)
+  outcome                 DecisionOutcome
+  rationale               String          @db.VarChar(8000)
+  decisionMakerPrincipalId String         @db.Uuid
+  decidedAt               DateTime        @default(now())
+  reviewSnapshotId        String          @db.Uuid
+  evidencePackageId       String          @db.Uuid
+  supersedesDecisionId    String?         @db.Uuid
+  /// Concurrency token at create-time only — records are immutable after insert.
+  version                 Int             @default(1)
+
+  gate             GovernanceGate       @relation(fields: [gateId], references: [id], onDelete: Restrict)
+  submission       GovernanceSubmission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  decisionPackage  DecisionPackage      @relation(fields: [decisionPackageId], references: [id], onDelete: Restrict)
+  initiative       Initiative           @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  reviewSnapshot   ReviewSnapshot       @relation(fields: [reviewSnapshotId], references: [id], onDelete: Restrict)
+  evidencePackage  EvidencePackage      @relation(fields: [evidencePackageId], references: [id], onDelete: Restrict)
+  supersedes       DecisionRecord?      @relation("DecisionSupersession", fields: [supersedesDecisionId], references: [id], onDelete: SetNull)
+  supersededBy     DecisionRecord[]     @relation("DecisionSupersession")
+  conditions       DecisionCondition[]
+
+  @@unique([initiativeId, referenceKey])
+  @@index([gateId])
+  @@index([initiativeId, outcome])
+  @@map("decision_records")
+}
+
+model DecisionCondition {
+  id                        String                  @id @default(uuid()) @db.Uuid
+  decisionId                String                  @db.Uuid
+  description               String                  @db.VarChar(4000)
+  ownerName                 String?                 @db.VarChar(200)
+  dueDate                   DateTime?
+  status                    DecisionConditionStatus @default(OPEN)
+  requiredBeforeProgression Boolean                 @default(true)
+  resolvedAt                DateTime?
+  resolutionNote            String?                 @db.VarChar(4000)
+  version                   Int                     @default(1)
+
+  decision DecisionRecord @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@index([decisionId, status])
+  @@map("decision_conditions")
+}
+
+model PoC {
+  id                   String    @id @default(uuid()) @db.Uuid
+  initiativeId         String    @unique @db.Uuid
+  title                String    @db.VarChar(300)
+  objective            String    @db.VarChar(4000)
+  hypothesis           String    @db.VarChar(4000)
+  scope                String    @db.VarChar(4000)
+  outOfScope           String?   @db.VarChar(4000)
+  ownerName            String?   @db.VarChar(200)
+  plannedStart         DateTime?
+  plannedEnd           DateTime?
+  estimatedCost        String?   @db.VarChar(500)
+  resourceNotes        String?   @db.VarChar(4000)
+  technicalConstraints String?   @db.VarChar(4000)
+  dependencyNotes      String?   @db.VarChar(4000)
+  results              String?   @db.VarChar(8000)
+  findings             String?   @db.VarChar(8000)
+  lessonsLearned       String?   @db.VarChar(8000)
+  actualCost           String?   @db.VarChar(500)
+  actualStart          DateTime?
+  actualEnd            DateTime?
+  status               PoCStatus @default(DRAFT)
+  version              Int       @default(1)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  initiative Initiative           @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  criteria   PoCSuccessCriterion[]
+
+  @@index([status])
+  @@map("pocs")
+}
+
+model PoCSuccessCriterion {
+  id                String                    @id @default(uuid()) @db.Uuid
+  pocId             String                    @db.Uuid
+  description       String                    @db.VarChar(2000)
+  measurementMethod String                    @db.VarChar(2000)
+  target            String                    @db.VarChar(1000)
+  unit              String?                   @db.VarChar(100)
+  required          Boolean                   @default(true)
+  sortOrder         Int                       @default(0)
+  evaluationState   CriterionEvaluationState  @default(NOT_EVALUATED)
+  actualResult      String?                   @db.VarChar(2000)
+  evidenceReference String?                   @db.VarChar(1000)
+  evaluationNotes   String?                   @db.VarChar(4000)
+  evaluatedAt       DateTime?
+  version           Int                       @default(1)
+
+  poc PoC @relation(fields: [pocId], references: [id], onDelete: Cascade)
+
+  @@index([pocId, sortOrder])
+  @@map("poc_success_criteria")
 }

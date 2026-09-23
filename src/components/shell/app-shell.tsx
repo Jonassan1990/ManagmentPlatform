@@ -8,6 +8,8 @@ const navItems = [
   { href: "/", label: "Overview", available: true },
   { href: "/organization", label: "Organization", available: true },
   { href: "/initiatives", label: "Initiatives", available: true },
+  { href: "/approvals", label: "Approvals", available: true },
+  { href: "/decisions", label: "Decisions", available: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -26,7 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="font-[family-name:var(--font-display)] text-lg tracking-tight text-white">
               Management Platform
             </p>
-            <p className="text-xs text-white/60">Phase 1 foundation</p>
+            <p className="text-xs text-white/60">Phase 3 governance</p>
           </div>
         </div>
         <nav className="space-y-1 p-3" aria-label="Primary">
@@ -54,11 +56,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="px-3 pb-2 text-[11px] uppercase tracking-[0.14em] text-white/40">
               Later phases
             </p>
-            {["PI Planning", "Governance"].map((label) => (
+            {["PI Planning", "Pilot"].map((label) => (
               <span
                 key={label}
                 className="block cursor-not-allowed rounded-md px-3 py-2 text-sm text-white/35"
-                title="Not available in Phase 2"
+                title="Not available in Phase 3"
               >
                 {label}
               </span>

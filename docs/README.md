@@ -1,10 +1,10 @@
 # Management & PI Planning Platform — Documentation Index
 
-**Phase:** 0 — Product Foundation  
-**Status:** Source of truth established (documentation only)  
-**Implementation status:** Not started
+**Phase:** 0–3 product foundation + implementation  
+**Status:** Source of truth for product/architecture; implementation through Phase 3 governance/PoC  
+**Implementation status:** Phase 1–3 implemented (see PHASE-*-IMPLEMENTATION.md). Phase 4 (Pilot / project conversion) not started.
 
-This directory is the product and architecture source of truth for the Management & PI Planning Platform. No application code, scaffolding, or business seed data belongs in Phase 0.
+This directory is the product and architecture source of truth for the Management & PI Planning Platform.
 
 ---
 
@@ -49,9 +49,10 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md) | Unresolved questions and assumption log |
 | [PHASE-1-IMPLEMENTATION.md](./PHASE-1-IMPLEMENTATION.md) | Phase 1 technical foundation decisions |
 | [PHASE-2-IMPLEMENTATION.md](./PHASE-2-IMPLEMENTATION.md) | Phase 2 initiative / demand / requirements / pre-study |
+| [PHASE-3-IMPLEMENTATION.md](./PHASE-3-IMPLEMENTATION.md) | Phase 3 governance, approvals, decisions, PoC |
 | [LOCAL-DEVELOPMENT.md](./LOCAL-DEVELOPMENT.md) | Local Docker/Postgres workflow |
 | [DEPLOYMENT-VERCEL.md](./DEPLOYMENT-VERCEL.md) | Vercel readiness (portable architecture) |
-| [adr/](./adr/) | Architecture Decision Records |
+| [adr/](./adr/) | Architecture Decision Records (incl. ADR-005–007 Phase 3) |
 
 ---
 
@@ -63,6 +64,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 4. Read **PI-PLANNING-MODEL** and **ROLES-AND-PERMISSIONS** for planning and access.
 5. Read **ARCHITECTURE** and **MVP-ROADMAP** before any implementation planning.
 6. Check **OPEN-QUESTIONS** before converting recommendations into requirements.
+7. Read **PHASE-3-IMPLEMENTATION** for the current governance/PoC vertical slice.
 
 ### Classification markers used across docs
 

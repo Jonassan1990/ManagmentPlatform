@@ -4,6 +4,7 @@ import {
   canAdvanceFromRequirements,
   evaluatePreStudyReadiness,
   REQUIRED_ASSESSMENT_AREAS,
+  RISK_READINESS_POLICY,
 } from "@/modules/initiative/application/readiness-policy";
 import { buildAttentionItems } from "@/modules/initiative/application/attention";
 import type { Demand, Initiative, Requirement } from "@prisma/client";
@@ -149,6 +150,53 @@ describe("pre-study readiness", () => {
       documents: [],
     });
     expect(result.ready).toBe(true);
+  });
+
+  it("default RISK_READINESS_POLICY treats missing risks as warning, not a blocker", () => {
+    expect(RISK_READINESS_POLICY.missingRisks).toBe("warning");
+
+    const assessments = REQUIRED_ASSESSMENT_AREAS.map((area, index) => ({
+      id: `a${index}`,
+      preStudyId: "ps1",
+      area,
+      ownerName: "Owner",
+      status: "COMPLETE" as const,
+      summary: "s",
+      findings: "f",
+      conclusion: "c",
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+    const result = evaluatePreStudyReadiness({
+      demand: demand(),
+      requirements: [requirement({ id: "r1", status: "ACCEPTED" })],
+      assessments,
+      alternatives: [
+        {
+          id: "alt1",
+          preStudyId: "ps1",
+          title: "Build",
+          description: "Custom",
+          benefits: null,
+          drawbacks: null,
+          estimatedCost: null,
+          estimatedDuration: null,
+          riskUncertainty: null,
+          notes: null,
+          isRecommended: false,
+          version: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      risks: [],
+      documents: [],
+    });
+    expect(result.ready).toBe(true);
+    const riskItem = result.items.find((i) => i.key === "risks");
+    expect(riskItem?.status).toBe("warning");
+    expect(result.blockers.some((b) => b.includes("Risk"))).toBe(false);
   });
 });
 

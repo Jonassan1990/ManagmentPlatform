@@ -19,8 +19,24 @@ import type {
   ManagedDocument,
 } from "@prisma/client";
 
-export type ReadinessItemStatus = "complete" | "incomplete" | "warning";
+/**
+ * Central risk readiness severity.
+ *
+ * missingRisks:
+ *   - "warning" (default) — empty risk register does not block readiness
+ *   - "blocker" — empty risk register blocks governance submission
+ *
+ * Keep this as the single source of truth; attention + readiness both read it.
+ */
+export type RiskReadinessPolicy = {
+  missingRisks: "warning" | "blocker";
+};
 
+export const RISK_READINESS_POLICY: RiskReadinessPolicy = {
+  missingRisks: "warning",
+};
+
+export type ReadinessItemStatus = "complete" | "incomplete" | "warning";
 export type ReadinessItem = {
   key: string;
   label: string;
@@ -143,10 +159,12 @@ export function evaluatePreStudyReadiness(
   });
 
   const hasOpenOrAnyRisk = snapshot.risks.length > 0;
+  const riskMissingStatus: ReadinessItemStatus =
+    RISK_READINESS_POLICY.missingRisks === "blocker" ? "incomplete" : "warning";
   items.push({
     key: "risks",
     label: "Risk register",
-    status: hasOpenOrAnyRisk ? "complete" : "warning",
+    status: hasOpenOrAnyRisk ? "complete" : riskMissingStatus,
     detail: hasOpenOrAnyRisk
       ? `${snapshot.risks.length} risk(s) recorded`
       : "No risks recorded (recommended before governance review)",
