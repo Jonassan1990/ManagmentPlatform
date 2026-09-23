@@ -8,6 +8,7 @@ import { ZodError } from "zod";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import { assertAllocationPercentsWithinLimit } from "@/modules/pi-planning/application/capacity-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import {
@@ -703,10 +704,34 @@ export class OrganizationService {
           effectiveTo: null,
         },
       });
+
+      const otherActive = await tx.resourceMembership.findMany({
+        where: {
+          resourceId: resource.id,
+          effectiveTo: null,
+          ...(existingActive ? { id: { not: existingActive.id } } : {}),
+        },
+      });
+      const percents = [
+        ...otherActive.map((m) => m.allocationPercent),
+        input.allocationPercent,
+      ];
+      const check = assertAllocationPercentsWithinLimit(percents);
+      if (!check.ok) {
+        throw new AppError(
+          "VALIDATION",
+          `Active membership allocation percents would sum to ${check.total} (limit ${check.limit}).`,
+          { details: check },
+        );
+      }
+
       if (existingActive) {
         return tx.resourceMembership.update({
           where: { id: existingActive.id },
-          data: { isPrimary: input.isPrimary },
+          data: {
+            isPrimary: input.isPrimary,
+            allocationPercent: new Prisma.Decimal(input.allocationPercent),
+          },
         });
       }
       return tx.resourceMembership.create({
@@ -714,6 +739,7 @@ export class OrganizationService {
           resourceId: resource.id,
           teamId: team.id,
           isPrimary: input.isPrimary,
+          allocationPercent: new Prisma.Decimal(input.allocationPercent),
         },
       });
     });
@@ -728,6 +754,7 @@ export class OrganizationService {
         resourceId: resource.id,
         teamId: team.id,
         isPrimary: membership.isPrimary,
+        allocationPercent: membership.allocationPercent.toString(),
       },
       result: "success",
     });

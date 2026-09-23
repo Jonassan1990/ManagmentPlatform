@@ -32,12 +32,21 @@ export default async function HomePage() {
     outstandingScaleConditions: 0,
     upcomingMilestones: 0,
   };
+  let piMetrics = {
+    programIncrements: 0,
+    piPlanning: 0,
+    piInReview: 0,
+    piBaselined: 0,
+    piActive: 0,
+    piNeedsAttention: 0,
+    piBlockerConflicts: 0,
+  };
   let orgCount = 0;
   let firstOrgId: string | null = null;
 
   try {
     const env = getEnv();
-    const { authz, organization, initiative } = createServices();
+    const { authz, organization, initiative, planning } = createServices();
     const principal = await authz.resolveCurrentPrincipal();
     principalAvailable = Boolean(principal);
     if (principal) {
@@ -45,6 +54,7 @@ export default async function HomePage() {
       orgCount = orgs.length;
       firstOrgId = orgs[0]?.id ?? null;
       metrics = await initiative.getOverviewMetrics(principal);
+      piMetrics = await planning.getExecutivePiMetrics(principal);
     } else if (env.NODE_ENV === "development" && !isDevAuthEnabled(env)) {
       authHint =
         "DEV auth is not configured. Set ALLOW_DEV_AUTH=true and DEV_AUTH_PRINCIPAL_ID (UUID) in .env.";
@@ -64,7 +74,7 @@ export default async function HomePage() {
       <Breadcrumbs items={[{ label: "Overview" }]} />
       <PageHeader
         title="Overview"
-        description="Management attention across organization setup, initiative lifecycle, governance, pilots, and projects."
+        description="Management attention across organization setup, initiative lifecycle, governance, pilots, projects, and PI planning."
       />
 
       {authHint ? (
@@ -148,6 +158,19 @@ export default async function HomePage() {
                 label: "Upcoming milestones (14d)",
                 value: metrics.upcomingMilestones,
               },
+              {
+                label: "Program Increments",
+                value: piMetrics.programIncrements,
+              },
+              { label: "PIs in planning/draft", value: piMetrics.piPlanning },
+              { label: "PIs in review", value: piMetrics.piInReview },
+              { label: "PIs baselined", value: piMetrics.piBaselined },
+              { label: "PIs active", value: piMetrics.piActive },
+              { label: "PIs needing attention", value: piMetrics.piNeedsAttention },
+              {
+                label: "PI blocker conflicts",
+                value: piMetrics.piBlockerConflicts,
+              },
             ].map((item) => (
               <Panel key={item.label}>
                 <p className="text-sm text-[var(--muted)]">{item.label}</p>
@@ -183,6 +206,12 @@ export default async function HomePage() {
                     Governance policy
                   </Link>
                 ) : null}
+                <Link
+                  href="/pi"
+                  className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
+                >
+                  PI Planning
+                </Link>
                 <Link
                   href="/initiatives"
                   className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"

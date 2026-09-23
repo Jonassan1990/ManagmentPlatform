@@ -25,6 +25,16 @@ export type PrincipalCapabilities = {
   canManageMilestones: boolean;
   canManageWorkItems: boolean;
   canManageGovernancePolicy: boolean;
+  // Phase 5 — PI Planning
+  canViewPi: boolean;
+  canCreatePi: boolean;
+  canEditPi: boolean;
+  canTransitionPi: boolean;
+  canAllocatePi: boolean;
+  canManagePiCapacity: boolean;
+  canManagePiDependency: boolean;
+  canReviewPi: boolean;
+  canBaselinePi: boolean;
 };
 
 export async function resolveCapabilities(
@@ -56,6 +66,15 @@ export async function resolveCapabilities(
     canManageMilestones,
     canManageWorkItems,
     canManageGovernancePolicy,
+    canViewPi,
+    canCreatePi,
+    canEditPi,
+    canTransitionPi,
+    canAllocatePi,
+    canManagePiCapacity,
+    canManagePiDependency,
+    canReviewPi,
+    canBaselinePi,
   ] = await Promise.all([
     check(PERMISSIONS.GOVERNANCE_VIEW),
     check(PERMISSIONS.GOVERNANCE_SUBMIT),
@@ -76,6 +95,15 @@ export async function resolveCapabilities(
     check(PERMISSIONS.PROJECT_MANAGE_MILESTONES),
     check(PERMISSIONS.PROJECT_MANAGE_WORKITEMS),
     check(PERMISSIONS.GOVERNANCE_POLICY_MANAGE),
+    check(PERMISSIONS.PI_VIEW),
+    check(PERMISSIONS.PI_CREATE),
+    check(PERMISSIONS.PI_EDIT),
+    check(PERMISSIONS.PI_TRANSITION),
+    check(PERMISSIONS.PI_ALLOCATE),
+    check(PERMISSIONS.PI_MANAGE_CAPACITY),
+    check(PERMISSIONS.PI_MANAGE_DEPENDENCY),
+    check(PERMISSIONS.PI_REVIEW),
+    check(PERMISSIONS.PI_BASELINE),
   ]);
 
   return {
@@ -98,5 +126,14 @@ export async function resolveCapabilities(
     canManageMilestones,
     canManageWorkItems,
     canManageGovernancePolicy,
+    canViewPi,
+    canCreatePi,
+    canEditPi,
+    canTransitionPi,
+    canAllocatePi,
+    canManagePiCapacity,
+    canManagePiDependency,
+    canReviewPi,
+    canBaselinePi,
   };
 }

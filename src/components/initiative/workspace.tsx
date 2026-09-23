@@ -10,7 +10,6 @@ const ACTIVE: InitiativeStage[] = [
   "PILOT",
   "PROJECT",
 ];
-const FUTURE = ["PI Planning"] as const;
 
 const STAGE_RANK: Record<InitiativeStage, number> = {
   DEMAND: 0,
@@ -44,15 +43,14 @@ export function LifecycleRail({ current }: { current: InitiativeStage }) {
           </li>
         );
       })}
-      {FUTURE.map((label) => (
-        <li
-          key={label}
-          className="rounded-md border border-dashed border-[var(--line)] px-3 py-1.5 text-[var(--muted)]"
-          title="Future stage — not available in Phase 4"
-        >
-          ○ {label}
-        </li>
-      ))}
+      <li className="rounded-md border border-[var(--line)] px-3 py-1.5 text-[var(--muted)]">
+        <Link href="/pi" className="hover:text-[var(--accent)]">
+          ○ PI Planning
+        </Link>
+        <span className="ml-1 text-[10px] uppercase tracking-wide opacity-70">
+          module
+        </span>
+      </li>
     </ol>
   );
 }

@@ -37,6 +37,16 @@ export const PERMISSIONS = {
   PROJECT_MANAGE_MILESTONES: "project.manage_milestones",
   PROJECT_MANAGE_WORKITEMS: "project.manage_workitems",
   GOVERNANCE_POLICY_MANAGE: "governance.policy.manage",
+  // Phase 5 — PI Planning
+  PI_VIEW: "pi.view",
+  PI_CREATE: "pi.create",
+  PI_EDIT: "pi.edit",
+  PI_TRANSITION: "pi.transition",
+  PI_ALLOCATE: "pi.allocate",
+  PI_MANAGE_CAPACITY: "pi.manage_capacity",
+  PI_MANAGE_DEPENDENCY: "pi.manage_dependency",
+  PI_REVIEW: "pi.review",
+  PI_BASELINE: "pi.baseline",
 } as const;
 
 export type Permission =

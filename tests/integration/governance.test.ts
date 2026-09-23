@@ -31,6 +31,17 @@ function principal(id = randomUUID()): Principal {
 
 async function resetDb() {
   await db.auditEvent.deleteMany();
+  // Phase 5 PI Planning — FK-safe order (before project work items / org)
+  await db.workAllocation.deleteMany();
+  await db.resourceAvailability.deleteMany();
+  await db.planningDependency.deleteMany();
+  await db.piBaseline.deleteMany();
+  await db.planningRevision.deleteMany();
+  await db.piParticipatingTeam.deleteMany();
+  await db.piParticipatingDepartment.deleteMany();
+  await db.piIteration.deleteMany();
+  await db.programIncrement.deleteMany();
+  await db.piReferenceCounter.deleteMany();
   // Phase 4 Pilot / Project — children before parents (FK Restrict edges)
   await db.pilotFeedback.deleteMany();
   await db.pilotCriterion.deleteMany();

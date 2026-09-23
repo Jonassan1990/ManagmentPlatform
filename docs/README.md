@@ -1,8 +1,8 @@
 # Management & PI Planning Platform — Documentation Index
 
-**Phase:** 0–4 product foundation + implementation  
-**Status:** Source of truth for product/architecture; implementation through Phase 4 Pilot / project conversion  
-**Implementation status:** Phase 1–4 implemented (see PHASE-*-IMPLEMENTATION.md). Phase 5 (PI Planning) not started.
+**Phase:** 0–5 product foundation + implementation  
+**Status:** Source of truth for product/architecture; implementation through Phase 5 PI Planning  
+**Implementation status:** Phase 1–5 implemented (see PHASE-*-IMPLEMENTATION.md). Phase 6 (executive attention / audit hardening) not started.
 
 This directory is the product and architecture source of truth for the Management & PI Planning Platform.
 
@@ -51,9 +51,10 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [PHASE-2-IMPLEMENTATION.md](./PHASE-2-IMPLEMENTATION.md) | Phase 2 initiative / demand / requirements / pre-study |
 | [PHASE-3-IMPLEMENTATION.md](./PHASE-3-IMPLEMENTATION.md) | Phase 3 governance, approvals, decisions, PoC |
 | [PHASE-4-IMPLEMENTATION.md](./PHASE-4-IMPLEMENTATION.md) | Phase 4 Pilot, scale decisions, project conversion |
+| [PHASE-5-IMPLEMENTATION.md](./PHASE-5-IMPLEMENTATION.md) | Phase 5 PI Planning, capacity, dependencies, baselines |
 | [LOCAL-DEVELOPMENT.md](./LOCAL-DEVELOPMENT.md) | Local Docker/Postgres workflow |
 | [DEPLOYMENT-VERCEL.md](./DEPLOYMENT-VERCEL.md) | Vercel readiness (portable architecture) |
-| [adr/](./adr/) | Architecture Decision Records (incl. ADR-005–011 Phases 3–4) |
+| [adr/](./adr/) | Architecture Decision Records (incl. ADR-005–017 Phases 3–5) |
 
 ---
 
@@ -65,7 +66,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 4. Read **PI-PLANNING-MODEL** and **ROLES-AND-PERMISSIONS** for planning and access.
 5. Read **ARCHITECTURE** and **MVP-ROADMAP** before any implementation planning.
 6. Check **OPEN-QUESTIONS** before converting recommendations into requirements.
-7. Read **PHASE-4-IMPLEMENTATION** for the current Pilot / project-conversion vertical slice.
+7. Read **PHASE-5-IMPLEMENTATION** for the current PI Planning vertical slice.
 
 ### Classification markers used across docs
 
