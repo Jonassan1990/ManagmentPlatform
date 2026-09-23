@@ -5,6 +5,54 @@ import { isDevAuthEnabled, getEnv } from "@/server/env";
 
 export const dynamic = "force-dynamic";
 
+function MetricTile({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: number;
+  href?: string;
+}) {
+  const body = (
+    <>
+      <p className="text-sm text-[var(--muted)]">{label}</p>
+      <p className="mt-1 font-[family-name:var(--font-display)] text-3xl">
+        {value}
+      </p>
+    </>
+  );
+
+  return (
+    <Panel>
+      {href ? (
+        <Link href={href} className="block rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          {body}
+        </Link>
+      ) : (
+        body
+      )}
+    </Panel>
+  );
+}
+
+function MetricSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h2 className="mb-2 text-sm font-medium tracking-wide text-[var(--muted)]">
+        {title}
+      </h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    </section>
+  );
+}
+
 export default async function HomePage() {
   let principalAvailable = false;
   let authHint: string | null = null;
@@ -103,83 +151,159 @@ export default async function HomePage() {
           }
         />
       ) : (
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { label: "Active initiatives", value: metrics.activeInitiatives },
-              { label: "In Demand", value: metrics.demand },
-              { label: "In Requirements", value: metrics.requirements },
-              { label: "In Pre-study", value: metrics.preStudy },
-              { label: "In PoC", value: metrics.poc },
-              { label: "In Pilot", value: metrics.pilot },
-              { label: "In Project", value: metrics.project },
-              { label: "Needs attention", value: metrics.needsAttention },
-              {
-                label: "Ready for governance review",
-                value: metrics.readyForGovernance,
-              },
-              {
-                label: "Waiting for approval",
-                value: metrics.waitingForApproval,
-              },
-              {
-                label: "Waiting for decision",
-                value: metrics.waitingForDecision,
-              },
-              {
-                label: "Changes requested",
-                value: metrics.changesRequested,
-              },
-              { label: "Active PoCs", value: metrics.activePocs },
-              {
-                label: "PoCs ready for decision",
-                value: metrics.pocsReadyForDecision,
-              },
-              { label: "Active Pilots", value: metrics.activePilots },
-              {
-                label: "Pilots ready for decision",
-                value: metrics.pilotsReadyForDecision,
-              },
-              {
-                label: "Scale decisions waiting",
-                value: metrics.scaleDecisionsWaiting,
-              },
-              { label: "Projects", value: metrics.projects },
-              { label: "Projects at risk", value: metrics.projectsAtRisk },
-              {
-                label: "Outstanding conditions",
-                value: metrics.outstandingConditions,
-              },
-              {
-                label: "Outstanding scale conditions",
-                value: metrics.outstandingScaleConditions,
-              },
-              {
-                label: "Upcoming milestones (14d)",
-                value: metrics.upcomingMilestones,
-              },
-              {
-                label: "Program Increments",
-                value: piMetrics.programIncrements,
-              },
-              { label: "PIs in planning/draft", value: piMetrics.piPlanning },
-              { label: "PIs in review", value: piMetrics.piInReview },
-              { label: "PIs baselined", value: piMetrics.piBaselined },
-              { label: "PIs active", value: piMetrics.piActive },
-              { label: "PIs needing attention", value: piMetrics.piNeedsAttention },
-              {
-                label: "PI blocker conflicts",
-                value: piMetrics.piBlockerConflicts,
-              },
-            ].map((item) => (
-              <Panel key={item.label}>
-                <p className="text-sm text-[var(--muted)]">{item.label}</p>
-                <p className="mt-1 font-[family-name:var(--font-display)] text-3xl">
-                  {item.value}
-                </p>
-              </Panel>
-            ))}
-          </div>
+        <div className="space-y-6">
+          <MetricSection title="Lifecycle">
+            <MetricTile
+              label="Active initiatives"
+              value={metrics.activeInitiatives}
+              href="/initiatives"
+            />
+            <MetricTile
+              label="In Demand"
+              value={metrics.demand}
+              href="/initiatives?stage=DEMAND"
+            />
+            <MetricTile
+              label="In Requirements"
+              value={metrics.requirements}
+              href="/initiatives?stage=REQUIREMENTS"
+            />
+            <MetricTile
+              label="In Pre-study"
+              value={metrics.preStudy}
+              href="/initiatives?stage=PRE_STUDY"
+            />
+            <MetricTile
+              label="In PoC"
+              value={metrics.poc}
+              href="/initiatives"
+            />
+            <MetricTile
+              label="In Pilot"
+              value={metrics.pilot}
+              href="/initiatives"
+            />
+            <MetricTile
+              label="In Project"
+              value={metrics.project}
+              href="/initiatives"
+            />
+            <MetricTile
+              label="Needs attention"
+              value={metrics.needsAttention}
+              href="/initiatives"
+            />
+          </MetricSection>
+
+          <MetricSection title="Governance">
+            <MetricTile
+              label="Ready for governance review"
+              value={metrics.readyForGovernance}
+            />
+            <MetricTile
+              label="Waiting for approval"
+              value={metrics.waitingForApproval}
+              href="/approvals"
+            />
+            <MetricTile
+              label="Waiting for decision"
+              value={metrics.waitingForDecision}
+              href="/decisions"
+            />
+            <MetricTile
+              label="Changes requested"
+              value={metrics.changesRequested}
+            />
+            <MetricTile
+              label="Outstanding conditions"
+              value={metrics.outstandingConditions}
+            />
+            <MetricTile
+              label="Outstanding scale conditions"
+              value={metrics.outstandingScaleConditions}
+            />
+          </MetricSection>
+
+          <MetricSection title="Delivery">
+            <MetricTile
+              label="Active PoCs"
+              value={metrics.activePocs}
+              href="/initiatives"
+            />
+            <MetricTile
+              label="PoCs ready for decision"
+              value={metrics.pocsReadyForDecision}
+              href="/decisions"
+            />
+            <MetricTile
+              label="Active Pilots"
+              value={metrics.activePilots}
+              href="/initiatives"
+            />
+            <MetricTile
+              label="Pilots ready for decision"
+              value={metrics.pilotsReadyForDecision}
+              href="/decisions"
+            />
+            <MetricTile
+              label="Scale decisions waiting"
+              value={metrics.scaleDecisionsWaiting}
+              href="/decisions"
+            />
+            <MetricTile
+              label="Projects"
+              value={metrics.projects}
+              href="/initiatives"
+            />
+            <MetricTile
+              label="Projects at risk"
+              value={metrics.projectsAtRisk}
+              href="/initiatives"
+            />
+            <MetricTile
+              label="Upcoming milestones (14d)"
+              value={metrics.upcomingMilestones}
+            />
+          </MetricSection>
+
+          <MetricSection title="PI Planning">
+            <MetricTile
+              label="Program Increments"
+              value={piMetrics.programIncrements}
+              href="/pi"
+            />
+            <MetricTile
+              label="PIs in planning/draft"
+              value={piMetrics.piPlanning}
+              href="/pi"
+            />
+            <MetricTile
+              label="PIs in review"
+              value={piMetrics.piInReview}
+              href="/pi"
+            />
+            <MetricTile
+              label="PIs baselined"
+              value={piMetrics.piBaselined}
+              href="/pi"
+            />
+            <MetricTile
+              label="PIs active"
+              value={piMetrics.piActive}
+              href="/pi"
+            />
+            <MetricTile
+              label="PIs needing attention"
+              value={piMetrics.piNeedsAttention}
+              href="/pi"
+            />
+            <MetricTile
+              label="PI blocker conflicts"
+              value={piMetrics.piBlockerConflicts}
+              href="/pi"
+            />
+          </MetricSection>
+
           <Panel>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-[var(--muted)]">

@@ -251,6 +251,21 @@ export default async function ProjectPage({
             </div>
 
             <div className="space-y-4">
+              <Panel>
+                <h2 className="mb-2 font-medium">Plan delivery</h2>
+                <p className="text-sm text-[var(--muted)]">
+                  Work items belong on this project. Plan them into Program
+                  Increments in PI Planning — capacity, sequencing, and
+                  commitments live there.
+                </p>
+                <Link
+                  href="/pi"
+                  className="mt-3 inline-block rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                >
+                  Open PI Planning
+                </Link>
+              </Panel>
+
               <TraceabilityPanel
                 initiativeId={item.id}
                 demand={trace.demand}

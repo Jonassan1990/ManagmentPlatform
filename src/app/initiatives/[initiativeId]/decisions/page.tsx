@@ -63,6 +63,61 @@ export default async function InitiativeDecisionsPage({
       .map((c) => ({ decision: d, condition: c })),
   );
 
+  const latestDecision = decisions[0] ?? null;
+  const latestGateType =
+    latestDecision != null
+      ? (item.governanceGates.find((g) => g.id === latestDecision.gateId)
+          ?.gateType ?? null)
+      : null;
+  const latestBlockingOpen =
+    latestDecision != null
+      ? (latestDecision.conditions ?? []).filter(
+          (c) => c.requiredBeforeProgression && c.status === "OPEN",
+        ).length
+      : 0;
+  const conditionsClear = latestBlockingOpen === 0;
+  const overviewHref = `/initiatives/${item.id}`;
+  const nextAction =
+    latestDecision && latestGateType === "PRE_STUDY_GATE" &&
+    (latestDecision.outcome === "GO" ||
+      latestDecision.outcome === "CONDITIONAL_GO") &&
+    conditionsClear &&
+    !item.poc
+      ? {
+          label: "Next: Create PoC on initiative overview",
+          href: overviewHref,
+          hint: "Pre-study decision allows PoC. Open the overview to create the PoC definition.",
+        }
+      : latestDecision &&
+          latestGateType === "POC_GATE" &&
+          (latestDecision.outcome === "GO" ||
+            latestDecision.outcome === "CONDITIONAL_GO") &&
+          conditionsClear &&
+          !item.pilot
+        ? {
+            label: "Next: Create Pilot on initiative overview",
+            href: overviewHref,
+            hint: "PoC decision allows Pilot. Open the overview (or PoC workspace) to create the Pilot.",
+          }
+        : latestDecision &&
+            latestGateType === "PILOT_GATE" &&
+            (latestDecision.outcome === "SCALE" ||
+              latestDecision.outcome === "CONDITIONAL_SCALE") &&
+            conditionsClear &&
+            !item.project
+          ? {
+              label: "Next: Convert to Project from Pilot workspace",
+              href: `/initiatives/${item.id}/pilot`,
+              hint: "Scale decision allows Project conversion. Convert is an explicit action on the Pilot page or overview.",
+            }
+          : latestDecision && !conditionsClear
+            ? {
+                label: "Resolve open conditions first",
+                href: `#conditions`,
+                hint: "Blocking conditions must be closed before the next lifecycle step.",
+              }
+            : null;
+
   return (
     <div>
       <Breadcrumbs
@@ -173,6 +228,40 @@ export default async function InitiativeDecisionsPage({
         <div className="space-y-4">
           <Panel>
             <h2 className="mb-2 font-medium">What happens after?</h2>
+            {nextAction ? (
+              <div className="mb-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-3">
+                <p className="text-sm text-[var(--muted)]">{nextAction.hint}</p>
+                <Link
+                  href={nextAction.href}
+                  className="mt-3 inline-block rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                >
+                  {nextAction.label}
+                </Link>
+                {nextAction.href === overviewHref &&
+                latestGateType === "POC_GATE" ? (
+                  <Link
+                    href={`/initiatives/${item.id}/poc`}
+                    className="mt-2 ml-3 inline-block text-sm text-[var(--accent)] underline"
+                  >
+                    Or open PoC workspace
+                  </Link>
+                ) : null}
+                {nextAction.href.endsWith("/pilot") ? (
+                  <Link
+                    href={overviewHref}
+                    className="mt-2 ml-3 inline-block text-sm text-[var(--accent)] underline"
+                  >
+                    Or open overview
+                  </Link>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mb-3 text-sm text-[var(--muted)]">
+                {latestDecision
+                  ? "No further create/convert step is waiting on this decision."
+                  : "Record a decision to unlock the next lifecycle step."}
+              </p>
+            )}
             <ul className="space-y-2 text-sm text-[var(--muted)]">
               <li>
                 <span className={statusToneClass("GO")}>Go</span> — proceed
@@ -211,6 +300,7 @@ export default async function InitiativeDecisionsPage({
             </ul>
           </Panel>
 
+          <div id="conditions">
           <Panel>
             <h2 className="mb-3 font-medium">Conditions to resolve</h2>
             {openConditions.length === 0 ? (
@@ -243,6 +333,7 @@ export default async function InitiativeDecisionsPage({
               </div>
             )}
           </Panel>
+          </div>
         </div>
       </div>
     </div>

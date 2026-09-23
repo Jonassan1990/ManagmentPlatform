@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="font-[family-name:var(--font-display)] text-lg tracking-tight text-white">
               Management Platform
             </p>
-            <p className="text-xs text-white/60">Phase 5 PI planning</p>
+            <p className="text-xs text-white/60">Through Phase 5</p>
           </div>
         </div>
         <nav className="space-y-1 p-3" aria-label="Primary">
@@ -58,19 +58,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
-          {governancePolicyHref ? (
-            <Link
-              href={governancePolicyHref}
-              onClick={() => setOpen(false)}
-              className={`block rounded-md px-3 py-2 text-sm ${
-                pathname.includes("/governance-policy")
-                  ? "bg-[var(--sidebar-active)] text-white"
-                  : "hover:bg-white/5"
-              }`}
-            >
-              Governance policy
-            </Link>
-          ) : null}
+          <Link
+            href={governancePolicyHref ?? "/organization"}
+            onClick={() => setOpen(false)}
+            className={`block rounded-md px-3 py-2 text-sm text-white/80 ${
+              pathname.includes("/governance-policy")
+                ? "bg-[var(--sidebar-active)] text-white"
+                : "hover:bg-white/5"
+            }`}
+          >
+            Governance policy
+          </Link>
         </nav>
       </aside>
 
