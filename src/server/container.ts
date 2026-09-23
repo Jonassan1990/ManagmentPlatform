@@ -3,6 +3,7 @@ import { AuthorizationService } from "@/modules/identity-access/application/auth
 import { GovernanceService } from "@/modules/governance/application/governance-service";
 import { InitiativeService } from "@/modules/initiative/application/initiative-service";
 import { OrganizationService } from "@/modules/organization/application/organization-service";
+import { PlanningService } from "@/modules/pi-planning/application/planning-service";
 import { ProjectService } from "@/modules/project/application/project-service";
 import { prisma } from "@/server/db";
 
@@ -11,6 +12,7 @@ export function createServices() {
   const audit = new AuditService(prisma);
   const governance = new GovernanceService(prisma, authz, audit);
   const project = new ProjectService(prisma, authz, audit);
+  const planning = new PlanningService(prisma, authz, audit);
   return {
     authz,
     audit,
@@ -18,6 +20,7 @@ export function createServices() {
     initiative: new InitiativeService(prisma, authz, audit, governance),
     governance,
     project,
+    planning,
   };
 }
 

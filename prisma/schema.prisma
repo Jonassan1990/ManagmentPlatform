@@ -42,6 +42,10 @@ model Organization {
   projects     Project[]
   referenceCounter InitiativeReferenceCounter?
   projectReferenceCounter ProjectReferenceCounter?
+  // Phase 5 — PI Planning
+  programIncrements ProgramIncrement[]
+  piReferenceCounter PiReferenceCounter?
+  planningDependencies PlanningDependency[]
 
   @@index([status])
   @@map("organizations")
@@ -59,6 +63,7 @@ model Section {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   departments  Department[]
+  programIncrements ProgramIncrement[]
 
   @@unique([organizationId, name])
   @@index([organizationId, status])
@@ -80,6 +85,7 @@ model Department {
   initiatives Initiative[]
   projectsOwned Project[]
   projectParticipations ProjectParticipatingDepartment[]
+  piParticipations PiParticipatingDepartment[]
 
   @@unique([sectionId, name])
   @@index([sectionId, status])
@@ -98,6 +104,8 @@ model Team {
 
   department  Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   memberships ResourceMembership[]
+  piParticipations PiParticipatingTeam[]
+  workAllocations WorkAllocation[]
 
   @@unique([departmentId, name])
   @@index([departmentId, status])
@@ -121,6 +129,8 @@ model Resource {
 
   organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   memberships  ResourceMembership[]
+  availabilities ResourceAvailability[]
+  workAllocations WorkAllocation[]
 
   @@unique([organizationId, referenceCode])
   @@index([organizationId, status])
@@ -128,15 +138,19 @@ model Resource {
 }
 
 /// Explicit membership enables future multi-team membership without embedding a single teamId on Resource.
+/// allocationPercent splits capacity across teams; active memberships for a resource must sum ≤ 100
+/// (validated on set) so multi-team capacity is not double-counted.
 model ResourceMembership {
-  id            String    @id @default(uuid()) @db.Uuid
-  resourceId    String    @db.Uuid
-  teamId        String    @db.Uuid
-  isPrimary     Boolean   @default(false)
-  effectiveFrom DateTime  @default(now())
-  effectiveTo   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(uuid()) @db.Uuid
+  resourceId       String    @db.Uuid
+  teamId           String    @db.Uuid
+  isPrimary        Boolean   @default(false)
+  /// Share of resource.capacityHoursPerWeek attributable to this team (canonical capacity unit = hours).
+  allocationPercent Decimal  @default(100) @db.Decimal(5, 2)
+  effectiveFrom    DateTime  @default(now())
+  effectiveTo      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   resource Resource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -1285,9 +1299,283 @@ model ProjectWorkItem {
   project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent   ProjectWorkItem? @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children ProjectWorkItem[] @relation("WorkItemHierarchy")
+  /// Phase 5 — allocations REFERENCE this work item; never copy fields into PI rows.
+  allocations WorkAllocation[]
 
   @@unique([projectId, referenceKey])
   @@index([projectId, status])
   @@index([parentId])
   @@map("project_work_items")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5 — Program Increment (PI) Planning
+//
+// Design decisions (ADR forthcoming):
+// 1. Canonical capacity unit = hours (Decimal). WorkItem.estimateHours already
+//    exists — do not mix story points with hours in planning math.
+// 2. WorkItem remains ProjectWorkItem; WorkAllocation references it, never copies.
+// 3. Milestone/Risk stay on Initiative/Project; PI views link by id, never duplicate.
+// 4. Dependencies are canonical PlanningDependency entities (WI→WI, Project→Project).
+// 5. Multi-team capacity uses ResourceMembership.allocationPercent (sum ≤ 100).
+// 6. Utilization = plannedLoad / effectiveCapacity; thresholds in capacity-policy.ts.
+// 7. PiBaseline rows are immutable payloads; rebaseline creates a new version.
+// 8. PlanningRevision supports CURRENT + future Scenario A/B; MVP uses CURRENT only.
+// 9. Planning conflicts are DERIVED on read (no PlanningConflictCache in MVP) to
+//    avoid stale overload signals — see conflict-engine.ts.
+// ---------------------------------------------------------------------------
+
+enum PiStatus {
+  DRAFT
+  PLANNING
+  REVIEW
+  BASELINED
+  ACTIVE
+  CLOSED
+}
+
+enum DependencyType {
+  BLOCKS
+  DEPENDS_ON
+  RELATED
+}
+
+enum DependencyStatus {
+  OPEN
+  RESOLVED
+  ACCEPTED
+  CANCELLED
+}
+
+enum DependencyCriticality {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DependencySubjectType {
+  WORK_ITEM
+  PROJECT
+}
+
+enum PlanningConflictType {
+  TEAM_OVERLOAD
+  RESOURCE_OVERLOAD
+  DEPENDENCY_TIMING
+  MILESTONE_TIMING
+  OUTSIDE_PROJECT_DATES
+  OUTSIDE_PI_DATES
+  OUTSIDE_ITERATION_DATES
+  RESOURCE_ALLOCATION_CONFLICT
+}
+
+enum PlanningConflictSeverity {
+  INFO
+  WARNING
+  BLOCKER
+}
+
+model ProgramIncrement {
+  id                String    @id @default(uuid()) @db.Uuid
+  organizationId    String    @db.Uuid
+  sectionId         String?   @db.Uuid
+  referenceKey      String    @db.VarChar(40)
+  name              String    @db.VarChar(300)
+  description       String?   @db.VarChar(8000)
+  startDate         DateTime
+  endDate           DateTime
+  status            PiStatus  @default(DRAFT)
+  /// Free-text planning owner — not a Principal FK.
+  planningOwnerName String?   @db.VarChar(200)
+  version           Int       @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization              Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  section                   Section?                   @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  iterations                PiIteration[]
+  participatingDepartments  PiParticipatingDepartment[]
+  participatingTeams        PiParticipatingTeam[]
+  revisions                 PlanningRevision[]
+  baselines                 PiBaseline[]
+
+  @@unique([organizationId, referenceKey])
+  @@index([organizationId, status])
+  @@index([sectionId])
+  @@map("program_increments")
+}
+
+model PiReferenceCounter {
+  organizationId String @id @db.Uuid
+  nextValue      Int    @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("pi_reference_counters")
+}
+
+model PiIteration {
+  id           String   @id @default(uuid()) @db.Uuid
+  piId         String   @db.Uuid
+  referenceKey String   @db.VarChar(40)
+  name         String   @db.VarChar(200)
+  sequence     Int
+  startDate    DateTime
+  endDate      DateTime
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pi              ProgramIncrement       @relation(fields: [piId], references: [id], onDelete: Cascade)
+  allocations     WorkAllocation[]
+  availabilities  ResourceAvailability[]
+
+  @@unique([piId, sequence])
+  @@unique([piId, referenceKey])
+  @@index([piId, startDate, endDate])
+  @@map("pi_iterations")
+}
+
+model PiParticipatingDepartment {
+  id                String  @id @default(uuid()) @db.Uuid
+  piId              String  @db.Uuid
+  departmentId      String  @db.Uuid
+  planningOwnerName String? @db.VarChar(200)
+  createdAt         DateTime @default(now())
+
+  pi         ProgramIncrement @relation(fields: [piId], references: [id], onDelete: Cascade)
+  department Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+
+  @@unique([piId, departmentId])
+  @@index([departmentId])
+  @@map("pi_participating_departments")
+}
+
+model PiParticipatingTeam {
+  id           String @id @default(uuid()) @db.Uuid
+  piId         String @db.Uuid
+  teamId       String @db.Uuid
+  departmentId String @db.Uuid
+  createdAt    DateTime @default(now())
+
+  pi   ProgramIncrement @relation(fields: [piId], references: [id], onDelete: Cascade)
+  team Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+
+  @@unique([piId, teamId])
+  @@index([departmentId])
+  @@map("pi_participating_teams")
+}
+
+/// Scenario foundation: MVP uses key='CURRENT' with isCurrent=true.
+/// Future Scenario A/B rows share the same shape; allocations belong to a revision.
+model PlanningRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  piId      String   @db.Uuid
+  key       String   @db.VarChar(40)
+  label     String?  @db.VarChar(200)
+  isCurrent Boolean  @default(false)
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+
+  pi          ProgramIncrement @relation(fields: [piId], references: [id], onDelete: Cascade)
+  allocations WorkAllocation[]
+  baselines   PiBaseline[]
+
+  @@unique([piId, key])
+  @@index([piId, isCurrent])
+  @@map("planning_revisions")
+}
+
+/// One active placement per work item per revision (@@unique revisionId+workItemId).
+model WorkAllocation {
+  id           String   @id @default(uuid()) @db.Uuid
+  revisionId   String   @db.Uuid
+  workItemId   String   @db.Uuid
+  iterationId  String   @db.Uuid
+  teamId       String   @db.Uuid
+  resourceId   String?  @db.Uuid
+  /// Planned load in hours — canonical capacity unit.
+  plannedHours Decimal  @db.Decimal(10, 2)
+  notes        String?  @db.VarChar(4000)
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  revision  PlanningRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  workItem  ProjectWorkItem  @relation(fields: [workItemId], references: [id], onDelete: Restrict)
+  iteration PiIteration      @relation(fields: [iterationId], references: [id], onDelete: Restrict)
+  team      Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  resource  Resource?        @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+
+  @@unique([revisionId, workItemId])
+  @@index([iterationId, teamId])
+  @@index([resourceId])
+  @@map("work_allocations")
+}
+
+/// Per-iteration availability overrides. Prefer iterationId uniqueness for MVP;
+/// availableHours replaces weekly derivation when set; reductionHours subtracts.
+model ResourceAvailability {
+  id             String   @id @default(uuid()) @db.Uuid
+  resourceId     String   @db.Uuid
+  iterationId    String   @db.Uuid
+  availableHours Decimal? @db.Decimal(10, 2)
+  reductionHours Decimal  @default(0) @db.Decimal(10, 2)
+  notes          String?  @db.VarChar(2000)
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  resource  Resource    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  iteration PiIteration @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, iterationId])
+  @@index([iterationId])
+  @@map("resource_availabilities")
+}
+
+/// Canonical dependency — modules project/read; never fork rows into PI/project modules.
+model PlanningDependency {
+  id             String                 @id @default(uuid()) @db.Uuid
+  organizationId String                 @db.Uuid
+  type           DependencyType
+  status         DependencyStatus       @default(OPEN)
+  criticality    DependencyCriticality  @default(MEDIUM)
+  sourceType     DependencySubjectType
+  sourceId       String                 @db.Uuid
+  targetType     DependencySubjectType
+  targetId       String                 @db.Uuid
+  ownerName      String?                @db.VarChar(200)
+  neededByDate   DateTime?
+  description    String?                @db.VarChar(4000)
+  version        Int                    @default(1)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceType, sourceId, targetType, targetId, type])
+  @@index([organizationId, status])
+  @@index([targetType, targetId])
+  @@map("planning_dependencies")
+}
+
+/// Immutable baseline snapshot. Never mutate payload after insert — rebaseline = new versionNumber.
+model PiBaseline {
+  id                   String   @id @default(uuid()) @db.Uuid
+  piId                 String   @db.Uuid
+  versionNumber        Int
+  createdByPrincipalId String?  @db.Uuid
+  createdAt            DateTime @default(now())
+  label                String?  @db.VarChar(200)
+  payload              Json
+  revisionIdCaptured   String?  @db.Uuid
+
+  pi       ProgramIncrement  @relation(fields: [piId], references: [id], onDelete: Cascade)
+  revision PlanningRevision? @relation(fields: [revisionIdCaptured], references: [id], onDelete: SetNull)
+
+  @@unique([piId, versionNumber])
+  @@index([piId, createdAt])
+  @@map("pi_baselines")
 }

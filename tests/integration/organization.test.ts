@@ -27,6 +27,18 @@ function principal(id = randomUUID()): Principal {
 
 async function resetDb() {
   await db.auditEvent.deleteMany();
+  // Phase 5 PI Planning — FK-safe order (workAllocation before work items/teams)
+  await db.workAllocation.deleteMany();
+  await db.resourceAvailability.deleteMany();
+  await db.planningDependency.deleteMany();
+  await db.piBaseline.deleteMany();
+  await db.planningRevision.deleteMany();
+  await db.piParticipatingTeam.deleteMany();
+  await db.piParticipatingDepartment.deleteMany();
+  await db.piIteration.deleteMany();
+  await db.programIncrement.deleteMany();
+  await db.piReferenceCounter.deleteMany();
+  // ResourceMembership.allocationPercent is a column on membership rows (deleted below)
   await db.roleBinding.deleteMany();
   await db.resourceMembership.deleteMany();
   await db.resource.deleteMany();

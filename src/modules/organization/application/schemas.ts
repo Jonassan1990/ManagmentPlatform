@@ -111,6 +111,13 @@ export const assignMembershipInputSchema = z.object({
   resourceId: uuidSchema,
   teamId: uuidSchema,
   isPrimary: z.boolean().default(false),
+  /** Share of weekly capacity for this team; active memberships must sum ≤ 100. */
+  allocationPercent: z
+    .union([z.string(), z.number()])
+    .optional()
+    .default(100)
+    .transform((v) => Number(v))
+    .pipe(z.number().min(0).max(100)),
 });
 
 export const archiveEntityInputSchema = z.object({
