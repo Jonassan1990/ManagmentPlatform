@@ -31,6 +31,17 @@ function principal(id = randomUUID()): Principal {
 
 async function resetDb() {
   await db.auditEvent.deleteMany();
+  // Phase 4 Pilot / Project — children before parents (FK Restrict edges)
+  await db.pilotFeedback.deleteMany();
+  await db.pilotCriterion.deleteMany();
+  await db.pilotExtension.deleteMany();
+  await db.pilot.deleteMany();
+  await db.projectWorkItem.deleteMany();
+  await db.projectMilestone.deleteMany();
+  await db.projectParticipatingDepartment.deleteMany();
+  await db.project.deleteMany();
+  await db.projectReferenceCounter.deleteMany();
+  // Phase 3 governance / PoC
   await db.approvalRecord.deleteMany();
   await db.approvalRequest.deleteMany();
   await db.evidenceEntry.deleteMany();

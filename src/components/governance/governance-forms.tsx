@@ -20,9 +20,39 @@ import {
   PrimaryButton,
   SecondaryButton,
   fieldClassName,
+  permissionTitle,
   useActionForm,
 } from "@/components/ui/forms";
 import { POC_STATUS_ORDER } from "@/modules/governance/application/poc-readiness-policy";
+import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
+
+type Caps = Partial<PrincipalCapabilities>;
+
+export type DecisionOutcomeOption = {
+  value: string;
+  label: string;
+};
+
+export const PRE_STUDY_POC_OUTCOMES: DecisionOutcomeOption[] = [
+  { value: "GO", label: "Go" },
+  { value: "CONDITIONAL_GO", label: "Conditional go" },
+  { value: "NO_GO", label: "No-go" },
+  { value: "HOLD", label: "Hold" },
+];
+
+export const PILOT_GATE_OUTCOMES: DecisionOutcomeOption[] = [
+  { value: "SCALE", label: "Scale" },
+  { value: "EXTEND_PILOT", label: "Extend pilot" },
+  { value: "CONDITIONAL_SCALE", label: "Conditional scale" },
+  { value: "STOP", label: "Stop" },
+  { value: "HOLD", label: "Hold" },
+];
+
+export function outcomesForGateType(
+  gateType: string | null | undefined,
+): DecisionOutcomeOption[] {
+  return gateType === "PILOT_GATE" ? PILOT_GATE_OUTCOMES : PRE_STUDY_POC_OUTCOMES;
+}
 
 function optionalText(value: FormDataEntryValue | null): string | null {
   const text = String(value ?? "").trim();
@@ -45,12 +75,15 @@ export function SubmitPreStudyButton({
   initiativeId,
   expectedInitiativeVersion,
   disabled,
+  capabilities,
 }: {
   initiativeId: string;
   expectedInitiativeVersion?: number;
   disabled?: boolean;
+  capabilities?: Caps;
 }) {
   const form = useActionForm(submitPreStudyForGovernanceAction);
+  const allowed = capabilities?.canSubmitGovernance !== false;
   return (
     <div className="space-y-2">
       {form.ErrorAlert}
@@ -60,7 +93,8 @@ export function SubmitPreStudyButton({
       </p>
       <PrimaryButton
         type="button"
-        disabled={disabled || form.pending}
+        disabled={disabled || !allowed || form.pending}
+        title={permissionTitle(allowed)}
         onClick={() =>
           form.submit({
             initiativeId,
@@ -78,11 +112,14 @@ export function SubmitPreStudyButton({
 export function SubmitPoCButton({
   initiativeId,
   disabled,
+  capabilities,
 }: {
   initiativeId: string;
   disabled?: boolean;
+  capabilities?: Caps;
 }) {
   const form = useActionForm(submitPoCForGovernanceAction);
+  const allowed = capabilities?.canSubmitGovernance !== false;
   return (
     <div className="space-y-2">
       {form.ErrorAlert}
@@ -92,7 +129,8 @@ export function SubmitPoCButton({
       </p>
       <PrimaryButton
         type="button"
-        disabled={disabled || form.pending}
+        disabled={disabled || !allowed || form.pending}
+        title={permissionTitle(allowed)}
         onClick={() => form.submit({ initiativeId, notes: null })}
       >
         {form.pending ? "Submitting…" : "Submit PoC for governance"}
@@ -104,11 +142,14 @@ export function SubmitPoCButton({
 export function ReviseSubmissionButton({
   previousSubmissionId,
   initiativeId,
+  capabilities,
 }: {
   previousSubmissionId: string;
   initiativeId: string;
+  capabilities?: Caps;
 }) {
   const form = useActionForm(reviseGovernanceSubmissionAction);
+  const allowed = capabilities?.canSubmitGovernance !== false;
   return (
     <div className="space-y-2">
       {form.ErrorAlert}
@@ -118,7 +159,8 @@ export function ReviseSubmissionButton({
       </p>
       <PrimaryButton
         type="button"
-        disabled={form.pending}
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
         onClick={() =>
           form.submit({
             previousSubmissionId,
@@ -138,18 +180,22 @@ export function ApprovalDecisionForm({
   expectedVersion,
   initiativeId,
   label,
+  capabilities,
 }: {
   approvalRequestId: string;
   expectedVersion: number;
   initiativeId: string;
   label?: string;
+  capabilities?: Caps;
 }) {
   const form = useActionForm(recordApprovalAction);
+  const allowed = capabilities?.canReviewApprovals !== false;
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!allowed) return;
         const fd = new FormData(e.currentTarget);
         form.submit({
           approvalRequestId,
@@ -176,6 +222,7 @@ export function ApprovalDecisionForm({
           required
           className={fieldClassName}
           defaultValue="APPROVED"
+          disabled={!allowed}
         >
           <option value="APPROVED">Approve</option>
           <option value="REJECTED">Reject</option>
@@ -189,6 +236,7 @@ export function ApprovalDecisionForm({
           rows={2}
           className={fieldClassName}
           placeholder="What did you review, and why this outcome?"
+          disabled={!allowed}
         />
       </FormField>
       <FormField
@@ -200,9 +248,13 @@ export function ApprovalDecisionForm({
           name="conditionsText"
           rows={2}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
-      <PrimaryButton disabled={form.pending}>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
         {form.pending ? "Recording…" : "Record approval"}
       </PrimaryButton>
     </form>
@@ -222,21 +274,34 @@ export function RecordDecisionForm({
   expectedPackageVersion,
   question,
   recommendationText,
+  allowedOutcomes,
+  capabilities,
 }: {
   submissionId: string;
   expectedPackageVersion: number;
   question?: string | null;
   recommendationText?: string | null;
+  /** Outcomes permitted for this gate. Defaults to pre-study / PoC outcomes. */
+  allowedOutcomes?: DecisionOutcomeOption[];
+  capabilities?: Caps;
 }) {
+  const outcomes = allowedOutcomes?.length
+    ? allowedOutcomes
+    : PRE_STUDY_POC_OUTCOMES;
   const form = useActionForm(recordDecisionAction);
-  const [outcome, setOutcome] = useState("GO");
+  const allowed = capabilities?.canMakeDecisions !== false;
+  const [outcome, setOutcome] = useState(outcomes[0]?.value ?? "GO");
   const [conditions, setConditions] = useState<ConditionDraft[]>([]);
+  const needsConditions =
+    outcome === "CONDITIONAL_GO" || outcome === "CONDITIONAL_SCALE";
+  const needsExtension = outcome === "EXTEND_PILOT";
 
   return (
     <form
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!allowed) return;
         const fd = new FormData(e.currentTarget);
         form.submit({
           submissionId,
@@ -244,17 +309,22 @@ export function RecordDecisionForm({
           outcome,
           rationale: String(fd.get("rationale") ?? ""),
           recommendationText: optionalText(fd.get("recommendationText")),
-          conditions:
-            outcome === "CONDITIONAL_GO"
-              ? conditions
-                  .filter((c) => c.description.trim())
-                  .map((c) => ({
-                    description: c.description.trim(),
-                    ownerName: c.ownerName.trim() || null,
-                    dueDate: c.dueDate ? new Date(c.dueDate) : null,
-                    requiredBeforeProgression: c.requiredBeforeProgression,
-                  }))
-              : [],
+          conditions: needsConditions
+            ? conditions
+                .filter((c) => c.description.trim())
+                .map((c) => ({
+                  description: c.description.trim(),
+                  ownerName: c.ownerName.trim() || null,
+                  dueDate: c.dueDate ? new Date(c.dueDate) : null,
+                  requiredBeforeProgression: c.requiredBeforeProgression,
+                }))
+            : [],
+          extension: needsExtension
+            ? {
+                newPlannedEnd: new Date(String(fd.get("newPlannedEnd") ?? "")),
+                reason: String(fd.get("extensionReason") ?? ""),
+              }
+            : undefined,
         });
       }}
     >
@@ -273,12 +343,14 @@ export function RecordDecisionForm({
           name="outcome"
           className={fieldClassName}
           value={outcome}
+          disabled={!allowed}
           onChange={(e) => setOutcome(e.target.value)}
         >
-          <option value="GO">Go</option>
-          <option value="CONDITIONAL_GO">Conditional go</option>
-          <option value="NO_GO">No-go</option>
-          <option value="HOLD">Hold</option>
+          {outcomes.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
         </select>
       </FormField>
       <FormField label="Rationale" htmlFor="decision-rationale">
@@ -289,6 +361,7 @@ export function RecordDecisionForm({
           rows={3}
           className={fieldClassName}
           placeholder="Why this outcome? What evidence mattered?"
+          disabled={!allowed}
         />
       </FormField>
       <FormField
@@ -302,15 +375,44 @@ export function RecordDecisionForm({
           rows={2}
           defaultValue={recommendationText ?? ""}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
 
-      {outcome === "CONDITIONAL_GO" ? (
+      {needsExtension ? (
+        <div className="space-y-3 rounded-md border border-[var(--line)] p-3">
+          <h4 className="text-sm font-medium">Pilot extension</h4>
+          <FormField label="New planned end" htmlFor="extension-end">
+            <input
+              id="extension-end"
+              name="newPlannedEnd"
+              type="date"
+              required
+              className={fieldClassName}
+              disabled={!allowed}
+            />
+          </FormField>
+          <FormField label="Reason" htmlFor="extension-reason">
+            <textarea
+              id="extension-reason"
+              name="extensionReason"
+              required
+              rows={2}
+              className={fieldClassName}
+              disabled={!allowed}
+            />
+          </FormField>
+        </div>
+      ) : null}
+
+      {needsConditions ? (
         <div className="space-y-3 rounded-md border border-[var(--line)] p-3">
           <div className="flex items-center justify-between gap-2">
             <h4 className="text-sm font-medium">Conditions</h4>
             <SecondaryButton
               type="button"
+              disabled={!allowed}
+              title={permissionTitle(allowed)}
               onClick={() =>
                 setConditions((prev) => [
                   ...prev,
@@ -329,7 +431,7 @@ export function RecordDecisionForm({
           </div>
           {conditions.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">
-              Conditional go requires at least one condition that must be
+              Conditional outcomes require at least one condition that must be
               tracked.
             </p>
           ) : (
@@ -348,6 +450,7 @@ export function RecordDecisionForm({
                     rows={2}
                     className={fieldClassName}
                     value={condition.description}
+                    disabled={!allowed}
                     onChange={(e) =>
                       setConditions((prev) =>
                         prev.map((c) =>
@@ -365,6 +468,7 @@ export function RecordDecisionForm({
                       id={`${condition.key}-owner`}
                       className={fieldClassName}
                       value={condition.ownerName}
+                      disabled={!allowed}
                       onChange={(e) =>
                         setConditions((prev) =>
                           prev.map((c) =>
@@ -382,6 +486,7 @@ export function RecordDecisionForm({
                       type="date"
                       className={fieldClassName}
                       value={condition.dueDate}
+                      disabled={!allowed}
                       onChange={(e) =>
                         setConditions((prev) =>
                           prev.map((c) =>
@@ -398,6 +503,7 @@ export function RecordDecisionForm({
                   <input
                     type="checkbox"
                     checked={condition.requiredBeforeProgression}
+                    disabled={!allowed}
                     onChange={(e) =>
                       setConditions((prev) =>
                         prev.map((c) =>
@@ -419,7 +525,10 @@ export function RecordDecisionForm({
         </div>
       ) : null}
 
-      <PrimaryButton disabled={form.pending}>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
         {form.pending ? "Recording…" : "Record decision"}
       </PrimaryButton>
     </form>
@@ -431,18 +540,22 @@ export function ResolveConditionForm({
   expectedVersion,
   initiativeId,
   description,
+  capabilities,
 }: {
   conditionId: string;
   expectedVersion: number;
   initiativeId: string;
   description: string;
+  capabilities?: Caps;
 }) {
   const form = useActionForm(resolveDecisionConditionAction);
+  const allowed = capabilities?.canResolveConditions !== false;
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!allowed) return;
         const fd = new FormData(e.currentTarget);
         form.submit({
           conditionId,
@@ -461,6 +574,7 @@ export function ResolveConditionForm({
           name="status"
           className={fieldClassName}
           defaultValue="RESOLVED"
+          disabled={!allowed}
         >
           <option value="RESOLVED">Resolved</option>
           <option value="WAIVED">Waived</option>
@@ -474,9 +588,13 @@ export function ResolveConditionForm({
           rows={2}
           className={fieldClassName}
           placeholder="How was this condition closed?"
+          disabled={!allowed}
         />
       </FormField>
-      <PrimaryButton disabled={form.pending}>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
         {form.pending ? "Saving…" : "Close condition"}
       </PrimaryButton>
     </form>
@@ -498,13 +616,21 @@ const pocFieldDefaults = {
   dependencyNotes: "" as string | null,
 };
 
-export function CreatePoCForm({ initiativeId }: { initiativeId: string }) {
+export function CreatePoCForm({
+  initiativeId,
+  capabilities,
+}: {
+  initiativeId: string;
+  capabilities?: Caps;
+}) {
   const form = useActionForm(createPoCAction);
+  const allowed = capabilities?.canCreatePoC !== false;
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!allowed) return;
         const fd = new FormData(e.currentTarget);
         form.submit({
           initiativeId,
@@ -530,7 +656,10 @@ export function CreatePoCForm({ initiativeId }: { initiativeId: string }) {
       </p>
       {form.ErrorAlert}
       <PoCFields defaults={pocFieldDefaults} idPrefix="create-poc" />
-      <PrimaryButton disabled={form.pending}>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
         {form.pending ? "Creating…" : "Create PoC"}
       </PrimaryButton>
     </form>
@@ -539,6 +668,7 @@ export function CreatePoCForm({ initiativeId }: { initiativeId: string }) {
 
 export function UpdatePoCForm({
   poc,
+  capabilities,
 }: {
   poc: {
     id: string;
@@ -557,13 +687,16 @@ export function UpdatePoCForm({
     technicalConstraints: string | null;
     dependencyNotes: string | null;
   };
+  capabilities?: Caps;
 }) {
   const form = useActionForm(updatePoCAction);
+  const allowed = capabilities?.canEditPoC !== false;
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!allowed) return;
         const fd = new FormData(e.currentTarget);
         form.submit({
           pocId: poc.id,
@@ -586,7 +719,10 @@ export function UpdatePoCForm({
       <h3 className="font-medium">Update PoC definition</h3>
       {form.ErrorAlert}
       <PoCFields defaults={poc} idPrefix="update-poc" />
-      <PrimaryButton disabled={form.pending}>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
         {form.pending ? "Saving…" : "Save PoC"}
       </PrimaryButton>
     </form>
@@ -725,13 +861,16 @@ export function TransitionPoCButtons({
   initiativeId,
   status,
   expectedVersion,
+  capabilities,
 }: {
   pocId: string;
   initiativeId: string;
   status: (typeof POC_STATUS_ORDER)[number];
   expectedVersion: number;
+  capabilities?: Caps;
 }) {
   const form = useActionForm(transitionPoCAction);
+  const allowed = capabilities?.canTransitionPoC !== false;
   const fromIdx = POC_STATUS_ORDER.indexOf(status);
   const next =
     fromIdx >= 0 && fromIdx < POC_STATUS_ORDER.length - 1
@@ -761,7 +900,8 @@ export function TransitionPoCButtons({
       </p>
       <PrimaryButton
         type="button"
-        disabled={form.pending}
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
         onClick={() =>
           form.submit({
             pocId,
@@ -781,6 +921,7 @@ export function CriterionForm({
   pocId,
   initiativeId,
   existing,
+  capabilities,
 }: {
   pocId: string;
   initiativeId: string;
@@ -794,14 +935,17 @@ export function CriterionForm({
     sortOrder: number;
     version: number;
   };
+  capabilities?: Caps;
 }) {
   const form = useActionForm(upsertPoCCriterionAction);
+  const allowed = capabilities?.canEditPoC !== false;
   const prefix = existing?.id ?? "new";
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!allowed) return;
         const fd = new FormData(e.currentTarget);
         form.submit({
           pocId,
@@ -830,6 +974,7 @@ export function CriterionForm({
           rows={2}
           defaultValue={existing?.description ?? ""}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
       <FormField label="How will you measure it?" htmlFor={`${prefix}-method`}>
@@ -840,6 +985,7 @@ export function CriterionForm({
           rows={2}
           defaultValue={existing?.measurementMethod ?? ""}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -850,6 +996,7 @@ export function CriterionForm({
             required
             defaultValue={existing?.target ?? ""}
             className={fieldClassName}
+            disabled={!allowed}
           />
         </FormField>
         <FormField label="Unit" htmlFor={`${prefix}-unit`}>
@@ -858,6 +1005,7 @@ export function CriterionForm({
             name="unit"
             defaultValue={existing?.unit ?? ""}
             className={fieldClassName}
+            disabled={!allowed}
           />
         </FormField>
         <FormField label="Sort order" htmlFor={`${prefix}-order`}>
@@ -868,6 +1016,7 @@ export function CriterionForm({
             min={0}
             defaultValue={existing?.sortOrder ?? 0}
             className={fieldClassName}
+            disabled={!allowed}
           />
         </FormField>
       </div>
@@ -876,10 +1025,14 @@ export function CriterionForm({
           type="checkbox"
           name="required"
           defaultChecked={existing?.required ?? true}
+          disabled={!allowed}
         />
         Required for governance readiness
       </label>
-      <PrimaryButton disabled={form.pending}>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
         {form.pending ? "Saving…" : existing ? "Update criterion" : "Add criterion"}
       </PrimaryButton>
     </form>
@@ -889,6 +1042,7 @@ export function CriterionForm({
 export function EvaluateCriterionForm({
   criterion,
   initiativeId,
+  capabilities,
 }: {
   initiativeId: string;
   criterion: {
@@ -900,13 +1054,16 @@ export function EvaluateCriterionForm({
     evaluationNotes: string | null;
     version: number;
   };
+  capabilities?: Caps;
 }) {
   const form = useActionForm(updateCriterionEvaluationAction);
+  const allowed = capabilities?.canEvaluatePoC !== false;
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!allowed) return;
         const fd = new FormData(e.currentTarget);
         form.submit({
           criterionId: criterion.id,
@@ -927,6 +1084,7 @@ export function EvaluateCriterionForm({
           name="evaluationState"
           className={fieldClassName}
           defaultValue={criterion.evaluationState}
+          disabled={!allowed}
         >
           <option value="NOT_EVALUATED">Not evaluated</option>
           <option value="PASS">Pass</option>
@@ -940,6 +1098,7 @@ export function EvaluateCriterionForm({
           name="actualResult"
           defaultValue={criterion.actualResult ?? ""}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
       <FormField label="Evidence reference" htmlFor={`evidence-${criterion.id}`}>
@@ -949,6 +1108,7 @@ export function EvaluateCriterionForm({
           defaultValue={criterion.evidenceReference ?? ""}
           className={fieldClassName}
           placeholder="Document, link, or observation reference"
+          disabled={!allowed}
         />
       </FormField>
       <FormField label="Notes" htmlFor={`notes-${criterion.id}`}>
@@ -958,9 +1118,13 @@ export function EvaluateCriterionForm({
           rows={2}
           defaultValue={criterion.evaluationNotes ?? ""}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
-      <PrimaryButton disabled={form.pending}>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
         {form.pending ? "Saving…" : "Save evaluation"}
       </PrimaryButton>
     </form>
@@ -969,6 +1133,7 @@ export function EvaluateCriterionForm({
 
 export function PoCResultsForm({
   poc,
+  capabilities,
 }: {
   poc: {
     id: string;
@@ -981,13 +1146,16 @@ export function PoCResultsForm({
     actualStart: Date | string | null;
     actualEnd: Date | string | null;
   };
+  capabilities?: Caps;
 }) {
   const form = useActionForm(updatePoCResultsAction);
+  const allowed = capabilities?.canEvaluatePoC !== false;
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!allowed) return;
         const fd = new FormData(e.currentTarget);
         form.submit({
           pocId: poc.id,
@@ -1014,6 +1182,7 @@ export function PoCResultsForm({
           rows={3}
           defaultValue={poc.results ?? ""}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
       <FormField label="Findings" htmlFor="poc-findings">
@@ -1023,6 +1192,7 @@ export function PoCResultsForm({
           rows={3}
           defaultValue={poc.findings ?? ""}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
       <FormField label="Lessons learned" htmlFor="poc-lessons">
@@ -1032,6 +1202,7 @@ export function PoCResultsForm({
           rows={2}
           defaultValue={poc.lessonsLearned ?? ""}
           className={fieldClassName}
+          disabled={!allowed}
         />
       </FormField>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -1041,6 +1212,7 @@ export function PoCResultsForm({
             name="actualCost"
             defaultValue={poc.actualCost ?? ""}
             className={fieldClassName}
+            disabled={!allowed}
           />
         </FormField>
         <FormField label="Actual start" htmlFor="poc-actual-start">
@@ -1050,6 +1222,7 @@ export function PoCResultsForm({
             type="date"
             defaultValue={dateInputValue(poc.actualStart)}
             className={fieldClassName}
+            disabled={!allowed}
           />
         </FormField>
         <FormField label="Actual end" htmlFor="poc-actual-end">
@@ -1059,10 +1232,14 @@ export function PoCResultsForm({
             type="date"
             defaultValue={dateInputValue(poc.actualEnd)}
             className={fieldClassName}
+            disabled={!allowed}
           />
         </FormField>
       </div>
-      <PrimaryButton disabled={form.pending}>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
         {form.pending ? "Saving…" : "Save results"}
       </PrimaryButton>
     </form>

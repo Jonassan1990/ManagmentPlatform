@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const navItems = [
   { href: "/", label: "Overview", available: true },
@@ -16,6 +16,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  const governancePolicyHref = useMemo(() => {
+    const match = pathname.match(/^\/organization\/([^/]+)/);
+    return match ? `/organization/${match[1]}/governance-policy` : null;
+  }, [pathname]);
+
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
       <aside
@@ -28,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="font-[family-name:var(--font-display)] text-lg tracking-tight text-white">
               Management Platform
             </p>
-            <p className="text-xs text-white/60">Phase 3 governance</p>
+            <p className="text-xs text-white/60">Phase 4 pilot & project</p>
           </div>
         </div>
         <nav className="space-y-1 p-3" aria-label="Primary">
@@ -52,15 +57,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          {governancePolicyHref ? (
+            <Link
+              href={governancePolicyHref}
+              onClick={() => setOpen(false)}
+              className={`block rounded-md px-3 py-2 text-sm ${
+                pathname.includes("/governance-policy")
+                  ? "bg-[var(--sidebar-active)] text-white"
+                  : "hover:bg-white/5"
+              }`}
+            >
+              Governance policy
+            </Link>
+          ) : null}
           <div className="pt-4">
             <p className="px-3 pb-2 text-[11px] uppercase tracking-[0.14em] text-white/40">
               Later phases
             </p>
-            {["PI Planning", "Pilot"].map((label) => (
+            {["PI Planning"].map((label) => (
               <span
                 key={label}
                 className="block cursor-not-allowed rounded-md px-3 py-2 text-sm text-white/35"
-                title="Not available in Phase 3"
+                title="Not available in Phase 4"
               >
                 {label}
               </span>

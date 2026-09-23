@@ -7,14 +7,18 @@ const ACTIVE: InitiativeStage[] = [
   "REQUIREMENTS",
   "PRE_STUDY",
   "POC",
+  "PILOT",
+  "PROJECT",
 ];
-const FUTURE = ["Pilot", "Project", "PI Planning"] as const;
+const FUTURE = ["PI Planning"] as const;
 
 const STAGE_RANK: Record<InitiativeStage, number> = {
   DEMAND: 0,
   REQUIREMENTS: 1,
   PRE_STUDY: 2,
   POC: 3,
+  PILOT: 4,
+  PROJECT: 5,
 };
 
 export function LifecycleRail({ current }: { current: InitiativeStage }) {
@@ -44,7 +48,7 @@ export function LifecycleRail({ current }: { current: InitiativeStage }) {
         <li
           key={label}
           className="rounded-md border border-dashed border-[var(--line)] px-3 py-1.5 text-[var(--muted)]"
-          title="Future stage — not available in Phase 3"
+          title="Future stage — not available in Phase 4"
         >
           ○ {label}
         </li>
@@ -63,7 +67,9 @@ export type InitiativeTabKey =
   | "history"
   | "governance"
   | "decisions"
-  | "poc";
+  | "poc"
+  | "pilot"
+  | "project";
 
 export function InitiativeTabs({
   initiativeId,
@@ -71,16 +77,30 @@ export function InitiativeTabs({
   currentStage,
   hasGovernance,
   hasPoC,
+  hasPilot,
+  hasProject,
 }: {
   initiativeId: string;
   active: InitiativeTabKey;
   currentStage?: InitiativeStage;
   hasGovernance?: boolean;
   hasPoC?: boolean;
+  hasPilot?: boolean;
+  hasProject?: boolean;
 }) {
   const stageReached =
     currentStage != null && STAGE_RANK[currentStage] >= STAGE_RANK.PRE_STUDY;
   const showPhase3 = Boolean(stageReached || hasGovernance || hasPoC);
+  const showPilot =
+    Boolean(hasPilot) ||
+    (currentStage != null && STAGE_RANK[currentStage] >= STAGE_RANK.PILOT) ||
+    (currentStage != null &&
+      STAGE_RANK[currentStage] >= STAGE_RANK.POC &&
+      (hasPoC || showPhase3));
+  const showProject =
+    Boolean(hasProject) ||
+    (currentStage != null && STAGE_RANK[currentStage] >= STAGE_RANK.PROJECT) ||
+    Boolean(hasPilot);
 
   const tabs: { key: InitiativeTabKey; label: string }[] = [
     { key: "overview", label: "Overview" },
@@ -95,6 +115,14 @@ export function InitiativeTabs({
       { key: "decisions", label: "Decisions" },
       { key: "poc", label: "PoC" },
     );
+  }
+
+  if (showPilot) {
+    tabs.push({ key: "pilot", label: "Pilot" });
+  }
+
+  if (showProject) {
+    tabs.push({ key: "project", label: "Project" });
   }
 
   tabs.push(

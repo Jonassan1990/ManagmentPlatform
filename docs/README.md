@@ -1,8 +1,8 @@
 # Management & PI Planning Platform — Documentation Index
 
-**Phase:** 0–3 product foundation + implementation  
-**Status:** Source of truth for product/architecture; implementation through Phase 3 governance/PoC  
-**Implementation status:** Phase 1–3 implemented (see PHASE-*-IMPLEMENTATION.md). Phase 4 (Pilot / project conversion) not started.
+**Phase:** 0–4 product foundation + implementation  
+**Status:** Source of truth for product/architecture; implementation through Phase 4 Pilot / project conversion  
+**Implementation status:** Phase 1–4 implemented (see PHASE-*-IMPLEMENTATION.md). Phase 5 (PI Planning) not started.
 
 This directory is the product and architecture source of truth for the Management & PI Planning Platform.
 
@@ -50,9 +50,10 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [PHASE-1-IMPLEMENTATION.md](./PHASE-1-IMPLEMENTATION.md) | Phase 1 technical foundation decisions |
 | [PHASE-2-IMPLEMENTATION.md](./PHASE-2-IMPLEMENTATION.md) | Phase 2 initiative / demand / requirements / pre-study |
 | [PHASE-3-IMPLEMENTATION.md](./PHASE-3-IMPLEMENTATION.md) | Phase 3 governance, approvals, decisions, PoC |
+| [PHASE-4-IMPLEMENTATION.md](./PHASE-4-IMPLEMENTATION.md) | Phase 4 Pilot, scale decisions, project conversion |
 | [LOCAL-DEVELOPMENT.md](./LOCAL-DEVELOPMENT.md) | Local Docker/Postgres workflow |
 | [DEPLOYMENT-VERCEL.md](./DEPLOYMENT-VERCEL.md) | Vercel readiness (portable architecture) |
-| [adr/](./adr/) | Architecture Decision Records (incl. ADR-005–007 Phase 3) |
+| [adr/](./adr/) | Architecture Decision Records (incl. ADR-005–011 Phases 3–4) |
 
 ---
 
@@ -64,7 +65,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 4. Read **PI-PLANNING-MODEL** and **ROLES-AND-PERMISSIONS** for planning and access.
 5. Read **ARCHITECTURE** and **MVP-ROADMAP** before any implementation planning.
 6. Check **OPEN-QUESTIONS** before converting recommendations into requirements.
-7. Read **PHASE-3-IMPLEMENTATION** for the current governance/PoC vertical slice.
+7. Read **PHASE-4-IMPLEMENTATION** for the current Pilot / project-conversion vertical slice.
 
 ### Classification markers used across docs
 

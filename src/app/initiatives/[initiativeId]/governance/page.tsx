@@ -42,12 +42,21 @@ export default async function GovernancePage({
   }
 
   const item = gateWorkspace.initiative;
+  const capabilities = await governance.getPrincipalCapabilities(
+    principal,
+    item.organizationId,
+  );
   const preStudyGate = item.governanceGates.find(
     (g) => g.gateType === "PRE_STUDY_GATE",
   );
   const pocGate = item.governanceGates.find((g) => g.gateType === "POC_GATE");
+  const pilotGate = item.governanceGates.find((g) => g.gateType === "PILOT_GATE");
   const activeGate =
-    item.currentStage === "POC" && pocGate ? pocGate : preStudyGate ?? pocGate;
+    item.currentStage === "PILOT" && pilotGate
+      ? pilotGate
+      : item.currentStage === "POC" && pocGate
+        ? pocGate
+        : preStudyGate ?? pocGate ?? pilotGate;
   const latestSubmission = activeGate?.submissions[0] ?? null;
   const evidenceEntries = latestSubmission?.evidencePackage?.entries ?? [];
   const approvalRequests = latestSubmission?.approvalRequests ?? [];
@@ -64,6 +73,7 @@ export default async function GovernancePage({
 
   const openReviewExists = (preStudyGate?.submissions ?? [])
     .concat(pocGate?.submissions ?? [])
+    .concat(pilotGate?.submissions ?? [])
     .some(
       (s) =>
         s.status === "IN_REVIEW" ||
@@ -79,6 +89,7 @@ export default async function GovernancePage({
   const changesRequested =
     (preStudyGate?.submissions ?? [])
       .concat(pocGate?.submissions ?? [])
+      .concat(pilotGate?.submissions ?? [])
       .find((s) => s.status === "CHANGES_REQUESTED") ?? null;
 
   return (
@@ -104,6 +115,8 @@ export default async function GovernancePage({
         currentStage={item.currentStage}
         hasGovernance={item.governanceGates.length > 0}
         hasPoC={Boolean(item.poc)}
+        hasPilot={Boolean(item.pilot)}
+        hasProject={Boolean(item.project)}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -157,6 +170,7 @@ export default async function GovernancePage({
               <ReviseSubmissionButton
                 previousSubmissionId={changesRequested.id}
                 initiativeId={item.id}
+                capabilities={capabilities}
               />
             }
           />
@@ -184,6 +198,19 @@ export default async function GovernancePage({
               title="PoC readiness"
               ready={gateWorkspace.pocReadiness.ready}
               items={gateWorkspace.pocReadiness.items.map((i) => ({
+                key: i.key,
+                label: i.label,
+                ok: i.ok,
+                detail: i.detail,
+              }))}
+            />
+          ) : null}
+
+          {gateWorkspace.pilotReadiness ? (
+            <GateReadinessPanel
+              title="Pilot readiness"
+              ready={gateWorkspace.pilotReadiness.ready}
+              items={gateWorkspace.pilotReadiness.items.map((i) => ({
                 key: i.key,
                 label: i.label,
                 ok: i.ok,
@@ -225,6 +252,7 @@ export default async function GovernancePage({
                 initiativeId={item.id}
                 expectedInitiativeVersion={item.version}
                 disabled={!preStudyReadiness.ready}
+                capabilities={capabilities}
               />
             ) : item.currentStage === "PRE_STUDY" && !preStudyReadiness.ready ? (
               <p className="text-sm text-[var(--muted)]">
@@ -245,6 +273,17 @@ export default async function GovernancePage({
                   className="text-[var(--accent)] underline"
                 >
                   PoC workspace
+                </Link>
+                .
+              </p>
+            ) : item.currentStage === "PILOT" ? (
+              <p className="text-sm text-[var(--muted)]">
+                Manage Pilot evidence and submission from the{" "}
+                <Link
+                  href={`/initiatives/${item.id}/pilot`}
+                  className="text-[var(--accent)] underline"
+                >
+                  Pilot workspace
                 </Link>
                 .
               </p>
@@ -277,8 +316,9 @@ export default async function GovernancePage({
             <h2 className="mb-2 font-medium">After approval</h2>
             <p className="text-sm text-[var(--muted)]">
               When all required approvals are complete, an authorized decision
-              maker records Go, Conditional go, No-go, or Hold. Conditional go
-              conditions must be resolved before creating a PoC.
+              maker records the gate outcome. For Pilot gates that includes
+              Scale, Extend pilot, Conditional scale, Stop, or Hold. Conditional
+              outcomes require closed conditions before progression.
             </p>
           </Panel>
         </div>

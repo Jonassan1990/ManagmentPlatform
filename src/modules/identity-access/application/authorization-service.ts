@@ -23,6 +23,19 @@ const PHASE3_GOVERNANCE_PERMISSIONS: Permission[] = [
   PERMISSIONS.APPROVAL_AUTHORITY_SECURITY,
 ];
 
+const PHASE4_PILOT_PROJECT_PERMISSIONS: Permission[] = [
+  PERMISSIONS.PILOT_CREATE,
+  PERMISSIONS.PILOT_EDIT,
+  PERMISSIONS.PILOT_TRANSITION,
+  PERMISSIONS.PILOT_EVALUATE,
+  PERMISSIONS.PROJECT_CONVERT,
+  PERMISSIONS.PROJECT_VIEW,
+  PERMISSIONS.PROJECT_EDIT,
+  PERMISSIONS.PROJECT_MANAGE_MILESTONES,
+  PERMISSIONS.PROJECT_MANAGE_WORKITEMS,
+  PERMISSIONS.GOVERNANCE_POLICY_MANAGE,
+];
+
 const PLATFORM_BOOTSTRAP_PERMISSIONS: Permission[] = [
   PERMISSIONS.PLATFORM_BOOTSTRAP,
   PERMISSIONS.ORG_STRUCTURE_READ,
@@ -38,6 +51,7 @@ const PLATFORM_BOOTSTRAP_PERMISSIONS: Permission[] = [
   PERMISSIONS.INITIATIVE_MANAGE_RISK,
   PERMISSIONS.INITIATIVE_ADVANCE,
   ...PHASE3_GOVERNANCE_PERMISSIONS,
+  ...PHASE4_PILOT_PROJECT_PERMISSIONS,
 ];
 
 const ORGANIZATION_ADMIN_PERMISSIONS: Permission[] = [
@@ -54,6 +68,7 @@ const ORGANIZATION_ADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.INITIATIVE_MANAGE_RISK,
   PERMISSIONS.INITIATIVE_ADVANCE,
   ...PHASE3_GOVERNANCE_PERMISSIONS,
+  ...PHASE4_PILOT_PROJECT_PERMISSIONS,
 ];
 export class AuthorizationService {
   constructor(private readonly db: PrismaClient) {}
@@ -229,6 +244,23 @@ export class AuthorizationService {
           details: { permission, scope },
         },
       );
+    }
+  }
+
+  /** Non-throwing permission check for UI capability flags. */
+  async can(
+    principal: Principal,
+    permission: Permission,
+    scope: AuthScope,
+  ): Promise<boolean> {
+    try {
+      await this.assertCan(principal, permission, scope);
+      return true;
+    } catch (error) {
+      if (error instanceof AppError && error.code === "FORBIDDEN") {
+        return false;
+      }
+      throw error;
     }
   }
 }

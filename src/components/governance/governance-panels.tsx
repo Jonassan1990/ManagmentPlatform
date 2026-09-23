@@ -7,24 +7,32 @@ export function statusToneClass(status: string): string {
     case "APPROVALS_COMPLETE":
     case "DECISION_RECORDED":
     case "GO":
+    case "SCALE":
     case "RESOLVED":
     case "PASS":
     case "READY":
     case "COMPLETED":
+    case "ACTIVE":
       return "text-[var(--ok)]";
     case "CHANGES_REQUESTED":
     case "REJECTED":
     case "NO_GO":
+    case "STOP":
     case "FAIL":
     case "OPEN":
+    case "MISSED":
+    case "CANCELLED":
       return "text-[var(--danger)]";
     case "CONDITIONAL_GO":
+    case "CONDITIONAL_SCALE":
+    case "EXTEND_PILOT":
     case "HOLD":
     case "IN_REVIEW":
     case "SUBMITTED":
     case "PENDING":
     case "INCONCLUSIVE":
     case "WAIVED":
+    case "ON_HOLD":
       return "text-[var(--warning)]";
     default:
       return "text-[var(--muted)]";

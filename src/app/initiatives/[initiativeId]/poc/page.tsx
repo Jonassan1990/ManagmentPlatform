@@ -42,6 +42,10 @@ export default async function PoCPage({
   }
 
   const item = gateWorkspace.initiative;
+  const capabilities = await governance.getPrincipalCapabilities(
+    principal,
+    item.organizationId,
+  );
   const poc = item.poc;
   const criteria = poc?.criteria ?? [];
   const preStudyGo = item.decisions.find(
@@ -95,13 +99,15 @@ export default async function PoCPage({
         currentStage={item.currentStage}
         hasGovernance={item.governanceGates.length > 0}
         hasPoC={Boolean(item.poc)}
+        hasPilot={Boolean(item.pilot)}
+        hasProject={Boolean(item.project)}
       />
 
       {!poc ? (
         <div className="space-y-4">
           {canCreate ? (
             <Panel>
-              <CreatePoCForm initiativeId={item.id} />
+              <CreatePoCForm initiativeId={item.id} capabilities={capabilities} />
             </Panel>
           ) : (
             <EmptyState
@@ -165,7 +171,7 @@ export default async function PoCPage({
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-4">
               <Panel>
-                <UpdatePoCForm poc={poc} />
+                <UpdatePoCForm poc={poc} capabilities={capabilities} />
               </Panel>
 
               <Panel>
@@ -200,12 +206,13 @@ export default async function PoCPage({
                           pocId={poc.id}
                           initiativeId={item.id}
                           existing={criterion}
+                          capabilities={capabilities}
                         />
                       </li>
                     ))}
                   </ul>
                 )}
-                <CriterionForm pocId={poc.id} initiativeId={item.id} />
+                <CriterionForm pocId={poc.id} initiativeId={item.id} capabilities={capabilities} />
               </Panel>
 
               {(poc.status === "EVALUATION" ||
@@ -222,6 +229,7 @@ export default async function PoCPage({
                         <EvaluateCriterionForm
                           initiativeId={item.id}
                           criterion={criterion}
+                          capabilities={capabilities}
                         />
                       </div>
                     ))}
@@ -230,7 +238,7 @@ export default async function PoCPage({
               )}
 
               <Panel>
-                <PoCResultsForm poc={poc} />
+                <PoCResultsForm poc={poc} capabilities={capabilities} />
               </Panel>
             </div>
 
@@ -249,12 +257,13 @@ export default async function PoCPage({
                       : "DRAFT"
                   }
                   expectedVersion={poc.version}
+                  capabilities={capabilities}
                 />
               </Panel>
               <Panel>
                 <h2 className="mb-2 font-medium">Submit for governance</h2>
                 {canSubmitPoC ? (
-                  <SubmitPoCButton initiativeId={item.id} />
+                  <SubmitPoCButton initiativeId={item.id} capabilities={capabilities} />
                 ) : activePoCSubmission ? (
                   <p className="text-sm text-[var(--muted)]">
                     PoC gate is already in flight (
@@ -276,9 +285,15 @@ export default async function PoCPage({
               <Panel>
                 <h2 className="mb-2 font-medium">After PoC decision</h2>
                 <p className="text-sm text-[var(--muted)]">
-                  Pilot and Project stages are not available in Phase 3. A PoC
-                  governance decision records the outcome for this proof of
-                  concept.
+                  After a Go or Conditional go decision (and closed blocking
+                  conditions), create a Pilot from the{" "}
+                  <a
+                    href={`/initiatives/${item.id}/pilot`}
+                    className="text-[var(--accent)] underline"
+                  >
+                    Pilot workspace
+                  </a>
+                  . PoC GO does not auto-create a Pilot.
                 </p>
               </Panel>
             </div>

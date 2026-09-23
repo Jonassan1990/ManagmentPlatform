@@ -35,17 +35,20 @@ export function PrimaryButton({
   disabled,
   type = "submit",
   onClick,
+  title,
 }: {
   children: React.ReactNode;
   disabled?: boolean;
   type?: "submit" | "button";
   onClick?: () => void;
+  title?: string;
 }) {
   return (
     <button
       type={type}
       disabled={disabled}
       onClick={onClick}
+      title={title}
       className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
     >
       {children}
@@ -57,20 +60,34 @@ export function SecondaryButton({
   children,
   type = "button",
   onClick,
+  disabled,
+  title,
 }: {
   children: React.ReactNode;
   type?: "submit" | "button";
   onClick?: () => void;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
-      className="rounded-md border border-[var(--line)] bg-white px-4 py-2 text-sm"
+      disabled={disabled}
+      title={title}
+      className="rounded-md border border-[var(--line)] bg-white px-4 py-2 text-sm disabled:opacity-60"
     >
       {children}
     </button>
   );
+}
+
+/** UI copy when a capability flag blocks a mutating control. */
+export const NO_PERMISSION_TITLE =
+  "You do not have permission to perform this action.";
+
+export function permissionTitle(allowed: boolean | undefined): string | undefined {
+  return allowed === false ? NO_PERMISSION_TITLE : undefined;
 }
 
 export function useActionForm<T>(

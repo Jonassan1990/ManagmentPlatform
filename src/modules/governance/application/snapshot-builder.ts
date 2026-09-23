@@ -3,6 +3,8 @@ import type {
   GateType,
   ManagedDocument,
   DocumentVersion,
+  Pilot,
+  PilotCriterion,
   PoC,
   PoCSuccessCriterion,
   PreStudyAssessment,
@@ -16,6 +18,7 @@ import {
   type ReadinessResult,
 } from "@/modules/initiative/application/readiness-policy";
 import { evaluatePoCReadiness } from "./poc-readiness-policy";
+import { evaluatePilotGovernanceReadiness } from "./pilot-readiness-policy";
 
 export type SnapshotWorkspaceData = {
   initiative: Initiative;
@@ -26,6 +29,7 @@ export type SnapshotWorkspaceData = {
   risks: Risk[];
   documents: (ManagedDocument & { versions: DocumentVersion[] })[];
   poc?: (PoC & { criteria: PoCSuccessCriterion[] }) | null;
+  pilot?: (Pilot & { criteria: PilotCriterion[] }) | null;
 };
 
 export type ReviewSnapshotPayload = {
@@ -60,6 +64,7 @@ export type ReviewSnapshotPayload = {
     }>;
   }>;
   poc: (PoC & { criteria: PoCSuccessCriterion[] }) | null;
+  pilot: (Pilot & { criteria: PilotCriterion[] }) | null;
   readiness: ReadinessResult | { ready: boolean; blockers: string[]; items: unknown[] };
 };
 
@@ -71,19 +76,25 @@ export function buildReviewSnapshotPayload(
   gateType: GateType,
   revision: number,
 ): ReviewSnapshotPayload {
-  const readiness =
-    gateType === "PRE_STUDY_GATE"
-      ? evaluatePreStudyReadiness({
-          demand: data.demand,
-          requirements: data.requirements,
-          assessments: data.assessments,
-          alternatives: data.alternatives,
-          risks: data.risks,
-          documents: data.documents,
-        })
-      : data.poc
-        ? evaluatePoCReadiness(data.poc, data.poc.criteria)
-        : { ready: false, blockers: ["PoC is missing"], items: [] };
+  let readiness: ReviewSnapshotPayload["readiness"];
+  if (gateType === "PRE_STUDY_GATE") {
+    readiness = evaluatePreStudyReadiness({
+      demand: data.demand,
+      requirements: data.requirements,
+      assessments: data.assessments,
+      alternatives: data.alternatives,
+      risks: data.risks,
+      documents: data.documents,
+    });
+  } else if (gateType === "POC_GATE") {
+    readiness = data.poc
+      ? evaluatePoCReadiness(data.poc, data.poc.criteria)
+      : { ready: false, blockers: ["PoC is missing"], items: [] };
+  } else {
+    readiness = data.pilot
+      ? evaluatePilotGovernanceReadiness(data.pilot, data.pilot.criteria)
+      : { ready: false, blockers: ["Pilot is missing"], items: [] };
+  }
 
   return {
     frozenAt: new Date().toISOString(),
@@ -117,6 +128,7 @@ export function buildReviewSnapshotPayload(
       })),
     })),
     poc: data.poc ?? null,
+    pilot: data.pilot ?? null,
     readiness,
   };
 }
