@@ -1,5 +1,6 @@
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
+import { IdentityService } from "@/modules/identity-access/application/identity-service";
 import { GovernanceService } from "@/modules/governance/application/governance-service";
 import { InitiativeService } from "@/modules/initiative/application/initiative-service";
 import { OrganizationService } from "@/modules/organization/application/organization-service";
@@ -10,12 +11,14 @@ import { prisma } from "@/server/db";
 export function createServices() {
   const authz = new AuthorizationService(prisma);
   const audit = new AuditService(prisma);
+  const identity = new IdentityService(prisma, authz, audit);
   const governance = new GovernanceService(prisma, authz, audit);
   const project = new ProjectService(prisma, authz, audit);
   const planning = new PlanningService(prisma, authz, audit);
   return {
     authz,
     audit,
+    identity,
     organization: new OrganizationService(prisma, authz, audit),
     initiative: new InitiativeService(prisma, authz, audit, governance),
     governance,

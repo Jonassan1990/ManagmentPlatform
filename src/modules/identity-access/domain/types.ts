@@ -1,6 +1,8 @@
 export type Principal = {
   id: string;
   displayName: string | null;
+  /** Display-only; never used as an identity key. */
+  email?: string | null;
   source: "oidc" | "dev" | "test";
 };
 

@@ -1,8 +1,8 @@
 # Management & PI Planning Platform — Documentation Index
 
-**Phase:** 0–5 product foundation + implementation; Phase 5.5 UX / deployment acceptance  
-**Status:** Source of truth for product/architecture; implementation through Phase 5 PI Planning  
-**Implementation status:** Phase 1–5 implemented (see PHASE-*-IMPLEMENTATION.md). Phase 5.5 acceptance docs on this branch. Phase 6 not started (see PHASE-6-BACKLOG.md).
+**Phase:** 0–6 product foundation + implementation  
+**Status:** Source of truth for product/architecture; implementation through Phase 6 production identity  
+**Implementation status:** Phase 1–5 + 5.5 acceptance implemented. Phase 6 production OIDC / secure bootstrap implemented (see PHASE-6-IMPLEMENTATION.md). Deploy blocked on credentials (DEPLOYMENT-ACCEPTANCE.md).
 
 This directory is the product and architecture source of truth for the Management & PI Planning Platform.
 
@@ -52,12 +52,14 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [PHASE-3-IMPLEMENTATION.md](./PHASE-3-IMPLEMENTATION.md) | Phase 3 governance, approvals, decisions, PoC |
 | [PHASE-4-IMPLEMENTATION.md](./PHASE-4-IMPLEMENTATION.md) | Phase 4 Pilot, scale decisions, project conversion |
 | [PHASE-5-IMPLEMENTATION.md](./PHASE-5-IMPLEMENTATION.md) | Phase 5 PI Planning, capacity, dependencies, baselines |
+| [PHASE-6-IMPLEMENTATION.md](./PHASE-6-IMPLEMENTATION.md) | Phase 6 production OIDC, ExternalIdentity, secure bootstrap |
+| [PRODUCTION-AUTH-RUNBOOK.md](./PRODUCTION-AUTH-RUNBOOK.md) | Operator guide: OIDC env, bootstrap token procedure |
 | [UX-ACCEPTANCE-REPORT.md](./UX-ACCEPTANCE-REPORT.md) | Phase 5.5 UX inventory, route audit, P0–P3 findings, fixes applied |
-| [DEPLOYMENT-ACCEPTANCE.md](./DEPLOYMENT-ACCEPTANCE.md) | Phase 5.5 Vercel/Postgres readiness; production auth blocked; deploy not attempted |
-| [PHASE-6-BACKLOG.md](./PHASE-6-BACKLOG.md) | Must / Should / Could from acceptance findings only (OIDC first) |
+| [DEPLOYMENT-ACCEPTANCE.md](./DEPLOYMENT-ACCEPTANCE.md) | Deploy readiness; Phase 6 auth ready; deploy blocked on credentials |
+| [PHASE-6-BACKLOG.md](./PHASE-6-BACKLOG.md) | Must / Should / Could from acceptance findings (OIDC Must Fix done) |
 | [LOCAL-DEVELOPMENT.md](./LOCAL-DEVELOPMENT.md) | Local Docker/Postgres workflow |
 | [DEPLOYMENT-VERCEL.md](./DEPLOYMENT-VERCEL.md) | Vercel readiness (portable architecture) |
-| [adr/](./adr/) | Architecture Decision Records (incl. ADR-005–017 Phases 3–5) |
+| [adr/](./adr/) | Architecture Decision Records (incl. ADR-018–019 Phase 6) |
 
 ---
 
@@ -69,8 +71,9 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 4. Read **PI-PLANNING-MODEL** and **ROLES-AND-PERMISSIONS** for planning and access.
 5. Read **ARCHITECTURE** and **MVP-ROADMAP** before any implementation planning.
 6. Check **OPEN-QUESTIONS** before converting recommendations into requirements.
-7. Read **PHASE-5-IMPLEMENTATION** for the current PI Planning vertical slice.
-8. Read **UX-ACCEPTANCE-REPORT**, **DEPLOYMENT-ACCEPTANCE**, and **PHASE-6-BACKLOG** for Phase 5.5 acceptance outcomes.
+7. Read **PHASE-5-IMPLEMENTATION** for the PI Planning vertical slice.
+8. Read **PHASE-6-IMPLEMENTATION** and **PRODUCTION-AUTH-RUNBOOK** for production identity.
+9. Read **UX-ACCEPTANCE-REPORT**, **DEPLOYMENT-ACCEPTANCE**, and **PHASE-6-BACKLOG** for acceptance outcomes.
 
 ### Classification markers used across docs
 

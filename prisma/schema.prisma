@@ -3,8 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  /// Direct (non-pooled) URL for migrations. Set equal to DATABASE_URL locally.
+  directUrl = env("DIRECT_URL")
 }
 
 enum EntityStatus {
@@ -161,15 +163,49 @@ model ResourceMembership {
 }
 
 model Principal {
-  id          String   @id @default(uuid()) @db.Uuid
-  externalSubject String? @unique @db.VarChar(255)
-  displayName String?  @db.VarChar(200)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid()) @db.Uuid
+  /// DEV bridge compatibility key (`dev:<uuid>`). OIDC identities use ExternalIdentity.
+  externalSubject String?  @unique @db.VarChar(255)
+  displayName     String?  @db.VarChar(200)
+  /// Optional display email — never an identity key. Identity is ExternalIdentity (issuer, subject).
+  email           String?  @db.VarChar(320)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  roleBindings RoleBinding[]
+  roleBindings       RoleBinding[]
+  externalIdentities ExternalIdentity[]
 
   @@map("principals")
+}
+
+/// Linked OIDC (or other IdP) identity. Unique on (issuer, subject) — never email alone.
+model ExternalIdentity {
+  id                  String    @id @default(uuid()) @db.Uuid
+  issuer              String    @db.VarChar(500)
+  subject             String    @db.VarChar(255)
+  principalId         String    @db.Uuid
+  emailSnapshot       String?   @db.VarChar(320)
+  displayNameSnapshot String?   @db.VarChar(200)
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  principal Principal @relation(fields: [principalId], references: [id], onDelete: Cascade)
+
+  @@unique([issuer, subject])
+  @@index([principalId])
+  @@map("external_identities")
+}
+
+/// One-time platform bootstrap consumption. Exactly one row for V1 (`bootstrapKey = default`).
+model BootstrapConsumption {
+  id          String   @id @default(uuid()) @db.Uuid
+  principalId String   @db.Uuid
+  consumedAt  DateTime @default(now())
+  note        String?  @db.VarChar(500)
+  bootstrapKey String  @unique @default("default") @db.VarChar(40)
+
+  @@map("bootstrap_consumptions")
 }
 
 model RoleDefinition {
