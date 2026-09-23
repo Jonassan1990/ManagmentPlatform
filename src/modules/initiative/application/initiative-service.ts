@@ -10,6 +10,8 @@ import { ZodError } from "zod";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import { GovernanceService } from "@/modules/governance/application/governance-service";
+import { evaluatePoCReadiness } from "@/modules/governance/application/poc-readiness-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { buildAttentionItems } from "./attention";
@@ -69,6 +71,32 @@ const initiativeInclude = {
     orderBy: { title: "asc" as const },
   },
   lifecycleTransitions: { orderBy: { occurredAt: "asc" as const } },
+  governanceGates: {
+    include: {
+      submissions: {
+        include: {
+          approvalRequests: true,
+          decisionPackage: true,
+          decisionRecord: { include: { conditions: true } },
+        },
+        orderBy: { revision: "desc" as const },
+      },
+    },
+  },
+  governanceSubmissions: {
+    include: {
+      approvalRequests: { include: { record: true } },
+      decisionRecord: { include: { conditions: true } },
+    },
+    orderBy: { revision: "desc" as const },
+  },
+  decisions: {
+    include: { conditions: true },
+    orderBy: { decidedAt: "desc" as const },
+  },
+  poc: {
+    include: { criteria: { orderBy: { sortOrder: "asc" as const } } },
+  },
 } satisfies Prisma.InitiativeInclude;
 
 export class InitiativeService {
@@ -76,6 +104,7 @@ export class InitiativeService {
     private readonly db: PrismaClient,
     private readonly authz: AuthorizationService,
     private readonly audit: AuditService,
+    private readonly governance?: GovernanceService,
   ) {}
 
   async createInitiative(principal: Principal, raw: unknown) {
@@ -230,14 +259,15 @@ export class InitiativeService {
       throw new AppError("VALIDATION", "Initiative is already at that stage.");
     }
 
-    // Only allow DEMAND→REQUIREMENTS and REQUIREMENTS→PRE_STUDY
+    // Only allow DEMAND→REQUIREMENTS and REQUIREMENTS→PRE_STUDY.
+    // PRE_STUDY→POC is performed via GovernanceService.createPoC after a GO/CONDITIONAL_GO decision.
     const allowed =
       (fromStage === "DEMAND" && toStage === "REQUIREMENTS") ||
       (fromStage === "REQUIREMENTS" && toStage === "PRE_STUDY");
     if (!allowed) {
       throw new AppError(
         "VALIDATION",
-        `Invalid lifecycle transition from ${fromStage} to ${toStage}.`,
+        `Invalid lifecycle transition from ${fromStage} to ${toStage}. PoC advancement uses governance createPoC, not advanceLifecycle.`,
       );
     }
 
@@ -327,10 +357,10 @@ export class InitiativeService {
     );
 
     const created = await this.db.$transaction(async (tx) => {
-      const count = await tx.requirement.count({
-        where: { initiativeId: initiative.id },
-      });
-      const referenceKey = `REQ-${String(count + 1).padStart(3, "0")}`;
+      const referenceKey = await this.allocateRequirementReference(
+        tx,
+        initiative.id,
+      );
       return tx.requirement.create({
         data: {
           initiativeId: initiative.id,
@@ -711,21 +741,21 @@ export class InitiativeService {
       organizationId: initiative.organizationId,
     });
 
-    const count = await this.db.risk.count({
-      where: { initiativeId: initiative.id },
-    });
-    const risk = await this.db.risk.create({
-      data: {
-        initiativeId: initiative.id,
-        referenceKey: `RSK-${String(count + 1).padStart(3, "0")}`,
-        title: input.title,
-        description: input.description,
-        ownerName: input.ownerName ?? null,
-        probability: input.probability,
-        impact: input.impact,
-        status: input.status,
-        mitigation: input.mitigation ?? null,
-      },
+    const risk = await this.db.$transaction(async (tx) => {
+      const referenceKey = await this.allocateRiskReference(tx, initiative.id);
+      return tx.risk.create({
+        data: {
+          initiativeId: initiative.id,
+          referenceKey,
+          title: input.title,
+          description: input.description,
+          ownerName: input.ownerName ?? null,
+          probability: input.probability,
+          impact: input.impact,
+          status: input.status,
+          mitigation: input.mitigation ?? null,
+        },
+      });
     });
     await this.audit.record({
       actorPrincipalId: principal.id,
@@ -858,11 +888,21 @@ export class InitiativeService {
         preStudy: { include: { assessments: true, alternatives: true } },
         risks: true,
         documents: true,
+        governanceSubmissions: {
+          include: {
+            approvalRequests: { include: { record: true } },
+          },
+        },
+        decisions: { include: { conditions: true } },
+        poc: { include: { criteria: true } },
       },
       orderBy: { updatedAt: "desc" },
     });
 
     return initiatives.map((initiative) => {
+      const pendingApprovalRequests = initiative.governanceSubmissions.flatMap(
+        (s) => s.approvalRequests.filter((r) => r.status === "PENDING"),
+      );
       const attention = buildAttentionItems({
         initiative,
         demand: initiative.demand,
@@ -871,6 +911,10 @@ export class InitiativeService {
         alternatives: initiative.preStudy?.alternatives ?? [],
         risks: initiative.risks,
         documents: initiative.documents,
+        governanceSubmissions: initiative.governanceSubmissions,
+        pendingApprovalRequests,
+        decisions: initiative.decisions,
+        poc: initiative.poc,
       });
       const readiness =
         initiative.currentStage === "PRE_STUDY"
@@ -883,11 +927,15 @@ export class InitiativeService {
               documents: initiative.documents,
             })
           : null;
+      const pocReadiness = initiative.poc
+        ? evaluatePoCReadiness(initiative.poc, initiative.poc.criteria)
+        : null;
       return {
         ...initiative,
         attentionCount: attention.length,
         attention,
         readiness,
+        pocReadiness,
       };
     });
   }
@@ -923,6 +971,12 @@ export class InitiativeService {
       alternatives: initiative.preStudy?.alternatives ?? [],
       risks: initiative.risks,
       documents: initiative.documents,
+      governanceSubmissions: initiative.governanceSubmissions,
+      pendingApprovalRequests: initiative.governanceSubmissions.flatMap((s) =>
+        s.approvalRequests.filter((r) => r.status === "PENDING"),
+      ),
+      decisions: initiative.decisions,
+      poc: initiative.poc,
     });
     const readiness =
       initiative.currentStage === "PRE_STUDY"
@@ -935,8 +989,11 @@ export class InitiativeService {
             documents: initiative.documents,
           })
         : null;
+    const pocReadiness = initiative.poc
+      ? evaluatePoCReadiness(initiative.poc, initiative.poc.criteria)
+      : null;
 
-    return { initiative, attention, readiness };
+    return { initiative, attention, readiness, pocReadiness };
   }
 
   async getOverviewMetrics(principal: Principal) {
@@ -948,20 +1005,40 @@ export class InitiativeService {
         demand: 0,
         requirements: 0,
         preStudy: 0,
+        poc: 0,
         needsAttention: 0,
         readyForGovernance: 0,
+        waitingForApproval: 0,
+        waitingForDecision: 0,
+        changesRequested: 0,
+        activePocs: 0,
+        pocsReadyForDecision: 0,
+        outstandingConditions: 0,
       };
     }
 
     const listed = await this.listInitiatives(principal);
+    const governanceMetrics = this.governance
+      ? this.governance.computeOverviewGovernanceMetrics(listed)
+      : {
+          waitingForApproval: 0,
+          waitingForDecision: 0,
+          changesRequested: 0,
+          activePocs: 0,
+          pocsReadyForDecision: 0,
+          outstandingConditions: 0,
+        };
+
     return {
       activeInitiatives: listed.length,
       demand: listed.filter((i) => i.currentStage === "DEMAND").length,
       requirements: listed.filter((i) => i.currentStage === "REQUIREMENTS")
         .length,
       preStudy: listed.filter((i) => i.currentStage === "PRE_STUDY").length,
+      poc: listed.filter((i) => i.currentStage === "POC").length,
       needsAttention: listed.filter((i) => i.attentionCount > 0).length,
       readyForGovernance: listed.filter((i) => i.readiness?.ready).length,
+      ...governanceMetrics,
     };
   }
 
@@ -980,6 +1057,66 @@ export class InitiativeService {
     });
     const allocated = updated.nextValue - 1;
     return `INIT-${String(allocated).padStart(4, "0")}`;
+  }
+
+  /**
+   * Concurrency-safe REQ-### allocator.
+   * On first use, seeds nextValue from max existing numeric suffix + 1
+   * so previously allocated references are never reused.
+   */
+  private async allocateRequirementReference(
+    tx: Prisma.TransactionClient,
+    initiativeId: string,
+  ): Promise<string> {
+    const existing = await tx.requirement.findMany({
+      where: { initiativeId },
+      select: { referenceKey: true },
+    });
+    let max = 0;
+    for (const row of existing) {
+      const match = /^REQ-(\d+)$/.exec(row.referenceKey);
+      if (match) max = Math.max(max, Number(match[1]));
+    }
+    // INSERT … ON CONFLICT avoids aborting the surrounding transaction on races.
+    await tx.$executeRaw`
+      INSERT INTO requirement_reference_counters ("initiativeId", "nextValue")
+      VALUES (${initiativeId}::uuid, ${max + 1})
+      ON CONFLICT ("initiativeId") DO NOTHING
+    `;
+    const updated = await tx.requirementReferenceCounter.update({
+      where: { initiativeId },
+      data: { nextValue: { increment: 1 } },
+    });
+    return `REQ-${String(updated.nextValue - 1).padStart(3, "0")}`;
+  }
+
+  /**
+   * Concurrency-safe RSK-### allocator.
+   * On first use, seeds nextValue from max existing numeric suffix + 1.
+   */
+  private async allocateRiskReference(
+    tx: Prisma.TransactionClient,
+    initiativeId: string,
+  ): Promise<string> {
+    const existing = await tx.risk.findMany({
+      where: { initiativeId },
+      select: { referenceKey: true },
+    });
+    let max = 0;
+    for (const row of existing) {
+      const match = /^RSK-(\d+)$/.exec(row.referenceKey);
+      if (match) max = Math.max(max, Number(match[1]));
+    }
+    await tx.$executeRaw`
+      INSERT INTO risk_reference_counters ("initiativeId", "nextValue")
+      VALUES (${initiativeId}::uuid, ${max + 1})
+      ON CONFLICT ("initiativeId") DO NOTHING
+    `;
+    const updated = await tx.riskReferenceCounter.update({
+      where: { initiativeId },
+      data: { nextValue: { increment: 1 } },
+    });
+    return `RSK-${String(updated.nextValue - 1).padStart(3, "0")}`;
   }
 
   private async assertDepartmentInOrganization(

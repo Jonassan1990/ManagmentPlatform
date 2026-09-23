@@ -43,7 +43,13 @@ export default async function DocumentsPage({
       <div className="mb-5">
         <LifecycleRail current={item.currentStage} />
       </div>
-      <InitiativeTabs initiativeId={item.id} active="documents" />
+      <InitiativeTabs
+        initiativeId={item.id}
+        active="documents"
+        currentStage={item.currentStage}
+        hasGovernance={item.governanceGates.length > 0}
+        hasPoC={Boolean(item.poc)}
+      />
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Panel>
           <h2 className="mb-3 font-medium">Documentation hub (metadata)</h2>

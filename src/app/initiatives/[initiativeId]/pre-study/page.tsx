@@ -53,7 +53,13 @@ export default async function PreStudyPage({
       <div className="mb-5">
         <LifecycleRail current={item.currentStage} />
       </div>
-      <InitiativeTabs initiativeId={item.id} active="pre-study" />
+      <InitiativeTabs
+        initiativeId={item.id}
+        active="pre-study"
+        currentStage={item.currentStage}
+        hasGovernance={item.governanceGates.length > 0}
+        hasPoC={Boolean(item.poc)}
+      />
 
       {item.currentStage !== "PRE_STUDY" ? (
         <Panel>

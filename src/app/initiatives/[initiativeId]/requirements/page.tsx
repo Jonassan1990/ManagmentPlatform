@@ -48,7 +48,13 @@ export default async function RequirementsPage({
       <div className="mb-5">
         <LifecycleRail current={item.currentStage} />
       </div>
-      <InitiativeTabs initiativeId={item.id} active="requirements" />
+      <InitiativeTabs
+        initiativeId={item.id}
+        active="requirements"
+        currentStage={item.currentStage}
+        hasGovernance={item.governanceGates.length > 0}
+        hasPoC={Boolean(item.poc)}
+      />
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Panel>

@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import {
+  CreatePoCForm,
+  SubmitPreStudyButton,
+} from "@/components/governance/governance-forms";
 import { AdvanceLifecycleButton } from "@/components/initiative/initiative-forms";
 import {
   AttentionPanel,
@@ -19,18 +23,47 @@ export default async function InitiativeOverviewPage({
   params: Promise<{ initiativeId: string }>;
 }) {
   const { initiativeId } = await params;
-  const { authz, initiative } = createServices();
+  const { authz, initiative, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
 
   let workspace;
+  let gateWorkspace;
   try {
     workspace = await initiative.getInitiativeWorkspace(principal, initiativeId);
+    gateWorkspace = await governance.getGateWorkspace(principal, initiativeId);
   } catch {
     notFound();
   }
 
-  const { initiative: item, attention, readiness } = workspace;
+  const { initiative: item, attention, readiness, pocReadiness } = workspace;
+  const gateItem = gateWorkspace.initiative;
+  const activeSubmission = gateItem.governanceGates
+    .flatMap((g) => g.submissions)
+    .find(
+      (s) =>
+        s.status === "IN_REVIEW" ||
+        s.status === "SUBMITTED" ||
+        s.status === "APPROVALS_COMPLETE" ||
+        s.status === "CHANGES_REQUESTED",
+    );
+  const preStudyGo = gateItem.decisions.find(
+    (d) => d.outcome === "GO" || d.outcome === "CONDITIONAL_GO",
+  );
+  const openBlocking = gateItem.decisions.flatMap((d) =>
+    (d.conditions ?? []).filter(
+      (c) => c.requiredBeforeProgression && c.status === "OPEN",
+    ),
+  );
+  const canCreatePoC =
+    !gateItem.poc &&
+    item.currentStage === "PRE_STUDY" &&
+    Boolean(preStudyGo) &&
+    openBlocking.length === 0;
+  const canSubmitPreStudy =
+    item.currentStage === "PRE_STUDY" &&
+    Boolean(readiness?.ready) &&
+    !activeSubmission;
 
   return (
     <div>
@@ -55,12 +88,36 @@ export default async function InitiativeOverviewPage({
         <LifecycleRail current={item.currentStage} />
       </div>
 
-      <InitiativeTabs initiativeId={item.id} active="overview" />
+      <InitiativeTabs
+        initiativeId={item.id}
+        active="overview"
+        currentStage={item.currentStage}
+        hasGovernance={gateItem.governanceGates.length > 0}
+        hasPoC={Boolean(gateItem.poc)}
+      />
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
           <AttentionPanel items={attention} />
           <ReadinessPanel readiness={readiness} />
+          {pocReadiness ? (
+            <Panel>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-medium">PoC readiness</h2>
+                <span
+                  className={`text-sm font-medium ${
+                    pocReadiness.ready ? "text-[var(--ok)]" : "text-[var(--danger)]"
+                  }`}
+                >
+                  {pocReadiness.ready ? "READY" : "NOT READY"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Ready means PoC evidence can be submitted for a governance
+                decision.
+              </p>
+            </Panel>
+          ) : null}
           <Panel>
             <h2 className="mb-2 font-medium">Next action</h2>
             {item.currentStage === "DEMAND" ? (
@@ -103,16 +160,159 @@ export default async function InitiativeOverviewPage({
             ) : null}
             {item.currentStage === "PRE_STUDY" ? (
               <div className="space-y-3">
-                <p className="text-sm text-[var(--muted)]">
-                  Complete assessments, alternatives, and risks until readiness is
-                  READY. Approval/decision execution is Phase 3.
-                </p>
-                <Link
-                  href={`/initiatives/${item.id}/pre-study`}
-                  className="text-sm text-[var(--accent)] underline"
-                >
-                  Open pre-study
-                </Link>
+                {canSubmitPreStudy ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Pre-study is ready. Submit for governance review so
+                      authorities can approve before a decision.
+                    </p>
+                    <SubmitPreStudyButton
+                      initiativeId={item.id}
+                      expectedInitiativeVersion={item.version}
+                    />
+                    <Link
+                      href={`/initiatives/${item.id}/governance`}
+                      className="block text-sm text-[var(--accent)] underline"
+                    >
+                      Open governance workspace
+                    </Link>
+                  </>
+                ) : activeSubmission?.status === "CHANGES_REQUESTED" ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Changes were requested. Update the work, then revise the
+                      submission.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/governance`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Revise in governance
+                    </Link>
+                  </>
+                ) : activeSubmission?.status === "APPROVALS_COMPLETE" ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Approvals are complete. A decision is required.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/decisions`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Record decision
+                    </Link>
+                  </>
+                ) : activeSubmission?.status === "IN_REVIEW" ||
+                  activeSubmission?.status === "SUBMITTED" ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Governance review is in progress. Track approvals and the
+                      decision package.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/governance`}
+                      className="mr-3 text-sm text-[var(--accent)] underline"
+                    >
+                      Open governance
+                    </Link>
+                    <Link
+                      href="/approvals"
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      My Approvals
+                    </Link>
+                  </>
+                ) : canCreatePoC ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Pre-study decision allows a PoC. Create the PoC definition
+                      to advance the lifecycle.
+                    </p>
+                    <CreatePoCForm initiativeId={item.id} />
+                  </>
+                ) : openBlocking.length > 0 ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      {openBlocking.length} blocking condition(s) must be
+                      resolved before creating a PoC.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/decisions`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Resolve conditions
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Complete assessments, alternatives, and risks until
+                      readiness is READY, then submit for governance.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/pre-study`}
+                      className="mr-3 text-sm text-[var(--accent)] underline"
+                    >
+                      Open pre-study
+                    </Link>
+                    <Link
+                      href={`/initiatives/${item.id}/governance`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Governance
+                    </Link>
+                  </>
+                )}
+              </div>
+            ) : null}
+            {item.currentStage === "POC" ? (
+              <div className="space-y-3">
+                {pocReadiness?.ready &&
+                !activeSubmission ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      PoC is ready for a governance decision. Submit the PoC gate
+                      from the PoC workspace.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/poc`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Open PoC workspace
+                    </Link>
+                  </>
+                ) : activeSubmission?.status === "APPROVALS_COMPLETE" ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      PoC approvals are complete. Record the decision.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/decisions`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Record decision
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Continue PoC definition, execution, evaluation, and results
+                      until readiness is READY.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/poc`}
+                      className="mr-3 text-sm text-[var(--accent)] underline"
+                    >
+                      Open PoC
+                    </Link>
+                    <Link
+                      href={`/initiatives/${item.id}/governance`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Governance
+                    </Link>
+                  </>
+                )}
               </div>
             ) : null}
           </Panel>
