@@ -7,6 +7,7 @@ import { useState } from "react";
 const navItems = [
   { href: "/", label: "Overview", available: true },
   { href: "/organization", label: "Organization", available: true },
+  { href: "/initiatives", label: "Initiatives", available: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -53,11 +54,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="px-3 pb-2 text-[11px] uppercase tracking-[0.14em] text-white/40">
               Later phases
             </p>
-            {["Initiatives", "PI Planning", "Governance"].map((label) => (
+            {["PI Planning", "Governance"].map((label) => (
               <span
                 key={label}
                 className="block cursor-not-allowed rounded-md px-3 py-2 text-sm text-white/35"
-                title="Not available in Phase 1"
+                title="Not available in Phase 2"
               >
                 {label}
               </span>

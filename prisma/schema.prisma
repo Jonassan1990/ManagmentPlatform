@@ -38,6 +38,8 @@ model Organization {
   resources    Resource[]
   roleBindings RoleBinding[]
   auditEvents  AuditEvent[]
+  initiatives  Initiative[]
+  referenceCounter InitiativeReferenceCounter?
 
   @@index([status])
   @@map("organizations")
@@ -71,8 +73,9 @@ model Department {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  section Section @relation(fields: [sectionId], references: [id], onDelete: Restrict)
-  teams   Team[]
+  section     Section      @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  teams       Team[]
+  initiatives Initiative[]
 
   @@unique([sectionId, name])
   @@index([sectionId, status])
@@ -204,4 +207,360 @@ model AuditEvent {
   @@index([organizationId, actionType])
   @@index([subjectType, subjectId])
   @@map("audit_events")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — Initiative lifecycle (Demand → Requirements → Pre-study)
+// ---------------------------------------------------------------------------
+
+enum InitiativeStage {
+  DEMAND
+  REQUIREMENTS
+  PRE_STUDY
+}
+
+enum InitiativeStatus {
+  ACTIVE
+  ON_HOLD
+  CANCELLED
+  ARCHIVED
+}
+
+enum DemandUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RequirementCategory {
+  BUSINESS
+  FUNCTIONAL
+  NON_FUNCTIONAL
+  ARCHITECTURE
+  SECURITY
+  INTEGRATION
+  DATA
+  COMPLIANCE
+  OTHER
+}
+
+enum RequirementPriority {
+  MUST
+  SHOULD
+  COULD
+  WONT
+}
+
+enum RequirementStatus {
+  DRAFT
+  PROPOSED
+  ACCEPTED
+  DEFERRED
+  REJECTED
+}
+
+enum RequirementRelationType {
+  DEPENDS_ON
+  RELATED_TO
+  REFINES
+  CONFLICTS_WITH
+}
+
+enum AssessmentArea {
+  BUSINESS
+  CURRENT_STATE
+  ARCHITECTURE
+  SECURITY
+  INTEGRATION
+  DATA
+  COST
+  RESOURCES
+  RISK
+  OTHER
+}
+
+enum AssessmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum RiskProbability {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RiskImpact {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATING
+  ACCEPTED
+  CLOSED
+}
+
+enum DocumentLifecycleStatus {
+  DRAFT
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  SUPERSEDED
+}
+
+/// Concurrency-safe per-organization sequence for human-readable initiative references.
+model InitiativeReferenceCounter {
+  organizationId String @id @db.Uuid
+  nextValue      Int    @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("initiative_reference_counters")
+}
+
+/// Durable lifecycle root. Demand/Requirements/Pre-study are stage data, not separate apps.
+model Initiative {
+  id                 String           @id @default(uuid()) @db.Uuid
+  organizationId     String           @db.Uuid
+  departmentId       String           @db.Uuid
+  referenceKey       String           @db.VarChar(40)
+  title              String           @db.VarChar(300)
+  /// Free-text business person reference — not a Principal or Resource FK.
+  requesterName      String           @db.VarChar(200)
+  requesterContact   String?          @db.VarChar(300)
+  /// Free-text business owner reference — not a Principal or Resource FK.
+  businessOwnerName  String           @db.VarChar(200)
+  businessOwnerContact String?        @db.VarChar(300)
+  currentStage       InitiativeStage  @default(DEMAND)
+  status             InitiativeStatus @default(ACTIVE)
+  version            Int              @default(1)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  department   Department   @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+
+  demand              Demand?
+  requirements        Requirement[]
+  preStudy            PreStudy?
+  risks               Risk[]
+  documents           ManagedDocument[]
+  lifecycleTransitions LifecycleTransition[]
+
+  @@unique([organizationId, referenceKey])
+  @@index([organizationId, currentStage, status])
+  @@index([departmentId])
+  @@map("initiatives")
+}
+
+model LifecycleTransition {
+  id               String          @id @default(uuid()) @db.Uuid
+  initiativeId     String          @db.Uuid
+  fromStage        InitiativeStage
+  toStage          InitiativeStage
+  actorPrincipalId String?         @db.Uuid
+  comment          String?         @db.VarChar(2000)
+  occurredAt       DateTime        @default(now())
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@index([initiativeId, occurredAt])
+  @@map("lifecycle_transitions")
+}
+
+model Demand {
+  id                 String        @id @default(uuid()) @db.Uuid
+  initiativeId       String        @unique @db.Uuid
+  problemOpportunity String        @db.VarChar(4000)
+  reasonForRequest   String        @db.VarChar(4000)
+  expectedValue      String        @db.VarChar(4000)
+  affectedAreas      String        @db.VarChar(2000)
+  urgency            DemandUrgency @default(MEDIUM)
+  strategicAlignment String        @db.VarChar(2000)
+  initialImpact      String        @db.VarChar(2000)
+  notes              String?       @db.VarChar(4000)
+  version            Int           @default(1)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@map("demands")
+}
+
+model Requirement {
+  id             String              @id @default(uuid()) @db.Uuid
+  initiativeId   String              @db.Uuid
+  referenceKey   String              @db.VarChar(40)
+  title          String              @db.VarChar(300)
+  description    String              @db.VarChar(8000)
+  category       RequirementCategory
+  priority       RequirementPriority @default(SHOULD)
+  ownerName      String?             @db.VarChar(200)
+  source         String?             @db.VarChar(500)
+  status         RequirementStatus   @default(DRAFT)
+  version        Int                 @default(1)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  initiative         Initiative              @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  acceptanceCriteria AcceptanceCriterion[]
+  relationsFrom      RequirementRelation[]   @relation("RequirementRelationFrom")
+  relationsTo        RequirementRelation[]   @relation("RequirementRelationTo")
+
+  @@unique([initiativeId, referenceKey])
+  @@index([initiativeId, status])
+  @@map("requirements")
+}
+
+model AcceptanceCriterion {
+  id            String   @id @default(uuid()) @db.Uuid
+  requirementId String   @db.Uuid
+  description   String   @db.VarChar(2000)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([requirementId, sortOrder])
+  @@map("acceptance_criteria")
+}
+
+model RequirementRelation {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  fromRequirementId    String                  @db.Uuid
+  toRequirementId      String                  @db.Uuid
+  relationType         RequirementRelationType
+  createdAt            DateTime                @default(now())
+
+  fromRequirement Requirement @relation("RequirementRelationFrom", fields: [fromRequirementId], references: [id], onDelete: Cascade)
+  toRequirement   Requirement @relation("RequirementRelationTo", fields: [toRequirementId], references: [id], onDelete: Cascade)
+
+  @@unique([fromRequirementId, toRequirementId, relationType])
+  @@index([toRequirementId])
+  @@map("requirement_relations")
+}
+
+model PreStudy {
+  id           String   @id @default(uuid()) @db.Uuid
+  initiativeId String   @unique @db.Uuid
+  summary      String?  @db.VarChar(4000)
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  initiative   Initiative              @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  assessments  PreStudyAssessment[]
+  alternatives SolutionAlternative[]
+
+  @@map("pre_studies")
+}
+
+model PreStudyAssessment {
+  id          String           @id @default(uuid()) @db.Uuid
+  preStudyId  String           @db.Uuid
+  area        AssessmentArea
+  ownerName   String?          @db.VarChar(200)
+  status      AssessmentStatus @default(NOT_STARTED)
+  summary     String?          @db.VarChar(4000)
+  findings    String?          @db.VarChar(8000)
+  conclusion  String?          @db.VarChar(4000)
+  version     Int              @default(1)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  preStudy PreStudy @relation(fields: [preStudyId], references: [id], onDelete: Cascade)
+
+  @@unique([preStudyId, area])
+  @@index([preStudyId, status])
+  @@map("pre_study_assessments")
+}
+
+model SolutionAlternative {
+  id                 String   @id @default(uuid()) @db.Uuid
+  preStudyId         String   @db.Uuid
+  title              String   @db.VarChar(300)
+  description        String   @db.VarChar(4000)
+  benefits           String?  @db.VarChar(4000)
+  drawbacks          String?  @db.VarChar(4000)
+  estimatedCost      String?  @db.VarChar(500)
+  estimatedDuration  String?  @db.VarChar(200)
+  riskUncertainty    String?  @db.VarChar(2000)
+  notes              String?  @db.VarChar(4000)
+  /// Recommendation indicator only — NEVER an automatic governance decision.
+  isRecommended      Boolean  @default(false)
+  version            Int      @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  preStudy PreStudy @relation(fields: [preStudyId], references: [id], onDelete: Cascade)
+
+  @@index([preStudyId])
+  @@map("solution_alternatives")
+}
+
+/// Canonical risk — reusable beyond Pre-study; not a PreStudyRisk fork.
+model Risk {
+  id             String          @id @default(uuid()) @db.Uuid
+  initiativeId   String          @db.Uuid
+  referenceKey   String          @db.VarChar(40)
+  title          String          @db.VarChar(300)
+  description    String          @db.VarChar(4000)
+  ownerName      String?         @db.VarChar(200)
+  probability    RiskProbability @default(MEDIUM)
+  impact         RiskImpact      @default(MEDIUM)
+  status         RiskStatus      @default(OPEN)
+  mitigation     String?         @db.VarChar(4000)
+  version        Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@unique([initiativeId, referenceKey])
+  @@index([initiativeId, status])
+  @@map("risks")
+}
+
+/// Document metadata foundation — binary upload deferred (no blobs in PostgreSQL).
+model ManagedDocument {
+  id           String   @id @default(uuid()) @db.Uuid
+  initiativeId String   @db.Uuid
+  title        String   @db.VarChar(300)
+  category     String   @db.VarChar(100)
+  ownerName    String?  @db.VarChar(200)
+  stage        InitiativeStage?
+  assessmentArea AssessmentArea?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  initiative Initiative        @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  versions   DocumentVersion[]
+
+  @@index([initiativeId])
+  @@map("managed_documents")
+}
+
+model DocumentVersion {
+  id               String                  @id @default(uuid()) @db.Uuid
+  documentId       String                  @db.Uuid
+  versionLabel     String                  @db.VarChar(40)
+  lifecycleStatus  DocumentLifecycleStatus @default(DRAFT)
+  /// Placeholder for future object-storage pointer — not a binary payload.
+  storagePointer   String?                 @db.VarChar(1000)
+  changeSummary    String?                 @db.VarChar(2000)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  document ManagedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, versionLabel])
+  @@index([documentId])
+  @@map("document_versions")
 }
