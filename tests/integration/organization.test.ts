@@ -13,6 +13,7 @@ const databaseUrl =
   "postgresql://mgmt:mgmt_dev_only@localhost:5432/management_platform?schema=public";
 
 process.env.DATABASE_URL = databaseUrl;
+process.env.DIRECT_URL = process.env.DIRECT_URL ?? databaseUrl;
 process.env.ALLOW_DEV_AUTH = "false";
 resetEnvCacheForTests();
 
@@ -46,6 +47,8 @@ async function resetDb() {
   await db.department.deleteMany();
   await db.section.deleteMany();
   await db.organization.deleteMany();
+  await db.bootstrapConsumption.deleteMany();
+  await db.externalIdentity.deleteMany();
   await db.principal.deleteMany();
   await db.roleDefinition.deleteMany();
 }

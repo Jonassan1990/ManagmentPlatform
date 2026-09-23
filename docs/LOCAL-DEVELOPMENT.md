@@ -29,12 +29,17 @@ Required local values:
 ```env
 NODE_ENV=development
 DATABASE_URL=postgresql://mgmt:mgmt_dev_only@localhost:5432/management_platform?schema=public
+DIRECT_URL=postgresql://mgmt:mgmt_dev_only@localhost:5432/management_platform?schema=public
 ALLOW_DEV_AUTH=true
 DEV_AUTH_PRINCIPAL_ID=<your-generated-uuid>
 DEV_AUTH_DISPLAY_NAME=Local Developer
 ```
 
+`DIRECT_URL` is required by the Prisma schema for migrations; locally set it equal to `DATABASE_URL`.
+
 Do not use a personal email as an identity key.
+
+Optional production auth vars (not needed for local DEV bridge) are documented in `.env.example` and [PRODUCTION-AUTH-RUNBOOK.md](./PRODUCTION-AUTH-RUNBOOK.md).
 
 ## 3. Start PostgreSQL
 

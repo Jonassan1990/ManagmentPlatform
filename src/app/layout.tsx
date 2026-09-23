@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
-import { AppShell } from "@/components/shell/app-shell";
+import { AuthenticatedShell } from "@/components/shell/authenticated-shell";
 import "./globals.css";
 
 const sourceSans = Source_Sans_3({
@@ -16,7 +16,7 @@ const sourceSerif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "Management Platform",
   description:
-    "Management, governance, portfolio, and PI Planning platform — Phase 1 foundation",
+    "Management, governance, portfolio, and PI Planning platform — Phase 6 production identity",
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sourceSans.variable} ${sourceSerif.variable} antialiased`}>
-        <AppShell>{children}</AppShell>
+        <AuthenticatedShell>{children}</AuthenticatedShell>
       </body>
     </html>
   );

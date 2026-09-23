@@ -1,7 +1,7 @@
-# Deployment Acceptance — Phase 5.5
+# Deployment Acceptance — Phase 6
 
-**Branch:** `phase5.5-deployment-ux-acceptance`  
-**Intent:** Record Vercel / managed Postgres readiness and explicitly state what was **not** deployed and why.
+**Branch:** `phase6-production-auth-deployment`  
+**Intent:** Record production identity readiness and explicit deploy status.
 
 ---
 
@@ -9,12 +9,10 @@
 
 | Check | Result |
 |---|---|
-| `npm install` / `postinstall` → `prisma generate` | OK (Prisma Client generated on install) |
-| `npm run build` (`next build`) | OK on this branch (`.next` present; prior Phase 5/5.5 builds known green) |
-| Node host portability | Architecture does not import Vercel-only APIs into domain modules |
-| Domain ↔ host coupling | Storage/auth adapters stay outside domain (see ARCHITECTURE.md) |
-
-Prisma Client generation via `postinstall` is required for Vercel build. Prefer `prisma migrate deploy` as a **release step** against the target DB, not `db push`.
+| `npm install` / `postinstall` → `prisma generate` | OK |
+| `vercel.json` build command | `prisma generate && next build` |
+| Node host portability | No Vercel-only APIs in domain modules |
+| Build without OIDC secrets | Supported (lazy auth env) |
 
 ---
 
@@ -22,61 +20,56 @@ Prisma Client generation via `postinstall` is required for Vercel build. Prefer 
 
 | Requirement | Notes |
 |---|---|
-| `DATABASE_URL` | Required; PostgreSQL connection string |
-| TLS | Use provider TLS (`sslmode=require` / equivalent) for managed instances |
-| Pooling | Prefer pooled URL for serverless (e.g. Neon pooler / PgBouncer) for Next serverless functions; keep direct URL for migrations if provider splits them |
-| Migrations | `npx prisma migrate deploy` before or during release |
-| Docker on Vercel | **No** — local `docker-compose.yml` is for development only; production uses managed Postgres |
-
-Local acceptance DB used for the journey:
-
-```text
-postgresql://mgmt:mgmt_dev_only@localhost:5432/management_platform_acceptance?schema=public
-```
+| `DATABASE_URL` | Runtime (pooled OK) |
+| `DIRECT_URL` | Migrations / Prisma `directUrl` |
+| TLS | Provider TLS for managed instances |
+| Migrations | `npx prisma migrate deploy` (includes `20260923130000_phase6_production_auth`) |
 
 ---
 
-## 3. AUTHENTICATION BLOCKED BY PRODUCTION AUTH
+## 3. Authentication (Phase 6)
 
 | Rule | Status |
 |---|---|
-| DEV auth in production | **Forbidden** — `env.ts` rejects `ALLOW_DEV_AUTH` when `NODE_ENV=production` |
-| OIDC / SSO provider | **Not wired** — `resolveCurrentPrincipal` returns `null` outside DEV (ADR-002, OQ-10) |
-| Missing principal | **Fail closed** — mutating routes unauthorized / redirect; overview shows auth EmptyState |
+| DEV auth in production | **Forbidden** — `getEnv` rejects; `isDevAuthEnabled` false |
+| OIDC / Auth.js | **Implemented** — generic issuer-based provider |
+| JIT Principal | **Least privilege** — no default role bindings |
+| Bootstrap | **One-time token** — never first-login-is-admin |
+| Session cookies | HttpOnly + Secure (prod) + SameSite |
 
-**Conclusion:** A production deploy without OIDC would boot the UI shell but **cannot** authenticate real users. Enabling DEV auth in production is explicitly disallowed and must not be used as a workaround.
+Without OIDC env vars configured on the host, login shows “authentication not configured” and mutating routes fail closed.
 
 ---
 
-## 4. Deployment NOT attempted
+## 4. Deployment status
 
-Production / Vercel deployment was **not** attempted in Phase 5.5 because:
+**NOT DEPLOYED / BLOCKED BY MISSING CREDENTIALS**
 
-1. **No `VERCEL_TOKEN`** (or equivalent CI deploy credentials) available in this environment.
-2. **No managed production Postgres** provisioned for this acceptance pass.
-3. **Auth is unsafe for production use** until OIDC is wired — fail-closed without a principal; DEV auth must not be enabled.
+Production / Vercel deployment was **not** completed in this environment because:
 
-This document does **not** claim a live Vercel URL or production migration.
+1. No production OIDC IdP credentials (`OIDC_ISSUER` / client id / secret) were available to configure a live SSO login.
+2. No managed production Postgres provisioning was confirmed for a live target (local Docker only).
+3. A `Vercel` inject may exist in the agent environment, but deploying without OIDC + production DB would ship an auth-incomplete system. Phase 6 policy: deploy only when real auth + DB credentials exist.
+
+Auth **code** is ready; operators follow [PRODUCTION-AUTH-RUNBOOK.md](./PRODUCTION-AUTH-RUNBOOK.md) when credentials are available.
 
 ---
 
 ## 5. Recommended path (when unblocked)
 
-1. Choose OIDC provider and close OQ-10; implement adapter in identity-access (replace DEV-only bridge for production).
-2. Provision managed Postgres; set `DATABASE_URL` (+ pooler URL if needed); configure TLS.
-3. Run `npx prisma migrate deploy` against production DB.
-4. Configure Vercel env: `DATABASE_URL`, `APP_URL`, `NODE_ENV=production`; leave `ALLOW_DEV_AUTH` / `DEV_AUTH_*` unset.
-5. Deploy via GitHub → Vercel (or portable Node host); smoke `/` for auth EmptyState then authenticated first-run.
-6. Keep domain modules free of host-specific APIs.
-
-Until step 1 lands, treat production deploy as **blocked**.
+1. Provision managed Postgres; set `DATABASE_URL` + `DIRECT_URL`.
+2. Run `npx prisma migrate deploy`.
+3. Configure OIDC + `AUTH_SECRET` + `APP_URL`/`AUTH_URL` on Vercel.
+4. Set `BOOTSTRAP_SETUP_TOKEN` for the first operator.
+5. Deploy; complete `/login` → `/setup/bootstrap`.
+6. Leave `ALLOW_DEV_AUTH` unset.
 
 ---
 
 ## 6. Related docs
 
-- [DEPLOYMENT-VERCEL.md](./DEPLOYMENT-VERCEL.md) — portable Vercel checklist
-- [LOCAL-DEVELOPMENT.md](./LOCAL-DEVELOPMENT.md) — Docker Postgres + DEV auth
-- [adr/ADR-002-dev-auth-bridge.md](./adr/ADR-002-dev-auth-bridge.md) — DEV-only principal bridge
-- [UX-ACCEPTANCE-REPORT.md](./UX-ACCEPTANCE-REPORT.md) — UX acceptance findings
-- [PHASE-6-BACKLOG.md](./PHASE-6-BACKLOG.md) — Must Fix includes Production OIDC
+- [PHASE-6-IMPLEMENTATION.md](./PHASE-6-IMPLEMENTATION.md)
+- [PRODUCTION-AUTH-RUNBOOK.md](./PRODUCTION-AUTH-RUNBOOK.md)
+- [DEPLOYMENT-VERCEL.md](./DEPLOYMENT-VERCEL.md)
+- [adr/ADR-018-oidc-identity.md](./adr/ADR-018-oidc-identity.md)
+- [adr/ADR-019-secure-bootstrap.md](./adr/ADR-019-secure-bootstrap.md)

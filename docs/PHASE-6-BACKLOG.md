@@ -1,15 +1,15 @@
 # Phase 6 Backlog
 
 **Source:** Phase 5.5 UX / deployment acceptance findings only (code audit + continuity fixes + acceptance journey).  
-**Rule:** Do not invent scope beyond observed gaps. Phase 6 feature work has **not** started.
+**Phase 6 Must Fix (production OIDC / auth):** **Done** on branch `phase6-production-auth-deployment` — see [PHASE-6-IMPLEMENTATION.md](./PHASE-6-IMPLEMENTATION.md). Production deploy remains blocked until real OIDC + managed Postgres credentials are supplied ([DEPLOYMENT-ACCEPTANCE.md](./DEPLOYMENT-ACCEPTANCE.md)).
 
 ---
 
 ## Must Fix
 
-| Item | Why (finding) |
-|---|---|
-| **Production OIDC / auth** | Production fails closed; DEV auth forbidden; no real principal path. Blocks any safe Vercel/production deploy (DEPLOYMENT-ACCEPTANCE). |
+| Item | Why (finding) | Status |
+|---|---|---|
+| **Production OIDC / auth** | Production fails closed; DEV auth forbidden; no real principal path. Blocks any safe Vercel/production deploy (DEPLOYMENT-ACCEPTANCE). | **Done (Phase 6)** — Auth.js OIDC, ExternalIdentity, secure bootstrap, session cookies. Deploy blocked on credentials only. |
 
 ---
 
@@ -44,4 +44,4 @@
 - AI recommendations-as-decisions
 - Invented executive cockpit features beyond attention polish implied by overview density
 
-Prioritize **Must Fix** before any production deployment attempt.
+Prioritize remaining **Should Fix** items after production credentials unblock deploy smoke.

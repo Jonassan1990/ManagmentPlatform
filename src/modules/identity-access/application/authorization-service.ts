@@ -89,8 +89,10 @@ export class AuthorizationService {
 
   /**
    * Resolves the current principal.
-   * Production / non-dev: returns null unless a future OIDC adapter is wired.
-   * DEV-only: ALLOW_DEV_AUTH=true + NODE_ENV=development + DEV_AUTH_PRINCIPAL_ID UUID.
+   * 1. Explicit override (tests)
+   * 2. DEV auth bridge (development only)
+   * 3. OIDC session → Principal via session.principalId
+   * 4. null (fail closed)
    */
   async resolveCurrentPrincipal(
     override?: Principal | null,
@@ -120,8 +122,29 @@ export class AuthorizationService {
       };
     }
 
-    // Future OIDC adapter plugs in here. Fail closed for now.
-    return null;
+    // Dynamic import avoids circular init with auth.ts ↔ prisma ↔ this service.
+    try {
+      const { auth } = await import("@/server/auth");
+      const session = await auth();
+      const principalId = session?.principalId ?? session?.user?.principalId;
+      if (!principalId) {
+        return null;
+      }
+      const row = await this.db.principal.findUnique({
+        where: { id: principalId },
+      });
+      if (!row) {
+        return null;
+      }
+      return {
+        id: row.id,
+        displayName: row.displayName,
+        email: row.email,
+        source: "oidc",
+      };
+    } catch {
+      return null;
+    }
   }
 
   async requirePrincipal(override?: Principal | null): Promise<Principal> {
@@ -165,10 +188,18 @@ export class AuthorizationService {
   }
 
   /**
-   * When the database has zero organizations, grant bootstrap binding to the principal.
+   * DEV / test empty-state helper: when zero organizations exist, grant bootstrap binding.
+   * Production OIDC must NEVER auto-grant — use IdentityService.consumeBootstrapToken instead.
    * Does not hardcode any personal identity.
    */
   async ensureBootstrapBinding(principalId: string): Promise<void> {
+    const env = getEnv();
+    const allowAutoBootstrap =
+      isDevAuthEnabled(env) || env.NODE_ENV === "test";
+    if (!allowAutoBootstrap) {
+      return;
+    }
+
     await this.ensureSystemRoles();
     const orgCount = await this.db.organization.count();
     if (orgCount > 0) return;

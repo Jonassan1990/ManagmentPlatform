@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
+import { SignOutButton } from "./sign-out-button";
 
 const navItems = [
   { href: "/", label: "Overview", available: true },
@@ -13,7 +14,20 @@ const navItems = [
   { href: "/pi", label: "PI Planning", available: true },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export type ShellPrincipal = {
+  displayName: string | null;
+  email: string | null;
+  source: string;
+  hasAccess: boolean;
+};
+
+export function AppShell({
+  children,
+  principal,
+}: {
+  children: React.ReactNode;
+  principal?: ShellPrincipal | null;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -21,6 +35,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const match = pathname.match(/^\/organization\/([^/]+)/);
     return match ? `/organization/${match[1]}/governance-policy` : null;
   }, [pathname]);
+
+  const label =
+    principal?.displayName ||
+    principal?.email ||
+    (principal ? "Signed in" : null);
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
@@ -34,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="font-[family-name:var(--font-display)] text-lg tracking-tight text-white">
               Management Platform
             </p>
-            <p className="text-xs text-white/60">Through Phase 5</p>
+            <p className="text-xs text-white/60">Phase 6 identity</p>
           </div>
         </div>
         <nav className="space-y-1 p-3" aria-label="Primary">
@@ -95,6 +114,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="text-sm text-[var(--muted)]">
               Structured management foundation
             </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {label ? (
+              <>
+                <div className="hidden text-right sm:block">
+                  <p className="text-sm text-[var(--ink)]">{label}</p>
+                  {principal?.email && principal.displayName ? (
+                    <p className="text-xs text-[var(--muted)]">
+                      {principal.email}
+                    </p>
+                  ) : null}
+                </div>
+                {principal?.source === "oidc" ? <SignOutButton /> : null}
+                {principal?.source === "dev" ? (
+                  <span className="rounded-md border border-[var(--line)] px-2 py-1 text-xs text-[var(--muted)]">
+                    DEV
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm hover:bg-black/5"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </header>
         <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
