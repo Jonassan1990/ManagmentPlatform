@@ -162,7 +162,8 @@ describe("secure bootstrap consumption", () => {
 describe("DEV auth still works in development test env", () => {
   it("resolveCurrentPrincipal upserts DEV principal when enabled", async () => {
     const id = randomUUID();
-    process.env.NODE_ENV = "development";
+    const env = process.env as { NODE_ENV?: string };
+    env.NODE_ENV = "development";
     process.env.ALLOW_DEV_AUTH = "true";
     process.env.DEV_AUTH_PRINCIPAL_ID = id;
     process.env.DEV_AUTH_DISPLAY_NAME = "Local Dev";
@@ -175,7 +176,7 @@ describe("DEV auth still works in development test env", () => {
     // restore for other tests
     process.env.ALLOW_DEV_AUTH = "false";
     delete process.env.DEV_AUTH_PRINCIPAL_ID;
-    process.env.NODE_ENV = "test";
+    env.NODE_ENV = "test";
     resetEnvCacheForTests();
   });
 });

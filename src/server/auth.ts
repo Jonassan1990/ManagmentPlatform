@@ -6,7 +6,6 @@ import { IdentityService } from "@/modules/identity-access/application/identity-
 import { prisma } from "@/server/db";
 import {
   getAuthEnv,
-  getPublicAppUrl,
   isOidcConfigured,
 } from "@/server/env";
 
@@ -39,7 +38,6 @@ function buildAuthConfig(): NextAuthConfig {
   const baseUrl =
     authEnv?.AUTH_URL ??
     authEnv?.APP_URL ??
-    getPublicAppUrl() ??
     process.env.AUTH_URL ??
     process.env.APP_URL;
 
@@ -109,32 +107,42 @@ function buildAuthConfig(): NextAuthConfig {
         if (!account || account.provider !== "oidc" || !authEnv) {
           return false;
         }
-        const issuer =
+        const issuerRaw =
           account.issuer ??
           (typeof profile?.iss === "string" ? profile.iss : null) ??
           authEnv.OIDC_ISSUER;
-        const subject =
+        const subjectRaw =
           account.providerAccountId ??
           (typeof profile?.sub === "string" ? profile.sub : null);
-        if (!issuer || !subject) {
+        if (
+          typeof issuerRaw !== "string" ||
+          !issuerRaw ||
+          typeof subjectRaw !== "string" ||
+          !subjectRaw
+        ) {
           return false;
         }
+        const issuer = issuerRaw;
+        const subject = subjectRaw;
 
         const identity = new IdentityService(
           prisma,
           new AuthorizationService(prisma),
           new AuditService(prisma),
         );
+        const preferred =
+          profile &&
+          "preferred_username" in profile &&
+          typeof (profile as { preferred_username?: unknown }).preferred_username ===
+            "string"
+            ? (profile as { preferred_username: string }).preferred_username
+            : null;
         const principal = await identity.resolveOrCreateFromOidc({
           issuer,
           subject,
           email: typeof profile?.email === "string" ? profile.email : null,
           displayName:
-            typeof profile?.name === "string"
-              ? profile.name
-              : typeof profile?.preferred_username === "string"
-                ? profile.preferred_username
-                : null,
+            typeof profile?.name === "string" ? profile.name : preferred,
         });
         (account as { principalId?: string }).principalId = principal.id;
         return true;
@@ -145,20 +153,25 @@ function buildAuthConfig(): NextAuthConfig {
           if (principalId) {
             token.principalId = principalId;
           } else {
-            const issuer =
+            const issuerRaw =
               account.issuer ??
               (typeof profile?.iss === "string" ? profile.iss : null) ??
               authEnv.OIDC_ISSUER;
-            const subject = account.providerAccountId;
-            if (issuer && subject) {
+            const subjectRaw = account.providerAccountId;
+            if (
+              typeof issuerRaw === "string" &&
+              issuerRaw &&
+              typeof subjectRaw === "string" &&
+              subjectRaw
+            ) {
               const identity = new IdentityService(
                 prisma,
                 new AuthorizationService(prisma),
                 new AuditService(prisma),
               );
               const principal = await identity.resolveOrCreateFromOidc({
-                issuer,
-                subject,
+                issuer: issuerRaw,
+                subject: subjectRaw,
                 email: typeof profile?.email === "string" ? profile.email : null,
                 displayName:
                   typeof profile?.name === "string" ? profile.name : null,

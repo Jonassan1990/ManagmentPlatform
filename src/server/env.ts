@@ -21,15 +21,12 @@ const envSchema = z
     DEV_AUTH_PRINCIPAL_ID: z.string().uuid().optional().or(z.literal("")),
     DEV_AUTH_DISPLAY_NAME: z.string().max(200).optional(),
   })
-  .superRefine((val, ctx) => {
+  .transform((val) => {
+    // Production: DEV auth is impossible even if the flag is set (fail closed, do not crash builds).
     if (val.NODE_ENV === "production" && val.ALLOW_DEV_AUTH) {
-      ctx.addIssue({
-        code: "custom",
-        message:
-          "ALLOW_DEV_AUTH cannot be enabled when NODE_ENV=production",
-        path: ["ALLOW_DEV_AUTH"],
-      });
+      return { ...val, ALLOW_DEV_AUTH: false as const };
     }
+    return val;
   });
 
 export type AppEnv = z.infer<typeof envSchema>;

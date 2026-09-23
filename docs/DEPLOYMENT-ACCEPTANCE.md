@@ -47,9 +47,9 @@ Without OIDC env vars configured on the host, login shows “authentication not 
 
 Production / Vercel deployment was **not** completed in this environment because:
 
-1. No production OIDC IdP credentials (`OIDC_ISSUER` / client id / secret) were available to configure a live SSO login.
-2. No managed production Postgres provisioning was confirmed for a live target (local Docker only).
-3. A `Vercel` inject may exist in the agent environment, but deploying without OIDC + production DB would ship an auth-incomplete system. Phase 6 policy: deploy only when real auth + DB credentials exist.
+1. **No production OIDC IdP credentials** (`OIDC_ISSUER` / client id / secret / `AUTH_SECRET`) were available — SSO cannot be configured.
+2. **No managed production Postgres** was provisioned for a live target (local Docker only; `DATABASE_URL` points at localhost).
+3. A Vercel API token may be present in the agent environment, but deploying without OIDC + production DB would ship an auth-incomplete system. Phase 6 policy: deploy only when real auth + DB credentials exist.
 
 Auth **code** is ready; operators follow [PRODUCTION-AUTH-RUNBOOK.md](./PRODUCTION-AUTH-RUNBOOK.md) when credentials are available.
 

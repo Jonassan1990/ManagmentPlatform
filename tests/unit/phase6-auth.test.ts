@@ -29,13 +29,15 @@ describe("production forbids DEV auth", () => {
     ).toBe(false);
   });
 
-  it("getEnv rejects ALLOW_DEV_AUTH=true when NODE_ENV=production", () => {
-    process.env.NODE_ENV = "production";
+  it("getEnv coerces ALLOW_DEV_AUTH to false when NODE_ENV=production", () => {
+    (process.env as { NODE_ENV?: string }).NODE_ENV = "production";
     process.env.DATABASE_URL = "postgresql://example";
     process.env.ALLOW_DEV_AUTH = "true";
     process.env.DEV_AUTH_PRINCIPAL_ID =
       "11111111-1111-4111-8111-111111111111";
-    expect(() => getEnv()).toThrow(/ALLOW_DEV_AUTH/);
+    const env = getEnv();
+    expect(env.ALLOW_DEV_AUTH).toBe(false);
+    expect(isDevAuthEnabled(env)).toBe(false);
   });
 
   it("requires development + flag + principal id", () => {
