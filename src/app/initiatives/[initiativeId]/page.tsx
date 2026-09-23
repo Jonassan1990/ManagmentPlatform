@@ -11,6 +11,10 @@ import {
   LifecycleRail,
   ReadinessPanel,
 } from "@/components/initiative/workspace";
+import {
+  ConvertToProjectForm,
+  CreatePilotForm,
+} from "@/components/pilot/pilot-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
 import { stageLabel } from "@/modules/initiative/application/attention";
 import { createServices } from "@/server/container";
@@ -36,7 +40,12 @@ export default async function InitiativeOverviewPage({
     notFound();
   }
 
-  const { initiative: item, attention, readiness, pocReadiness } = workspace;
+  const { initiative: item, attention, readiness, pocReadiness, pilotReadiness } =
+    workspace;
+  const capabilities = await governance.getPrincipalCapabilities(
+    principal,
+    item.organizationId,
+  );
   const gateItem = gateWorkspace.initiative;
   const activeSubmission = gateItem.governanceGates
     .flatMap((g) => g.submissions)
@@ -50,6 +59,12 @@ export default async function InitiativeOverviewPage({
   const preStudyGo = gateItem.decisions.find(
     (d) => d.outcome === "GO" || d.outcome === "CONDITIONAL_GO",
   );
+  const pocGo = gateItem.governanceGates
+    .find((g) => g.gateType === "POC_GATE")
+    ?.decisions.find((d) => d.outcome === "GO" || d.outcome === "CONDITIONAL_GO");
+  const scaleDecision = gateItem.decisions.find(
+    (d) => d.outcome === "SCALE" || d.outcome === "CONDITIONAL_SCALE",
+  );
   const openBlocking = gateItem.decisions.flatMap((d) =>
     (d.conditions ?? []).filter(
       (c) => c.requiredBeforeProgression && c.status === "OPEN",
@@ -60,6 +75,18 @@ export default async function InitiativeOverviewPage({
     item.currentStage === "PRE_STUDY" &&
     Boolean(preStudyGo) &&
     openBlocking.length === 0;
+  const canCreatePilot =
+    !gateItem.pilot &&
+    item.currentStage === "POC" &&
+    Boolean(pocGo) &&
+    openBlocking.length === 0;
+  const canConvertProject =
+    !gateItem.project &&
+    item.currentStage === "PILOT" &&
+    Boolean(scaleDecision) &&
+    (scaleDecision?.conditions ?? []).filter(
+      (c) => c.requiredBeforeProgression && c.status === "OPEN",
+    ).length === 0;
   const canSubmitPreStudy =
     item.currentStage === "PRE_STUDY" &&
     Boolean(readiness?.ready) &&
@@ -94,6 +121,8 @@ export default async function InitiativeOverviewPage({
         currentStage={item.currentStage}
         hasGovernance={gateItem.governanceGates.length > 0}
         hasPoC={Boolean(gateItem.poc)}
+        hasPilot={Boolean(gateItem.pilot)}
+        hasProject={Boolean(gateItem.project)}
       />
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
@@ -115,6 +144,25 @@ export default async function InitiativeOverviewPage({
               <p className="mt-1 text-xs text-[var(--muted)]">
                 Ready means PoC evidence can be submitted for a governance
                 decision.
+              </p>
+            </Panel>
+          ) : null}
+          {pilotReadiness ? (
+            <Panel>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-medium">Pilot readiness</h2>
+                <span
+                  className={`text-sm font-medium ${
+                    pilotReadiness.ready
+                      ? "text-[var(--ok)]"
+                      : "text-[var(--danger)]"
+                  }`}
+                >
+                  {pilotReadiness.ready ? "READY" : "NOT READY"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Ready means Pilot evidence can be submitted for a scale decision.
               </p>
             </Panel>
           ) : null}
@@ -169,6 +217,7 @@ export default async function InitiativeOverviewPage({
                     <SubmitPreStudyButton
                       initiativeId={item.id}
                       expectedInitiativeVersion={item.version}
+                      capabilities={capabilities}
                     />
                     <Link
                       href={`/initiatives/${item.id}/governance`}
@@ -228,7 +277,10 @@ export default async function InitiativeOverviewPage({
                       Pre-study decision allows a PoC. Create the PoC definition
                       to advance the lifecycle.
                     </p>
-                    <CreatePoCForm initiativeId={item.id} />
+                    <CreatePoCForm
+                      initiativeId={item.id}
+                      capabilities={capabilities}
+                    />
                   </>
                 ) : openBlocking.length > 0 ? (
                   <>
@@ -267,8 +319,24 @@ export default async function InitiativeOverviewPage({
             ) : null}
             {item.currentStage === "POC" ? (
               <div className="space-y-3">
-                {pocReadiness?.ready &&
-                !activeSubmission ? (
+                {canCreatePilot ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      PoC decision allows a Pilot. Create the Pilot definition to
+                      advance the lifecycle.
+                    </p>
+                    <CreatePilotForm
+                      initiativeId={item.id}
+                      capabilities={capabilities}
+                    />
+                    <Link
+                      href={`/initiatives/${item.id}/poc`}
+                      className="block text-sm text-[var(--accent)] underline"
+                    >
+                      Or continue in PoC workspace
+                    </Link>
+                  </>
+                ) : pocReadiness?.ready && !activeSubmission ? (
                   <>
                     <p className="text-sm text-[var(--muted)]">
                       PoC is ready for a governance decision. Submit the PoC gate
@@ -313,6 +381,80 @@ export default async function InitiativeOverviewPage({
                     </Link>
                   </>
                 )}
+              </div>
+            ) : null}
+            {item.currentStage === "PILOT" ? (
+              <div className="space-y-3">
+                {canConvertProject ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Scale decision allows Project conversion. Convert
+                      explicitly — it is not automatic.
+                    </p>
+                    <ConvertToProjectForm
+                      initiativeId={item.id}
+                      defaultName={item.title}
+                      capabilities={capabilities}
+                    />
+                  </>
+                ) : pilotReadiness?.ready && !activeSubmission ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Pilot is ready for a scale decision. Submit from the Pilot
+                      workspace.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/pilot`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Open Pilot workspace
+                    </Link>
+                  </>
+                ) : activeSubmission?.status === "APPROVALS_COMPLETE" ? (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Pilot approvals are complete. Record the scale decision.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/decisions`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Record decision
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      Continue Pilot definition, execution, feedback, and
+                      evaluation until readiness is READY.
+                    </p>
+                    <Link
+                      href={`/initiatives/${item.id}/pilot`}
+                      className="mr-3 text-sm text-[var(--accent)] underline"
+                    >
+                      Open Pilot
+                    </Link>
+                    <Link
+                      href={`/initiatives/${item.id}/governance`}
+                      className="text-sm text-[var(--accent)] underline"
+                    >
+                      Governance
+                    </Link>
+                  </>
+                )}
+              </div>
+            ) : null}
+            {item.currentStage === "PROJECT" ? (
+              <div className="space-y-3">
+                <p className="text-sm text-[var(--muted)]">
+                  Manage work, milestones, and budget in the Project workspace.
+                </p>
+                <Link
+                  href={`/initiatives/${item.id}/project`}
+                  className="text-sm text-[var(--accent)] underline"
+                >
+                  Open Project workspace
+                </Link>
               </div>
             ) : null}
           </Panel>

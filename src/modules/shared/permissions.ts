@@ -26,6 +26,17 @@ export const PERMISSIONS = {
   APPROVAL_AUTHORITY_BUSINESS: "approval.authority.business",
   APPROVAL_AUTHORITY_ARCHITECTURE: "approval.authority.architecture",
   APPROVAL_AUTHORITY_SECURITY: "approval.authority.security",
+  // Phase 4 — Pilot + Project + policy admin
+  PILOT_CREATE: "pilot.create",
+  PILOT_EDIT: "pilot.edit",
+  PILOT_TRANSITION: "pilot.transition",
+  PILOT_EVALUATE: "pilot.evaluate",
+  PROJECT_CONVERT: "project.convert",
+  PROJECT_VIEW: "project.view",
+  PROJECT_EDIT: "project.edit",
+  PROJECT_MANAGE_MILESTONES: "project.manage_milestones",
+  PROJECT_MANAGE_WORKITEMS: "project.manage_workitems",
+  GOVERNANCE_POLICY_MANAGE: "governance.policy.manage",
 } as const;
 
 export type Permission =

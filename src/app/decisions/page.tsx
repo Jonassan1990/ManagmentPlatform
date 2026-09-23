@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { RecordDecisionForm } from "@/components/governance/governance-forms";
+import {
+  RecordDecisionForm,
+  outcomesForGateType,
+} from "@/components/governance/governance-forms";
 import {
   ApprovalStatusList,
   DecisionPackagePanel,
@@ -17,6 +20,14 @@ export default async function DecisionsInboxPage() {
   if (!principal) redirect("/");
 
   const submissions = await governance.listMyDecisions(principal);
+  const orgIds = [...new Set(submissions.map((s) => s.initiative.organizationId))];
+  const capsEntries = await Promise.all(
+    orgIds.map(async (organizationId) => [
+      organizationId,
+      await governance.getPrincipalCapabilities(principal, organizationId),
+    ] as const),
+  );
+  const capsByOrg = Object.fromEntries(capsEntries);
 
   return (
     <div>
@@ -83,6 +94,8 @@ export default async function DecisionsInboxPage() {
                     recommendationText={
                       submission.decisionPackage.recommendationText
                     }
+                    allowedOutcomes={outcomesForGateType(submission.gate.gateType)}
+                    capabilities={capsByOrg[submission.initiative.organizationId]}
                   />
                 </div>
               ) : null}

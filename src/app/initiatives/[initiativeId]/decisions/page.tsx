@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import {
   RecordDecisionForm,
   ResolveConditionForm,
+  outcomesForGateType,
 } from "@/components/governance/governance-forms";
 import {
   ApprovalStatusList,
@@ -38,6 +39,10 @@ export default async function InitiativeDecisionsPage({
   }
 
   const item = gateWorkspace.initiative;
+  const capabilities = await governance.getPrincipalCapabilities(
+    principal,
+    item.organizationId,
+  );
   const decisions = item.decisions;
   const awaitingDecision = item.governanceGates
     .flatMap((g) =>
@@ -81,6 +86,8 @@ export default async function InitiativeDecisionsPage({
         currentStage={item.currentStage}
         hasGovernance={item.governanceGates.length > 0}
         hasPoC={Boolean(item.poc)}
+        hasPilot={Boolean(item.pilot)}
+        hasProject={Boolean(item.project)}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -132,6 +139,8 @@ export default async function InitiativeDecisionsPage({
                   recommendationText={
                     focus.submission.decisionPackage?.recommendationText
                   }
+                  allowedOutcomes={outcomesForGateType(focus.gate.gateType)}
+                  capabilities={capabilities}
                 />
               </Panel>
             </>
@@ -176,11 +185,27 @@ export default async function InitiativeDecisionsPage({
                 — proceed only after required conditions are closed.
               </li>
               <li>
+                <span className={statusToneClass("SCALE")}>Scale</span> — allow
+                Project conversion after Pilot (explicit action).
+              </li>
+              <li>
+                <span className={statusToneClass("CONDITIONAL_SCALE")}>
+                  Conditional scale
+                </span>{" "}
+                — scale after conditions close.
+              </li>
+              <li>
+                <span className={statusToneClass("EXTEND_PILOT")}>
+                  Extend pilot
+                </span>{" "}
+                — lengthen the Pilot window.
+              </li>
+              <li>
                 <span className={statusToneClass("HOLD")}>Hold</span> — pause
                 the initiative.
               </li>
               <li>
-                <span className={statusToneClass("NO_GO")}>No-go</span> —
+                <span className={statusToneClass("NO_GO")}>No-go / Stop</span> —
                 cancel the initiative.
               </li>
             </ul>
@@ -211,6 +236,7 @@ export default async function InitiativeDecisionsPage({
                       expectedVersion={condition.version}
                       initiativeId={item.id}
                       description={condition.description}
+                      capabilities={capabilities}
                     />
                   </div>
                 ))}

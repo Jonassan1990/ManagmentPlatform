@@ -14,6 +14,8 @@ export default async function HomePage() {
     requirements: 0,
     preStudy: 0,
     poc: 0,
+    pilot: 0,
+    project: 0,
     needsAttention: 0,
     readyForGovernance: 0,
     waitingForApproval: 0,
@@ -22,8 +24,16 @@ export default async function HomePage() {
     activePocs: 0,
     pocsReadyForDecision: 0,
     outstandingConditions: 0,
+    activePilots: 0,
+    pilotsReadyForDecision: 0,
+    scaleDecisionsWaiting: 0,
+    projects: 0,
+    projectsAtRisk: 0,
+    outstandingScaleConditions: 0,
+    upcomingMilestones: 0,
   };
   let orgCount = 0;
+  let firstOrgId: string | null = null;
 
   try {
     const env = getEnv();
@@ -33,6 +43,7 @@ export default async function HomePage() {
     if (principal) {
       const orgs = await organization.listOrganizations(principal);
       orgCount = orgs.length;
+      firstOrgId = orgs[0]?.id ?? null;
       metrics = await initiative.getOverviewMetrics(principal);
     } else if (env.NODE_ENV === "development" && !isDevAuthEnabled(env)) {
       authHint =
@@ -53,7 +64,7 @@ export default async function HomePage() {
       <Breadcrumbs items={[{ label: "Overview" }]} />
       <PageHeader
         title="Overview"
-        description="Management attention across organization setup, initiative lifecycle, and governance."
+        description="Management attention across organization setup, initiative lifecycle, governance, pilots, and projects."
       />
 
       {authHint ? (
@@ -90,6 +101,8 @@ export default async function HomePage() {
               { label: "In Requirements", value: metrics.requirements },
               { label: "In Pre-study", value: metrics.preStudy },
               { label: "In PoC", value: metrics.poc },
+              { label: "In Pilot", value: metrics.pilot },
+              { label: "In Project", value: metrics.project },
               { label: "Needs attention", value: metrics.needsAttention },
               {
                 label: "Ready for governance review",
@@ -112,9 +125,28 @@ export default async function HomePage() {
                 label: "PoCs ready for decision",
                 value: metrics.pocsReadyForDecision,
               },
+              { label: "Active Pilots", value: metrics.activePilots },
+              {
+                label: "Pilots ready for decision",
+                value: metrics.pilotsReadyForDecision,
+              },
+              {
+                label: "Scale decisions waiting",
+                value: metrics.scaleDecisionsWaiting,
+              },
+              { label: "Projects", value: metrics.projects },
+              { label: "Projects at risk", value: metrics.projectsAtRisk },
               {
                 label: "Outstanding conditions",
                 value: metrics.outstandingConditions,
+              },
+              {
+                label: "Outstanding scale conditions",
+                value: metrics.outstandingScaleConditions,
+              },
+              {
+                label: "Upcoming milestones (14d)",
+                value: metrics.upcomingMilestones,
               },
             ].map((item) => (
               <Panel key={item.label}>
@@ -143,6 +175,14 @@ export default async function HomePage() {
                 >
                   Decisions
                 </Link>
+                {firstOrgId ? (
+                  <Link
+                    href={`/organization/${firstOrgId}/governance-policy`}
+                    className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
+                  >
+                    Governance policy
+                  </Link>
+                ) : null}
                 <Link
                   href="/initiatives"
                   className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"

@@ -104,8 +104,7 @@ export function buildEvidenceEntriesFromSnapshot(
       },
       sortOrder: sort++,
     });
-  } else {
-    // POC_GATE
+  } else if (snapshot.gateType === "POC_GATE") {
     const poc = snapshot.poc;
     entries.push({
       kind: "POC_RESULT",
@@ -143,6 +142,70 @@ export function buildEvidenceEntriesFromSnapshot(
       kind: "READINESS_SUMMARY",
       requirementLevel: "REQUIRED",
       label: "PoC readiness",
+      present: snapshot.readiness.ready,
+      snapshotBinding: {
+        ready: snapshot.readiness.ready,
+        blockers: snapshot.readiness.blockers,
+      },
+      sortOrder: sort++,
+    });
+  } else {
+    // PILOT_GATE
+    const pilot = snapshot.pilot;
+    entries.push({
+      kind: "PILOT_RESULT",
+      requirementLevel: "REQUIRED",
+      label: "Pilot results",
+      present: Boolean(pilot?.results?.trim()),
+      referenceType: "Pilot",
+      referenceId: pilot?.id ?? null,
+      sortOrder: sort++,
+    });
+    entries.push({
+      kind: "PILOT_RESULT",
+      requirementLevel: "REQUIRED",
+      label: "Business findings",
+      present: Boolean(pilot?.businessFindings?.trim()),
+      referenceType: "Pilot",
+      referenceId: pilot?.id ?? null,
+      sortOrder: sort++,
+    });
+    entries.push({
+      kind: "PILOT_RESULT",
+      requirementLevel: "REQUIRED",
+      label: "Technical findings",
+      present: Boolean(pilot?.technicalFindings?.trim()),
+      referenceType: "Pilot",
+      referenceId: pilot?.id ?? null,
+      sortOrder: sort++,
+    });
+    entries.push({
+      kind: "PILOT_RESULT",
+      requirementLevel: "REQUIRED",
+      label: "Operational findings",
+      present: Boolean(pilot?.operationalFindings?.trim()),
+      referenceType: "Pilot",
+      referenceId: pilot?.id ?? null,
+      sortOrder: sort++,
+    });
+    const criteria = pilot?.criteria ?? [];
+    const required = criteria.filter((c) => c.required);
+    const evaluated = required.filter((c) => c.evaluationState !== "NOT_EVALUATED");
+    entries.push({
+      kind: "OTHER",
+      requirementLevel: "REQUIRED",
+      label: "Required pilot criteria evaluated",
+      present: required.length > 0 && evaluated.length === required.length,
+      snapshotBinding: {
+        requiredCount: required.length,
+        evaluatedCount: evaluated.length,
+      },
+      sortOrder: sort++,
+    });
+    entries.push({
+      kind: "READINESS_SUMMARY",
+      requirementLevel: "REQUIRED",
+      label: "Pilot governance readiness",
       present: snapshot.readiness.ready,
       snapshotBinding: {
         ready: snapshot.readiness.ready,

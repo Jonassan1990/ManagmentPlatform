@@ -7,9 +7,14 @@ import type {
   Demand,
   GovernanceSubmission,
   Initiative,
+  Pilot,
+  PilotCriterion,
   PoC,
   PoCSuccessCriterion,
+  Project,
+  ProjectMilestone,
   Requirement,
+  Risk,
 } from "@prisma/client";
 
 function initiative(
@@ -80,6 +85,7 @@ function submission(
     submittedAt: new Date(),
     reviewSnapshotId: "snap1",
     version: 1,
+    policyVersion: 1,
     supersededBySubmissionId: null,
     previousSubmissionId: null,
     notes: null,
@@ -334,5 +340,192 @@ describe("governance attention items", () => {
     expect(items.some((i) => i.key.startsWith("changes-requested"))).toBe(
       false,
     );
+  });
+
+  it("surfaces Pilot evaluation blockers and ready-for-decision info", () => {
+    const pilot = {
+      id: "pil1",
+      initiativeId: "i1",
+      objective: "o",
+      scope: "s",
+      outOfScope: null,
+      ownerName: null,
+      siteOrArea: "Plant A",
+      targetUsers: null,
+      plannedStart: null,
+      plannedEnd: null,
+      actualStart: null,
+      actualEnd: null,
+      estimatedCost: null,
+      actualCost: null,
+      currencyCode: "EUR",
+      resourceNotes: null,
+      environment: "prod-like",
+      operationalConstraints: null,
+      supportModel: "L2",
+      rollbackPlan: "flag off",
+      results: null,
+      businessFindings: null,
+      technicalFindings: null,
+      operationalFindings: null,
+      userFeedbackSummary: null,
+      lessonsLearned: null,
+      status: "EVALUATION",
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      criteria: [
+        {
+          id: "pc1",
+          pilotId: "pil1",
+          category: "OPERATIONAL",
+          title: "Adoption",
+          description: "Users adopt",
+          measurementMethod: "weekly active",
+          target: ">70%",
+          unit: "%",
+          required: true,
+          sortOrder: 0,
+          evaluationState: "NOT_EVALUATED",
+          actualResult: null,
+          evidenceReference: null,
+          evaluationNotes: null,
+          evaluatedAt: null,
+          version: 1,
+        } satisfies PilotCriterion,
+      ],
+    } satisfies Pilot & { criteria: PilotCriterion[] };
+
+    const incomplete = buildAttentionItems({
+      initiative: initiative({ currentStage: "PILOT" }),
+      demand: demand(),
+      requirements: [requirement()],
+      assessments: [],
+      alternatives: [],
+      risks: [],
+      documents: [],
+      pilot,
+    });
+    expect(
+      incomplete.some(
+        (i) =>
+          i.key === "pilot-criteria-unevaluated" && i.severity === "blocker",
+      ),
+    ).toBe(true);
+    expect(
+      incomplete.some(
+        (i) =>
+          i.key === "pilot-results-incomplete" && i.severity === "warning",
+      ),
+    ).toBe(true);
+
+    const readyPilot = {
+      ...pilot,
+      results: "Adoption 78%",
+      businessFindings: "Value ok",
+      technicalFindings: "Stable",
+      operationalFindings: "Support ok",
+      criteria: [
+        { ...pilot.criteria[0], evaluationState: "PASS" as const },
+      ],
+    };
+    const readyItems = buildAttentionItems({
+      initiative: initiative({ currentStage: "PILOT" }),
+      demand: demand(),
+      requirements: [requirement()],
+      assessments: [],
+      alternatives: [],
+      risks: [],
+      documents: [],
+      pilot: readyPilot,
+    });
+    expect(
+      readyItems.some(
+        (i) =>
+          i.key === "pilot-ready-for-decision" && i.severity === "info",
+      ),
+    ).toBe(true);
+  });
+
+  it("surfaces project missed milestones and high open risks", () => {
+    const project = {
+      id: "proj1",
+      initiativeId: "i1",
+      organizationId: "o1",
+      referenceKey: "PROJ-0001",
+      name: "Delivery",
+      description: null,
+      ownerName: null,
+      departmentId: "d1",
+      status: "ACTIVE",
+      priority: "MEDIUM",
+      plannedStart: null,
+      plannedEnd: null,
+      estimatedCost: null,
+      approvedBudget: null,
+      plannedCost: null,
+      forecastCost: null,
+      actualCost: null,
+      currencyCode: "EUR",
+      objectives: null,
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      milestones: [
+        {
+          id: "m1",
+          projectId: "proj1",
+          referenceKey: "MS-001",
+          title: "Cutover",
+          description: null,
+          ownerName: null,
+          plannedDate: null,
+          actualDate: null,
+          status: "MISSED",
+          criticality: true,
+          version: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } satisfies ProjectMilestone,
+      ],
+    } satisfies Project & { milestones: ProjectMilestone[] };
+
+    const risk = {
+      id: "risk1",
+      initiativeId: "i1",
+      referenceKey: "RISK-001",
+      title: "Adoption",
+      description: "Users resist",
+      ownerName: null,
+      probability: "HIGH",
+      impact: "HIGH",
+      status: "OPEN",
+      mitigation: null,
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } satisfies Risk;
+
+    const items = buildAttentionItems({
+      initiative: initiative({ currentStage: "PROJECT" }),
+      demand: demand(),
+      requirements: [requirement()],
+      assessments: [],
+      alternatives: [],
+      risks: [risk],
+      documents: [],
+      project,
+    });
+    expect(
+      items.some(
+        (i) =>
+          i.key === "project-missed-milestones" && i.severity === "warning",
+      ),
+    ).toBe(true);
+    expect(
+      items.some(
+        (i) => i.key === "project-high-risks" && i.severity === "warning",
+      ),
+    ).toBe(true);
   });
 });

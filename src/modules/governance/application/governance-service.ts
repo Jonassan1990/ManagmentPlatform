@@ -5,16 +5,19 @@ import {
   Prisma,
   PrismaClient,
   type ApprovalOutcome,
+  type DecisionOutcome,
 } from "@prisma/client";
 import { ZodError } from "zod";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
+import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
 import type { Principal } from "@/modules/identity-access/domain/types";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS, type Permission } from "@/modules/shared/permissions";
 import { evaluatePreStudyReadiness } from "@/modules/initiative/application/readiness-policy";
 import {
   ensureDefaultApprovalTemplates,
+  getActivePolicyVersion,
   getActiveTemplates,
 } from "./approval-policy";
 import { buildEvidenceEntriesFromSnapshot } from "./evidence-builder";
@@ -25,17 +28,34 @@ import {
   POC_STATUS_ORDER,
 } from "./poc-readiness-policy";
 import {
+  evaluatePilotGovernanceReadiness,
+  evaluatePilotStartReadiness,
+  isAdjacentForwardPilotTransition,
+  isPilotDefinitionComplete,
+  PILOT_STATUS_ORDER,
+} from "./pilot-readiness-policy";
+import {
+  addPilotFeedbackInputSchema,
+  convertToProjectInputSchema,
+  createPilotInputSchema,
   createPoCInputSchema,
+  evaluatePilotCriterionInputSchema,
   recordApprovalInputSchema,
   recordDecisionInputSchema,
   resolveDecisionConditionInputSchema,
   reviseGovernanceSubmissionInputSchema,
+  submitPilotForGovernanceInputSchema,
   submitPoCForGovernanceInputSchema,
   submitPreStudyForGovernanceInputSchema,
+  transitionPilotInputSchema,
   transitionPoCInputSchema,
+  updateApprovalTemplateInputSchema,
   updateCriterionEvaluationInputSchema,
+  updatePilotInputSchema,
+  updatePilotResultsInputSchema,
   updatePoCInputSchema,
   updatePoCResultsInputSchema,
+  upsertPilotCriterionInputSchema,
   upsertPoCCriterionInputSchema,
 } from "./schemas";
 import {
@@ -58,10 +78,22 @@ function parse<T>(schema: { parse: (data: unknown) => T }, data: unknown): T {
   }
 }
 
+function toDecimal(value: string | null | undefined): Prisma.Decimal | null {
+  if (value == null || value === "") return null;
+  return new Prisma.Decimal(value);
+}
+
 function gateStageForType(gateType: GateType): InitiativeStage {
-  return gateType === "PRE_STUDY_GATE"
-    ? InitiativeStage.PRE_STUDY
-    : InitiativeStage.POC;
+  switch (gateType) {
+    case "PRE_STUDY_GATE":
+      return InitiativeStage.PRE_STUDY;
+    case "POC_GATE":
+      return InitiativeStage.POC;
+    case "PILOT_GATE":
+      return InitiativeStage.PILOT;
+    default:
+      return InitiativeStage.PRE_STUDY;
+  }
 }
 
 function defaultDecisionQuestion(gateType: GateType): {
@@ -75,11 +107,57 @@ function defaultDecisionQuestion(gateType: GateType): {
         "Pre-study evidence and required authorities have been assembled for a governance decision.",
     };
   }
+  if (gateType === "POC_GATE") {
+    return {
+      question: "What is the governance outcome of this Proof of Concept?",
+      whyNeeded:
+        "PoC results and evaluations are ready for an authorized decision.",
+    };
+  }
   return {
-    question: "What is the governance outcome of this Proof of Concept?",
+    question: "What is the scale / next-step outcome of this Pilot?",
     whyNeeded:
-      "PoC results and evaluations are ready for an authorized decision.",
+      "Pilot operational evidence and evaluations are ready for an authorized scale decision.",
   };
+}
+
+const PRE_STUDY_AND_POC_OUTCOMES: DecisionOutcome[] = [
+  "GO",
+  "CONDITIONAL_GO",
+  "NO_GO",
+  "HOLD",
+];
+
+const PILOT_GATE_OUTCOMES: DecisionOutcome[] = [
+  "SCALE",
+  "EXTEND_PILOT",
+  "CONDITIONAL_SCALE",
+  "STOP",
+  "HOLD",
+];
+
+function allowedOutcomesForGate(gateType: GateType): DecisionOutcome[] {
+  return gateType === "PILOT_GATE"
+    ? PILOT_GATE_OUTCOMES
+    : PRE_STUDY_AND_POC_OUTCOMES;
+}
+
+function optionsConsideredForGate(gateType: GateType): Prisma.InputJsonValue {
+  if (gateType === "PILOT_GATE") {
+    return [
+      { key: "SCALE", label: "Scale to project" },
+      { key: "CONDITIONAL_SCALE", label: "Conditional scale" },
+      { key: "EXTEND_PILOT", label: "Extend pilot" },
+      { key: "STOP", label: "Stop" },
+      { key: "HOLD", label: "Hold" },
+    ];
+  }
+  return [
+    { key: "GO", label: "Go" },
+    { key: "CONDITIONAL_GO", label: "Conditional go" },
+    { key: "NO_GO", label: "No-go" },
+    { key: "HOLD", label: "Hold" },
+  ];
 }
 
 export class GovernanceService {
@@ -173,6 +251,42 @@ export class GovernanceService {
     });
   }
 
+  async submitPilotForGovernance(principal: Principal, raw: unknown) {
+    const input = parse(submitPilotForGovernanceInputSchema, raw);
+    const workspace = await this.loadWorkspace(input.initiativeId);
+    await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
+      type: "ORGANIZATION",
+      organizationId: workspace.initiative.organizationId,
+    });
+
+    if (workspace.initiative.currentStage !== "PILOT" || !workspace.pilot) {
+      throw new AppError(
+        "VALIDATION",
+        "Pilot governance requires an initiative in Pilot stage with a Pilot record.",
+      );
+    }
+
+    const readiness = evaluatePilotGovernanceReadiness(
+      workspace.pilot,
+      workspace.pilot.criteria,
+    );
+    if (!readiness.ready) {
+      throw new AppError(
+        "VALIDATION",
+        "Pilot is not ready for governance review.",
+        { details: { blockers: readiness.blockers, items: readiness.items } },
+      );
+    }
+
+    return this.createSubmission({
+      principal,
+      workspace,
+      gateType: "PILOT_GATE",
+      notes: input.notes ?? null,
+      previousSubmissionId: null,
+    });
+  }
+
   /**
    * Create a new revision after CHANGES_REQUESTED (or REJECTED outcomes).
    * Previous submission is marked SUPERSEDED; pending requests on it stay cancelled.
@@ -226,7 +340,10 @@ export class GovernanceService {
           { details: { blockers: readiness.blockers } },
         );
       }
-    } else if (workspace.poc) {
+    } else if (previous.gate.gateType === "POC_GATE") {
+      if (!workspace.poc) {
+        throw new AppError("VALIDATION", "PoC is missing for this gate revision.");
+      }
       const readiness = evaluatePoCReadiness(
         workspace.poc,
         workspace.poc.criteria,
@@ -235,6 +352,24 @@ export class GovernanceService {
         throw new AppError(
           "VALIDATION",
           "PoC is not ready for governance review.",
+          { details: { blockers: readiness.blockers } },
+        );
+      }
+    } else if (previous.gate.gateType === "PILOT_GATE") {
+      if (!workspace.pilot) {
+        throw new AppError(
+          "VALIDATION",
+          "Pilot is missing for this gate revision.",
+        );
+      }
+      const readiness = evaluatePilotGovernanceReadiness(
+        workspace.pilot,
+        workspace.pilot.criteria,
+      );
+      if (!readiness.ready) {
+        throw new AppError(
+          "VALIDATION",
+          "Pilot is not ready for governance review.",
           { details: { blockers: readiness.blockers } },
         );
       }
@@ -483,10 +618,30 @@ export class GovernanceService {
       "decision package",
     );
 
-    if (input.outcome === "CONDITIONAL_GO" && input.conditions.length === 0) {
+    const allowed = allowedOutcomesForGate(submission.gate.gateType);
+    if (!allowed.includes(input.outcome)) {
       throw new AppError(
         "VALIDATION",
-        "CONDITIONAL_GO requires at least one condition.",
+        `Outcome ${input.outcome} is not allowed for ${submission.gate.gateType}.`,
+        { details: { allowed } },
+      );
+    }
+
+    if (
+      (input.outcome === "CONDITIONAL_GO" ||
+        input.outcome === "CONDITIONAL_SCALE") &&
+      input.conditions.length === 0
+    ) {
+      throw new AppError(
+        "VALIDATION",
+        `${input.outcome} requires at least one condition.`,
+      );
+    }
+
+    if (input.outcome === "EXTEND_PILOT" && !input.extension) {
+      throw new AppError(
+        "VALIDATION",
+        "EXTEND_PILOT requires extension.newPlannedEnd and extension.reason.",
       );
     }
 
@@ -496,18 +651,19 @@ export class GovernanceService {
         submission.initiativeId,
       );
 
-      const optionsConsidered: Prisma.InputJsonValue = [
-        { key: "GO", label: "Go" },
-        { key: "CONDITIONAL_GO", label: "Conditional go" },
-        { key: "NO_GO", label: "No-go" },
-        { key: "HOLD", label: "Hold" },
-      ];
+      const optionsConsidered = optionsConsideredForGate(
+        submission.gate.gateType,
+      );
 
       // Recommendation on DecisionPackage is informational only —
       // never auto-copied into DecisionRecord.outcome.
       const recommendationText =
         input.recommendationText ??
         submission.decisionPackage!.recommendationText;
+
+      const needsConditions =
+        input.outcome === "CONDITIONAL_GO" ||
+        input.outcome === "CONDITIONAL_SCALE";
 
       const record = await tx.decisionRecord.create({
         data: {
@@ -524,18 +680,17 @@ export class GovernanceService {
           decisionMakerPrincipalId: principal.id,
           reviewSnapshotId: submission.reviewSnapshotId,
           evidencePackageId: submission.evidencePackage!.id,
-          conditions:
-            input.outcome === "CONDITIONAL_GO"
-              ? {
-                  create: input.conditions.map((c) => ({
-                    description: c.description,
-                    ownerName: c.ownerName ?? null,
-                    dueDate: c.dueDate ?? null,
-                    requiredBeforeProgression: c.requiredBeforeProgression,
-                    status: "OPEN",
-                  })),
-                }
-              : undefined,
+          conditions: needsConditions
+            ? {
+                create: input.conditions.map((c) => ({
+                  description: c.description,
+                  ownerName: c.ownerName ?? null,
+                  dueDate: c.dueDate ?? null,
+                  requiredBeforeProgression: c.requiredBeforeProgression,
+                  status: "OPEN",
+                })),
+              }
+            : undefined,
         },
         include: { conditions: true },
       });
@@ -556,7 +711,9 @@ export class GovernanceService {
         },
       });
 
-      if (input.outcome === "NO_GO") {
+      // Side effects — PoC GO does NOT auto-create Pilot; Pilot SCALE does NOT
+      // auto-create Project (convertToProject is a separate authorized action).
+      if (input.outcome === "NO_GO" || input.outcome === "STOP") {
         await tx.initiative.update({
           where: { id: submission.initiativeId },
           data: {
@@ -572,9 +729,55 @@ export class GovernanceService {
             version: { increment: 1 },
           },
         });
+      } else if (
+        input.outcome === "SCALE" ||
+        input.outcome === "CONDITIONAL_SCALE"
+      ) {
+        await tx.initiative.update({
+          where: { id: submission.initiativeId },
+          data: {
+            status: "ACTIVE",
+            version: { increment: 1 },
+          },
+        });
+      } else if (input.outcome === "EXTEND_PILOT") {
+        const pilot = await tx.pilot.findUnique({
+          where: { initiativeId: submission.initiativeId },
+        });
+        if (!pilot) {
+          throw new AppError(
+            "VALIDATION",
+            "EXTEND_PILOT requires an existing Pilot record.",
+          );
+        }
+        const extension = input.extension!;
+        await tx.pilotExtension.create({
+          data: {
+            pilotId: pilot.id,
+            decisionId: record.id,
+            previousPlannedEnd: pilot.plannedEnd,
+            newPlannedEnd: extension.newPlannedEnd,
+            reason: extension.reason,
+          },
+        });
+        await tx.pilot.update({
+          where: { id: pilot.id },
+          data: {
+            plannedEnd: extension.newPlannedEnd,
+            version: { increment: 1 },
+          },
+        });
+        // Stage stays PILOT; evaluations and criteria history are retained.
+        await tx.initiative.update({
+          where: { id: submission.initiativeId },
+          data: {
+            status: "ACTIVE",
+            currentStage: "PILOT",
+            version: { increment: 1 },
+          },
+        });
       }
 
-      // Optionally refresh recommendation text on package (not the outcome)
       if (input.recommendationText != null) {
         await tx.decisionPackage.update({
           where: {
@@ -1050,6 +1253,770 @@ export class GovernanceService {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Phase 4 — Pilot
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Create Pilot after POC_GATE GO/CONDITIONAL_GO with blocking conditions resolved.
+   * Stage advances POC → PILOT. PoC GO does not auto-create Pilot.
+   */
+  async createPilot(principal: Principal, raw: unknown) {
+    const input = parse(createPilotInputSchema, raw);
+    const initiative = await this.db.initiative.findUnique({
+      where: { id: input.initiativeId },
+      include: {
+        decisions: {
+          include: { conditions: true, gate: true },
+          orderBy: { decidedAt: "desc" },
+        },
+        pilot: true,
+        governanceGates: {
+          where: { gateType: "POC_GATE" },
+          include: {
+            submissions: {
+              where: { status: "DECISION_RECORDED" },
+              include: { decisionRecord: { include: { conditions: true } } },
+              orderBy: { revision: "desc" },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+    if (!initiative || initiative.status === "ARCHIVED") {
+      throw new AppError("NOT_FOUND", "Initiative not found.");
+    }
+    await this.authz.assertCan(principal, PERMISSIONS.PILOT_CREATE, {
+      type: "ORGANIZATION",
+      organizationId: initiative.organizationId,
+    });
+
+    if (initiative.pilot) {
+      throw new AppError(
+        "CONFLICT",
+        "A Pilot already exists for this initiative.",
+      );
+    }
+
+    const latestPoCDecision =
+      initiative.governanceGates[0]?.submissions[0]?.decisionRecord ??
+      initiative.decisions.find(
+        (d) =>
+          d.gate?.gateType === "POC_GATE" &&
+          (d.outcome === "GO" || d.outcome === "CONDITIONAL_GO"),
+      );
+
+    if (
+      !latestPoCDecision ||
+      (latestPoCDecision.outcome !== "GO" &&
+        latestPoCDecision.outcome !== "CONDITIONAL_GO")
+    ) {
+      throw new AppError(
+        "VALIDATION",
+        "Pilot can only be created after a GO or CONDITIONAL_GO PoC gate decision.",
+      );
+    }
+
+    const decisionWithConditions =
+      initiative.decisions.find((d) => d.id === latestPoCDecision.id) ??
+      (await this.db.decisionRecord.findUnique({
+        where: { id: latestPoCDecision.id },
+        include: { conditions: true },
+      }));
+
+    const openBlocking = (decisionWithConditions?.conditions ?? []).filter(
+      (c) => c.requiredBeforeProgression && c.status === "OPEN",
+    );
+    if (openBlocking.length > 0) {
+      throw new AppError(
+        "VALIDATION",
+        "Blocking decision conditions must be resolved before creating a Pilot.",
+        { details: { openConditionIds: openBlocking.map((c) => c.id) } },
+      );
+    }
+
+    if (initiative.currentStage !== "POC") {
+      throw new AppError(
+        "VALIDATION",
+        "Pilot creation advances from PoC; initiative is not in PoC stage.",
+      );
+    }
+
+    const created = await this.db.$transaction(async (tx) => {
+      const pilot = await tx.pilot.create({
+        data: {
+          initiativeId: initiative.id,
+          objective: input.objective,
+          scope: input.scope,
+          outOfScope: input.outOfScope ?? null,
+          ownerName: input.ownerName ?? null,
+          siteOrArea: input.siteOrArea ?? null,
+          targetUsers: input.targetUsers ?? null,
+          plannedStart: input.plannedStart ?? null,
+          plannedEnd: input.plannedEnd ?? null,
+          estimatedCost: toDecimal(input.estimatedCost),
+          currencyCode: (input.currencyCode ?? "EUR").toUpperCase(),
+          resourceNotes: input.resourceNotes ?? null,
+          environment: input.environment ?? null,
+          operationalConstraints: input.operationalConstraints ?? null,
+          supportModel: input.supportModel ?? null,
+          rollbackPlan: input.rollbackPlan ?? null,
+          status: "DRAFT",
+        },
+      });
+
+      await tx.initiative.update({
+        where: { id: initiative.id },
+        data: {
+          currentStage: "PILOT",
+          status: initiative.status === "ON_HOLD" ? "ACTIVE" : initiative.status,
+          version: { increment: 1 },
+        },
+      });
+
+      await tx.lifecycleTransition.create({
+        data: {
+          initiativeId: initiative.id,
+          fromStage: "POC",
+          toStage: "PILOT",
+          actorPrincipalId: principal.id,
+          comment: "Advanced via Pilot creation after PoC governance decision",
+        },
+      });
+
+      return pilot;
+    });
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "pilot.created",
+      subjectType: "Pilot",
+      subjectId: created.id,
+      organizationId: initiative.organizationId,
+      payload: { initiativeId: initiative.id },
+      result: "success",
+    });
+
+    return created;
+  }
+
+  async updatePilot(principal: Principal, raw: unknown) {
+    const input = parse(updatePilotInputSchema, raw);
+    const pilot = await this.db.pilot.findUnique({
+      where: { id: input.pilotId },
+      include: { initiative: true },
+    });
+    if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
+    await this.authz.assertCan(principal, PERMISSIONS.PILOT_EDIT, {
+      type: "ORGANIZATION",
+      organizationId: pilot.initiative.organizationId,
+    });
+    this.assertVersion(pilot.version, input.expectedVersion, "pilot");
+
+    try {
+      const updated = await this.db.pilot.update({
+        where: { id: pilot.id, version: input.expectedVersion },
+        data: {
+          objective: input.objective,
+          scope: input.scope,
+          outOfScope: input.outOfScope ?? null,
+          ownerName: input.ownerName ?? null,
+          siteOrArea: input.siteOrArea ?? null,
+          targetUsers: input.targetUsers ?? null,
+          plannedStart: input.plannedStart ?? null,
+          plannedEnd: input.plannedEnd ?? null,
+          estimatedCost: toDecimal(input.estimatedCost),
+          currencyCode: (input.currencyCode ?? "EUR").toUpperCase(),
+          resourceNotes: input.resourceNotes ?? null,
+          environment: input.environment ?? null,
+          operationalConstraints: input.operationalConstraints ?? null,
+          supportModel: input.supportModel ?? null,
+          rollbackPlan: input.rollbackPlan ?? null,
+          version: { increment: 1 },
+        },
+      });
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: "pilot.updated",
+        subjectType: "Pilot",
+        subjectId: updated.id,
+        organizationId: pilot.initiative.organizationId,
+        payload: { version: updated.version },
+        result: "success",
+      });
+      return updated;
+    } catch (error) {
+      this.rethrowStale(error, "pilot");
+    }
+  }
+
+  async transitionPilot(principal: Principal, raw: unknown) {
+    const input = parse(transitionPilotInputSchema, raw);
+    const pilot = await this.db.pilot.findUnique({
+      where: { id: input.pilotId },
+      include: { initiative: true, criteria: true },
+    });
+    if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
+    await this.authz.assertCan(principal, PERMISSIONS.PILOT_TRANSITION, {
+      type: "ORGANIZATION",
+      organizationId: pilot.initiative.organizationId,
+    });
+    this.assertVersion(pilot.version, input.expectedVersion, "pilot");
+
+    const from = pilot.status;
+    const to = input.toStatus;
+    if (!PILOT_STATUS_ORDER.includes(from) || !PILOT_STATUS_ORDER.includes(to)) {
+      throw new AppError("VALIDATION", "Invalid Pilot status.");
+    }
+    if (!isAdjacentForwardPilotTransition(from, to)) {
+      throw new AppError(
+        "VALIDATION",
+        `Pilot status may only advance to the next adjacent state (from ${from} to ${to} is not allowed).`,
+      );
+    }
+
+    if (to === "READY") {
+      const check = isPilotDefinitionComplete(pilot, pilot.criteria);
+      if (!check.ok) {
+        throw new AppError(
+          "VALIDATION",
+          "Pilot definition is incomplete for READY.",
+          { details: { reasons: check.reasons } },
+        );
+      }
+    }
+
+    if (to === "IN_PROGRESS") {
+      const start = evaluatePilotStartReadiness(pilot, pilot.criteria);
+      if (!start.ready) {
+        throw new AppError(
+          "VALIDATION",
+          "Pilot is not ready to start.",
+          { details: { blockers: start.blockers } },
+        );
+      }
+    }
+
+    try {
+      const updated = await this.db.pilot.update({
+        where: { id: pilot.id, version: input.expectedVersion },
+        data: {
+          status: to,
+          ...(to === "IN_PROGRESS" && !pilot.actualStart
+            ? { actualStart: new Date() }
+            : {}),
+          version: { increment: 1 },
+        },
+      });
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: "pilot.transitioned",
+        subjectType: "Pilot",
+        subjectId: updated.id,
+        organizationId: pilot.initiative.organizationId,
+        payload: { from, to, version: updated.version },
+        result: "success",
+      });
+      return updated;
+    } catch (error) {
+      this.rethrowStale(error, "pilot");
+    }
+  }
+
+  async upsertPilotCriterion(principal: Principal, raw: unknown) {
+    const input = parse(upsertPilotCriterionInputSchema, raw);
+    const pilot = await this.db.pilot.findUnique({
+      where: { id: input.pilotId },
+      include: { initiative: true },
+    });
+    if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
+    await this.authz.assertCan(principal, PERMISSIONS.PILOT_EDIT, {
+      type: "ORGANIZATION",
+      organizationId: pilot.initiative.organizationId,
+    });
+
+    if (input.criterionId) {
+      const existing = await this.db.pilotCriterion.findUnique({
+        where: { id: input.criterionId },
+      });
+      if (!existing || existing.pilotId !== pilot.id) {
+        throw new AppError("NOT_FOUND", "Pilot criterion not found.");
+      }
+      if (input.expectedVersion == null) {
+        throw new AppError(
+          "VALIDATION",
+          "expectedVersion is required to update a criterion.",
+        );
+      }
+      this.assertVersion(existing.version, input.expectedVersion, "criterion");
+      try {
+        const updated = await this.db.pilotCriterion.update({
+          where: { id: existing.id, version: input.expectedVersion },
+          data: {
+            category: input.category,
+            title: input.title,
+            description: input.description,
+            measurementMethod: input.measurementMethod,
+            target: input.target,
+            unit: input.unit ?? null,
+            required: input.required,
+            sortOrder: input.sortOrder,
+            version: { increment: 1 },
+          },
+        });
+        await this.audit.record({
+          actorPrincipalId: principal.id,
+          actionType: "pilot.criterion.updated",
+          subjectType: "PilotCriterion",
+          subjectId: updated.id,
+          organizationId: pilot.initiative.organizationId,
+          payload: { version: updated.version },
+          result: "success",
+        });
+        return updated;
+      } catch (error) {
+        this.rethrowStale(error, "criterion");
+      }
+    }
+
+    const created = await this.db.pilotCriterion.create({
+      data: {
+        pilotId: pilot.id,
+        category: input.category,
+        title: input.title,
+        description: input.description,
+        measurementMethod: input.measurementMethod,
+        target: input.target,
+        unit: input.unit ?? null,
+        required: input.required,
+        sortOrder: input.sortOrder,
+      },
+    });
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "pilot.criterion.created",
+      subjectType: "PilotCriterion",
+      subjectId: created.id,
+      organizationId: pilot.initiative.organizationId,
+      payload: { pilotId: pilot.id },
+      result: "success",
+    });
+    return created;
+  }
+
+  async evaluatePilotCriterion(principal: Principal, raw: unknown) {
+    const input = parse(evaluatePilotCriterionInputSchema, raw);
+    const criterion = await this.db.pilotCriterion.findUnique({
+      where: { id: input.criterionId },
+      include: { pilot: { include: { initiative: true } } },
+    });
+    if (!criterion) throw new AppError("NOT_FOUND", "Pilot criterion not found.");
+    await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
+      type: "ORGANIZATION",
+      organizationId: criterion.pilot.initiative.organizationId,
+    });
+    this.assertVersion(criterion.version, input.expectedVersion, "criterion");
+
+    try {
+      const updated = await this.db.pilotCriterion.update({
+        where: { id: criterion.id, version: input.expectedVersion },
+        data: {
+          evaluationState: input.evaluationState,
+          actualResult: input.actualResult ?? null,
+          evidenceReference: input.evidenceReference ?? null,
+          evaluationNotes: input.evaluationNotes ?? null,
+          evaluatedAt:
+            input.evaluationState === "NOT_EVALUATED" ? null : new Date(),
+          version: { increment: 1 },
+        },
+      });
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: "pilot.criterion.evaluated",
+        subjectType: "PilotCriterion",
+        subjectId: updated.id,
+        organizationId: criterion.pilot.initiative.organizationId,
+        payload: { evaluationState: updated.evaluationState },
+        result: "success",
+      });
+      return updated;
+    } catch (error) {
+      this.rethrowStale(error, "criterion");
+    }
+  }
+
+  async updatePilotResults(principal: Principal, raw: unknown) {
+    const input = parse(updatePilotResultsInputSchema, raw);
+    const pilot = await this.db.pilot.findUnique({
+      where: { id: input.pilotId },
+      include: { initiative: true },
+    });
+    if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
+    await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
+      type: "ORGANIZATION",
+      organizationId: pilot.initiative.organizationId,
+    });
+    this.assertVersion(pilot.version, input.expectedVersion, "pilot");
+
+    try {
+      const updated = await this.db.pilot.update({
+        where: { id: pilot.id, version: input.expectedVersion },
+        data: {
+          results: input.results ?? null,
+          businessFindings: input.businessFindings ?? null,
+          technicalFindings: input.technicalFindings ?? null,
+          operationalFindings: input.operationalFindings ?? null,
+          userFeedbackSummary: input.userFeedbackSummary ?? null,
+          lessonsLearned: input.lessonsLearned ?? null,
+          actualCost: toDecimal(input.actualCost),
+          actualStart: input.actualStart ?? null,
+          actualEnd: input.actualEnd ?? null,
+          version: { increment: 1 },
+        },
+      });
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: "pilot.results.updated",
+        subjectType: "Pilot",
+        subjectId: updated.id,
+        organizationId: pilot.initiative.organizationId,
+        payload: { version: updated.version },
+        result: "success",
+      });
+      return updated;
+    } catch (error) {
+      this.rethrowStale(error, "pilot");
+    }
+  }
+
+  async addPilotFeedback(principal: Principal, raw: unknown) {
+    const input = parse(addPilotFeedbackInputSchema, raw);
+    const pilot = await this.db.pilot.findUnique({
+      where: { id: input.pilotId },
+      include: { initiative: true },
+    });
+    if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
+    await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
+      type: "ORGANIZATION",
+      organizationId: pilot.initiative.organizationId,
+    });
+
+    const created = await this.db.pilotFeedback.create({
+      data: {
+        pilotId: pilot.id,
+        sourceType: input.sourceType,
+        summary: input.summary,
+        details: input.details ?? null,
+        sentiment: input.sentiment ?? null,
+        submittedByName: input.submittedByName ?? null,
+        submittedAt: input.submittedAt ?? new Date(),
+      },
+    });
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "pilot.feedback.added",
+      subjectType: "PilotFeedback",
+      subjectId: created.id,
+      organizationId: pilot.initiative.organizationId,
+      payload: { pilotId: pilot.id, sourceType: created.sourceType },
+      result: "success",
+    });
+    return created;
+  }
+
+  /**
+   * Idempotent project conversion after SCALE / CONDITIONAL_SCALE.
+   * UNIQUE initiativeId prevents duplicates (CONFLICT if already converted).
+   */
+  async convertToProject(principal: Principal, raw: unknown) {
+    const input = parse(convertToProjectInputSchema, raw);
+    const initiative = await this.db.initiative.findUnique({
+      where: { id: input.initiativeId },
+      include: {
+        project: true,
+        decisions: {
+          include: { conditions: true, gate: true },
+          orderBy: { decidedAt: "desc" },
+        },
+        governanceGates: {
+          where: { gateType: "PILOT_GATE" },
+          include: {
+            submissions: {
+              where: { status: "DECISION_RECORDED" },
+              include: { decisionRecord: { include: { conditions: true } } },
+              orderBy: { revision: "desc" },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+    if (!initiative || initiative.status === "ARCHIVED") {
+      throw new AppError("NOT_FOUND", "Initiative not found.");
+    }
+    await this.authz.assertCan(principal, PERMISSIONS.PROJECT_CONVERT, {
+      type: "ORGANIZATION",
+      organizationId: initiative.organizationId,
+    });
+
+    if (initiative.project) {
+      throw new AppError(
+        "CONFLICT",
+        "A Project already exists for this initiative.",
+        { details: { projectId: initiative.project.id } },
+      );
+    }
+
+    const latestPilotDecision =
+      initiative.governanceGates[0]?.submissions[0]?.decisionRecord ??
+      initiative.decisions.find(
+        (d) =>
+          d.gate?.gateType === "PILOT_GATE" &&
+          (d.outcome === "SCALE" || d.outcome === "CONDITIONAL_SCALE"),
+      );
+
+    if (
+      !latestPilotDecision ||
+      (latestPilotDecision.outcome !== "SCALE" &&
+        latestPilotDecision.outcome !== "CONDITIONAL_SCALE")
+    ) {
+      throw new AppError(
+        "VALIDATION",
+        "Project conversion requires a SCALE or CONDITIONAL_SCALE pilot gate decision.",
+      );
+    }
+
+    const decisionWithConditions =
+      initiative.decisions.find((d) => d.id === latestPilotDecision.id) ??
+      (await this.db.decisionRecord.findUnique({
+        where: { id: latestPilotDecision.id },
+        include: { conditions: true },
+      }));
+
+    const openBlocking = (decisionWithConditions?.conditions ?? []).filter(
+      (c) => c.requiredBeforeProgression && c.status === "OPEN",
+    );
+    if (openBlocking.length > 0) {
+      throw new AppError(
+        "VALIDATION",
+        "Blocking scale conditions must be resolved before converting to Project.",
+        { details: { openConditionIds: openBlocking.map((c) => c.id) } },
+      );
+    }
+
+    if (initiative.currentStage !== "PILOT") {
+      throw new AppError(
+        "VALIDATION",
+        "Project conversion advances from Pilot; initiative is not in Pilot stage.",
+      );
+    }
+
+    const departmentId = input.departmentId ?? initiative.departmentId;
+
+    try {
+      const created = await this.db.$transaction(async (tx) => {
+        const referenceKey = await this.allocateProjectReference(
+          tx,
+          initiative.organizationId,
+        );
+
+        const project = await tx.project.create({
+          data: {
+            initiativeId: initiative.id,
+            organizationId: initiative.organizationId,
+            referenceKey,
+            name: input.name,
+            description: input.description ?? null,
+            ownerName: input.ownerName ?? null,
+            departmentId,
+            status: "ACTIVE",
+            priority: input.priority,
+            plannedStart: input.plannedStart ?? null,
+            plannedEnd: input.plannedEnd ?? null,
+            estimatedCost: toDecimal(input.estimatedCost),
+            approvedBudget: toDecimal(input.approvedBudget),
+            currencyCode: (input.currencyCode ?? "EUR").toUpperCase(),
+            objectives: input.objectives ?? null,
+            participatingDepartments:
+              input.participatingDepartmentIds.length > 0
+                ? {
+                    create: input.participatingDepartmentIds.map((id) => ({
+                      departmentId: id,
+                    })),
+                  }
+                : undefined,
+          },
+        });
+
+        await tx.initiative.update({
+          where: { id: initiative.id },
+          data: {
+            currentStage: "PROJECT",
+            status: "ACTIVE",
+            version: { increment: 1 },
+          },
+        });
+
+        await tx.lifecycleTransition.create({
+          data: {
+            initiativeId: initiative.id,
+            fromStage: "PILOT",
+            toStage: "PROJECT",
+            actorPrincipalId: principal.id,
+            comment:
+              "Converted to Project after SCALE/CONDITIONAL_SCALE governance decision",
+          },
+        });
+
+        return project;
+      });
+
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: "project.converted",
+        subjectType: "Project",
+        subjectId: created.id,
+        organizationId: initiative.organizationId,
+        payload: {
+          initiativeId: initiative.id,
+          referenceKey: created.referenceKey,
+        },
+        result: "success",
+      });
+
+      return created;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new AppError(
+          "CONFLICT",
+          "A Project already exists for this initiative.",
+        );
+      }
+      throw error;
+    }
+  }
+
+  async listApprovalTemplates(principal: Principal, gateType?: GateType) {
+    await this.authz.ensureBootstrapBinding(principal.id);
+    await this.ensureTemplates();
+    // Listing requires governance view in some org — use policy manage or view
+    const orgs = await this.accessibleOrganizationIds(
+      principal,
+      PERMISSIONS.GOVERNANCE_VIEW,
+    );
+    if (orgs.length === 0) {
+      // Still allow bootstrap admin with policy manage via platform scope
+      const canManage = await this.authz.can(
+        principal,
+        PERMISSIONS.GOVERNANCE_POLICY_MANAGE,
+        { type: "PLATFORM" },
+      );
+      if (!canManage) {
+        throw new AppError("FORBIDDEN", "Missing permission to list templates.");
+      }
+    }
+
+    return this.db.approvalRequirementTemplate.findMany({
+      where: {
+        ...(gateType ? { gateType } : {}),
+        supersededAt: null,
+      },
+      orderBy: [{ gateType: "asc" }, { sortOrder: "asc" }],
+    });
+  }
+
+  /**
+   * Admin update versions templates: supersede old row, create new with
+   * policyVersion+1 for that gateType+authorityKey. Historical submissions
+   * retain authority via ApprovalRequest snapshots at submit time.
+   */
+  async updateApprovalTemplate(principal: Principal, raw: unknown) {
+    const input = parse(updateApprovalTemplateInputSchema, raw);
+    const existing = await this.db.approvalRequirementTemplate.findUnique({
+      where: { id: input.id },
+    });
+    if (!existing || existing.supersededAt) {
+      throw new AppError("NOT_FOUND", "Approval requirement template not found.");
+    }
+
+    // Policy manage is platform/org admin — assert via first accessible org or platform
+    const orgs = await this.accessibleOrganizationIds(
+      principal,
+      PERMISSIONS.GOVERNANCE_POLICY_MANAGE,
+    );
+    if (orgs.length === 0) {
+      await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_POLICY_MANAGE, {
+        type: "PLATFORM",
+      });
+    } else {
+      await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_POLICY_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId: orgs[0]!,
+      });
+    }
+
+    const maxForKey = await this.db.approvalRequirementTemplate.findFirst({
+      where: {
+        gateType: existing.gateType,
+        authorityKey: input.authorityKey,
+      },
+      orderBy: { policyVersion: "desc" },
+    });
+    const nextVersion = (maxForKey?.policyVersion ?? existing.policyVersion) + 1;
+
+    const result = await this.db.$transaction(async (tx) => {
+      await tx.approvalRequirementTemplate.update({
+        where: { id: existing.id },
+        data: {
+          active: false,
+          supersededAt: new Date(),
+        },
+      });
+
+      return tx.approvalRequirementTemplate.create({
+        data: {
+          gateType: existing.gateType,
+          authorityKey: input.authorityKey,
+          requiredPermission: input.requiredPermission,
+          label: input.label,
+          required: input.required,
+          sortOrder: input.sortOrder,
+          conditionNote: input.conditionNote ?? null,
+          active: input.active,
+          policyVersion: nextVersion,
+        },
+      });
+    });
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "governance.policy.template.updated",
+      subjectType: "ApprovalRequirementTemplate",
+      subjectId: result.id,
+      organizationId: orgs[0] ?? null,
+      payload: {
+        supersededId: existing.id,
+        gateType: result.gateType,
+        authorityKey: result.authorityKey,
+        policyVersion: result.policyVersion,
+      },
+      result: "success",
+    });
+
+    return result;
+  }
+
+  async getPrincipalCapabilities(
+    principal: Principal,
+    organizationId: string,
+  ) {
+    return resolveCapabilities(this.authz, principal, organizationId);
+  }
+
   async listMyApprovals(principal: Principal) {
     await this.authz.ensureBootstrapBinding(principal.id);
     await this.ensureTemplates();
@@ -1143,6 +2110,14 @@ export class GovernanceService {
         },
         decisions: { include: { conditions: true }, orderBy: { decidedAt: "desc" } },
         poc: { include: { criteria: { orderBy: { sortOrder: "asc" } } } },
+        pilot: {
+          include: {
+            criteria: { orderBy: { sortOrder: "asc" } },
+            feedbackEntries: { orderBy: { submittedAt: "desc" } },
+            extensions: { orderBy: { createdAt: "asc" } },
+          },
+        },
+        project: true,
         preStudy: {
           include: {
             assessments: true,
@@ -1165,26 +2140,50 @@ export class GovernanceService {
     const pocReadiness = initiative.poc
       ? evaluatePoCReadiness(initiative.poc, initiative.poc.criteria)
       : null;
+    const pilotReadiness = initiative.pilot
+      ? evaluatePilotGovernanceReadiness(
+          initiative.pilot,
+          initiative.pilot.criteria,
+        )
+      : null;
 
-    return { initiative, pocReadiness };
+    return { initiative, pocReadiness, pilotReadiness };
   }
 
   /** Helpers used by initiative overview metrics. */
   computeOverviewGovernanceMetrics(
     initiatives: Array<{
       currentStage: string;
-      governanceSubmissions?: Array<{ status: GovernanceSubmissionStatus }>;
+      governanceSubmissions?: Array<{
+        status: GovernanceSubmissionStatus;
+        gate?: { gateType: string } | null;
+      }>;
       decisions?: Array<{
+        outcome?: string;
+        gate?: { gateType: string } | null;
         conditions?: Array<{
           status: string;
           requiredBeforeProgression: boolean;
         }>;
       }>;
+      risks?: Array<{ status: string; impact: string }>;
       poc?: {
         status: string;
         results: string | null;
         findings: string | null;
         criteria?: Array<{ required: boolean; evaluationState: string }>;
+      } | null;
+      pilot?: {
+        status: string;
+        results: string | null;
+        businessFindings: string | null;
+        technicalFindings: string | null;
+        operationalFindings: string | null;
+        criteria?: Array<{ required: boolean; evaluationState: string }>;
+      } | null;
+      project?: {
+        status: string;
+        milestones?: Array<{ status: string; plannedDate: Date | null }>;
       } | null;
     }>,
   ) {
@@ -1194,6 +2193,16 @@ export class GovernanceService {
     let activePocs = 0;
     let pocsReadyForDecision = 0;
     let outstandingConditions = 0;
+    let activePilots = 0;
+    let pilotsReadyForDecision = 0;
+    let scaleDecisionsWaiting = 0;
+    let projects = 0;
+    let projectsAtRisk = 0;
+    let outstandingScaleConditions = 0;
+    let upcomingMilestones = 0;
+
+    const now = new Date();
+    const soon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
     for (const init of initiatives) {
       const submissions = init.governanceSubmissions ?? [];
@@ -1205,6 +2214,15 @@ export class GovernanceService {
       }
       if (submissions.some((s) => s.status === "CHANGES_REQUESTED")) {
         changesRequested += 1;
+      }
+      if (
+        submissions.some(
+          (s) =>
+            s.status === "APPROVALS_COMPLETE" &&
+            s.gate?.gateType === "PILOT_GATE",
+        )
+      ) {
+        scaleDecisionsWaiting += 1;
       }
       if (init.poc && init.poc.status !== "COMPLETED") {
         activePocs += 1;
@@ -1223,10 +2241,58 @@ export class GovernanceService {
         );
         if (ready.ready) pocsReadyForDecision += 1;
       }
-      for (const decision of init.decisions ?? []) {
-        outstandingConditions += (decision.conditions ?? []).filter(
-          (c) => c.requiredBeforeProgression && c.status === "OPEN",
+      if (init.pilot && init.pilot.status !== "COMPLETED") {
+        activePilots += 1;
+      }
+      if (init.pilot) {
+        const ready = evaluatePilotGovernanceReadiness(
+          {
+            status: init.pilot.status as never,
+            results: init.pilot.results,
+            businessFindings: init.pilot.businessFindings,
+            technicalFindings: init.pilot.technicalFindings,
+            operationalFindings: init.pilot.operationalFindings,
+          },
+          (init.pilot.criteria ?? []).map((c) => ({
+            required: c.required,
+            evaluationState: c.evaluationState as never,
+          })),
+        );
+        if (ready.ready) pilotsReadyForDecision += 1;
+      }
+      if (init.project) {
+        projects += 1;
+        const highRisks = (init.risks ?? []).filter(
+          (r) =>
+            (r.status === "OPEN" || r.status === "MITIGATING") &&
+            r.impact === "HIGH",
+        );
+        const missed = (init.project.milestones ?? []).filter(
+          (m) => m.status === "MISSED",
+        );
+        if (highRisks.length > 0 || missed.length > 0) {
+          projectsAtRisk += 1;
+        }
+        upcomingMilestones += (init.project.milestones ?? []).filter(
+          (m) =>
+            m.status === "PLANNED" &&
+            m.plannedDate &&
+            m.plannedDate >= now &&
+            m.plannedDate <= soon,
         ).length;
+      }
+      for (const decision of init.decisions ?? []) {
+        const open = (decision.conditions ?? []).filter(
+          (c) => c.requiredBeforeProgression && c.status === "OPEN",
+        );
+        outstandingConditions += open.length;
+        if (
+          decision.gate?.gateType === "PILOT_GATE" &&
+          (decision.outcome === "CONDITIONAL_SCALE" ||
+            decision.outcome === "SCALE")
+        ) {
+          outstandingScaleConditions += open.length;
+        }
       }
     }
 
@@ -1237,6 +2303,13 @@ export class GovernanceService {
       activePocs,
       pocsReadyForDecision,
       outstandingConditions,
+      activePilots,
+      pilotsReadyForDecision,
+      scaleDecisionsWaiting,
+      projects,
+      projectsAtRisk,
+      outstandingScaleConditions,
+      upcomingMilestones,
     };
   }
 
@@ -1260,6 +2333,7 @@ export class GovernanceService {
         "No active approval requirement templates for this gate.",
       );
     }
+    const policyVersion = await getActivePolicyVersion(this.db, gateType);
 
     const created = await this.db.$transaction(async (tx) => {
       const gate = await tx.governanceGate.upsert({
@@ -1307,6 +2381,8 @@ export class GovernanceService {
         },
       });
 
+      // ApprovalRequest copies authority fields from templates at create time —
+      // historical binding is the request snapshot, not live template rows.
       const submission = await tx.governanceSubmission.create({
         data: {
           gateId: gate.id,
@@ -1317,6 +2393,7 @@ export class GovernanceService {
           reviewSnapshotId: snapshot.id,
           previousSubmissionId,
           notes,
+          policyVersion,
         },
       });
 
@@ -1425,6 +2502,7 @@ export class GovernanceService {
         risks: true,
         documents: { include: { versions: true } },
         poc: { include: { criteria: { orderBy: { sortOrder: "asc" } } } },
+        pilot: { include: { criteria: { orderBy: { sortOrder: "asc" } } } },
       },
     });
     if (!initiative || initiative.status === "ARCHIVED") {
@@ -1439,7 +2517,25 @@ export class GovernanceService {
       risks: initiative.risks,
       documents: initiative.documents,
       poc: initiative.poc,
+      pilot: initiative.pilot,
     };
+  }
+
+  private async allocateProjectReference(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+  ): Promise<string> {
+    await tx.projectReferenceCounter.upsert({
+      where: { organizationId },
+      create: { organizationId, nextValue: 1 },
+      update: {},
+    });
+    const updated = await tx.projectReferenceCounter.update({
+      where: { organizationId },
+      data: { nextValue: { increment: 1 } },
+    });
+    const allocated = updated.nextValue - 1;
+    return `PROJ-${String(allocated).padStart(4, "0")}`;
   }
 
   private async allocateDecisionReference(

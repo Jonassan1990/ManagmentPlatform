@@ -39,7 +39,9 @@ model Organization {
   roleBindings RoleBinding[]
   auditEvents  AuditEvent[]
   initiatives  Initiative[]
+  projects     Project[]
   referenceCounter InitiativeReferenceCounter?
+  projectReferenceCounter ProjectReferenceCounter?
 
   @@index([status])
   @@map("organizations")
@@ -76,6 +78,8 @@ model Department {
   section     Section      @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   teams       Team[]
   initiatives Initiative[]
+  projectsOwned Project[]
+  projectParticipations ProjectParticipatingDepartment[]
 
   @@unique([sectionId, name])
   @@index([sectionId, status])
@@ -218,6 +222,8 @@ enum InitiativeStage {
   REQUIREMENTS
   PRE_STUDY
   POC
+  PILOT
+  PROJECT
 }
 
 enum InitiativeStatus {
@@ -361,6 +367,10 @@ model Initiative {
   poc                        PoC?
   requirementReferenceCounter RequirementReferenceCounter?
   riskReferenceCounter       RiskReferenceCounter?
+
+  // Phase 4 — Pilot + Project
+  pilot                      Pilot?
+  project                    Project?
 
   @@unique([organizationId, referenceKey])
   @@index([organizationId, currentStage, status])
@@ -582,6 +592,7 @@ model DocumentVersion {
 enum GateType {
   PRE_STUDY_GATE
   POC_GATE
+  PILOT_GATE
 }
 
 enum GovernanceSubmissionStatus {
@@ -611,6 +622,14 @@ enum DecisionOutcome {
   CONDITIONAL_GO
   NO_GO
   HOLD
+  /// Pilot gate — proceed to Project conversion (separate convertToProject call).
+  SCALE
+  /// Pilot gate — extend pilot window; history retained via PilotExtension.
+  EXTEND_PILOT
+  /// Pilot gate — scale with blocking conditions.
+  CONDITIONAL_SCALE
+  /// Pilot gate — stop (maps to initiative CANCELLED).
+  STOP
 }
 
 enum DecisionConditionStatus {
@@ -642,6 +661,7 @@ enum EvidenceEntryKind {
   RISK
   ALTERNATIVE
   POC_RESULT
+  PILOT_RESULT
   READINESS_SUMMARY
   OTHER
 }
@@ -704,6 +724,9 @@ model GovernanceSubmission {
   submittedAt             DateTime                    @default(now())
   reviewSnapshotId        String                      @db.Uuid
   version                 Int                         @default(1)
+  /// Policy set version used when approval requests were snapshotted from templates.
+  /// Historical binding for authorities lives on ApprovalRequest rows (copied at submit).
+  policyVersion           Int                         @default(1)
   supersededBySubmissionId String?                    @db.Uuid
   previousSubmissionId    String?                     @db.Uuid
   notes                   String?                     @db.VarChar(4000)
@@ -780,22 +803,29 @@ model EvidenceEntry {
 }
 
 /// Bootstrap / central policy templates — org-specific matrices stay data-driven.
+///
+/// Versioning (MVP): admin updates supersede the prior row (`supersededAt`) and
+/// insert a new row with `policyVersion + 1` for that gateType+authorityKey.
+/// Submissions store `policyVersion` and ApprovalRequest snapshots authority fields
+/// at create time — historical binding does not depend on live template rows.
 model ApprovalRequirementTemplate {
-  id                 String   @id @default(uuid()) @db.Uuid
+  id                 String    @id @default(uuid()) @db.Uuid
   gateType           GateType
   /// e.g. business | architecture | security
-  authorityKey       String   @db.VarChar(100)
-  requiredPermission String   @db.VarChar(200)
-  label              String   @db.VarChar(300)
-  required           Boolean  @default(true)
-  sortOrder          Int      @default(0)
-  conditionNote      String?  @db.VarChar(2000)
-  active             Boolean  @default(true)
+  authorityKey       String    @db.VarChar(100)
+  requiredPermission String    @db.VarChar(200)
+  label              String    @db.VarChar(300)
+  required           Boolean   @default(true)
+  sortOrder          Int       @default(0)
+  conditionNote      String?   @db.VarChar(2000)
+  active             Boolean   @default(true)
+  policyVersion      Int       @default(1)
+  supersededAt       DateTime?
 
   approvalRequests ApprovalRequest[]
 
-  @@unique([gateType, authorityKey])
-  @@index([gateType, active])
+  @@unique([gateType, authorityKey, policyVersion])
+  @@index([gateType, active, supersededAt])
   @@map("approval_requirement_templates")
 }
 
@@ -894,6 +924,7 @@ model DecisionRecord {
   supersedes       DecisionRecord?      @relation("DecisionSupersession", fields: [supersedesDecisionId], references: [id], onDelete: SetNull)
   supersededBy     DecisionRecord[]     @relation("DecisionSupersession")
   conditions       DecisionCondition[]
+  pilotExtensions  PilotExtension[]
 
   @@unique([initiativeId, referenceKey])
   @@index([gateId])
@@ -972,4 +1003,291 @@ model PoCSuccessCriterion {
 
   @@index([pocId, sortOrder])
   @@map("poc_success_criteria")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4 — Pilot + Project conversion
+// ---------------------------------------------------------------------------
+
+enum PilotStatus {
+  DRAFT
+  READY
+  IN_PROGRESS
+  EVALUATION
+  COMPLETED
+}
+
+enum PilotCriterionCategory {
+  TECHNICAL
+  BUSINESS
+  OPERATIONAL
+  SECURITY
+  ARCHITECTURE
+  USER_ADOPTION
+  PERFORMANCE
+  COST
+  OTHER
+}
+
+enum FeedbackSentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  MIXED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum ProjectPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MilestoneStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+enum WorkItemType {
+  EPIC
+  FEATURE
+  TASK
+}
+
+enum WorkItemStatus {
+  BACKLOG
+  READY
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum WorkItemPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+/// Concurrency-safe per-organization sequence for PROJ-#### references.
+model ProjectReferenceCounter {
+  organizationId String @id @db.Uuid
+  nextValue      Int    @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("project_reference_counters")
+}
+
+/// Operational pilot — distinct from PoC (hypothesis/evidence). Answers scale-readiness.
+model Pilot {
+  id                      String      @id @default(uuid()) @db.Uuid
+  initiativeId            String      @unique @db.Uuid
+  objective               String      @db.VarChar(4000)
+  scope                   String      @db.VarChar(4000)
+  outOfScope              String?     @db.VarChar(4000)
+  /// Free-text business person — not a Principal FK.
+  ownerName               String?     @db.VarChar(200)
+  siteOrArea              String?     @db.VarChar(1000)
+  targetUsers             String?     @db.VarChar(2000)
+  plannedStart            DateTime?
+  plannedEnd              DateTime?
+  actualStart             DateTime?
+  actualEnd               DateTime?
+  estimatedCost           Decimal?    @db.Decimal(18, 2)
+  actualCost              Decimal?    @db.Decimal(18, 2)
+  currencyCode            String      @default("EUR") @db.VarChar(3)
+  resourceNotes           String?     @db.VarChar(4000)
+  environment             String?     @db.VarChar(2000)
+  operationalConstraints  String?     @db.VarChar(4000)
+  supportModel            String?     @db.VarChar(4000)
+  rollbackPlan            String?     @db.VarChar(4000)
+  results                 String?     @db.VarChar(8000)
+  businessFindings        String?     @db.VarChar(8000)
+  technicalFindings       String?     @db.VarChar(8000)
+  operationalFindings     String?     @db.VarChar(8000)
+  userFeedbackSummary     String?     @db.VarChar(8000)
+  lessonsLearned          String?     @db.VarChar(8000)
+  status                  PilotStatus @default(DRAFT)
+  version                 Int         @default(1)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  initiative     Initiative         @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  criteria       PilotCriterion[]
+  feedbackEntries PilotFeedback[]
+  extensions     PilotExtension[]
+
+  @@index([status])
+  @@map("pilots")
+}
+
+model PilotCriterion {
+  id                String                   @id @default(uuid()) @db.Uuid
+  pilotId           String                   @db.Uuid
+  category          PilotCriterionCategory   @default(OTHER)
+  title             String                   @db.VarChar(300)
+  description       String                   @db.VarChar(2000)
+  measurementMethod String                   @db.VarChar(2000)
+  target            String                   @db.VarChar(1000)
+  unit              String?                  @db.VarChar(100)
+  required          Boolean                  @default(true)
+  sortOrder         Int                      @default(0)
+  evaluationState   CriterionEvaluationState @default(NOT_EVALUATED)
+  actualResult      String?                  @db.VarChar(2000)
+  evidenceReference String?                  @db.VarChar(1000)
+  evaluationNotes   String?                  @db.VarChar(4000)
+  evaluatedAt       DateTime?
+  version           Int                      @default(1)
+
+  pilot Pilot @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+
+  @@index([pilotId, sortOrder])
+  @@map("pilot_criteria")
+}
+
+model PilotFeedback {
+  id             String             @id @default(uuid()) @db.Uuid
+  pilotId        String             @db.Uuid
+  sourceType     String             @db.VarChar(100)
+  summary        String             @db.VarChar(4000)
+  details        String?            @db.VarChar(8000)
+  sentiment      FeedbackSentiment?
+  submittedByName String?           @db.VarChar(200)
+  submittedAt    DateTime           @default(now())
+  version        Int                @default(1)
+
+  pilot Pilot @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+
+  @@index([pilotId, submittedAt])
+  @@map("pilot_feedback")
+}
+
+/// EXTEND_PILOT history — does not destroy prior evaluations or criteria.
+model PilotExtension {
+  id                String   @id @default(uuid()) @db.Uuid
+  pilotId           String   @db.Uuid
+  decisionId        String?  @db.Uuid
+  previousPlannedEnd DateTime?
+  newPlannedEnd     DateTime
+  reason            String   @db.VarChar(4000)
+  createdAt         DateTime @default(now())
+
+  pilot    Pilot           @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  decision DecisionRecord? @relation(fields: [decisionId], references: [id], onDelete: SetNull)
+
+  @@index([pilotId, createdAt])
+  @@map("pilot_extensions")
+}
+
+/// Project conversion is idempotent via unique initiativeId — never fork history.
+model Project {
+  id              String          @id @default(uuid()) @db.Uuid
+  initiativeId    String          @unique @db.Uuid
+  organizationId  String          @db.Uuid
+  referenceKey    String          @db.VarChar(40)
+  name            String          @db.VarChar(300)
+  description     String?         @db.VarChar(8000)
+  /// Free-text business owner — not a Principal FK.
+  ownerName       String?         @db.VarChar(200)
+  departmentId    String          @db.Uuid
+  status          ProjectStatus   @default(ACTIVE)
+  priority        ProjectPriority @default(MEDIUM)
+  plannedStart    DateTime?
+  plannedEnd      DateTime?
+  estimatedCost   Decimal?        @db.Decimal(18, 2)
+  approvedBudget  Decimal?        @db.Decimal(18, 2)
+  plannedCost     Decimal?        @db.Decimal(18, 2)
+  forecastCost    Decimal?        @db.Decimal(18, 2)
+  actualCost      Decimal?        @db.Decimal(18, 2)
+  currencyCode    String          @default("EUR") @db.VarChar(3)
+  objectives      String?         @db.VarChar(8000)
+  version         Int             @default(1)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  initiative              Initiative                       @relation(fields: [initiativeId], references: [id], onDelete: Restrict)
+  organization            Organization                     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  department              Department                       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  participatingDepartments ProjectParticipatingDepartment[]
+  milestones              ProjectMilestone[]
+  workItems               ProjectWorkItem[]
+
+  @@unique([organizationId, referenceKey])
+  @@index([departmentId, status])
+  @@index([status, priority])
+  @@map("projects")
+}
+
+model ProjectParticipatingDepartment {
+  id           String   @id @default(uuid()) @db.Uuid
+  projectId    String   @db.Uuid
+  departmentId String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, departmentId])
+  @@index([departmentId])
+  @@map("project_participating_departments")
+}
+
+model ProjectMilestone {
+  id          String          @id @default(uuid()) @db.Uuid
+  projectId   String          @db.Uuid
+  referenceKey String         @db.VarChar(40)
+  title       String          @db.VarChar(300)
+  description String?         @db.VarChar(4000)
+  ownerName   String?         @db.VarChar(200)
+  plannedDate DateTime?
+  actualDate  DateTime?
+  status      MilestoneStatus @default(PLANNED)
+  criticality Boolean         @default(false)
+  version     Int             @default(1)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, referenceKey])
+  @@index([projectId, status])
+  @@map("project_milestones")
+}
+
+model ProjectWorkItem {
+  id            String            @id @default(uuid()) @db.Uuid
+  projectId     String            @db.Uuid
+  type          WorkItemType
+  referenceKey  String            @db.VarChar(40)
+  title         String            @db.VarChar(300)
+  description   String?           @db.VarChar(8000)
+  ownerName     String?           @db.VarChar(200)
+  status        WorkItemStatus    @default(BACKLOG)
+  priority      WorkItemPriority  @default(MEDIUM)
+  estimateHours Decimal?          @db.Decimal(10, 2)
+  parentId      String?           @db.Uuid
+  version       Int               @default(1)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent   ProjectWorkItem? @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children ProjectWorkItem[] @relation("WorkItemHierarchy")
+
+  @@unique([projectId, referenceKey])
+  @@index([projectId, status])
+  @@index([parentId])
+  @@map("project_work_items")
 }

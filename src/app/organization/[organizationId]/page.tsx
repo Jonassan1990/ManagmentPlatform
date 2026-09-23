@@ -52,6 +52,14 @@ export default async function OrganizationDetailPage({
           hierarchy.description ??
           "Navigate the hierarchy from section to resource."
         }
+        actions={
+          <Link
+            href={`/organization/${hierarchy.id}/governance-policy`}
+            className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+          >
+            Governance policy
+          </Link>
+        }
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">

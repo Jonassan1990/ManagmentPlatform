@@ -11,9 +11,13 @@ import type {
   GovernanceSubmission,
   Initiative,
   InitiativeStage,
+  Pilot,
+  PilotCriterion,
   PoC,
   PoCSuccessCriterion,
   PreStudyAssessment,
+  Project,
+  ProjectMilestone,
   Requirement,
   Risk,
   SolutionAlternative,
@@ -26,6 +30,7 @@ import {
   isDemandComplete,
 } from "./readiness-policy";
 import { evaluatePoCReadiness } from "@/modules/governance/application/poc-readiness-policy";
+import { evaluatePilotGovernanceReadiness } from "@/modules/governance/application/pilot-readiness-policy";
 
 export type AttentionSeverity = "blocker" | "warning" | "info";
 
@@ -43,7 +48,9 @@ export type AttentionItem = {
     | "governance"
     | "approval"
     | "decision"
-    | "poc";
+    | "poc"
+    | "pilot"
+    | "project";
 };
 
 export type AttentionSnapshot = {
@@ -58,6 +65,8 @@ export type AttentionSnapshot = {
   pendingApprovalRequests?: ApprovalRequest[];
   decisions?: (DecisionRecord & { conditions?: DecisionCondition[] })[];
   poc?: (PoC & { criteria?: PoCSuccessCriterion[] }) | null;
+  pilot?: (Pilot & { criteria?: PilotCriterion[] }) | null;
+  project?: (Project & { milestones?: ProjectMilestone[] }) | null;
 };
 
 export function buildAttentionItems(
@@ -283,6 +292,92 @@ export function buildAttentionItems(
     }
   }
 
+  const pilot = snapshot.pilot ?? null;
+  if (pilot) {
+    if (pilot.status === "DRAFT") {
+      items.push({
+        key: "pilot-draft",
+        severity: "info",
+        message: "Pilot definition is still in draft",
+        area: "pilot",
+      });
+    }
+    const criteria = pilot.criteria ?? [];
+    const requiredUnevaluated = criteria.filter(
+      (c) => c.required && c.evaluationState === "NOT_EVALUATED",
+    );
+    if (
+      (pilot.status === "EVALUATION" || pilot.status === "COMPLETED") &&
+      requiredUnevaluated.length > 0
+    ) {
+      items.push({
+        key: "pilot-criteria-unevaluated",
+        severity: "blocker",
+        message: `${requiredUnevaluated.length} required Pilot criterion(a) not evaluated`,
+        area: "pilot",
+      });
+    }
+    if (
+      (pilot.status === "EVALUATION" || pilot.status === "IN_PROGRESS") &&
+      (!pilot.results?.trim() ||
+        !pilot.businessFindings?.trim() ||
+        !pilot.technicalFindings?.trim() ||
+        !pilot.operationalFindings?.trim())
+    ) {
+      items.push({
+        key: "pilot-results-incomplete",
+        severity: "warning",
+        message: "Pilot results or dimensional findings are incomplete",
+        area: "pilot",
+      });
+    }
+
+    const pilotReadiness = evaluatePilotGovernanceReadiness(pilot, criteria);
+    if (pilotReadiness.ready && initiative.currentStage === "PILOT") {
+      const awaitingPilotGate = submissions.some(
+        (s) =>
+          s.status === "APPROVALS_COMPLETE" ||
+          s.status === "IN_REVIEW" ||
+          s.status === "SUBMITTED" ||
+          s.status === "DECISION_RECORDED",
+      );
+      if (!awaitingPilotGate) {
+        items.push({
+          key: "pilot-ready-for-decision",
+          severity: "info",
+          message: "Pilot is ready for scale governance decision",
+          area: "pilot",
+        });
+      }
+    }
+  }
+
+  const project = snapshot.project ?? null;
+  if (project) {
+    const missed = (project.milestones ?? []).filter((m) => m.status === "MISSED");
+    if (missed.length > 0) {
+      items.push({
+        key: "project-missed-milestones",
+        severity: "warning",
+        message: `${missed.length} missed milestone(s)`,
+        area: "project",
+      });
+    }
+    const highOpenRisks = risks.filter(
+      (r) =>
+        (r.status === "OPEN" || r.status === "MITIGATING") &&
+        r.impact === "HIGH",
+    );
+    if (highOpenRisks.length > 0 && initiative.currentStage === "PROJECT") {
+      items.push({
+        key: "project-high-risks",
+        severity: "warning",
+        message: `${highOpenRisks.length} open high-impact risk(s)`,
+        area: "project",
+      });
+    }
+  }
+
   return dedupe(items);
 }
 
@@ -305,6 +400,10 @@ export function stageLabel(stage: InitiativeStage): string {
       return "Pre-study";
     case "POC":
       return "PoC";
+    case "PILOT":
+      return "Pilot";
+    case "PROJECT":
+      return "Project";
     default:
       return stage;
   }

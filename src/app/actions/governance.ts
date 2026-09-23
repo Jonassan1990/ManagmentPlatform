@@ -29,6 +29,8 @@ function revalidateGovernance(initiativeId: string) {
   revalidatePath(`/initiatives/${initiativeId}/governance`);
   revalidatePath(`/initiatives/${initiativeId}/decisions`);
   revalidatePath(`/initiatives/${initiativeId}/poc`);
+  revalidatePath(`/initiatives/${initiativeId}/pilot`);
+  revalidatePath(`/initiatives/${initiativeId}/project`);
   revalidatePath(`/initiatives/${initiativeId}/pre-study`);
   revalidatePath(`/initiatives/${initiativeId}/history`);
 }

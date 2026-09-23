@@ -12,6 +12,7 @@ import { AuthorizationService } from "@/modules/identity-access/application/auth
 import type { Principal } from "@/modules/identity-access/domain/types";
 import { GovernanceService } from "@/modules/governance/application/governance-service";
 import { evaluatePoCReadiness } from "@/modules/governance/application/poc-readiness-policy";
+import { evaluatePilotGovernanceReadiness } from "@/modules/governance/application/pilot-readiness-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { buildAttentionItems } from "./attention";
@@ -87,15 +88,30 @@ const initiativeInclude = {
     include: {
       approvalRequests: { include: { record: true } },
       decisionRecord: { include: { conditions: true } },
+      gate: true,
     },
     orderBy: { revision: "desc" as const },
   },
   decisions: {
-    include: { conditions: true },
+    include: { conditions: true, gate: true },
     orderBy: { decidedAt: "desc" as const },
   },
   poc: {
     include: { criteria: { orderBy: { sortOrder: "asc" as const } } },
+  },
+  pilot: {
+    include: {
+      criteria: { orderBy: { sortOrder: "asc" as const } },
+      feedbackEntries: { orderBy: { submittedAt: "desc" as const } },
+      extensions: { orderBy: { createdAt: "asc" as const } },
+    },
+  },
+  project: {
+    include: {
+      milestones: { orderBy: { plannedDate: "asc" as const } },
+      workItems: { orderBy: { referenceKey: "asc" as const } },
+      participatingDepartments: true,
+    },
   },
 } satisfies Prisma.InitiativeInclude;
 
@@ -259,15 +275,15 @@ export class InitiativeService {
       throw new AppError("VALIDATION", "Initiative is already at that stage.");
     }
 
-    // Only allow DEMAND→REQUIREMENTS and REQUIREMENTS→PRE_STUDY.
-    // PRE_STUDY→POC is performed via GovernanceService.createPoC after a GO/CONDITIONAL_GO decision.
+    // Only allow DEMAND→REQUIREMENTS and REQUIREMENTS→PRE_STUDY via this path.
+    // PRE_STUDY→POC via createPoC; POC→PILOT via createPilot; PILOT→PROJECT via convertToProject.
     const allowed =
       (fromStage === "DEMAND" && toStage === "REQUIREMENTS") ||
       (fromStage === "REQUIREMENTS" && toStage === "PRE_STUDY");
     if (!allowed) {
       throw new AppError(
         "VALIDATION",
-        `Invalid lifecycle transition from ${fromStage} to ${toStage}. PoC advancement uses governance createPoC, not advanceLifecycle.`,
+        `Invalid lifecycle transition from ${fromStage} to ${toStage}. Use governance createPoC / createPilot / convertToProject for later stages.`,
       );
     }
 
@@ -891,10 +907,13 @@ export class InitiativeService {
         governanceSubmissions: {
           include: {
             approvalRequests: { include: { record: true } },
+            gate: true,
           },
         },
-        decisions: { include: { conditions: true } },
+        decisions: { include: { conditions: true, gate: true } },
         poc: { include: { criteria: true } },
+        pilot: { include: { criteria: true } },
+        project: { include: { milestones: true } },
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -915,6 +934,8 @@ export class InitiativeService {
         pendingApprovalRequests,
         decisions: initiative.decisions,
         poc: initiative.poc,
+        pilot: initiative.pilot,
+        project: initiative.project,
       });
       const readiness =
         initiative.currentStage === "PRE_STUDY"
@@ -930,12 +951,19 @@ export class InitiativeService {
       const pocReadiness = initiative.poc
         ? evaluatePoCReadiness(initiative.poc, initiative.poc.criteria)
         : null;
+      const pilotReadiness = initiative.pilot
+        ? evaluatePilotGovernanceReadiness(
+            initiative.pilot,
+            initiative.pilot.criteria,
+          )
+        : null;
       return {
         ...initiative,
         attentionCount: attention.length,
         attention,
         readiness,
         pocReadiness,
+        pilotReadiness,
       };
     });
   }
@@ -977,6 +1005,8 @@ export class InitiativeService {
       ),
       decisions: initiative.decisions,
       poc: initiative.poc,
+      pilot: initiative.pilot,
+      project: initiative.project,
     });
     const readiness =
       initiative.currentStage === "PRE_STUDY"
@@ -992,8 +1022,14 @@ export class InitiativeService {
     const pocReadiness = initiative.poc
       ? evaluatePoCReadiness(initiative.poc, initiative.poc.criteria)
       : null;
+    const pilotReadiness = initiative.pilot
+      ? evaluatePilotGovernanceReadiness(
+          initiative.pilot,
+          initiative.pilot.criteria,
+        )
+      : null;
 
-    return { initiative, attention, readiness, pocReadiness };
+    return { initiative, attention, readiness, pocReadiness, pilotReadiness };
   }
 
   async getOverviewMetrics(principal: Principal) {
@@ -1006,6 +1042,8 @@ export class InitiativeService {
         requirements: 0,
         preStudy: 0,
         poc: 0,
+        pilot: 0,
+        project: 0,
         needsAttention: 0,
         readyForGovernance: 0,
         waitingForApproval: 0,
@@ -1014,6 +1052,13 @@ export class InitiativeService {
         activePocs: 0,
         pocsReadyForDecision: 0,
         outstandingConditions: 0,
+        activePilots: 0,
+        pilotsReadyForDecision: 0,
+        scaleDecisionsWaiting: 0,
+        projects: 0,
+        projectsAtRisk: 0,
+        outstandingScaleConditions: 0,
+        upcomingMilestones: 0,
       };
     }
 
@@ -1027,6 +1072,13 @@ export class InitiativeService {
           activePocs: 0,
           pocsReadyForDecision: 0,
           outstandingConditions: 0,
+          activePilots: 0,
+          pilotsReadyForDecision: 0,
+          scaleDecisionsWaiting: 0,
+          projects: 0,
+          projectsAtRisk: 0,
+          outstandingScaleConditions: 0,
+          upcomingMilestones: 0,
         };
 
     return {
@@ -1036,6 +1088,8 @@ export class InitiativeService {
         .length,
       preStudy: listed.filter((i) => i.currentStage === "PRE_STUDY").length,
       poc: listed.filter((i) => i.currentStage === "POC").length,
+      pilot: listed.filter((i) => i.currentStage === "PILOT").length,
+      project: listed.filter((i) => i.currentStage === "PROJECT").length,
       needsAttention: listed.filter((i) => i.attentionCount > 0).length,
       readyForGovernance: listed.filter((i) => i.readiness?.ready).length,
       ...governanceMetrics,

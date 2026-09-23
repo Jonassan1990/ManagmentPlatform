@@ -13,6 +13,18 @@ export default async function ApprovalsPage() {
   if (!principal) redirect("/");
 
   const requests = await governance.listMyApprovals(principal);
+  const orgIds = [
+    ...new Set(
+      requests.map((r) => r.submission.initiative.organizationId),
+    ),
+  ];
+  const capsEntries = await Promise.all(
+    orgIds.map(async (organizationId) => [
+      organizationId,
+      await governance.getPrincipalCapabilities(principal, organizationId),
+    ] as const),
+  );
+  const capsByOrg = Object.fromEntries(capsEntries);
 
   return (
     <div>
@@ -75,6 +87,9 @@ export default async function ApprovalsPage() {
                 expectedVersion={request.version}
                 initiativeId={request.submission.initiativeId}
                 label={request.label}
+                capabilities={
+                  capsByOrg[request.submission.initiative.organizationId]
+                }
               />
             </Panel>
           ))}
