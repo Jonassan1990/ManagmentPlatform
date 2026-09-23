@@ -122,5 +122,6 @@ Track unresolved questions and explicitly labeled assumptions so implementation 
 | Date | Change |
 |---|---|
 | Phase 0 creation | Initial open questions and assumptions recorded |
+| Phase 1 | OQ-03 technically unblocked via explicit `ResourceMembership` (multi-membership supported in schema; product policy still open). OQ-02 treated as non-nested Sections for Phase 1. DEV auth bridge documented for OQ-10 interim. |
 
 When questions resolve, update this file and the owning requirements document in the same change set.

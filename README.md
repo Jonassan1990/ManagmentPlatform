@@ -1,20 +1,30 @@
 # Management & PI Planning Platform
 
-Phase 0 product foundation documentation lives in [`/docs`](./docs).
+Phase 0 product foundation lives in [`/docs`](./docs).  
+Phase 1 technical foundation + Organization vertical slice is implemented on branch `phase1-technical-foundation`.
 
-**Application implementation has not started.**  
-Do not treat this repository as an application scaffold yet.
+## Quick start (Phase 1)
 
-## Current phase
+See [`docs/LOCAL-DEVELOPMENT.md`](./docs/LOCAL-DEVELOPMENT.md).
 
-**Phase 0 — Product Foundation** (documentation only)
+```bash
+cp .env.example .env
+# set DEV_AUTH_PRINCIPAL_ID to a generated UUID
+docker compose up -d
+npm install
+npx prisma migrate deploy
+npm run dev
+```
 
-See [`docs/README.md`](./docs/README.md) for the document map and reading order.
+## Documentation map
 
-## Hard constraints (Phase 0)
+- [`docs/README.md`](./docs/README.md) — Phase 0 index
+- [`docs/PHASE-1-IMPLEMENTATION.md`](./docs/PHASE-1-IMPLEMENTATION.md) — Phase 1 decisions
+- [`docs/LOCAL-DEVELOPMENT.md`](./docs/LOCAL-DEVELOPMENT.md)
+- [`docs/DEPLOYMENT-VERCEL.md`](./docs/DEPLOYMENT-VERCEL.md)
 
-- No application implementation
-- No Next.js scaffolding in this phase
-- No fake/mock business data
-- No hardcoded users, departments, roles, projects, PoCs, or permissions
-- No Phase 1 work in this branch beyond documentation
+## Hard constraints
+
+- No hardcoded business users, departments, teams, projects, or permissions
+- Empty database is a valid starting state
+- Phase 2+ domains are not implemented yet
