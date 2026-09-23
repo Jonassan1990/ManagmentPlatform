@@ -1,0 +1,23 @@
+# PostgreSQL for local development only.
+# Credentials here are local-dev defaults, not production secrets.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: management-platform-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: mgmt
+      POSTGRES_PASSWORD: mgmt_dev_only
+      POSTGRES_DB: management_platform
+    volumes:
+      - mgmt_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mgmt -d management_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mgmt_pg_data:

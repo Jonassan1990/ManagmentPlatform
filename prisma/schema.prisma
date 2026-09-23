@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EntityStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ResourceType {
+  PERSON
+  OTHER
+}
+
+enum ScopeType {
+  ORGANIZATION
+  SECTION
+  DEPARTMENT
+  TEAM
+  PLATFORM
+}
+
+model Organization {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String       @db.VarChar(200)
+  description String?      @db.VarChar(2000)
+  status      EntityStatus @default(ACTIVE)
+  version     Int          @default(1)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  sections     Section[]
+  resources    Resource[]
+  roleBindings RoleBinding[]
+  auditEvents  AuditEvent[]
+
+  @@index([status])
+  @@map("organizations")
+}
+
+model Section {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String       @db.VarChar(200)
+  description    String?      @db.VarChar(2000)
+  status         EntityStatus @default(ACTIVE)
+  version        Int          @default(1)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  departments  Department[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, status])
+  @@map("sections")
+}
+
+model Department {
+  id        String       @id @default(uuid()) @db.Uuid
+  sectionId String       @db.Uuid
+  name      String       @db.VarChar(200)
+  description String?    @db.VarChar(2000)
+  status    EntityStatus @default(ACTIVE)
+  version   Int          @default(1)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  teams   Team[]
+
+  @@unique([sectionId, name])
+  @@index([sectionId, status])
+  @@map("departments")
+}
+
+model Team {
+  id           String       @id @default(uuid()) @db.Uuid
+  departmentId String       @db.Uuid
+  name         String       @db.VarChar(200)
+  description  String?      @db.VarChar(2000)
+  status       EntityStatus @default(ACTIVE)
+  version      Int          @default(1)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  department  Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  memberships ResourceMembership[]
+
+  @@unique([departmentId, name])
+  @@index([departmentId, status])
+  @@map("teams")
+}
+
+/// Capacity-bearing entity. Not the same as an authenticated Principal/User.
+model Resource {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @db.Uuid
+  name             String       @db.VarChar(200)
+  referenceCode    String?      @db.VarChar(100)
+  type             ResourceType @default(PERSON)
+  functionRole     String?      @db.VarChar(200)
+  skillsJson       Json         @default("[]")
+  capacityHoursPerWeek Decimal? @db.Decimal(6, 2)
+  status           EntityStatus @default(ACTIVE)
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  memberships  ResourceMembership[]
+
+  @@unique([organizationId, referenceCode])
+  @@index([organizationId, status])
+  @@map("resources")
+}
+
+/// Explicit membership enables future multi-team membership without embedding a single teamId on Resource.
+model ResourceMembership {
+  id            String    @id @default(uuid()) @db.Uuid
+  resourceId    String    @db.Uuid
+  teamId        String    @db.Uuid
+  isPrimary     Boolean   @default(false)
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Restrict)
+
+  @@index([resourceId])
+  @@index([teamId])
+  @@map("resource_memberships")
+}
+
+model Principal {
+  id          String   @id @default(uuid()) @db.Uuid
+  externalSubject String? @unique @db.VarChar(255)
+  displayName String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roleBindings RoleBinding[]
+
+  @@map("principals")
+}
+
+model RoleDefinition {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique @db.VarChar(100)
+  name        String   @db.VarChar(200)
+  description String?  @db.VarChar(2000)
+  permissions String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bindings RoleBinding[]
+
+  @@map("role_definitions")
+}
+
+model RoleBinding {
+  id               String    @id @default(uuid()) @db.Uuid
+  principalId      String    @db.Uuid
+  roleDefinitionId String    @db.Uuid
+  scopeType        ScopeType
+  organizationId   String?   @db.Uuid
+  scopeId          String?   @db.Uuid
+  effectiveFrom    DateTime  @default(now())
+  effectiveTo      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  principal      Principal      @relation(fields: [principalId], references: [id], onDelete: Cascade)
+  roleDefinition RoleDefinition @relation(fields: [roleDefinitionId], references: [id], onDelete: Restrict)
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([principalId])
+  @@index([organizationId, scopeType])
+  @@map("role_bindings")
+}
+
+model AuditEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  occurredAt     DateTime @default(now())
+  actorPrincipalId String? @db.Uuid
+  actionType     String   @db.VarChar(100)
+  subjectType    String   @db.VarChar(100)
+  subjectId      String?  @db.Uuid
+  organizationId String?  @db.Uuid
+  correlationId  String?  @db.Uuid
+  payload        Json
+  result         String   @db.VarChar(40)
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt])
+  @@index([organizationId, actionType])
+  @@index([subjectType, subjectId])
+  @@map("audit_events")
+}
