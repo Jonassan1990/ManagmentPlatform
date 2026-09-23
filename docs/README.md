@@ -48,6 +48,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [EXCEL-MIGRATION.md](./EXCEL-MIGRATION.md) | Future import architecture (not implemented in Phase 0) |
 | [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md) | Unresolved questions and assumption log |
 | [PHASE-1-IMPLEMENTATION.md](./PHASE-1-IMPLEMENTATION.md) | Phase 1 technical foundation decisions |
+| [PHASE-2-IMPLEMENTATION.md](./PHASE-2-IMPLEMENTATION.md) | Phase 2 initiative / demand / requirements / pre-study |
 | [LOCAL-DEVELOPMENT.md](./LOCAL-DEVELOPMENT.md) | Local Docker/Postgres workflow |
 | [DEPLOYMENT-VERCEL.md](./DEPLOYMENT-VERCEL.md) | Vercel readiness (portable architecture) |
 | [adr/](./adr/) | Architecture Decision Records |
