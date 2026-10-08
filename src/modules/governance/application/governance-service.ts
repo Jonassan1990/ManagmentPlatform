@@ -12,6 +12,7 @@ import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS, type Permission } from "@/modules/shared/permissions";
 import { evaluatePreStudyReadiness } from "@/modules/initiative/application/readiness-policy";
@@ -175,8 +176,9 @@ export class GovernanceService {
     const input = parse(submitPreStudyForGovernanceInputSchema, raw);
     const workspace = await this.loadWorkspace(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workspace.initiative.organizationId,
+      departmentId: workspace.initiative.departmentId,
     });
 
     if (workspace.initiative.currentStage !== "PRE_STUDY") {
@@ -222,8 +224,9 @@ export class GovernanceService {
     const input = parse(submitPoCForGovernanceInputSchema, raw);
     const workspace = await this.loadWorkspace(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workspace.initiative.organizationId,
+      departmentId: workspace.initiative.departmentId,
     });
 
     if (workspace.initiative.currentStage !== "POC" || !workspace.poc) {
@@ -255,8 +258,9 @@ export class GovernanceService {
     const input = parse(submitPilotForGovernanceInputSchema, raw);
     const workspace = await this.loadWorkspace(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workspace.initiative.organizationId,
+      departmentId: workspace.initiative.departmentId,
     });
 
     if (workspace.initiative.currentStage !== "PILOT" || !workspace.pilot) {
@@ -306,8 +310,9 @@ export class GovernanceService {
 
     const workspace = await this.loadWorkspace(previous.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workspace.initiative.organizationId,
+      departmentId: workspace.initiative.departmentId,
     });
 
     const hasRejected = previous.approvalRequests.some(
@@ -889,8 +894,9 @@ export class GovernanceService {
       throw new AppError("NOT_FOUND", "Initiative not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.POC_CREATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
 
     if (initiative.poc) {
@@ -939,6 +945,13 @@ export class GovernanceService {
       );
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: initiative.organizationId,
+      roleLabel: "PoC owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     const created = await this.db.$transaction(async (tx) => {
       const poc = await tx.poC.create({
         data: {
@@ -948,7 +961,8 @@ export class GovernanceService {
           hypothesis: input.hypothesis,
           scope: input.scope,
           outOfScope: input.outOfScope ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           plannedStart: input.plannedStart ?? null,
           plannedEnd: input.plannedEnd ?? null,
           estimatedCost: input.estimatedCost ?? null,
@@ -987,7 +1001,12 @@ export class GovernanceService {
       subjectType: "PoC",
       subjectId: created.id,
       organizationId: initiative.organizationId,
-      payload: { initiativeId: initiative.id, title: created.title },
+      payload: {
+        initiativeId: initiative.id,
+        title: created.title,
+        ownerResourceId: created.ownerResourceId,
+        ownerName: created.ownerName,
+      },
       result: "success",
     });
 
@@ -1002,10 +1021,18 @@ export class GovernanceService {
     });
     if (!poc) throw new AppError("NOT_FOUND", "PoC not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_EDIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: poc.initiative.organizationId,
+      departmentId: poc.initiative.departmentId,
     });
     this.assertVersion(poc.version, input.expectedVersion, "poc");
+
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: poc.initiative.organizationId,
+      roleLabel: "PoC owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
 
     try {
       const updated = await this.db.poC.update({
@@ -1016,7 +1043,8 @@ export class GovernanceService {
           hypothesis: input.hypothesis,
           scope: input.scope,
           outOfScope: input.outOfScope ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           plannedStart: input.plannedStart ?? null,
           plannedEnd: input.plannedEnd ?? null,
           estimatedCost: input.estimatedCost ?? null,
@@ -1032,7 +1060,13 @@ export class GovernanceService {
         subjectType: "PoC",
         subjectId: updated.id,
         organizationId: poc.initiative.organizationId,
-        payload: { version: updated.version },
+        payload: {
+          version: updated.version,
+          oldOwnerResourceId: poc.ownerResourceId,
+          newOwnerResourceId: updated.ownerResourceId,
+          oldOwnerName: poc.ownerName,
+          newOwnerName: updated.ownerName,
+        },
         result: "success",
       });
       return updated;
@@ -1049,8 +1083,9 @@ export class GovernanceService {
     });
     if (!poc) throw new AppError("NOT_FOUND", "PoC not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_TRANSITION, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: poc.initiative.organizationId,
+      departmentId: poc.initiative.departmentId,
     });
     this.assertVersion(poc.version, input.expectedVersion, "poc");
 
@@ -1105,8 +1140,9 @@ export class GovernanceService {
     });
     if (!poc) throw new AppError("NOT_FOUND", "PoC not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_EDIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: poc.initiative.organizationId,
+      departmentId: poc.initiative.departmentId,
     });
 
     if (input.criterionId) {
@@ -1179,8 +1215,9 @@ export class GovernanceService {
     });
     if (!criterion) throw new AppError("NOT_FOUND", "PoC criterion not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: criterion.poc.initiative.organizationId,
+      departmentId: criterion.poc.initiative.departmentId,
     });
     this.assertVersion(criterion.version, input.expectedVersion, "criterion");
 
@@ -1220,8 +1257,9 @@ export class GovernanceService {
     });
     if (!poc) throw new AppError("NOT_FOUND", "PoC not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: poc.initiative.organizationId,
+      departmentId: poc.initiative.departmentId,
     });
     this.assertVersion(poc.version, input.expectedVersion, "poc");
 
@@ -1288,8 +1326,9 @@ export class GovernanceService {
       throw new AppError("NOT_FOUND", "Initiative not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_CREATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
 
     if (initiative.pilot) {
@@ -1343,6 +1382,13 @@ export class GovernanceService {
       );
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: initiative.organizationId,
+      roleLabel: "Pilot owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     const created = await this.db.$transaction(async (tx) => {
       const pilot = await tx.pilot.create({
         data: {
@@ -1350,7 +1396,8 @@ export class GovernanceService {
           objective: input.objective,
           scope: input.scope,
           outOfScope: input.outOfScope ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           siteOrArea: input.siteOrArea ?? null,
           targetUsers: input.targetUsers ?? null,
           plannedStart: input.plannedStart ?? null,
@@ -1394,7 +1441,11 @@ export class GovernanceService {
       subjectType: "Pilot",
       subjectId: created.id,
       organizationId: initiative.organizationId,
-      payload: { initiativeId: initiative.id },
+      payload: {
+        initiativeId: initiative.id,
+        ownerResourceId: created.ownerResourceId,
+        ownerName: created.ownerName,
+      },
       result: "success",
     });
 
@@ -1409,10 +1460,18 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EDIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
     this.assertVersion(pilot.version, input.expectedVersion, "pilot");
+
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: pilot.initiative.organizationId,
+      roleLabel: "Pilot owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
 
     try {
       const updated = await this.db.pilot.update({
@@ -1421,7 +1480,8 @@ export class GovernanceService {
           objective: input.objective,
           scope: input.scope,
           outOfScope: input.outOfScope ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           siteOrArea: input.siteOrArea ?? null,
           targetUsers: input.targetUsers ?? null,
           plannedStart: input.plannedStart ?? null,
@@ -1442,7 +1502,13 @@ export class GovernanceService {
         subjectType: "Pilot",
         subjectId: updated.id,
         organizationId: pilot.initiative.organizationId,
-        payload: { version: updated.version },
+        payload: {
+          version: updated.version,
+          oldOwnerResourceId: pilot.ownerResourceId,
+          newOwnerResourceId: updated.ownerResourceId,
+          oldOwnerName: pilot.ownerName,
+          newOwnerName: updated.ownerName,
+        },
         result: "success",
       });
       return updated;
@@ -1459,8 +1525,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_TRANSITION, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
     this.assertVersion(pilot.version, input.expectedVersion, "pilot");
 
@@ -1532,8 +1599,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EDIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
 
     if (input.criterionId) {
@@ -1613,8 +1681,9 @@ export class GovernanceService {
     });
     if (!criterion) throw new AppError("NOT_FOUND", "Pilot criterion not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: criterion.pilot.initiative.organizationId,
+      departmentId: criterion.pilot.initiative.departmentId,
     });
     this.assertVersion(criterion.version, input.expectedVersion, "criterion");
 
@@ -1654,8 +1723,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
     this.assertVersion(pilot.version, input.expectedVersion, "pilot");
 
@@ -1698,8 +1768,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
 
     const created = await this.db.pilotFeedback.create({
@@ -1814,6 +1885,14 @@ export class GovernanceService {
 
     const departmentId = input.departmentId ?? initiative.departmentId;
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: initiative.organizationId,
+      roleLabel: "project owner",
+    });
+    // Do not invent Initiative→Project owner copy; only use explicit convert input.
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const created = await this.db.$transaction(async (tx) => {
         const referenceKey = await this.allocateProjectReference(
@@ -1828,7 +1907,8 @@ export class GovernanceService {
             referenceKey,
             name: input.name,
             description: input.description ?? null,
-            ownerName: input.ownerName ?? null,
+            ownerName,
+            ownerResourceId: owner?.id ?? null,
             departmentId,
             status: "ACTIVE",
             priority: input.priority,
@@ -2133,8 +2213,9 @@ export class GovernanceService {
       throw new AppError("NOT_FOUND", "Initiative not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_VIEW, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
 
     const pocReadiness = initiative.poc

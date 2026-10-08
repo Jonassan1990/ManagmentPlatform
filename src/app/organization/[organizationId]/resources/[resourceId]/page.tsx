@@ -2,8 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import {
   AssignMembershipForm,
   EditResourceForm,
+  ResourcePlatformIdentityPanel,
 } from "@/components/organization/org-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createOrganizationService } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +23,26 @@ export default async function ResourceDetailPage({
   let org;
   let resource;
   let hierarchy;
+  let linkablePrincipals: Awaited<
+    ReturnType<typeof organization.listLinkablePrincipals>
+  > = [];
+  let canManageIdentity = false;
   try {
     org = await organization.getOrganization(principal, organizationId);
     resource = await organization.getResource(principal, resourceId);
     if (resource.organizationId !== organizationId) notFound();
     hierarchy = await organization.getHierarchy(principal, organizationId);
+    canManageIdentity = await authz.can(
+      principal,
+      PERMISSIONS.ORG_STRUCTURE_MANAGE,
+      { type: "ORGANIZATION", organizationId },
+    );
+    if (canManageIdentity && resource.type === "PERSON") {
+      linkablePrincipals = await organization.listLinkablePrincipals(
+        principal,
+        organizationId,
+      );
+    }
   } catch {
     notFound();
   }
@@ -42,6 +59,18 @@ export default async function ResourceDetailPage({
         })),
       ),
     ) ?? [];
+
+  const linked = resource.linkedPrincipal
+    ? {
+        id: resource.linkedPrincipal.id,
+        displayName: resource.linkedPrincipal.displayName,
+        email: resource.linkedPrincipal.email,
+        hasOidcIdentity: resource.linkedPrincipal.externalIdentities.length > 0,
+        isDevBridge: Boolean(
+          resource.linkedPrincipal.externalSubject?.startsWith("dev:"),
+        ),
+      }
+    : null;
 
   return (
     <div>
@@ -77,6 +106,15 @@ export default async function ResourceDetailPage({
           />
         </Panel>
         <div className="space-y-4">
+          <Panel>
+            <ResourcePlatformIdentityPanel
+              resourceId={resource.id}
+              resourceType={resource.type}
+              canManage={canManageIdentity}
+              linkedPrincipal={linked}
+              linkablePrincipals={linkablePrincipals}
+            />
+          </Panel>
           <Panel>
             <h2 className="mb-3 font-medium">Current memberships</h2>
             {resource.memberships.length === 0 ? (

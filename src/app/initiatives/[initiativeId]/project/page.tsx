@@ -28,7 +28,12 @@ export default async function ProjectPage({
   params: Promise<{ initiativeId: string }>;
 }) {
   const { initiativeId } = await params;
-  const { authz, governance, project: projectService } = createServices();
+  const {
+    authz,
+    governance,
+    project: projectService,
+    organization,
+  } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
 
@@ -43,6 +48,10 @@ export default async function ProjectPage({
 
   const item = gateWorkspace.initiative;
   const capabilities = await governance.getPrincipalCapabilities(
+    principal,
+    item.organizationId,
+  );
+  const ownerPeople = await organization.listPersonOwnerCandidates(
     principal,
     item.organizationId,
   );
@@ -145,6 +154,7 @@ export default async function ProjectPage({
                     project={project}
                     initiativeId={item.id}
                     capabilities={capabilities}
+                    ownerPeople={ownerPeople}
                   />
                 </Panel>
               </section>

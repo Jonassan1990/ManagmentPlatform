@@ -45,6 +45,7 @@ export function UpdateProjectForm({
   project,
   initiativeId,
   capabilities,
+  ownerPeople = [],
 }: {
   initiativeId: string;
   project: {
@@ -53,6 +54,7 @@ export function UpdateProjectForm({
     name: string;
     description: string | null;
     ownerName: string | null;
+    ownerResourceId?: string | null;
     status: string;
     priority: string;
     plannedStart: Date | string | null;
@@ -60,6 +62,7 @@ export function UpdateProjectForm({
     objectives: string | null;
   };
   capabilities?: Caps;
+  ownerPeople?: { id: string; name: string; label: string }[];
 }) {
   const form = useActionForm(updateProjectAction);
   const allowed = capabilities?.canEditProject !== false;
@@ -77,6 +80,7 @@ export function UpdateProjectForm({
           name: String(fd.get("name") ?? ""),
           description: optionalText(fd.get("description")),
           ownerName: optionalText(fd.get("ownerName")),
+          ownerResourceId: String(fd.get("ownerResourceId") ?? "") || null,
           status: String(fd.get("status") ?? "ACTIVE"),
           priority: String(fd.get("priority") ?? "MEDIUM"),
           plannedStart: optionalDate(fd.get("plannedStart")),
@@ -106,7 +110,26 @@ export function UpdateProjectForm({
         />
       </FormField>
       <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label="Owner" htmlFor="project-owner">
+        <FormField
+          label="Owner (person)"
+          htmlFor="project-owner-resource"
+          hint="Structured ownership via Resource. Login not required."
+        >
+          <select
+            id="project-owner-resource"
+            name="ownerResourceId"
+            className={fieldClassName}
+            defaultValue={project.ownerResourceId ?? ""}
+          >
+            <option value="">Use text snapshot only</option>
+            {ownerPeople.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label || p.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Owner name snapshot" htmlFor="project-owner">
           <input
             id="project-owner"
             name="ownerName"

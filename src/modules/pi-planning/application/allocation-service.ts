@@ -12,6 +12,7 @@ import {
   moveAllocationInputSchema,
   removeAllocationInputSchema,
 } from "./schemas";
+import { piAuthScope } from "./pi-auth-scope";
 
 function fromZod(error: ZodError): AppError {
   return new AppError("VALIDATION", "Validation failed", {
@@ -48,10 +49,7 @@ export class AllocationService {
   async allocateWork(principal: Principal, raw: unknown) {
     const input = parse(allocateWorkInputSchema, raw);
     const pi = await this.piService.requirePi(input.piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_ALLOCATE, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_ALLOCATE, piAuthScope(pi.organizationId, pi.sectionId));
     if (pi.status === "CLOSED") {
       throw new AppError("VALIDATION", "Cannot allocate on a closed PI.");
     }
@@ -209,10 +207,7 @@ export class AllocationService {
     });
     if (!allocation) throw new AppError("NOT_FOUND", "Allocation not found.");
     const pi = allocation.revision.pi;
-    await this.authz.assertCan(principal, PERMISSIONS.PI_ALLOCATE, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_ALLOCATE, piAuthScope(pi.organizationId, pi.sectionId));
     this.assertVersion(allocation.version, input.expectedVersion, "allocation");
 
     const iteration = await this.db.piIteration.findUnique({
@@ -274,10 +269,7 @@ export class AllocationService {
     });
     if (!allocation) throw new AppError("NOT_FOUND", "Allocation not found.");
     const pi = allocation.revision.pi;
-    await this.authz.assertCan(principal, PERMISSIONS.PI_ALLOCATE, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_ALLOCATE, piAuthScope(pi.organizationId, pi.sectionId));
     this.assertVersion(allocation.version, input.expectedVersion, "allocation");
 
     try {
@@ -302,10 +294,7 @@ export class AllocationService {
   /** Unallocated work items from projects overlapping participating departments. */
   async getBacklog(principal: Principal, piId: string) {
     const pi = await this.piService.requirePi(piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, piAuthScope(pi.organizationId, pi.sectionId));
     const revision = await this.piService.requireCurrentRevision(piId);
     const deptIds = (
       await this.db.piParticipatingDepartment.findMany({

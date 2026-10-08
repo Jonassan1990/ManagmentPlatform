@@ -115,6 +115,7 @@ model Team {
 }
 
 /// Capacity-bearing entity. Not the same as an authenticated Principal/User.
+/// Optional linkedPrincipalId bridges to login identity (ADR-020). Never use Principal for capacity math.
 model Resource {
   id               String       @id @default(uuid()) @db.Uuid
   organizationId   String       @db.Uuid
@@ -124,15 +125,30 @@ model Resource {
   functionRole     String?      @db.VarChar(200)
   skillsJson       Json         @default("[]")
   capacityHoursPerWeek Decimal? @db.Decimal(6, 2)
+  /// Optional 0..1 bridge to Principal. Null = Resource without platform login. SetNull on Principal delete.
+  linkedPrincipalId String?     @unique @db.Uuid
   status           EntityStatus @default(ACTIVE)
   version          Int          @default(1)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  memberships  ResourceMembership[]
-  availabilities ResourceAvailability[]
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  linkedPrincipal Principal?           @relation(fields: [linkedPrincipalId], references: [id], onDelete: SetNull)
+  memberships     ResourceMembership[]
+  availabilities  ResourceAvailability[]
   workAllocations WorkAllocation[]
+
+  // Phase 0B — business accountability reverse relations (ADR-021). SetNull on Resource delete.
+  initiativesAsBusinessOwner Initiative[] @relation("InitiativeBusinessOwner")
+  initiativesAsRequester     Initiative[] @relation("InitiativeRequester")
+  initiativesAsSponsor       Initiative[] @relation("InitiativeSponsor")
+  projectsOwned              Project[]    @relation("ProjectOwner")
+  pocsOwned                  PoC[]        @relation("PoCOwner")
+  pilotsOwned                Pilot[]      @relation("PilotOwner")
+  milestonesOwned            ProjectMilestone[] @relation("MilestoneOwner")
+  workItemsOwned             ProjectWorkItem[]  @relation("WorkItemOwner")
+  risksOwned                 Risk[]             @relation("RiskOwner")
+  planningDependenciesOwned  PlanningDependency[] @relation("PlanningDependencyOwner")
 
   @@unique([organizationId, referenceCode])
   @@index([organizationId, status])
@@ -174,6 +190,8 @@ model Principal {
 
   roleBindings       RoleBinding[]
   externalIdentities ExternalIdentity[]
+  /// At most one Resource may link to this Principal (ADR-020). Capacity still lives on Resource.
+  linkedResource     Resource?
 
   @@map("principals")
 }
@@ -387,12 +405,18 @@ model Initiative {
   departmentId       String           @db.Uuid
   referenceKey       String           @db.VarChar(40)
   title              String           @db.VarChar(300)
-  /// Free-text business person reference — not a Principal or Resource FK.
+  /// Snapshot / fallback — not a Principal or identity key (ADR-021).
   requesterName      String           @db.VarChar(200)
   requesterContact   String?          @db.VarChar(300)
-  /// Free-text business owner reference — not a Principal or Resource FK.
+  /// Optional structured requester (may be external → null).
+  requesterResourceId String?         @db.Uuid
+  /// Snapshot / fallback business owner label.
   businessOwnerName  String           @db.VarChar(200)
   businessOwnerContact String?        @db.VarChar(300)
+  /// Structured business accountability (ADR-021). Prefer over name when set.
+  businessOwnerResourceId String?     @db.Uuid
+  /// Optional structured sponsor.
+  sponsorResourceId  String?          @db.Uuid
   currentStage       InitiativeStage  @default(DEMAND)
   status             InitiativeStatus @default(ACTIVE)
   version            Int              @default(1)
@@ -401,6 +425,9 @@ model Initiative {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   department   Department   @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  requesterResource     Resource? @relation("InitiativeRequester", fields: [requesterResourceId], references: [id], onDelete: SetNull)
+  businessOwnerResource Resource? @relation("InitiativeBusinessOwner", fields: [businessOwnerResourceId], references: [id], onDelete: SetNull)
+  sponsorResource       Resource? @relation("InitiativeSponsor", fields: [sponsorResourceId], references: [id], onDelete: SetNull)
 
   demand              Demand?
   requirements        Requirement[]
@@ -425,6 +452,9 @@ model Initiative {
   @@unique([organizationId, referenceKey])
   @@index([organizationId, currentStage, status])
   @@index([departmentId])
+  @@index([businessOwnerResourceId])
+  @@index([requesterResourceId])
+  @@index([sponsorResourceId])
   @@map("initiatives")
 }
 
@@ -582,7 +612,10 @@ model Risk {
   referenceKey   String          @db.VarChar(40)
   title          String          @db.VarChar(300)
   description    String          @db.VarChar(4000)
+  /// Snapshot / fallback owner label.
   ownerName      String?         @db.VarChar(200)
+  /// Structured accountable owner (ADR-021).
+  ownerResourceId String?        @db.Uuid
   probability    RiskProbability @default(MEDIUM)
   impact         RiskImpact      @default(MEDIUM)
   status         RiskStatus      @default(OPEN)
@@ -591,10 +624,12 @@ model Risk {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  initiative    Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  ownerResource Resource?  @relation("RiskOwner", fields: [ownerResourceId], references: [id], onDelete: SetNull)
 
   @@unique([initiativeId, referenceKey])
   @@index([initiativeId, status])
+  @@index([ownerResourceId])
   @@map("risks")
 }
 
@@ -1008,7 +1043,10 @@ model PoC {
   hypothesis           String    @db.VarChar(4000)
   scope                String    @db.VarChar(4000)
   outOfScope           String?   @db.VarChar(4000)
+  /// Snapshot / fallback owner label.
   ownerName            String?   @db.VarChar(200)
+  /// Structured accountable owner (ADR-021).
+  ownerResourceId      String?   @db.Uuid
   plannedStart         DateTime?
   plannedEnd           DateTime?
   estimatedCost        String?   @db.VarChar(500)
@@ -1026,10 +1064,12 @@ model PoC {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  initiative Initiative           @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
-  criteria   PoCSuccessCriterion[]
+  initiative    Initiative           @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  ownerResource Resource?            @relation("PoCOwner", fields: [ownerResourceId], references: [id], onDelete: SetNull)
+  criteria      PoCSuccessCriterion[]
 
   @@index([status])
+  @@index([ownerResourceId])
   @@map("pocs")
 }
 
@@ -1147,8 +1187,10 @@ model Pilot {
   objective               String      @db.VarChar(4000)
   scope                   String      @db.VarChar(4000)
   outOfScope              String?     @db.VarChar(4000)
-  /// Free-text business person — not a Principal FK.
+  /// Snapshot / fallback owner label.
   ownerName               String?     @db.VarChar(200)
+  /// Structured accountable owner (ADR-021).
+  ownerResourceId         String?     @db.Uuid
   siteOrArea              String?     @db.VarChar(1000)
   targetUsers             String?     @db.VarChar(2000)
   plannedStart            DateTime?
@@ -1174,12 +1216,14 @@ model Pilot {
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
 
-  initiative     Initiative         @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
-  criteria       PilotCriterion[]
+  initiative      Initiative         @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  ownerResource   Resource?          @relation("PilotOwner", fields: [ownerResourceId], references: [id], onDelete: SetNull)
+  criteria        PilotCriterion[]
   feedbackEntries PilotFeedback[]
-  extensions     PilotExtension[]
+  extensions      PilotExtension[]
 
   @@index([status])
+  @@index([ownerResourceId])
   @@map("pilots")
 }
 
@@ -1249,8 +1293,10 @@ model Project {
   referenceKey    String          @db.VarChar(40)
   name            String          @db.VarChar(300)
   description     String?         @db.VarChar(8000)
-  /// Free-text business owner — not a Principal FK.
+  /// Snapshot / fallback owner label.
   ownerName       String?         @db.VarChar(200)
+  /// Structured project owner (ADR-021).
+  ownerResourceId String?         @db.Uuid
   departmentId    String          @db.Uuid
   status          ProjectStatus   @default(ACTIVE)
   priority        ProjectPriority @default(MEDIUM)
@@ -1270,6 +1316,7 @@ model Project {
   initiative              Initiative                       @relation(fields: [initiativeId], references: [id], onDelete: Restrict)
   organization            Organization                     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   department              Department                       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  ownerResource           Resource?                        @relation("ProjectOwner", fields: [ownerResourceId], references: [id], onDelete: SetNull)
   participatingDepartments ProjectParticipatingDepartment[]
   milestones              ProjectMilestone[]
   workItems               ProjectWorkItem[]
@@ -1277,6 +1324,7 @@ model Project {
   @@unique([organizationId, referenceKey])
   @@index([departmentId, status])
   @@index([status, priority])
+  @@index([ownerResourceId])
   @@map("projects")
 }
 
@@ -1300,7 +1348,10 @@ model ProjectMilestone {
   referenceKey String         @db.VarChar(40)
   title       String          @db.VarChar(300)
   description String?         @db.VarChar(4000)
+  /// Snapshot / fallback owner label.
   ownerName   String?         @db.VarChar(200)
+  /// Structured accountable owner (ADR-021).
+  ownerResourceId String?     @db.Uuid
   plannedDate DateTime?
   actualDate  DateTime?
   status      MilestoneStatus @default(PLANNED)
@@ -1309,10 +1360,12 @@ model ProjectMilestone {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ownerResource Resource? @relation("MilestoneOwner", fields: [ownerResourceId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, referenceKey])
   @@index([projectId, status])
+  @@index([ownerResourceId])
   @@map("project_milestones")
 }
 
@@ -1323,7 +1376,10 @@ model ProjectWorkItem {
   referenceKey  String            @db.VarChar(40)
   title         String            @db.VarChar(300)
   description   String?           @db.VarChar(8000)
+  /// Snapshot / fallback owner label.
   ownerName     String?           @db.VarChar(200)
+  /// Structured accountable owner (ADR-021).
+  ownerResourceId String?         @db.Uuid
   status        WorkItemStatus    @default(BACKLOG)
   priority      WorkItemPriority  @default(MEDIUM)
   estimateHours Decimal?          @db.Decimal(10, 2)
@@ -1333,6 +1389,7 @@ model ProjectWorkItem {
   updatedAt     DateTime          @updatedAt
 
   project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ownerResource Resource?   @relation("WorkItemOwner", fields: [ownerResourceId], references: [id], onDelete: SetNull)
   parent   ProjectWorkItem? @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children ProjectWorkItem[] @relation("WorkItemHierarchy")
   /// Phase 5 — allocations REFERENCE this work item; never copy fields into PI rows.
@@ -1341,6 +1398,7 @@ model ProjectWorkItem {
   @@unique([projectId, referenceKey])
   @@index([projectId, status])
   @@index([parentId])
+  @@index([ownerResourceId])
   @@map("project_work_items")
 }
 
@@ -1582,18 +1640,23 @@ model PlanningDependency {
   sourceId       String                 @db.Uuid
   targetType     DependencySubjectType
   targetId       String                 @db.Uuid
+  /// Snapshot / fallback owner label.
   ownerName      String?                @db.VarChar(200)
+  /// Structured dependency owner (ADR-021).
+  ownerResourceId String?               @db.Uuid
   neededByDate   DateTime?
   description    String?                @db.VarChar(4000)
   version        Int                    @default(1)
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  ownerResource Resource?    @relation("PlanningDependencyOwner", fields: [ownerResourceId], references: [id], onDelete: SetNull)
 
   @@unique([sourceType, sourceId, targetType, targetId, type])
   @@index([organizationId, status])
   @@index([targetType, targetId])
+  @@index([ownerResourceId])
   @@map("planning_dependencies")
 }
 

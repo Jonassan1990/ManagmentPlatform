@@ -18,6 +18,7 @@ import {
   updateIterationInputSchema,
   updatePiInputSchema,
 } from "./schemas";
+import { piAuthScope } from "./pi-auth-scope";
 
 function fromZod(error: ZodError): AppError {
   return new AppError("VALIDATION", "Validation failed", {
@@ -81,10 +82,7 @@ export class PiService {
       include: piInclude,
     });
     if (!pi) throw new AppError("NOT_FOUND", "Program Increment not found.");
-    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, piAuthScope(pi.organizationId, pi.sectionId));
     return pi;
   }
 
@@ -93,10 +91,7 @@ export class PiService {
    */
   async createProgramIncrement(principal: Principal, raw: unknown) {
     const input = parse(createPiInputSchema, raw);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_CREATE, {
-      type: "ORGANIZATION",
-      organizationId: input.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_CREATE, piAuthScope(input.organizationId, input.sectionId));
 
     if (input.sectionId) {
       const section = await this.db.section.findUnique({
@@ -151,10 +146,7 @@ export class PiService {
   async updateProgramIncrement(principal: Principal, raw: unknown) {
     const input = parse(updatePiInputSchema, raw);
     const pi = await this.requirePi(input.piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, piAuthScope(pi.organizationId, pi.sectionId));
     this.assertVersion(pi.version, input.expectedVersion, "program increment");
     if (pi.status === "CLOSED") {
       throw new AppError("VALIDATION", "Closed PIs cannot be edited.");
@@ -192,10 +184,7 @@ export class PiService {
   async createIteration(principal: Principal, raw: unknown) {
     const input = parse(createIterationInputSchema, raw);
     const pi = await this.requirePi(input.piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, piAuthScope(pi.organizationId, pi.sectionId));
     this.assertDatesWithinPi(pi, input.startDate, input.endDate);
     await this.assertNoIterationOverlap(
       pi.id,
@@ -238,10 +227,7 @@ export class PiService {
       include: { pi: true },
     });
     if (!iteration) throw new AppError("NOT_FOUND", "Iteration not found.");
-    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: iteration.pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, piAuthScope(iteration.pi.organizationId, iteration.pi.sectionId));
     this.assertVersion(iteration.version, input.expectedVersion, "iteration");
     this.assertDatesWithinPi(iteration.pi, input.startDate, input.endDate);
     await this.assertNoIterationOverlap(
@@ -280,10 +266,7 @@ export class PiService {
   async setParticipatingDepartments(principal: Principal, raw: unknown) {
     const input = parse(setParticipatingDepartmentsInputSchema, raw);
     const pi = await this.requirePi(input.piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, piAuthScope(pi.organizationId, pi.sectionId));
 
     const deptIds = input.departments.map((d) => d.departmentId);
     if (deptIds.length > 0) {
@@ -340,10 +323,7 @@ export class PiService {
   async setParticipatingTeams(principal: Principal, raw: unknown) {
     const input = parse(setParticipatingTeamsInputSchema, raw);
     const pi = await this.requirePi(input.piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_EDIT, piAuthScope(pi.organizationId, pi.sectionId));
 
     const participatingDepts = await this.db.piParticipatingDepartment.findMany({
       where: { piId: pi.id },
@@ -401,10 +381,7 @@ export class PiService {
   async transitionStatus(principal: Principal, raw: unknown) {
     const input = parse(transitionPiInputSchema, raw);
     const pi = await this.requirePi(input.piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_TRANSITION, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_TRANSITION, piAuthScope(pi.organizationId, pi.sectionId));
     this.assertVersion(pi.version, input.expectedVersion, "program increment");
 
     const allowed = PI_TRANSITIONS[pi.status] ?? [];

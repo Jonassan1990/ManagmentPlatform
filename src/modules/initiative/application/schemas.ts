@@ -19,14 +19,21 @@ export const contactSchema = z
   .nullable()
   .transform((v) => (v === "" ? null : v));
 
+const optionalResourceIdSchema = uuidSchema.optional().nullable();
+
 export const createInitiativeInputSchema = z.object({
   organizationId: uuidSchema,
   departmentId: uuidSchema,
   title: titleSchema,
-  requesterName: personNameSchema,
+  /** Snapshot fallback; required when no requesterResourceId is provided. */
+  requesterName: z.string().trim().max(200).optional().default(""),
   requesterContact: contactSchema,
-  businessOwnerName: personNameSchema,
+  requesterResourceId: optionalResourceIdSchema,
+  /** Snapshot fallback; required when no businessOwnerResourceId is provided. */
+  businessOwnerName: z.string().trim().max(200).optional().default(""),
   businessOwnerContact: contactSchema,
+  businessOwnerResourceId: optionalResourceIdSchema,
+  sponsorResourceId: optionalResourceIdSchema,
   // Optional initial demand fields
   problemOpportunity: z.string().trim().max(4000).optional().default(""),
   reasonForRequest: z.string().trim().max(4000).optional().default(""),
@@ -41,10 +48,13 @@ export const createInitiativeInputSchema = z.object({
 export const updateInitiativeInputSchema = z.object({
   id: uuidSchema,
   title: titleSchema,
-  requesterName: personNameSchema,
+  requesterName: z.string().trim().max(200).optional().default(""),
   requesterContact: contactSchema,
-  businessOwnerName: personNameSchema,
+  requesterResourceId: optionalResourceIdSchema,
+  businessOwnerName: z.string().trim().max(200).optional().default(""),
   businessOwnerContact: contactSchema,
+  businessOwnerResourceId: optionalResourceIdSchema,
+  sponsorResourceId: optionalResourceIdSchema,
   expectedVersion: z.number().int().positive(),
 });
 
@@ -187,6 +197,7 @@ export const createRiskInputSchema = z.object({
   title: titleSchema,
   description: z.string().trim().min(1).max(4000),
   ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
   probability: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
   impact: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
   status: z.enum(["OPEN", "MITIGATING", "ACCEPTED", "CLOSED"]).default("OPEN"),
@@ -198,6 +209,7 @@ export const updateRiskInputSchema = z.object({
   title: titleSchema,
   description: z.string().trim().min(1).max(4000),
   ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
   probability: z.enum(["LOW", "MEDIUM", "HIGH"]),
   impact: z.enum(["LOW", "MEDIUM", "HIGH"]),
   status: z.enum(["OPEN", "MITIGATING", "ACCEPTED", "CLOSED"]),

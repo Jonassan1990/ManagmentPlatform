@@ -11,10 +11,13 @@ import {
   updateSectionAction,
   updateTeamAction,
   assignMembershipAction,
+  linkResourcePrincipalAction,
+  unlinkResourcePrincipalAction,
 } from "@/app/actions/organization";
 import {
   FormField,
   PrimaryButton,
+  SecondaryButton,
   fieldClassName,
   useActionForm,
 } from "@/components/ui/forms";
@@ -381,6 +384,166 @@ export function AssignMembershipForm({
         {form.pending ? "Saving…" : "Assign membership"}
       </PrimaryButton>
     </form>
+  );
+}
+
+export type LinkablePrincipalOption = {
+  id: string;
+  displayName: string | null;
+  email: string | null;
+  hasOidcIdentity: boolean;
+  isDevBridge: boolean;
+  linkedResourceId: string | null;
+};
+
+/** Phase 0A — optional Principal bridge. Does not change capacity or membership. */
+export function ResourcePlatformIdentityPanel({
+  resourceId,
+  resourceType,
+  canManage,
+  linkedPrincipal,
+  linkablePrincipals,
+}: {
+  resourceId: string;
+  resourceType: "PERSON" | "OTHER";
+  canManage: boolean;
+  linkedPrincipal: {
+    id: string;
+    displayName: string | null;
+    email: string | null;
+    hasOidcIdentity: boolean;
+    isDevBridge: boolean;
+  } | null;
+  linkablePrincipals: LinkablePrincipalOption[];
+}) {
+  const linkForm = useActionForm(linkResourcePrincipalAction);
+  const unlinkForm = useActionForm(unlinkResourcePrincipalAction);
+
+  if (resourceType !== "PERSON") {
+    return (
+      <div className="space-y-2 text-sm">
+        <h3 className="font-medium">Platform identity</h3>
+        <p className="text-[var(--muted)]">
+          OTHER capacity resources cannot be linked to a login identity. Principal
+          and Resource remain separate concepts.
+        </p>
+      </div>
+    );
+  }
+
+  const options = linkablePrincipals.filter(
+    (p) => !p.linkedResourceId || p.linkedResourceId === resourceId,
+  );
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-medium">Platform identity</h3>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          Optional bridge to a login Principal. Does not affect capacity or team
+          membership. OIDC identity key remains issuer + subject — email is display
+          only.
+        </p>
+      </div>
+
+      {linkedPrincipal ? (
+        <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm">
+          <p className="font-medium">
+            {linkedPrincipal.displayName?.trim() || "Linked principal"}
+          </p>
+          <p className="text-[var(--muted)]">
+            {linkedPrincipal.email
+              ? `Display contact: ${linkedPrincipal.email}`
+              : "No display email"}
+            {linkedPrincipal.hasOidcIdentity
+              ? " · OIDC linked"
+              : linkedPrincipal.isDevBridge
+                ? " · DEV bridge"
+                : " · No external identity yet"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            {linkedPrincipal.id}
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--muted)]">Not linked</p>
+      )}
+
+      {canManage ? (
+        <>
+          {linkForm.ErrorAlert}
+          {unlinkForm.ErrorAlert}
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              linkForm.submit({
+                resourceId,
+                principalId: String(fd.get("principalId") ?? ""),
+              });
+            }}
+          >
+            <FormField
+              label={linkedPrincipal ? "Change link" : "Link identity"}
+              htmlFor="link-principal"
+              hint="Principals already linked to another resource are excluded."
+            >
+              <select
+                id="link-principal"
+                name="principalId"
+                required
+                className={fieldClassName}
+                defaultValue={linkedPrincipal?.id ?? ""}
+              >
+                <option value="" disabled>
+                  Select a principal
+                </option>
+                {options.map((p) => {
+                  const label =
+                    p.displayName?.trim() ||
+                    p.email ||
+                    `Principal ${p.id.slice(0, 8)}…`;
+                  const suffix = [
+                    p.email && p.displayName ? p.email : null,
+                    p.hasOidcIdentity ? "OIDC" : p.isDevBridge ? "DEV" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {suffix ? `${label} (${suffix})` : label}
+                    </option>
+                  );
+                })}
+              </select>
+            </FormField>
+            <div className="flex flex-wrap gap-2">
+              <PrimaryButton disabled={linkForm.pending || options.length === 0}>
+                {linkForm.pending
+                  ? "Saving…"
+                  : linkedPrincipal
+                    ? "Change link"
+                    : "Link identity"}
+              </PrimaryButton>
+              {linkedPrincipal ? (
+                <SecondaryButton
+                  type="button"
+                  disabled={unlinkForm.pending}
+                  onClick={() => unlinkForm.submit({ resourceId })}
+                >
+                  {unlinkForm.pending ? "Unlinking…" : "Unlink"}
+                </SecondaryButton>
+              ) : null}
+            </div>
+          </form>
+        </>
+      ) : (
+        <p className="text-xs text-[var(--muted)]">
+          Organization structure manage permission is required to change the link.
+        </p>
+      )}
+    </div>
   );
 }
 

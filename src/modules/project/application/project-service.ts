@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import {
@@ -57,10 +58,16 @@ export class ProjectService {
     if (!project || project.status === "ARCHIVED") {
       throw new AppError("NOT_FOUND", "Project not found.");
     }
-    await this.authz.assertCan(principal, PERMISSIONS.PROJECT_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: project.organizationId,
-    });
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.PROJECT_VIEW,
+      {
+        type: "DEPARTMENT",
+        organizationId: project.organizationId,
+        departmentId: project.departmentId,
+      },
+      { kind: "PROJECT_OWNER", projectId: project.id },
+    );
     return project;
   }
 
@@ -70,21 +77,40 @@ export class ProjectService {
       include: projectInclude,
     });
     if (!project) return null;
-    await this.authz.assertCan(principal, PERMISSIONS.PROJECT_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: project.organizationId,
-    });
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.PROJECT_VIEW,
+      {
+        type: "DEPARTMENT",
+        organizationId: project.organizationId,
+        departmentId: project.departmentId,
+      },
+      { kind: "PROJECT_OWNER", projectId: project.id },
+    );
     return project;
   }
 
   async updateProject(principal: Principal, raw: unknown) {
     const input = parse(updateProjectInputSchema, raw);
     const project = await this.requireProject(input.projectId);
-    await this.authz.assertCan(principal, PERMISSIONS.PROJECT_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: project.organizationId,
-    });
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.PROJECT_EDIT,
+      {
+        type: "DEPARTMENT",
+        organizationId: project.organizationId,
+        departmentId: project.departmentId,
+      },
+      { kind: "PROJECT_OWNER", projectId: project.id },
+    );
     this.assertVersion(project.version, input.expectedVersion, "project");
+
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: project.organizationId,
+      roleLabel: "project owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
 
     try {
       const updated = await this.db.$transaction(async (tx) => {
@@ -93,7 +119,8 @@ export class ProjectService {
           data: {
             name: input.name,
             description: input.description ?? null,
-            ownerName: input.ownerName ?? null,
+            ownerName,
+            ownerResourceId: owner?.id ?? null,
             status: input.status,
             priority: input.priority,
             plannedStart: input.plannedStart ?? null,
@@ -126,7 +153,13 @@ export class ProjectService {
         subjectType: "Project",
         subjectId: updated.id,
         organizationId: project.organizationId,
-        payload: { version: updated.version },
+        payload: {
+          version: updated.version,
+          oldOwnerResourceId: project.ownerResourceId,
+          newOwnerResourceId: updated.ownerResourceId,
+          oldOwnerName: project.ownerName,
+          newOwnerName: updated.ownerName,
+        },
         result: "success",
       });
       return updated;
@@ -138,10 +171,16 @@ export class ProjectService {
   async updateBudget(principal: Principal, raw: unknown) {
     const input = parse(updateBudgetInputSchema, raw);
     const project = await this.requireProject(input.projectId);
-    await this.authz.assertCan(principal, PERMISSIONS.PROJECT_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: project.organizationId,
-    });
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.PROJECT_EDIT,
+      {
+        type: "DEPARTMENT",
+        organizationId: project.organizationId,
+        departmentId: project.departmentId,
+      },
+      { kind: "PROJECT_OWNER", projectId: project.id },
+    );
     this.assertVersion(project.version, input.expectedVersion, "project");
 
     try {
@@ -178,9 +217,17 @@ export class ProjectService {
     const input = parse(createMilestoneInputSchema, raw);
     const project = await this.requireProject(input.projectId);
     await this.authz.assertCan(principal, PERMISSIONS.PROJECT_MANAGE_MILESTONES, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: project.organizationId,
+      departmentId: project.departmentId,
     });
+
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: project.organizationId,
+      roleLabel: "milestone owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
 
     const referenceKey = await this.allocateMilestoneReference(project.id);
     const created = await this.db.projectMilestone.create({
@@ -189,7 +236,8 @@ export class ProjectService {
         referenceKey,
         title: input.title,
         description: input.description ?? null,
-        ownerName: input.ownerName ?? null,
+        ownerName,
+        ownerResourceId: owner?.id ?? null,
         plannedDate: input.plannedDate ?? null,
         actualDate: input.actualDate ?? null,
         status: input.status,
@@ -216,10 +264,18 @@ export class ProjectService {
     });
     if (!milestone) throw new AppError("NOT_FOUND", "Milestone not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PROJECT_MANAGE_MILESTONES, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: milestone.project.organizationId,
+      departmentId: milestone.project.departmentId,
     });
     this.assertVersion(milestone.version, input.expectedVersion, "milestone");
+
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: milestone.project.organizationId,
+      roleLabel: "milestone owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
 
     try {
       const updated = await this.db.projectMilestone.update({
@@ -227,7 +283,8 @@ export class ProjectService {
         data: {
           title: input.title,
           description: input.description ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           plannedDate: input.plannedDate ?? null,
           actualDate: input.actualDate ?? null,
           status: input.status,
@@ -254,8 +311,9 @@ export class ProjectService {
     const input = parse(createWorkItemInputSchema, raw);
     const project = await this.requireProject(input.projectId);
     await this.authz.assertCan(principal, PERMISSIONS.PROJECT_MANAGE_WORKITEMS, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: project.organizationId,
+      departmentId: project.departmentId,
     });
 
     if (input.parentId) {
@@ -267,6 +325,13 @@ export class ProjectService {
       }
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: project.organizationId,
+      roleLabel: "work item owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     const referenceKey = await this.allocateWorkItemReference(project.id);
     const created = await this.db.projectWorkItem.create({
       data: {
@@ -275,7 +340,8 @@ export class ProjectService {
         referenceKey,
         title: input.title,
         description: input.description ?? null,
-        ownerName: input.ownerName ?? null,
+        ownerName,
+        ownerResourceId: owner?.id ?? null,
         status: input.status,
         priority: input.priority,
         estimateHours: toDecimal(input.estimateHours),
@@ -302,8 +368,9 @@ export class ProjectService {
     });
     if (!workItem) throw new AppError("NOT_FOUND", "Work item not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PROJECT_MANAGE_WORKITEMS, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workItem.project.organizationId,
+      departmentId: workItem.project.departmentId,
     });
     this.assertVersion(workItem.version, input.expectedVersion, "work item");
 
@@ -319,13 +386,21 @@ export class ProjectService {
       }
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: workItem.project.organizationId,
+      roleLabel: "work item owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const updated = await this.db.projectWorkItem.update({
         where: { id: workItem.id, version: input.expectedVersion },
         data: {
           title: input.title,
           description: input.description ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           status: input.status,
           priority: input.priority,
           estimateHours: toDecimal(input.estimateHours),
@@ -380,10 +455,16 @@ export class ProjectService {
     if (!initiative || initiative.status === "ARCHIVED") {
       throw new AppError("NOT_FOUND", "Initiative not found.");
     }
-    await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: initiative.organizationId,
-    });
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.INITIATIVE_VIEW,
+      {
+        type: "DEPARTMENT",
+        organizationId: initiative.organizationId,
+        departmentId: initiative.departmentId,
+      },
+      { kind: "INITIATIVE_BUSINESS_OWNER", initiativeId: initiative.id },
+    );
     return initiative;
   }
 

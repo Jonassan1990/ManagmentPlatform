@@ -13,6 +13,7 @@ import type { Principal } from "@/modules/identity-access/domain/types";
 import { GovernanceService } from "@/modules/governance/application/governance-service";
 import { evaluatePoCReadiness } from "@/modules/governance/application/poc-readiness-policy";
 import { evaluatePilotGovernanceReadiness } from "@/modules/governance/application/pilot-readiness-policy";
+import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { buildAttentionItems } from "./attention";
@@ -130,9 +131,42 @@ export class InitiativeService {
       input.organizationId,
     );
     await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_CREATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: input.organizationId,
+      departmentId: input.departmentId,
     });
+
+    const businessOwner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.businessOwnerResourceId,
+      organizationId: input.organizationId,
+      roleLabel: "business owner",
+    });
+    const requester = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.requesterResourceId,
+      organizationId: input.organizationId,
+      roleLabel: "requester",
+    });
+    const sponsor = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.sponsorResourceId,
+      organizationId: input.organizationId,
+      roleLabel: "sponsor",
+    });
+
+    const businessOwnerName =
+      businessOwner?.name ?? input.businessOwnerName.trim();
+    const requesterName = requester?.name ?? input.requesterName.trim();
+    if (!businessOwnerName) {
+      throw new AppError(
+        "VALIDATION",
+        "Business owner is required (select a person resource or provide a name).",
+      );
+    }
+    if (!requesterName) {
+      throw new AppError(
+        "VALIDATION",
+        "Requester is required (select a person resource or provide a name).",
+      );
+    }
 
     const created = await this.db.$transaction(async (tx) => {
       const referenceKey = await this.allocateReference(tx, input.organizationId);
@@ -142,10 +176,13 @@ export class InitiativeService {
           departmentId: input.departmentId,
           referenceKey,
           title: input.title,
-          requesterName: input.requesterName,
+          requesterName,
           requesterContact: input.requesterContact ?? null,
-          businessOwnerName: input.businessOwnerName,
+          requesterResourceId: requester?.id ?? null,
+          businessOwnerName,
           businessOwnerContact: input.businessOwnerContact ?? null,
+          businessOwnerResourceId: businessOwner?.id ?? null,
+          sponsorResourceId: sponsor?.id ?? null,
           currentStage: InitiativeStage.DEMAND,
           demand: {
             create: {
@@ -174,6 +211,11 @@ export class InitiativeService {
         referenceKey: created.referenceKey,
         title: created.title,
         departmentId: created.departmentId,
+        businessOwnerResourceId: created.businessOwnerResourceId,
+        requesterResourceId: created.requesterResourceId,
+        sponsorResourceId: created.sponsorResourceId,
+        businessOwnerName: created.businessOwnerName,
+        requesterName: created.requesterName,
       },
       result: "success",
     });
@@ -183,21 +225,62 @@ export class InitiativeService {
   async updateInitiative(principal: Principal, raw: unknown) {
     const input = parse(updateInitiativeInputSchema, raw);
     const existing = await this.requireInitiative(input.id);
-    await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: existing.organizationId,
-    });
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.INITIATIVE_EDIT,
+      {
+        type: "DEPARTMENT",
+        organizationId: existing.organizationId,
+        departmentId: existing.departmentId,
+      },
+      { kind: "INITIATIVE_BUSINESS_OWNER", initiativeId: existing.id },
+    );
     this.assertVersion(existing.version, input.expectedVersion, "initiative");
+
+    const businessOwner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.businessOwnerResourceId,
+      organizationId: existing.organizationId,
+      roleLabel: "business owner",
+    });
+    const requester = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.requesterResourceId,
+      organizationId: existing.organizationId,
+      roleLabel: "requester",
+    });
+    const sponsor = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.sponsorResourceId,
+      organizationId: existing.organizationId,
+      roleLabel: "sponsor",
+    });
+
+    const businessOwnerName =
+      businessOwner?.name ?? input.businessOwnerName.trim();
+    const requesterName = requester?.name ?? input.requesterName.trim();
+    if (!businessOwnerName) {
+      throw new AppError(
+        "VALIDATION",
+        "Business owner is required (select a person resource or provide a name).",
+      );
+    }
+    if (!requesterName) {
+      throw new AppError(
+        "VALIDATION",
+        "Requester is required (select a person resource or provide a name).",
+      );
+    }
 
     try {
       const updated = await this.db.initiative.update({
         where: { id: input.id, version: input.expectedVersion },
         data: {
           title: input.title,
-          requesterName: input.requesterName,
+          requesterName,
           requesterContact: input.requesterContact ?? null,
-          businessOwnerName: input.businessOwnerName,
+          requesterResourceId: requester?.id ?? null,
+          businessOwnerName,
           businessOwnerContact: input.businessOwnerContact ?? null,
+          businessOwnerResourceId: businessOwner?.id ?? null,
+          sponsorResourceId: sponsor?.id ?? null,
           version: { increment: 1 },
         },
       });
@@ -207,7 +290,18 @@ export class InitiativeService {
         subjectType: "Initiative",
         subjectId: updated.id,
         organizationId: updated.organizationId,
-        payload: { title: updated.title, version: updated.version },
+        payload: {
+          title: updated.title,
+          version: updated.version,
+          oldBusinessOwnerResourceId: existing.businessOwnerResourceId,
+          newBusinessOwnerResourceId: updated.businessOwnerResourceId,
+          oldBusinessOwnerName: existing.businessOwnerName,
+          newBusinessOwnerName: updated.businessOwnerName,
+          oldRequesterResourceId: existing.requesterResourceId,
+          newRequesterResourceId: updated.requesterResourceId,
+          oldSponsorResourceId: existing.sponsorResourceId,
+          newSponsorResourceId: updated.sponsorResourceId,
+        },
         result: "success",
       });
       return updated;
@@ -220,8 +314,9 @@ export class InitiativeService {
     const input = parse(updateDemandInputSchema, raw);
     const initiative = await this.requireInitiative(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_MANAGE_DEMAND, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
     const demand = await this.db.demand.findUnique({
       where: { initiativeId: input.initiativeId },
@@ -263,8 +358,9 @@ export class InitiativeService {
     const input = parse(advanceLifecycleInputSchema, raw);
     const initiative = await this.requireInitiative(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_ADVANCE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
     this.assertVersion(initiative.version, input.expectedVersion, "initiative");
 
@@ -369,7 +465,7 @@ export class InitiativeService {
     await this.authz.assertCan(
       principal,
       PERMISSIONS.INITIATIVE_MANAGE_REQUIREMENTS,
-      { type: "ORGANIZATION", organizationId: initiative.organizationId },
+      { type: "DEPARTMENT", organizationId: initiative.organizationId, departmentId: initiative.departmentId },
     );
 
     const created = await this.db.$transaction(async (tx) => {
@@ -426,8 +522,9 @@ export class InitiativeService {
       principal,
       PERMISSIONS.INITIATIVE_MANAGE_REQUIREMENTS,
       {
-        type: "ORGANIZATION",
+        type: "DEPARTMENT",
         organizationId: existing.initiative.organizationId,
+        departmentId: existing.initiative.departmentId,
       },
     );
     this.assertVersion(existing.version, input.expectedVersion, "requirement");
@@ -475,8 +572,9 @@ export class InitiativeService {
       principal,
       PERMISSIONS.INITIATIVE_MANAGE_REQUIREMENTS,
       {
-        type: "ORGANIZATION",
+        type: "DEPARTMENT",
         organizationId: requirement.initiative.organizationId,
+        departmentId: requirement.initiative.departmentId,
       },
     );
 
@@ -531,8 +629,9 @@ export class InitiativeService {
       principal,
       PERMISSIONS.INITIATIVE_MANAGE_REQUIREMENTS,
       {
-        type: "ORGANIZATION",
+        type: "DEPARTMENT",
         organizationId: from.initiative.organizationId,
+        departmentId: from.initiative.departmentId,
       },
     );
 
@@ -584,7 +683,7 @@ export class InitiativeService {
     await this.authz.assertCan(
       principal,
       PERMISSIONS.INITIATIVE_MANAGE_PRESTUDY,
-      { type: "ORGANIZATION", organizationId: initiative.organizationId },
+      { type: "DEPARTMENT", organizationId: initiative.organizationId, departmentId: initiative.departmentId },
     );
 
     const preStudy = await this.db.preStudy.upsert({
@@ -661,7 +760,7 @@ export class InitiativeService {
     await this.authz.assertCan(
       principal,
       PERMISSIONS.INITIATIVE_MANAGE_PRESTUDY,
-      { type: "ORGANIZATION", organizationId: initiative.organizationId },
+      { type: "DEPARTMENT", organizationId: initiative.organizationId, departmentId: initiative.departmentId },
     );
     const preStudy = await this.db.preStudy.upsert({
       where: { initiativeId: initiative.id },
@@ -709,8 +808,9 @@ export class InitiativeService {
       principal,
       PERMISSIONS.INITIATIVE_MANAGE_PRESTUDY,
       {
-        type: "ORGANIZATION",
+        type: "DEPARTMENT",
         organizationId: existing.preStudy.initiative.organizationId,
+        departmentId: existing.preStudy.initiative.departmentId,
       },
     );
     this.assertVersion(existing.version, input.expectedVersion, "alternative");
@@ -753,9 +853,17 @@ export class InitiativeService {
     const input = parse(createRiskInputSchema, raw);
     const initiative = await this.requireInitiative(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_MANAGE_RISK, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
+
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: initiative.organizationId,
+      roleLabel: "risk owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
 
     const risk = await this.db.$transaction(async (tx) => {
       const referenceKey = await this.allocateRiskReference(tx, initiative.id);
@@ -765,7 +873,8 @@ export class InitiativeService {
           referenceKey,
           title: input.title,
           description: input.description,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           probability: input.probability,
           impact: input.impact,
           status: input.status,
@@ -779,7 +888,12 @@ export class InitiativeService {
       subjectType: "Risk",
       subjectId: risk.id,
       organizationId: initiative.organizationId,
-      payload: { referenceKey: risk.referenceKey, title: risk.title },
+      payload: {
+        referenceKey: risk.referenceKey,
+        title: risk.title,
+        ownerResourceId: risk.ownerResourceId,
+        ownerName: risk.ownerName,
+      },
       result: "success",
     });
     return risk;
@@ -793,10 +907,18 @@ export class InitiativeService {
     });
     if (!existing) throw new AppError("NOT_FOUND", "Risk not found.");
     await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_MANAGE_RISK, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: existing.initiative.organizationId,
+      departmentId: existing.initiative.departmentId,
     });
     this.assertVersion(existing.version, input.expectedVersion, "risk");
+
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: existing.initiative.organizationId,
+      roleLabel: "risk owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
 
     try {
       const updated = await this.db.risk.update({
@@ -804,7 +926,8 @@ export class InitiativeService {
         data: {
           title: input.title,
           description: input.description,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           probability: input.probability,
           impact: input.impact,
           status: input.status,
@@ -818,7 +941,14 @@ export class InitiativeService {
         subjectType: "Risk",
         subjectId: updated.id,
         organizationId: existing.initiative.organizationId,
-        payload: { status: updated.status, version: updated.version },
+        payload: {
+          status: updated.status,
+          version: updated.version,
+          oldOwnerResourceId: existing.ownerResourceId,
+          newOwnerResourceId: updated.ownerResourceId,
+          oldOwnerName: existing.ownerName,
+          newOwnerName: updated.ownerName,
+        },
         result: "success",
       });
       return updated;
@@ -830,10 +960,16 @@ export class InitiativeService {
   async createDocumentMetadata(principal: Principal, raw: unknown) {
     const input = parse(createDocumentInputSchema, raw);
     const initiative = await this.requireInitiative(input.initiativeId);
-    await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_EDIT, {
-      type: "ORGANIZATION",
-      organizationId: initiative.organizationId,
-    });
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.INITIATIVE_EDIT,
+      {
+        type: "DEPARTMENT",
+        organizationId: initiative.organizationId,
+        departmentId: initiative.departmentId,
+      },
+      { kind: "INITIATIVE_BUSINESS_OWNER", initiativeId: initiative.id },
+    );
 
     const document = await this.db.managedDocument.create({
       data: {
@@ -986,10 +1122,16 @@ export class InitiativeService {
     if (!initiative || initiative.status === "ARCHIVED") {
       throw new AppError("NOT_FOUND", "Initiative not found.");
     }
-    await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: initiative.organizationId,
-    });
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.INITIATIVE_VIEW,
+      {
+        type: "DEPARTMENT",
+        organizationId: initiative.organizationId,
+        departmentId: initiative.departmentId,
+      },
+      { kind: "INITIATIVE_BUSINESS_OWNER", initiativeId: initiative.id },
+    );
 
     const attention = buildAttentionItems({
       initiative,

@@ -53,12 +53,20 @@ export default async function OrganizationDetailPage({
           "Navigate the hierarchy from section to resource."
         }
         actions={
-          <Link
-            href={`/organization/${hierarchy.id}/governance-policy`}
-            className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
-          >
-            Governance policy
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/organization/${hierarchy.id}/access`}
+              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+            >
+              Access & roles
+            </Link>
+            <Link
+              href={`/organization/${hierarchy.id}/governance-policy`}
+              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+            >
+              Governance policy
+            </Link>
+          </div>
         }
       />
 

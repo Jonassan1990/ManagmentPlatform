@@ -7,6 +7,7 @@ import { ZodError } from "zod";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import {
@@ -73,6 +74,13 @@ export class DependencyService {
       input.targetId,
     );
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: input.organizationId,
+      roleLabel: "dependency owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const created = await this.db.planningDependency.create({
         data: {
@@ -83,7 +91,8 @@ export class DependencyService {
           sourceId: input.sourceId,
           targetType: input.targetType,
           targetId: input.targetId,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           neededByDate: input.neededByDate ?? null,
           description: input.description ?? null,
         },
@@ -137,13 +146,21 @@ export class DependencyService {
       );
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: dep.organizationId,
+      roleLabel: "dependency owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const updated = await this.db.planningDependency.update({
         where: { id: dep.id, version: input.expectedVersion },
         data: {
           status: input.status,
           criticality: input.criticality,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           neededByDate: input.neededByDate ?? null,
           description: input.description ?? null,
           version: { increment: 1 },

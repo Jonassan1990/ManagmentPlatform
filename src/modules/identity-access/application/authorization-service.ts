@@ -7,83 +7,13 @@ import {
 } from "@/modules/shared/permissions";
 import type { AuthScope, Principal } from "../domain/types";
 import { isDevAuthEnabled, getEnv } from "@/server/env";
+import { SYSTEM_ROLE_PACKS } from "./role-packs";
+import { scopeMatchesAsync } from "./scope-policy";
+import {
+  ownershipGrantsPermission,
+  type OwnershipRelationship,
+} from "./relationship-policy";
 
-const PHASE3_GOVERNANCE_PERMISSIONS: Permission[] = [
-  PERMISSIONS.GOVERNANCE_VIEW,
-  PERMISSIONS.GOVERNANCE_SUBMIT,
-  PERMISSIONS.APPROVAL_REVIEW,
-  PERMISSIONS.DECISION_MAKE,
-  PERMISSIONS.DECISION_CONDITION_RESOLVE,
-  PERMISSIONS.POC_CREATE,
-  PERMISSIONS.POC_EDIT,
-  PERMISSIONS.POC_TRANSITION,
-  PERMISSIONS.POC_EVALUATE,
-  PERMISSIONS.APPROVAL_AUTHORITY_BUSINESS,
-  PERMISSIONS.APPROVAL_AUTHORITY_ARCHITECTURE,
-  PERMISSIONS.APPROVAL_AUTHORITY_SECURITY,
-];
-
-const PHASE4_PILOT_PROJECT_PERMISSIONS: Permission[] = [
-  PERMISSIONS.PILOT_CREATE,
-  PERMISSIONS.PILOT_EDIT,
-  PERMISSIONS.PILOT_TRANSITION,
-  PERMISSIONS.PILOT_EVALUATE,
-  PERMISSIONS.PROJECT_CONVERT,
-  PERMISSIONS.PROJECT_VIEW,
-  PERMISSIONS.PROJECT_EDIT,
-  PERMISSIONS.PROJECT_MANAGE_MILESTONES,
-  PERMISSIONS.PROJECT_MANAGE_WORKITEMS,
-  PERMISSIONS.GOVERNANCE_POLICY_MANAGE,
-];
-
-const PHASE5_PI_PLANNING_PERMISSIONS: Permission[] = [
-  PERMISSIONS.PI_VIEW,
-  PERMISSIONS.PI_CREATE,
-  PERMISSIONS.PI_EDIT,
-  PERMISSIONS.PI_TRANSITION,
-  PERMISSIONS.PI_ALLOCATE,
-  PERMISSIONS.PI_MANAGE_CAPACITY,
-  PERMISSIONS.PI_MANAGE_DEPENDENCY,
-  PERMISSIONS.PI_REVIEW,
-  PERMISSIONS.PI_BASELINE,
-];
-
-const PLATFORM_BOOTSTRAP_PERMISSIONS: Permission[] = [
-  PERMISSIONS.PLATFORM_BOOTSTRAP,
-  PERMISSIONS.ORG_STRUCTURE_READ,
-  PERMISSIONS.ORG_STRUCTURE_MANAGE,
-  PERMISSIONS.AUDIT_READ,
-  PERMISSIONS.ROLE_MANAGE,
-  PERMISSIONS.INITIATIVE_VIEW,
-  PERMISSIONS.INITIATIVE_CREATE,
-  PERMISSIONS.INITIATIVE_EDIT,
-  PERMISSIONS.INITIATIVE_MANAGE_DEMAND,
-  PERMISSIONS.INITIATIVE_MANAGE_REQUIREMENTS,
-  PERMISSIONS.INITIATIVE_MANAGE_PRESTUDY,
-  PERMISSIONS.INITIATIVE_MANAGE_RISK,
-  PERMISSIONS.INITIATIVE_ADVANCE,
-  ...PHASE3_GOVERNANCE_PERMISSIONS,
-  ...PHASE4_PILOT_PROJECT_PERMISSIONS,
-  ...PHASE5_PI_PLANNING_PERMISSIONS,
-];
-
-const ORGANIZATION_ADMIN_PERMISSIONS: Permission[] = [
-  PERMISSIONS.ORG_STRUCTURE_READ,
-  PERMISSIONS.ORG_STRUCTURE_MANAGE,
-  PERMISSIONS.AUDIT_READ,
-  PERMISSIONS.ROLE_MANAGE,
-  PERMISSIONS.INITIATIVE_VIEW,
-  PERMISSIONS.INITIATIVE_CREATE,
-  PERMISSIONS.INITIATIVE_EDIT,
-  PERMISSIONS.INITIATIVE_MANAGE_DEMAND,
-  PERMISSIONS.INITIATIVE_MANAGE_REQUIREMENTS,
-  PERMISSIONS.INITIATIVE_MANAGE_PRESTUDY,
-  PERMISSIONS.INITIATIVE_MANAGE_RISK,
-  PERMISSIONS.INITIATIVE_ADVANCE,
-  ...PHASE3_GOVERNANCE_PERMISSIONS,
-  ...PHASE4_PILOT_PROJECT_PERMISSIONS,
-  ...PHASE5_PI_PLANNING_PERMISSIONS,
-];
 export class AuthorizationService {
   constructor(private readonly db: PrismaClient) {}
 
@@ -159,38 +89,27 @@ export class AuthorizationService {
   }
 
   async ensureSystemRoles(): Promise<void> {
-    await this.db.roleDefinition.upsert({
-      where: { key: ROLE_KEYS.PLATFORM_BOOTSTRAP_ADMIN },
-      create: {
-        key: ROLE_KEYS.PLATFORM_BOOTSTRAP_ADMIN,
-        name: "Platform Bootstrap Admin",
-        description:
-          "Temporary bootstrap authority used when no organization exists yet.",
-        permissions: [...PLATFORM_BOOTSTRAP_PERMISSIONS],
-      },
-      update: {
-        permissions: [...PLATFORM_BOOTSTRAP_PERMISSIONS],
-      },
-    });
-
-    await this.db.roleDefinition.upsert({
-      where: { key: ROLE_KEYS.ORGANIZATION_ADMIN },
-      create: {
-        key: ROLE_KEYS.ORGANIZATION_ADMIN,
-        name: "Organization Admin",
-        description: "Manage organization structure within an organization scope.",
-        permissions: [...ORGANIZATION_ADMIN_PERMISSIONS],
-      },
-      update: {
-        permissions: [...ORGANIZATION_ADMIN_PERMISSIONS],
-      },
-    });
+    for (const pack of SYSTEM_ROLE_PACKS) {
+      await this.db.roleDefinition.upsert({
+        where: { key: pack.key },
+        create: {
+          key: pack.key,
+          name: pack.name,
+          description: pack.description,
+          permissions: [...pack.permissions],
+        },
+        update: {
+          name: pack.name,
+          description: pack.description,
+          permissions: [...pack.permissions],
+        },
+      });
+    }
   }
 
   /**
    * DEV / test empty-state helper: when zero organizations exist, grant bootstrap binding.
    * Production OIDC must NEVER auto-grant — use IdentityService.consumeBootstrapToken instead.
-   * Does not hardcode any personal identity.
    */
   async ensureBootstrapBinding(principalId: string): Promise<void> {
     const env = getEnv();
@@ -258,10 +177,14 @@ export class AuthorizationService {
     });
   }
 
+  /**
+   * Deny-by-default authorization: Permission + Scope (+ optional Ownership relationship).
+   */
   async assertCan(
     principal: Principal,
     permission: Permission,
     scope: AuthScope,
+    relationship?: OwnershipRelationship,
   ): Promise<void> {
     await this.ensureBootstrapBinding(principal.id);
 
@@ -274,22 +197,41 @@ export class AuthorizationService {
       include: { roleDefinition: true },
     });
 
-    const allowed = bindings.some((binding) => {
+    for (const binding of bindings) {
       if (!binding.roleDefinition.permissions.includes(permission)) {
-        return false;
+        continue;
       }
-      return scopeMatches(binding.scopeType, binding.organizationId, binding.scopeId, scope);
-    });
-
-    if (!allowed) {
-      throw new AppError(
-        "FORBIDDEN",
-        `Missing permission '${permission}' for the requested scope.`,
-        {
-          details: { permission, scope },
-        },
+      const matches = await scopeMatchesAsync(
+        this.db,
+        binding.scopeType,
+        binding.organizationId,
+        binding.scopeId,
+        scope,
       );
+      if (matches) {
+        return;
+      }
     }
+
+    if (
+      relationship &&
+      (await ownershipGrantsPermission(
+        this.db,
+        principal,
+        permission,
+        relationship,
+      ))
+    ) {
+      return;
+    }
+
+    throw new AppError(
+      "FORBIDDEN",
+      `Missing permission '${permission}' for the requested scope.`,
+      {
+        details: { permission, scope },
+      },
+    );
   }
 
   /** Non-throwing permission check for UI capability flags. */
@@ -297,9 +239,10 @@ export class AuthorizationService {
     principal: Principal,
     permission: Permission,
     scope: AuthScope,
+    relationship?: OwnershipRelationship,
   ): Promise<boolean> {
     try {
-      await this.assertCan(principal, permission, scope);
+      await this.assertCan(principal, permission, scope, relationship);
       return true;
     } catch (error) {
       if (error instanceof AppError && error.code === "FORBIDDEN") {
@@ -308,54 +251,365 @@ export class AuthorizationService {
       throw error;
     }
   }
-}
 
-function scopeMatches(
-  bindingScopeType: ScopeType,
-  bindingOrgId: string | null,
-  bindingScopeId: string | null,
-  requested: AuthScope,
-): boolean {
-  if (bindingScopeType === ScopeType.PLATFORM) {
-    // Platform scope may satisfy bootstrap and org manage during empty-state / admin paths.
-    return true;
+  // ---------------------------------------------------------------------------
+  // Role / binding administration (ROLE_MANAGE)
+  // ---------------------------------------------------------------------------
+
+  async listRoleDefinitions(principal: Principal, organizationId: string) {
+    await this.assertCan(principal, PERMISSIONS.ROLE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId,
+    });
+    await this.ensureSystemRoles();
+    return this.db.roleDefinition.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        key: true,
+        name: true,
+        description: true,
+        permissions: true,
+      },
+    });
   }
 
-  if (requested.type === "PLATFORM") {
-    return false;
+  async listOrganizationPrincipals(
+    principal: Principal,
+    organizationId: string,
+  ) {
+    await this.assertCan(principal, PERMISSIONS.ROLE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId,
+    });
+    // ROLE_MANAGE may assign to any known Principal (not Resources). Cap for UI.
+    return this.db.principal.findMany({
+      orderBy: { displayName: "asc" },
+      take: 500,
+      select: { id: true, displayName: true, email: true },
+    });
   }
 
-  if (!bindingOrgId || bindingOrgId !== requested.organizationId) {
-    return false;
+  async listRoleBindings(principal: Principal, organizationId: string) {
+    await this.assertCan(principal, PERMISSIONS.ROLE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId,
+    });
+    return this.db.roleBinding.findMany({
+      where: {
+        OR: [
+          { organizationId },
+          // PLATFORM bindings visible only to callers who also have PLATFORM ROLE_MANAGE
+        ],
+      },
+      include: {
+        roleDefinition: {
+          select: { id: true, key: true, name: true },
+        },
+        principal: {
+          select: { id: true, displayName: true, email: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
   }
 
-  switch (requested.type) {
-    case "ORGANIZATION":
-      return (
-        bindingScopeType === ScopeType.ORGANIZATION ||
-        bindingScopeType === ScopeType.SECTION ||
-        bindingScopeType === ScopeType.DEPARTMENT ||
-        bindingScopeType === ScopeType.TEAM
+  async listPlatformBindingsForAdmin(principal: Principal) {
+    await this.assertCan(principal, PERMISSIONS.ROLE_MANAGE, {
+      type: "PLATFORM",
+    });
+    return this.db.roleBinding.findMany({
+      where: { scopeType: ScopeType.PLATFORM },
+      include: {
+        roleDefinition: { select: { id: true, key: true, name: true } },
+        principal: { select: { id: true, displayName: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async assignRoleBinding(
+    actor: Principal,
+    input: {
+      principalId: string;
+      roleDefinitionId: string;
+      scopeType: ScopeType;
+      organizationId?: string | null;
+      scopeId?: string | null;
+      effectiveFrom?: Date | null;
+      effectiveTo?: Date | null;
+    },
+  ) {
+    await this.ensureSystemRoles();
+    const role = await this.db.roleDefinition.findUnique({
+      where: { id: input.roleDefinitionId },
+    });
+    if (!role) throw new AppError("NOT_FOUND", "Role definition not found.");
+
+    const target = await this.db.principal.findUnique({
+      where: { id: input.principalId },
+    });
+    if (!target) throw new AppError("NOT_FOUND", "Principal not found.");
+
+    await this.validateBindingScope(input);
+
+    if (input.scopeType === ScopeType.PLATFORM) {
+      await this.assertCan(actor, PERMISSIONS.ROLE_MANAGE, { type: "PLATFORM" });
+    } else {
+      if (!input.organizationId) {
+        throw new AppError(
+          "VALIDATION",
+          "organizationId is required for non-PLATFORM bindings.",
+        );
+      }
+      await this.assertCan(actor, PERMISSIONS.ROLE_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId: input.organizationId,
+      });
+      if (role.key === ROLE_KEYS.PLATFORM_BOOTSTRAP_ADMIN) {
+        throw new AppError(
+          "VALIDATION",
+          "Platform Admin role may only be bound at PLATFORM scope.",
+        );
+      }
+    }
+
+    const created = await this.db.roleBinding.create({
+      data: {
+        principalId: input.principalId,
+        roleDefinitionId: input.roleDefinitionId,
+        scopeType: input.scopeType,
+        organizationId:
+          input.scopeType === ScopeType.PLATFORM
+            ? null
+            : input.organizationId ?? null,
+        scopeId:
+          input.scopeType === ScopeType.ORGANIZATION
+            ? input.organizationId ?? null
+            : input.scopeType === ScopeType.PLATFORM
+              ? null
+              : input.scopeId ?? null,
+        effectiveFrom: input.effectiveFrom ?? new Date(),
+        effectiveTo: input.effectiveTo ?? null,
+      },
+      include: {
+        roleDefinition: { select: { key: true, name: true } },
+      },
+    });
+
+    await this.db.auditEvent.create({
+      data: {
+        actorPrincipalId: actor.id,
+        actionType: "role_binding.created",
+        subjectType: "RoleBinding",
+        subjectId: created.id,
+        organizationId: created.organizationId,
+        payload: {
+          targetPrincipalId: created.principalId,
+          roleKey: created.roleDefinition.key,
+          roleName: created.roleDefinition.name,
+          scopeType: created.scopeType,
+          organizationId: created.organizationId,
+          scopeId: created.scopeId,
+          effectiveFrom: created.effectiveFrom,
+          effectiveTo: created.effectiveTo,
+        },
+        result: "success",
+      },
+    });
+
+    return created;
+  }
+
+  async expireRoleBinding(
+    actor: Principal,
+    input: { bindingId: string; effectiveTo?: Date | null },
+  ) {
+    const binding = await this.db.roleBinding.findUnique({
+      where: { id: input.bindingId },
+      include: { roleDefinition: true },
+    });
+    if (!binding) throw new AppError("NOT_FOUND", "Role binding not found.");
+
+    if (binding.scopeType === ScopeType.PLATFORM) {
+      await this.assertCan(actor, PERMISSIONS.ROLE_MANAGE, { type: "PLATFORM" });
+    } else if (binding.organizationId) {
+      await this.assertCan(actor, PERMISSIONS.ROLE_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId: binding.organizationId,
+      });
+    } else {
+      throw new AppError("VALIDATION", "Binding has invalid scope.");
+    }
+
+    await this.assertNotLastAdminBinding(binding);
+
+    const effectiveTo = input.effectiveTo ?? new Date();
+    const updated = await this.db.roleBinding.update({
+      where: { id: binding.id },
+      data: { effectiveTo },
+    });
+
+    await this.db.auditEvent.create({
+      data: {
+        actorPrincipalId: actor.id,
+        actionType: "role_binding.expired",
+        subjectType: "RoleBinding",
+        subjectId: binding.id,
+        organizationId: binding.organizationId,
+        payload: {
+          targetPrincipalId: binding.principalId,
+          roleKey: binding.roleDefinition.key,
+          oldScopeType: binding.scopeType,
+          oldOrganizationId: binding.organizationId,
+          oldScopeId: binding.scopeId,
+          newEffectiveTo: effectiveTo,
+          previousEffectiveTo: binding.effectiveTo,
+        },
+        result: "success",
+      },
+    });
+
+    return updated;
+  }
+
+  private async validateBindingScope(input: {
+    scopeType: ScopeType;
+    organizationId?: string | null;
+    scopeId?: string | null;
+  }) {
+    if (input.scopeType === ScopeType.PLATFORM) {
+      if (input.organizationId || input.scopeId) {
+        throw new AppError(
+          "VALIDATION",
+          "PLATFORM bindings must not set organizationId or scopeId.",
+        );
+      }
+      return;
+    }
+    if (!input.organizationId) {
+      throw new AppError(
+        "VALIDATION",
+        "organizationId is required for scoped bindings.",
       );
-    case "SECTION":
-      if (bindingScopeType === ScopeType.ORGANIZATION) return true;
-      return (
-        bindingScopeType === ScopeType.SECTION &&
-        bindingScopeId === requested.sectionId
+    }
+    const org = await this.db.organization.findUnique({
+      where: { id: input.organizationId },
+    });
+    if (!org || org.status === "ARCHIVED") {
+      throw new AppError("NOT_FOUND", "Organization not found.");
+    }
+
+    if (input.scopeType === ScopeType.ORGANIZATION) {
+      return;
+    }
+    if (!input.scopeId) {
+      throw new AppError(
+        "VALIDATION",
+        "scopeId is required for SECTION/DEPARTMENT/TEAM bindings.",
       );
-    case "DEPARTMENT":
-      if (bindingScopeType === ScopeType.ORGANIZATION) return true;
-      return (
-        bindingScopeType === ScopeType.DEPARTMENT &&
-        bindingScopeId === requested.departmentId
-      );
-    case "TEAM":
-      if (bindingScopeType === ScopeType.ORGANIZATION) return true;
-      return (
-        bindingScopeType === ScopeType.TEAM &&
-        bindingScopeId === requested.teamId
-      );
-    default:
-      return false;
+    }
+
+    if (input.scopeType === ScopeType.SECTION) {
+      const section = await this.db.section.findUnique({
+        where: { id: input.scopeId },
+      });
+      if (!section || section.organizationId !== input.organizationId) {
+        throw new AppError(
+          "VALIDATION",
+          "Section must belong to the selected organization.",
+        );
+      }
+      return;
+    }
+    if (input.scopeType === ScopeType.DEPARTMENT) {
+      const department = await this.db.department.findUnique({
+        where: { id: input.scopeId },
+        include: { section: true },
+      });
+      if (
+        !department ||
+        department.section.organizationId !== input.organizationId
+      ) {
+        throw new AppError(
+          "VALIDATION",
+          "Department must belong to the selected organization.",
+        );
+      }
+      return;
+    }
+    if (input.scopeType === ScopeType.TEAM) {
+      const team = await this.db.team.findUnique({
+        where: { id: input.scopeId },
+        include: { department: { include: { section: true } } },
+      });
+      if (
+        !team ||
+        team.department.section.organizationId !== input.organizationId
+      ) {
+        throw new AppError(
+          "VALIDATION",
+          "Team must belong to the selected organization.",
+        );
+      }
+    }
+  }
+
+  /**
+   * Prevent removing the last usable PLATFORM ROLE_MANAGE or last ORGANIZATION admin
+   * binding for an organization.
+   */
+  private async assertNotLastAdminBinding(binding: {
+    id: string;
+    scopeType: ScopeType;
+    organizationId: string | null;
+    roleDefinition: { permissions: string[]; key: string };
+  }) {
+    const now = new Date();
+    const hasRoleManage = binding.roleDefinition.permissions.includes(
+      PERMISSIONS.ROLE_MANAGE,
+    );
+    if (!hasRoleManage) return;
+
+    if (binding.scopeType === ScopeType.PLATFORM) {
+      const others = await this.db.roleBinding.count({
+        where: {
+          id: { not: binding.id },
+          scopeType: ScopeType.PLATFORM,
+          OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+          roleDefinition: {
+            permissions: { has: PERMISSIONS.ROLE_MANAGE },
+          },
+        },
+      });
+      if (others === 0) {
+        throw new AppError(
+          "VALIDATION",
+          "Cannot expire the last PLATFORM role-management binding.",
+        );
+      }
+      return;
+    }
+
+    if (
+      binding.organizationId &&
+      binding.roleDefinition.key === ROLE_KEYS.ORGANIZATION_ADMIN
+    ) {
+      const others = await this.db.roleBinding.count({
+        where: {
+          id: { not: binding.id },
+          organizationId: binding.organizationId,
+          scopeType: ScopeType.ORGANIZATION,
+          OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+          roleDefinition: { key: ROLE_KEYS.ORGANIZATION_ADMIN },
+        },
+      });
+      if (others === 0) {
+        throw new AppError(
+          "VALIDATION",
+          "Cannot expire the last Organization Admin binding for this organization.",
+        );
+      }
+    }
   }
 }

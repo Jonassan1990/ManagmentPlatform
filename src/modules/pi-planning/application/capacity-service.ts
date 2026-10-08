@@ -13,6 +13,7 @@ import {
 } from "./capacity-policy";
 import type { PiService } from "./pi-service";
 import { setResourceAvailabilityInputSchema } from "./schemas";
+import { piAuthScope } from "./pi-auth-scope";
 
 function fromZod(error: ZodError): AppError {
   return new AppError("VALIDATION", "Validation failed", {
@@ -72,10 +73,7 @@ export class CapacityService {
       include: { pi: true },
     });
     if (!iteration) throw new AppError("NOT_FOUND", "Iteration not found.");
-    await this.authz.assertCan(principal, PERMISSIONS.PI_MANAGE_CAPACITY, {
-      type: "ORGANIZATION",
-      organizationId: iteration.pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_MANAGE_CAPACITY, piAuthScope(iteration.pi.organizationId, iteration.pi.sectionId));
 
     const resource = await this.db.resource.findUnique({
       where: { id: input.resourceId },
@@ -168,10 +166,7 @@ export class CapacityService {
 
   async getCapacityViews(principal: Principal, piId: string) {
     const pi = await this.piService.requirePi(piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, piAuthScope(pi.organizationId, pi.sectionId));
     return this.computeCapacityViews(piId);
   }
 
