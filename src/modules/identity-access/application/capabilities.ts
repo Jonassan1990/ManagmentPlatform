@@ -22,6 +22,7 @@ export type PrincipalCapabilities = {
   canConvertProject: boolean;
   canViewProject: boolean;
   canEditProject: boolean;
+  canCloseProject: boolean;
   canManageMilestones: boolean;
   canManageWorkItems: boolean;
   canManageGovernancePolicy: boolean;
@@ -63,6 +64,7 @@ export async function resolveCapabilities(
     canConvertProject,
     canViewProject,
     canEditProject,
+    canCloseProject,
     canManageMilestones,
     canManageWorkItems,
     canManageGovernancePolicy,
@@ -92,6 +94,7 @@ export async function resolveCapabilities(
     check(PERMISSIONS.PROJECT_CONVERT),
     check(PERMISSIONS.PROJECT_VIEW),
     check(PERMISSIONS.PROJECT_EDIT),
+    check(PERMISSIONS.PROJECT_CLOSE),
     check(PERMISSIONS.PROJECT_MANAGE_MILESTONES),
     check(PERMISSIONS.PROJECT_MANAGE_WORKITEMS),
     check(PERMISSIONS.GOVERNANCE_POLICY_MANAGE),
@@ -123,6 +126,7 @@ export async function resolveCapabilities(
     canConvertProject,
     canViewProject,
     canEditProject,
+    canCloseProject,
     canManageMilestones,
     canManageWorkItems,
     canManageGovernancePolicy,

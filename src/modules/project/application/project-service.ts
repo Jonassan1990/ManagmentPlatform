@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient, type ProjectStatus } from "@prisma/client";
 import { ZodError } from "zod";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
@@ -7,8 +7,16 @@ import { resolveOptionalBusinessOwner } from "@/modules/organization/application
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import {
+  canProceedWithClosure,
+  evaluateClosureReadiness,
+  isProjectClosedStatus,
+  projectStatusForOutcome,
+} from "./closure-policy";
+import {
+  closeProjectInputSchema,
   createMilestoneInputSchema,
   createWorkItemInputSchema,
+  evaluateClosureReadinessInputSchema,
   updateBudgetInputSchema,
   updateMilestoneInputSchema,
   updateProjectInputSchema,
@@ -41,6 +49,7 @@ const projectInclude = {
   participatingDepartments: { include: { department: true } },
   milestones: { orderBy: { plannedDate: "asc" as const } },
   workItems: { orderBy: { referenceKey: "asc" as const } },
+  closure: { include: { closedBy: true } },
 } satisfies Prisma.ProjectInclude;
 
 export class ProjectService {
@@ -93,6 +102,7 @@ export class ProjectService {
   async updateProject(principal: Principal, raw: unknown) {
     const input = parse(updateProjectInputSchema, raw);
     const project = await this.requireProject(input.projectId);
+    this.assertProjectMutable(project.status);
     await this.authz.assertCan(
       principal,
       PERMISSIONS.PROJECT_EDIT,
@@ -171,6 +181,7 @@ export class ProjectService {
   async updateBudget(principal: Principal, raw: unknown) {
     const input = parse(updateBudgetInputSchema, raw);
     const project = await this.requireProject(input.projectId);
+    this.assertProjectMutable(project.status);
     await this.authz.assertCan(
       principal,
       PERMISSIONS.PROJECT_EDIT,
@@ -216,6 +227,7 @@ export class ProjectService {
   async createMilestone(principal: Principal, raw: unknown) {
     const input = parse(createMilestoneInputSchema, raw);
     const project = await this.requireProject(input.projectId);
+    this.assertProjectMutable(project.status);
     await this.authz.assertCan(principal, PERMISSIONS.PROJECT_MANAGE_MILESTONES, {
       type: "DEPARTMENT",
       organizationId: project.organizationId,
@@ -263,6 +275,7 @@ export class ProjectService {
       include: { project: true },
     });
     if (!milestone) throw new AppError("NOT_FOUND", "Milestone not found.");
+    this.assertProjectMutable(milestone.project.status);
     await this.authz.assertCan(principal, PERMISSIONS.PROJECT_MANAGE_MILESTONES, {
       type: "DEPARTMENT",
       organizationId: milestone.project.organizationId,
@@ -310,6 +323,7 @@ export class ProjectService {
   async createWorkItem(principal: Principal, raw: unknown) {
     const input = parse(createWorkItemInputSchema, raw);
     const project = await this.requireProject(input.projectId);
+    this.assertProjectMutable(project.status);
     await this.authz.assertCan(principal, PERMISSIONS.PROJECT_MANAGE_WORKITEMS, {
       type: "DEPARTMENT",
       organizationId: project.organizationId,
@@ -367,6 +381,7 @@ export class ProjectService {
       include: { project: true },
     });
     if (!workItem) throw new AppError("NOT_FOUND", "Work item not found.");
+    this.assertProjectMutable(workItem.project.status);
     await this.authz.assertCan(principal, PERMISSIONS.PROJECT_MANAGE_WORKITEMS, {
       type: "DEPARTMENT",
       organizationId: workItem.project.organizationId,
@@ -424,6 +439,186 @@ export class ProjectService {
   }
 
   /**
+   * Evaluate closure readiness for a Project + outcome (Phase 1D).
+   * Does not mutate state. Authorization: PROJECT_VIEW (readiness is visible to viewers).
+   */
+  async getClosureReadiness(principal: Principal, raw: unknown) {
+    const input = parse(evaluateClosureReadinessInputSchema, raw);
+    const project = await this.db.project.findUnique({
+      where: { id: input.projectId },
+      include: {
+        milestones: true,
+        workItems: true,
+        issues: true,
+        closure: true,
+      },
+    });
+    if (!project || project.status === "ARCHIVED") {
+      throw new AppError("NOT_FOUND", "Project not found.");
+    }
+    await this.authz.assertCan(
+      principal,
+      PERMISSIONS.PROJECT_VIEW,
+      {
+        type: "DEPARTMENT",
+        organizationId: project.organizationId,
+        departmentId: project.departmentId,
+      },
+      { kind: "PROJECT_OWNER", projectId: project.id },
+    );
+
+    const readiness = evaluateClosureReadiness({
+      projectStatus: project.status,
+      outcome: input.outcome,
+      milestones: project.milestones,
+      workItems: project.workItems,
+      issues: project.issues,
+    });
+
+    return {
+      projectId: project.id,
+      outcome: input.outcome,
+      projectStatus: project.status,
+      alreadyClosed: Boolean(project.closure) || isProjectClosedStatus(project.status),
+      closure: project.closure,
+      readiness,
+    };
+  }
+
+  /**
+   * Explicit authorized Project closure (Phase 1D).
+   * Creates immutable ProjectClosure, transitions status, audits.
+   * Does not rewrite Issues / Milestones / Work Items / PI history.
+   * Idempotency: CONFLICT if already closed (no second closure record).
+   * Authorization: PROJECT_CLOSE only — Project Owner ownership does not grant close.
+   */
+  async closeProject(principal: Principal, raw: unknown) {
+    const input = parse(closeProjectInputSchema, raw);
+    const project = await this.db.project.findUnique({
+      where: { id: input.projectId },
+      include: {
+        milestones: true,
+        workItems: true,
+        issues: true,
+        closure: true,
+      },
+    });
+    if (!project || project.status === "ARCHIVED") {
+      throw new AppError("NOT_FOUND", "Project not found.");
+    }
+
+    await this.authz.assertCan(principal, PERMISSIONS.PROJECT_CLOSE, {
+      type: "DEPARTMENT",
+      organizationId: project.organizationId,
+      departmentId: project.departmentId,
+    });
+    // Intentionally no PROJECT_OWNER ownership grant for close (ADR-025).
+
+    if (project.closure || isProjectClosedStatus(project.status)) {
+      throw new AppError(
+        "CONFLICT",
+        "Project is already closed. Closure is final for Phase 1D.",
+        {
+          details: {
+            projectId: project.id,
+            status: project.status,
+            closureId: project.closure?.id ?? null,
+          },
+        },
+      );
+    }
+
+    this.assertVersion(project.version, input.expectedVersion, "project");
+
+    const readiness = evaluateClosureReadiness({
+      projectStatus: project.status,
+      outcome: input.outcome,
+      milestones: project.milestones,
+      workItems: project.workItems,
+      issues: project.issues,
+    });
+    const proceed = canProceedWithClosure(
+      readiness,
+      input.acknowledgeWarnings,
+    );
+    if (!proceed.ok) {
+      throw new AppError("VALIDATION", proceed.reason, {
+        details: { readiness },
+      });
+    }
+
+    const nextStatus = projectStatusForOutcome(input.outcome);
+    const closedAt = new Date();
+    const readinessSnapshot = {
+      outcome: input.outcome,
+      hardBlockers: readiness.hardBlockers,
+      warnings: readiness.warnings,
+      counts: readiness.counts,
+      acknowledgedWarnings: input.acknowledgeWarnings,
+    };
+
+    try {
+      const result = await this.db.$transaction(async (tx) => {
+        const updated = await tx.project.update({
+          where: { id: project.id, version: input.expectedVersion },
+          data: {
+            status: nextStatus,
+            version: { increment: 1 },
+          },
+        });
+
+        const closure = await tx.projectClosure.create({
+          data: {
+            projectId: project.id,
+            closedAt,
+            closedByPrincipalId: principal.id,
+            outcome: input.outcome,
+            summary: input.summary ?? null,
+            lessonsLearned: input.lessonsLearned ?? null,
+            finalDeliveryNote: input.finalDeliveryNote ?? null,
+            readinessSnapshot,
+          },
+          include: { closedBy: true },
+        });
+
+        return { project: updated, closure };
+      });
+
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: "project.closed",
+        subjectType: "Project",
+        subjectId: result.project.id,
+        organizationId: project.organizationId,
+        payload: {
+          closureId: result.closure.id,
+          outcome: input.outcome,
+          closedAt: closedAt.toISOString(),
+          status: nextStatus,
+          version: result.project.version,
+          summary: input.summary ?? null,
+          readinessSnapshot,
+          initiativeId: project.initiativeId,
+        },
+        result: "success",
+      });
+
+      return result;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new AppError(
+          "CONFLICT",
+          "Project is already closed. Closure is final for Phase 1D.",
+        );
+      }
+      this.rethrowStale(error, "project");
+    }
+  }
+
+  /**
    * Traceability view: initiative → PoC → Pilot → Project with decisions.
    */
   async getTraceability(principal: Principal, initiativeId: string) {
@@ -474,6 +669,17 @@ export class ProjectService {
       throw new AppError("NOT_FOUND", "Project not found.");
     }
     return project;
+  }
+
+  /** Closed projects are historical/read-only for delivery mutations (Phase 1D). */
+  private assertProjectMutable(status: ProjectStatus): void {
+    if (isProjectClosedStatus(status)) {
+      throw new AppError(
+        "CONFLICT",
+        "Closed projects are read-only for delivery mutations.",
+        { details: { status } },
+      );
+    }
   }
 
   private async allocateMilestoneReference(projectId: string): Promise<string> {

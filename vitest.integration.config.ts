@@ -7,7 +7,8 @@ export default defineConfig({
     environment: "node",
     include: ["tests/integration/**/*.test.ts"],
     fileParallelism: false,
-    hookTimeout: 60000,
-    testTimeout: 60000,
+    hookTimeout: 120000,
+    // Remote/temp Prisma DBs can exceed 60s on multi-outcome journeys.
+    testTimeout: 120000,
   },
 });

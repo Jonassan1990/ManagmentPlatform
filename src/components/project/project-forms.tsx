@@ -1,7 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   changeIssueStatusAction,
+  closeProjectAction,
   createIssueAction,
   createMilestoneAction,
   createWorkItemAction,
@@ -146,14 +148,22 @@ export function UpdateProjectForm({
             id="project-status"
             name="status"
             className={fieldClassName}
-            defaultValue={project.status}
+            defaultValue={
+              project.status === "COMPLETED" || project.status === "CANCELLED"
+                ? "ACTIVE"
+                : project.status
+            }
+            disabled={
+              project.status === "COMPLETED" || project.status === "CANCELLED"
+            }
           >
             <option value="ACTIVE">Active</option>
             <option value="ON_HOLD">On hold</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
             <option value="ARCHIVED">Archived</option>
           </select>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Completion and cancellation use Close project — not this field.
+          </p>
         </FormField>
         <FormField label="Priority" htmlFor="project-priority">
           <select
@@ -1086,4 +1096,269 @@ export function UpdateIssueForm({
       )}
     </div>
   );
+}
+
+type ReadinessCheck = {
+  code: string;
+  level: "hard" | "warning";
+  message: string;
+};
+
+type ClosureReadinessView = {
+  canClose: boolean;
+  hardBlockers: ReadinessCheck[];
+  warnings: ReadinessCheck[];
+  counts: {
+    incompleteMilestones: number;
+    incompleteWorkItems: number;
+    openIssues: number;
+    activeBlockers: number;
+    criticalOpenIssues: number;
+  };
+};
+
+/**
+ * Project closure panel — readiness + explicit confirmation (Phase 1D).
+ */
+export function CloseProjectPanel({
+  project,
+  initiativeId,
+  readiness,
+  capabilities,
+}: {
+  initiativeId: string;
+  project: {
+    id: string;
+    version: number;
+    name: string;
+    referenceKey: string;
+    status: string;
+  };
+  readiness: ClosureReadinessView;
+  capabilities?: Caps;
+}) {
+  const form = useActionForm(closeProjectAction);
+  const allowed = capabilities?.canCloseProject === true;
+  const closed =
+    project.status === "COMPLETED" || project.status === "CANCELLED";
+
+  if (closed) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-medium">Project closure</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Closure is an explicit authorized action. It does not rewrite issues,
+          milestones, or work items.
+        </p>
+      </div>
+
+      <div className="space-y-2 rounded-md border border-[var(--line)] p-3 text-sm">
+        <p className="font-medium">Closure readiness</p>
+        {readiness.hardBlockers.length === 0 &&
+        readiness.warnings.length === 0 ? (
+          <p className="text-emerald-700">✓ Ready to close</p>
+        ) : null}
+        {readiness.hardBlockers.map((b) => (
+          <p key={b.code} className="text-red-700">
+            ✕ {b.message}
+          </p>
+        ))}
+        {readiness.warnings.map((w) => (
+          <p key={w.code} className="text-amber-700">
+            ⚠ {w.message}
+          </p>
+        ))}
+      </div>
+
+      <form
+        className="space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!allowed || !readiness.canClose) return;
+          const fd = new FormData(e.currentTarget);
+          const outcome = String(fd.get("outcome") ?? "DELIVERED");
+          const confirmed = fd.get("confirmClose") === "on";
+          if (!confirmed) {
+            window.alert("Confirm closure before submitting.");
+            return;
+          }
+          form.submit({
+            projectId: project.id,
+            initiativeId,
+            expectedVersion: project.version,
+            outcome,
+            summary: optionalText(fd.get("summary")),
+            lessonsLearned: optionalText(fd.get("lessonsLearned")),
+            finalDeliveryNote: optionalText(fd.get("finalDeliveryNote")),
+            acknowledgeWarnings: fd.get("acknowledgeWarnings") === "on",
+          });
+        }}
+      >
+        {form.ErrorAlert}
+        <FormField label="Outcome" htmlFor="close-outcome">
+          <select
+            id="close-outcome"
+            name="outcome"
+            className={fieldClassName}
+            defaultValue="DELIVERED"
+            disabled={!allowed}
+          >
+            <option value="DELIVERED">Delivered</option>
+            <option value="PARTIALLY_DELIVERED">Partially delivered</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </FormField>
+        <FormField label="Summary" htmlFor="close-summary">
+          <textarea
+            id="close-summary"
+            name="summary"
+            rows={3}
+            className={fieldClassName}
+            disabled={!allowed}
+            placeholder="What was delivered or why cancelled"
+          />
+        </FormField>
+        <FormField label="Final delivery note" htmlFor="close-delivery">
+          <textarea
+            id="close-delivery"
+            name="finalDeliveryNote"
+            rows={2}
+            className={fieldClassName}
+            disabled={!allowed}
+          />
+        </FormField>
+        <FormField label="Lessons learned" htmlFor="close-lessons">
+          <textarea
+            id="close-lessons"
+            name="lessonsLearned"
+            rows={2}
+            className={fieldClassName}
+            disabled={!allowed}
+          />
+        </FormField>
+        {readiness.warnings.length > 0 ? (
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="acknowledgeWarnings"
+              className="mt-1"
+              disabled={!allowed}
+            />
+            <span>
+              I acknowledge unresolved warnings and accept closing with
+              incomplete work left as historical evidence.
+            </span>
+          </label>
+        ) : null}
+        <label className="flex items-start gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            name="confirmClose"
+            className="mt-1"
+            disabled={!allowed || !readiness.canClose}
+          />
+          <span>
+            Confirm close of {project.referenceKey} — {project.name}. This
+            action is final for Phase 1D.
+          </span>
+        </label>
+        <PrimaryButton
+          disabled={!allowed || !readiness.canClose || form.pending}
+          title={
+            !allowed
+              ? permissionTitle(false)
+              : !readiness.canClose
+                ? "Resolve hard blockers before closing"
+                : undefined
+          }
+        >
+          {form.pending ? "Closing…" : "Close project"}
+        </PrimaryButton>
+      </form>
+    </div>
+  );
+}
+
+export function ClosedProjectBanner({
+  closure,
+  projectStatus,
+}: {
+  projectStatus: string;
+  closure: {
+    outcome: string;
+    closedAt: Date | string;
+    summary: string | null;
+    lessonsLearned: string | null;
+    finalDeliveryNote: string | null;
+    closedBy: { displayName: string | null; email: string | null } | null;
+  } | null;
+}) {
+  if (!closure && projectStatus !== "COMPLETED" && projectStatus !== "CANCELLED") {
+    return null;
+  }
+  const closedAt = closure?.closedAt
+    ? typeof closure.closedAt === "string"
+      ? new Date(closure.closedAt)
+      : closure.closedAt
+    : null;
+  const closedBy =
+    closure?.closedBy?.displayName ||
+    closure?.closedBy?.email ||
+    "Unknown principal";
+
+  return (
+    <PanelLike>
+      <p className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
+        Closed
+      </p>
+      <p className={`mt-1 text-lg font-semibold ${statusToneSafe(projectStatus)}`}>
+        {humanizeSafe(projectStatus)}
+        {closure ? ` · ${humanizeSafe(closure.outcome)}` : ""}
+      </p>
+      {closedAt ? (
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Closed {closedAt.toISOString().slice(0, 10)} by {closedBy}
+        </p>
+      ) : null}
+      {closure?.summary ? (
+        <p className="mt-3 text-sm whitespace-pre-wrap">{closure.summary}</p>
+      ) : null}
+      {closure?.finalDeliveryNote ? (
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Delivery note: {closure.finalDeliveryNote}
+        </p>
+      ) : null}
+      {closure?.lessonsLearned ? (
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Lessons: {closure.lessonsLearned}
+        </p>
+      ) : null}
+    </PanelLike>
+  );
+}
+
+function PanelLike({ children }: { children: ReactNode }) {
+  return (
+    <div className="space-y-1 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
+      {children}
+    </div>
+  );
+}
+
+function humanizeSafe(value: string): string {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+}
+
+function statusToneSafe(status: string): string {
+  if (status === "COMPLETED") return "text-emerald-700";
+  if (status === "CANCELLED") return "text-red-700";
+  return "";
 }

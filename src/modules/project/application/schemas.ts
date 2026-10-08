@@ -26,7 +26,9 @@ export const updateProjectInputSchema = z.object({
   description: z.string().trim().max(8000).optional().nullable(),
   ownerName: z.string().trim().max(200).optional().nullable(),
   ownerResourceId: uuidSchema.optional().nullable(),
-  status: z.enum(["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED", "ARCHIVED"]),
+  /// Ordinary edits: ACTIVE / ON_HOLD / ARCHIVED only.
+  /// COMPLETED / CANCELLED require closeProject (Phase 1D).
+  status: z.enum(["ACTIVE", "ON_HOLD", "ARCHIVED"]),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   plannedStart: z.coerce.date().optional().nullable(),
   plannedEnd: z.coerce.date().optional().nullable(),
@@ -162,4 +164,30 @@ export const listProjectIssuesInputSchema = z.object({
   severity: issueSeveritySchema.optional(),
   isBlocker: z.boolean().optional(),
   activeBlockersOnly: z.boolean().optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Phase 1D — Project Closure
+// ---------------------------------------------------------------------------
+
+export const projectClosureOutcomeSchema = z.enum([
+  "DELIVERED",
+  "PARTIALLY_DELIVERED",
+  "CANCELLED",
+]);
+
+export const evaluateClosureReadinessInputSchema = z.object({
+  projectId: uuidSchema,
+  outcome: projectClosureOutcomeSchema.default("DELIVERED"),
+});
+
+export const closeProjectInputSchema = z.object({
+  projectId: uuidSchema,
+  outcome: projectClosureOutcomeSchema,
+  summary: z.string().trim().max(8000).optional().nullable(),
+  lessonsLearned: z.string().trim().max(8000).optional().nullable(),
+  finalDeliveryNote: z.string().trim().max(8000).optional().nullable(),
+  /** Required when readiness reports warnings. */
+  acknowledgeWarnings: z.boolean().default(false),
+  expectedVersion: z.number().int().positive(),
 });
