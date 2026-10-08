@@ -176,8 +176,9 @@ export class GovernanceService {
     const input = parse(submitPreStudyForGovernanceInputSchema, raw);
     const workspace = await this.loadWorkspace(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workspace.initiative.organizationId,
+      departmentId: workspace.initiative.departmentId,
     });
 
     if (workspace.initiative.currentStage !== "PRE_STUDY") {
@@ -223,8 +224,9 @@ export class GovernanceService {
     const input = parse(submitPoCForGovernanceInputSchema, raw);
     const workspace = await this.loadWorkspace(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workspace.initiative.organizationId,
+      departmentId: workspace.initiative.departmentId,
     });
 
     if (workspace.initiative.currentStage !== "POC" || !workspace.poc) {
@@ -256,8 +258,9 @@ export class GovernanceService {
     const input = parse(submitPilotForGovernanceInputSchema, raw);
     const workspace = await this.loadWorkspace(input.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workspace.initiative.organizationId,
+      departmentId: workspace.initiative.departmentId,
     });
 
     if (workspace.initiative.currentStage !== "PILOT" || !workspace.pilot) {
@@ -307,8 +310,9 @@ export class GovernanceService {
 
     const workspace = await this.loadWorkspace(previous.initiativeId);
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_SUBMIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: workspace.initiative.organizationId,
+      departmentId: workspace.initiative.departmentId,
     });
 
     const hasRejected = previous.approvalRequests.some(
@@ -890,8 +894,9 @@ export class GovernanceService {
       throw new AppError("NOT_FOUND", "Initiative not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.POC_CREATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
 
     if (initiative.poc) {
@@ -1016,8 +1021,9 @@ export class GovernanceService {
     });
     if (!poc) throw new AppError("NOT_FOUND", "PoC not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_EDIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: poc.initiative.organizationId,
+      departmentId: poc.initiative.departmentId,
     });
     this.assertVersion(poc.version, input.expectedVersion, "poc");
 
@@ -1077,8 +1083,9 @@ export class GovernanceService {
     });
     if (!poc) throw new AppError("NOT_FOUND", "PoC not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_TRANSITION, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: poc.initiative.organizationId,
+      departmentId: poc.initiative.departmentId,
     });
     this.assertVersion(poc.version, input.expectedVersion, "poc");
 
@@ -1133,8 +1140,9 @@ export class GovernanceService {
     });
     if (!poc) throw new AppError("NOT_FOUND", "PoC not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_EDIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: poc.initiative.organizationId,
+      departmentId: poc.initiative.departmentId,
     });
 
     if (input.criterionId) {
@@ -1207,8 +1215,9 @@ export class GovernanceService {
     });
     if (!criterion) throw new AppError("NOT_FOUND", "PoC criterion not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: criterion.poc.initiative.organizationId,
+      departmentId: criterion.poc.initiative.departmentId,
     });
     this.assertVersion(criterion.version, input.expectedVersion, "criterion");
 
@@ -1248,8 +1257,9 @@ export class GovernanceService {
     });
     if (!poc) throw new AppError("NOT_FOUND", "PoC not found.");
     await this.authz.assertCan(principal, PERMISSIONS.POC_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: poc.initiative.organizationId,
+      departmentId: poc.initiative.departmentId,
     });
     this.assertVersion(poc.version, input.expectedVersion, "poc");
 
@@ -1316,8 +1326,9 @@ export class GovernanceService {
       throw new AppError("NOT_FOUND", "Initiative not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_CREATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
 
     if (initiative.pilot) {
@@ -1449,8 +1460,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EDIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
     this.assertVersion(pilot.version, input.expectedVersion, "pilot");
 
@@ -1513,8 +1525,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_TRANSITION, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
     this.assertVersion(pilot.version, input.expectedVersion, "pilot");
 
@@ -1586,8 +1599,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EDIT, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
 
     if (input.criterionId) {
@@ -1667,8 +1681,9 @@ export class GovernanceService {
     });
     if (!criterion) throw new AppError("NOT_FOUND", "Pilot criterion not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: criterion.pilot.initiative.organizationId,
+      departmentId: criterion.pilot.initiative.departmentId,
     });
     this.assertVersion(criterion.version, input.expectedVersion, "criterion");
 
@@ -1708,8 +1723,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
     this.assertVersion(pilot.version, input.expectedVersion, "pilot");
 
@@ -1752,8 +1768,9 @@ export class GovernanceService {
     });
     if (!pilot) throw new AppError("NOT_FOUND", "Pilot not found.");
     await this.authz.assertCan(principal, PERMISSIONS.PILOT_EVALUATE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: pilot.initiative.organizationId,
+      departmentId: pilot.initiative.departmentId,
     });
 
     const created = await this.db.pilotFeedback.create({
@@ -2196,8 +2213,9 @@ export class GovernanceService {
       throw new AppError("NOT_FOUND", "Initiative not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.GOVERNANCE_VIEW, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: initiative.organizationId,
+      departmentId: initiative.departmentId,
     });
 
     const pocReadiness = initiative.poc

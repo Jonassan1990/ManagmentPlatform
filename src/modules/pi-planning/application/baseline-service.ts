@@ -12,6 +12,7 @@ import {
 } from "./baseline-snapshot";
 import type { PiService } from "./pi-service";
 import { createBaselineInputSchema } from "./schemas";
+import { piAuthScope } from "./pi-auth-scope";
 
 function fromZod(error: ZodError): AppError {
   return new AppError("VALIDATION", "Validation failed", {
@@ -44,10 +45,7 @@ export class BaselineService {
 
   async listBaselines(principal: Principal, piId: string) {
     const pi = await this.piService.requirePi(piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, piAuthScope(pi.organizationId, pi.sectionId));
     return this.db.piBaseline.findMany({
       where: { piId },
       orderBy: { versionNumber: "desc" },
@@ -60,10 +58,7 @@ export class BaselineService {
       include: { pi: true },
     });
     if (!baseline) throw new AppError("NOT_FOUND", "Baseline not found.");
-    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: baseline.pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, piAuthScope(baseline.pi.organizationId, baseline.pi.sectionId));
     return baseline;
   }
 
@@ -141,10 +136,7 @@ export class BaselineService {
     baselineId?: string,
   ) {
     const pi = await this.piService.requirePi(piId);
-    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: pi.organizationId,
-    });
+    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, piAuthScope(pi.organizationId, pi.sectionId));
 
     const baseline = baselineId
       ? await this.db.piBaseline.findFirst({

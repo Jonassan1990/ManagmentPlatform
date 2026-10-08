@@ -277,8 +277,9 @@ export class OrganizationService {
       throw new AppError("NOT_FOUND", "Section not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
-      type: "ORGANIZATION",
+      type: "SECTION",
       organizationId: existing.organizationId,
+      sectionId: existing.id,
     });
     if (existing.version !== input.expectedVersion) {
       throw new AppError(
@@ -344,8 +345,9 @@ export class OrganizationService {
     }
     await this.requireActiveOrganization(section.organizationId);
     await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
-      type: "ORGANIZATION",
+      type: "SECTION",
       organizationId: section.organizationId,
+      sectionId: section.id,
     });
     try {
       const department = await this.db.department.create({
@@ -380,8 +382,9 @@ export class OrganizationService {
       throw new AppError("NOT_FOUND", "Department not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: existing.section.organizationId,
+      departmentId: existing.id,
     });
     if (existing.version !== input.expectedVersion) {
       throw new AppError(
@@ -447,8 +450,9 @@ export class OrganizationService {
       throw new AppError("NOT_FOUND", "Department not found.");
     }
     await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
-      type: "ORGANIZATION",
+      type: "DEPARTMENT",
       organizationId: department.section.organizationId,
+      departmentId: department.id,
     });
     try {
       const team = await this.db.team.create({
@@ -484,8 +488,9 @@ export class OrganizationService {
     }
     const organizationId = existing.department.section.organizationId;
     await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
-      type: "ORGANIZATION",
+      type: "TEAM",
       organizationId,
+      teamId: existing.id,
     });
     if (existing.version !== input.expectedVersion) {
       throw new AppError(

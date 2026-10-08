@@ -52,7 +52,18 @@ export const PERMISSIONS = {
 export type Permission =
   (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
+/**
+ * System role packs (Phase 0C). Roles are permission packs — scope comes from RoleBinding.
+ */
 export const ROLE_KEYS = {
   PLATFORM_BOOTSTRAP_ADMIN: "platform.bootstrap_admin",
   ORGANIZATION_ADMIN: "organization.admin",
+  SECTION_MANAGER: "section.manager",
+  DEPARTMENT_MANAGER: "department.manager",
+  TEAM_MANAGER: "team.manager",
+  PORTFOLIO_MANAGER: "portfolio.manager",
+  PROJECT_MANAGER: "project.manager",
+  VIEWER: "organization.viewer",
 } as const;
+
+export type RoleKey = (typeof ROLE_KEYS)[keyof typeof ROLE_KEYS];
