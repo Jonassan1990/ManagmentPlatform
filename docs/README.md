@@ -31,6 +31,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [DOMAIN-MODEL.md](./DOMAIN-MODEL.md) | Entities, relationships, invariants, extensibility rules |
 | [INITIATIVE-LIFECYCLE.md](./INITIATIVE-LIFECYCLE.md) | Stage model, optional paths, skip/gate controls, stage contents |
 | [GOVERNANCE-AND-APPROVALS.md](./GOVERNANCE-AND-APPROVALS.md) | Approval records, gates, evidence packages, configurable rules |
+| [GOVERNANCE-BEHAVIOR-CONTRACT.md](./GOVERNANCE-BEHAVIOR-CONTRACT.md) | Phase 1A AS-IS runtime invariants: outcomes, immutability, no auto-create, conversion ≤1, Phase 1B boundaries |
 | [DECISION-MANAGEMENT.md](./DECISION-MANAGEMENT.md) | Decision vs recommendation, options, auditability |
 | [DOCUMENT-MANAGEMENT.md](./DOCUMENT-MANAGEMENT.md) | Documentation Hub, versioning, approval lifecycle |
 | [PI-PLANNING-MODEL.md](./PI-PLANNING-MODEL.md) | Multi-department PI Planning, capacity, dependencies, baselines |
@@ -68,7 +69,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 
 1. Start with **PRODUCT-VISION** and **GLOSSARY**.
 2. Read **DOMAIN-MODEL** and **INITIATIVE-LIFECYCLE** for the conceptual core.
-3. Read **GOVERNANCE-AND-APPROVALS**, **DECISION-MANAGEMENT**, and **DOCUMENT-MANAGEMENT** for control planes.
+3. Read **GOVERNANCE-AND-APPROVALS**, **GOVERNANCE-BEHAVIOR-CONTRACT** (AS-IS runtime lock), **DECISION-MANAGEMENT**, and **DOCUMENT-MANAGEMENT** for control planes.
 4. Read **PI-PLANNING-MODEL** and **ROLES-AND-PERMISSIONS** for planning and access.
 5. Read **ARCHITECTURE** and **MVP-ROADMAP** before any implementation planning.
 6. Check **OPEN-QUESTIONS** before converting recommendations into requirements.
@@ -112,6 +113,7 @@ These invariants must hold everywhere:
 8. **Capacity problems must be detectable**, not only displayed.
 9. **No hardcoded business data** in product behavior.
 10. **Deployment is portable** beyond the initial GitHub → Vercel path.
+11. **Governance behavior contract** — Phase 1B refactors must preserve [GOVERNANCE-BEHAVIOR-CONTRACT.md](./GOVERNANCE-BEHAVIOR-CONTRACT.md).
 
 ---
 
