@@ -115,6 +115,7 @@ model Team {
 }
 
 /// Capacity-bearing entity. Not the same as an authenticated Principal/User.
+/// Optional linkedPrincipalId bridges to login identity (ADR-020). Never use Principal for capacity math.
 model Resource {
   id               String       @id @default(uuid()) @db.Uuid
   organizationId   String       @db.Uuid
@@ -124,14 +125,17 @@ model Resource {
   functionRole     String?      @db.VarChar(200)
   skillsJson       Json         @default("[]")
   capacityHoursPerWeek Decimal? @db.Decimal(6, 2)
+  /// Optional 0..1 bridge to Principal. Null = Resource without platform login. SetNull on Principal delete.
+  linkedPrincipalId String?     @unique @db.Uuid
   status           EntityStatus @default(ACTIVE)
   version          Int          @default(1)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  memberships  ResourceMembership[]
-  availabilities ResourceAvailability[]
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  linkedPrincipal Principal?           @relation(fields: [linkedPrincipalId], references: [id], onDelete: SetNull)
+  memberships     ResourceMembership[]
+  availabilities  ResourceAvailability[]
   workAllocations WorkAllocation[]
 
   @@unique([organizationId, referenceCode])
@@ -174,6 +178,8 @@ model Principal {
 
   roleBindings       RoleBinding[]
   externalIdentities ExternalIdentity[]
+  /// At most one Resource may link to this Principal (ADR-020). Capacity still lives on Resource.
+  linkedResource     Resource?
 
   @@map("principals")
 }

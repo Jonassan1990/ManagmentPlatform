@@ -166,3 +166,36 @@ export async function assignMembershipAction(
     return membership;
   });
 }
+
+export async function linkResourcePrincipalAction(
+  input: unknown,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { authz, organization } = createOrganizationService();
+    const principal = await authz.requirePrincipal();
+    const resource = await organization.linkResourcePrincipal(principal, input);
+    revalidatePath(`/organization/${resource.organizationId}/resources`);
+    revalidatePath(
+      `/organization/${resource.organizationId}/resources/${resource.id}`,
+    );
+    return resource;
+  });
+}
+
+export async function unlinkResourcePrincipalAction(
+  input: unknown,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { authz, organization } = createOrganizationService();
+    const principal = await authz.requirePrincipal();
+    const resource = await organization.unlinkResourcePrincipal(
+      principal,
+      input,
+    );
+    revalidatePath(`/organization/${resource.organizationId}/resources`);
+    revalidatePath(
+      `/organization/${resource.organizationId}/resources/${resource.id}`,
+    );
+    return resource;
+  });
+}

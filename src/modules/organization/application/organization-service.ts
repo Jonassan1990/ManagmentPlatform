@@ -19,6 +19,8 @@ import {
   createResourceInputSchema,
   createSectionInputSchema,
   createTeamInputSchema,
+  linkResourcePrincipalInputSchema,
+  unlinkResourcePrincipalInputSchema,
   updateDepartmentInputSchema,
   updateOrganizationInputSchema,
   updateResourceInputSchema,
@@ -629,6 +631,16 @@ export class OrganizationService {
         "This resource was changed by someone else. Refresh and try again.",
       );
     }
+    if (
+      existing.linkedPrincipalId &&
+      input.type === ResourceType.OTHER
+    ) {
+      throw new AppError(
+        "VALIDATION",
+        "Cannot change a linked PERSON resource to OTHER. Unlink the platform identity first.",
+      );
+    }
+
     try {
       const updated = await this.db.resource.update({
         where: { id: input.id, version: input.expectedVersion },
@@ -662,6 +674,194 @@ export class OrganizationService {
       );
       this.rethrowStale(error, "resource");
     }
+  }
+
+  /**
+   * Phase 0A (ADR-020): optional bridge Resource → Principal.
+   * Does not affect capacity, memberships, or allocation math.
+   * Idempotent when the same pair is already linked.
+   */
+  async linkResourcePrincipal(principal: Principal, raw: unknown) {
+    const input = parse(linkResourcePrincipalInputSchema, raw);
+    const resource = await this.db.resource.findUnique({
+      where: { id: input.resourceId },
+    });
+    if (!resource || resource.status === EntityStatus.ARCHIVED) {
+      throw new AppError("NOT_FOUND", "Resource not found.");
+    }
+    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId: resource.organizationId,
+    });
+
+    if (resource.type !== ResourceType.PERSON) {
+      throw new AppError(
+        "VALIDATION",
+        "Only PERSON resources can be linked to a platform identity. OTHER capacity resources cannot become user identities.",
+      );
+    }
+
+    const targetPrincipal = await this.db.principal.findUnique({
+      where: { id: input.principalId },
+      include: {
+        linkedResource: { select: { id: true, name: true } },
+      },
+    });
+    if (!targetPrincipal) {
+      throw new AppError("NOT_FOUND", "Principal not found.");
+    }
+
+    if (
+      resource.linkedPrincipalId &&
+      resource.linkedPrincipalId === input.principalId
+    ) {
+      return this.getResource(principal, resource.id);
+    }
+
+    if (
+      targetPrincipal.linkedResource &&
+      targetPrincipal.linkedResource.id !== resource.id
+    ) {
+      throw new AppError(
+        "CONFLICT",
+        "This platform identity is already linked to another resource. Unlink that resource first.",
+        {
+          details: {
+            principalId: input.principalId,
+            linkedResourceId: targetPrincipal.linkedResource.id,
+            linkedResourceName: targetPrincipal.linkedResource.name,
+          },
+        },
+      );
+    }
+
+    const previousLinkedPrincipalId = resource.linkedPrincipalId;
+    const operation =
+      previousLinkedPrincipalId && previousLinkedPrincipalId !== input.principalId
+        ? "change_link"
+        : "link";
+
+    const updated = await this.db.resource.update({
+      where: { id: resource.id },
+      data: {
+        linkedPrincipalId: input.principalId,
+        version: { increment: 1 },
+      },
+    });
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType:
+        operation === "change_link"
+          ? "resource.principal.link_changed"
+          : "resource.principal.linked",
+      subjectType: "Resource",
+      subjectId: updated.id,
+      organizationId: updated.organizationId,
+      payload: {
+        operation,
+        resourceId: updated.id,
+        oldLinkedPrincipalId: previousLinkedPrincipalId,
+        newLinkedPrincipalId: input.principalId,
+      },
+      result: "success",
+    });
+
+    return this.getResource(principal, updated.id);
+  }
+
+  /** Phase 0A (ADR-020): remove Resource ↔ Principal association only. */
+  async unlinkResourcePrincipal(principal: Principal, raw: unknown) {
+    const input = parse(unlinkResourcePrincipalInputSchema, raw);
+    const resource = await this.db.resource.findUnique({
+      where: { id: input.resourceId },
+    });
+    if (!resource || resource.status === EntityStatus.ARCHIVED) {
+      throw new AppError("NOT_FOUND", "Resource not found.");
+    }
+    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId: resource.organizationId,
+    });
+
+    if (!resource.linkedPrincipalId) {
+      return this.getResource(principal, resource.id);
+    }
+
+    const previousLinkedPrincipalId = resource.linkedPrincipalId;
+    const updated = await this.db.resource.update({
+      where: { id: resource.id },
+      data: {
+        linkedPrincipalId: null,
+        version: { increment: 1 },
+      },
+    });
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "resource.principal.unlinked",
+      subjectType: "Resource",
+      subjectId: updated.id,
+      organizationId: updated.organizationId,
+      payload: {
+        operation: "unlink",
+        resourceId: updated.id,
+        oldLinkedPrincipalId: previousLinkedPrincipalId,
+        newLinkedPrincipalId: null,
+      },
+      result: "success",
+    });
+
+    return this.getResource(principal, updated.id);
+  }
+
+  /**
+   * Principals available to link for a PERSON resource in an organization.
+   * Excludes principals already linked to a different resource.
+   * Display fields only — email is never the identity key.
+   */
+  async listLinkablePrincipals(principal: Principal, organizationId: string) {
+    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId,
+    });
+
+    const rows = await this.db.principal.findMany({
+      where: {
+        OR: [
+          { linkedResource: null },
+          { linkedResource: { organizationId } },
+        ],
+      },
+      select: {
+        id: true,
+        displayName: true,
+        email: true,
+        externalSubject: true,
+        linkedResource: { select: { id: true, organizationId: true } },
+        externalIdentities: {
+          select: {
+            issuer: true,
+            emailSnapshot: true,
+            displayNameSnapshot: true,
+          },
+          take: 3,
+        },
+      },
+      orderBy: [{ displayName: "asc" }, { createdAt: "asc" }],
+      take: 200,
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      displayName: row.displayName,
+      email: row.email,
+      hasOidcIdentity: row.externalIdentities.length > 0,
+      oidcIssuers: row.externalIdentities.map((e) => e.issuer),
+      linkedResourceId: row.linkedResource?.id ?? null,
+      /** DEV-bridge marker only — not an OIDC subject. */
+      isDevBridge: Boolean(row.externalSubject?.startsWith("dev:")),
+    }));
   }
 
   async assignMembership(principal: Principal, raw: unknown) {
@@ -785,6 +985,22 @@ export class OrganizationService {
         memberships: {
           where: { effectiveTo: null },
           include: { team: true },
+        },
+        linkedPrincipal: {
+          select: {
+            id: true,
+            displayName: true,
+            email: true,
+            externalSubject: true,
+            externalIdentities: {
+              select: {
+                issuer: true,
+                displayNameSnapshot: true,
+                emailSnapshot: true,
+              },
+              take: 3,
+            },
+          },
         },
       },
     });

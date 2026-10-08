@@ -120,6 +120,16 @@ export const assignMembershipInputSchema = z.object({
     .pipe(z.number().min(0).max(100)),
 });
 
+/** Phase 0A — optional Principal ↔ Resource identity bridge (ADR-020). */
+export const linkResourcePrincipalInputSchema = z.object({
+  resourceId: uuidSchema,
+  principalId: uuidSchema,
+});
+
+export const unlinkResourcePrincipalInputSchema = z.object({
+  resourceId: uuidSchema,
+});
+
 export const archiveEntityInputSchema = z.object({
   id: uuidSchema,
   expectedVersion: z.number().int().positive(),

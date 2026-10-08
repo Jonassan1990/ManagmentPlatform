@@ -232,3 +232,211 @@ describe("organization hierarchy integration", () => {
     expect(events[0]?.actorPrincipalId).toBe(actor.id);
   });
 });
+
+describe("Phase 0A Principal ↔ Resource optional link", () => {
+  async function seedOrgWithPersonResource() {
+    const actor = principal();
+    await db.principal.create({
+      data: { id: actor.id, displayName: actor.displayName },
+    });
+    const org = await organization.createOrganization(actor, { name: "Link Org" });
+    const resource = await organization.createResource(actor, {
+      organizationId: org.id,
+      name: "Person Resource",
+      type: "PERSON",
+      skills: [],
+      capacityHoursPerWeek: 40,
+    });
+    return { actor, org, resource };
+  }
+
+  it("allows Resource without Principal and Principal without Resource", async () => {
+    const { resource } = await seedOrgWithPersonResource();
+    expect(resource.linkedPrincipalId).toBeNull();
+
+    const lonePrincipalId = randomUUID();
+    await db.principal.create({
+      data: { id: lonePrincipalId, displayName: "Service Account" },
+    });
+    const lone = await db.principal.findUnique({
+      where: { id: lonePrincipalId },
+      include: { linkedResource: true },
+    });
+    expect(lone?.linkedResource).toBeNull();
+  });
+
+  it("links and unlinks a PERSON resource with audit events", async () => {
+    const { actor, resource } = await seedOrgWithPersonResource();
+    const targetId = randomUUID();
+    await db.principal.create({
+      data: { id: targetId, displayName: "Target User", email: "display@example.com" },
+    });
+
+    const linked = await organization.linkResourcePrincipal(actor, {
+      resourceId: resource.id,
+      principalId: targetId,
+    });
+    expect(linked.linkedPrincipalId).toBe(targetId);
+    expect(linked.linkedPrincipal?.id).toBe(targetId);
+    expect(Number(linked.capacityHoursPerWeek)).toBe(40);
+
+    const again = await organization.linkResourcePrincipal(actor, {
+      resourceId: resource.id,
+      principalId: targetId,
+    });
+    expect(again.linkedPrincipalId).toBe(targetId);
+
+    const linkEvents = await db.auditEvent.findMany({
+      where: {
+        subjectId: resource.id,
+        actionType: "resource.principal.linked",
+      },
+    });
+    expect(linkEvents.length).toBeGreaterThanOrEqual(1);
+    expect(linkEvents[0]?.payload).toMatchObject({
+      operation: "link",
+      newLinkedPrincipalId: targetId,
+      oldLinkedPrincipalId: null,
+    });
+
+    const unlinked = await organization.unlinkResourcePrincipal(actor, {
+      resourceId: resource.id,
+    });
+    expect(unlinked.linkedPrincipalId).toBeNull();
+    expect(unlinked.capacityHoursPerWeek?.toString()).toBe("40");
+
+    const principalStillExists = await db.principal.findUnique({
+      where: { id: targetId },
+    });
+    expect(principalStillExists).not.toBeNull();
+
+    const unlinkEvents = await db.auditEvent.findMany({
+      where: {
+        subjectId: resource.id,
+        actionType: "resource.principal.unlinked",
+      },
+    });
+    expect(unlinkEvents).toHaveLength(1);
+    expect(unlinkEvents[0]?.payload).toMatchObject({
+      operation: "unlink",
+      oldLinkedPrincipalId: targetId,
+      newLinkedPrincipalId: null,
+    });
+  });
+
+  it("rejects linking OTHER resources and duplicate Principal links", async () => {
+    const { actor, org, resource } = await seedOrgWithPersonResource();
+    const other = await organization.createResource(actor, {
+      organizationId: org.id,
+      name: "Server Rack",
+      type: "OTHER",
+      skills: [],
+    });
+    const targetId = randomUUID();
+    await db.principal.create({ data: { id: targetId, displayName: "Shared" } });
+
+    await expect(
+      organization.linkResourcePrincipal(actor, {
+        resourceId: other.id,
+        principalId: targetId,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+
+    await organization.linkResourcePrincipal(actor, {
+      resourceId: resource.id,
+      principalId: targetId,
+    });
+
+    const second = await organization.createResource(actor, {
+      organizationId: org.id,
+      name: "Second Person",
+      type: "PERSON",
+      skills: [],
+    });
+    await expect(
+      organization.linkResourcePrincipal(actor, {
+        resourceId: second.id,
+        principalId: targetId,
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("rejects nonexistent Resource/Principal and unauthorized callers", async () => {
+    const { actor, resource } = await seedOrgWithPersonResource();
+    const stranger = principal();
+    await db.principal.create({ data: { id: stranger.id } });
+    const targetId = randomUUID();
+    await db.principal.create({ data: { id: targetId } });
+
+    await expect(
+      organization.linkResourcePrincipal(actor, {
+        resourceId: randomUUID(),
+        principalId: targetId,
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    await expect(
+      organization.linkResourcePrincipal(actor, {
+        resourceId: resource.id,
+        principalId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    await expect(
+      organization.linkResourcePrincipal(stranger, {
+        resourceId: resource.id,
+        principalId: targetId,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("clears link on Principal delete without deleting Resource (SetNull)", async () => {
+    const { actor, resource } = await seedOrgWithPersonResource();
+    const targetId = randomUUID();
+    await db.principal.create({ data: { id: targetId, displayName: "Temp" } });
+    await organization.linkResourcePrincipal(actor, {
+      resourceId: resource.id,
+      principalId: targetId,
+    });
+
+    await db.principal.delete({ where: { id: targetId } });
+
+    const reloaded = await db.resource.findUnique({ where: { id: resource.id } });
+    expect(reloaded).not.toBeNull();
+    expect(reloaded?.linkedPrincipalId).toBeNull();
+    expect(reloaded?.name).toBe("Person Resource");
+  });
+
+  it("does not change capacity fields when linking", async () => {
+    const { actor, org, resource } = await seedOrgWithPersonResource();
+    const section = await organization.createSection(actor, {
+      organizationId: org.id,
+      name: "Sec",
+    });
+    const dept = await organization.createDepartment(actor, {
+      sectionId: section.id,
+      name: "Dept",
+    });
+    const team = await organization.createTeam(actor, {
+      departmentId: dept.id,
+      name: "Team",
+    });
+    await organization.assignMembership(actor, {
+      resourceId: resource.id,
+      teamId: team.id,
+      isPrimary: true,
+      allocationPercent: 50,
+    });
+
+    const targetId = randomUUID();
+    await db.principal.create({ data: { id: targetId } });
+    const linked = await organization.linkResourcePrincipal(actor, {
+      resourceId: resource.id,
+      principalId: targetId,
+    });
+
+    expect(Number(linked.capacityHoursPerWeek)).toBe(40);
+    expect(linked.memberships).toHaveLength(1);
+    expect(Number(linked.memberships[0]?.allocationPercent)).toBe(50);
+  });
+});
