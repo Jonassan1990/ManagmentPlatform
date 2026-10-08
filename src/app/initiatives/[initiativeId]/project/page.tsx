@@ -9,13 +9,16 @@ import {
   LifecycleRail,
 } from "@/components/initiative/workspace";
 import {
+  CreateIssueForm,
   CreateMilestoneForm,
   CreateWorkItemForm,
   UpdateBudgetForm,
+  UpdateIssueForm,
   UpdateMilestoneForm,
   UpdateProjectForm,
   UpdateWorkItemForm,
 } from "@/components/project/project-forms";
+import { isActiveBlockerIssue } from "@/modules/project/application/issue-policy";
 import { TraceabilityPanel } from "@/components/project/traceability-panel";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { createServices } from "@/server/container";
@@ -24,15 +27,26 @@ export const dynamic = "force-dynamic";
 
 export default async function ProjectPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ initiativeId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { initiativeId } = await params;
+  const query = await searchParams;
+  const issueStatusFilter =
+    typeof query.issueStatus === "string" ? query.issueStatus : undefined;
+  const issueSeverityFilter =
+    typeof query.issueSeverity === "string" ? query.issueSeverity : undefined;
+  const issueBlockerFilter =
+    typeof query.issueBlocker === "string" ? query.issueBlocker : undefined;
   const {
     authz,
     governance,
     project: projectService,
+    projectIssues,
     organization,
+    initiative,
   } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -61,6 +75,50 @@ export default async function ProjectPage({
     project = await projectService.getProjectByInitiative(principal, initiativeId);
   } catch {
     project = null;
+  }
+
+  let issueList: Awaited<
+    ReturnType<typeof projectIssues.listProjectIssues>
+  > | null = null;
+  let relatedRisks: { id: string; referenceKey: string; title: string }[] = [];
+  if (project) {
+    try {
+      issueList = await projectIssues.listProjectIssues(principal, {
+        projectId: project.id,
+        status:
+          issueStatusFilter === "OPEN" ||
+          issueStatusFilter === "IN_PROGRESS" ||
+          issueStatusFilter === "RESOLVED" ||
+          issueStatusFilter === "CLOSED"
+            ? issueStatusFilter
+            : undefined,
+        severity:
+          issueSeverityFilter === "LOW" ||
+          issueSeverityFilter === "MEDIUM" ||
+          issueSeverityFilter === "HIGH" ||
+          issueSeverityFilter === "CRITICAL"
+            ? issueSeverityFilter
+            : undefined,
+        activeBlockersOnly: issueBlockerFilter === "active" ? true : undefined,
+        isBlocker:
+          issueBlockerFilter === "flagged" ? true : undefined,
+      });
+    } catch {
+      issueList = null;
+    }
+    try {
+      const initWorkspace = await initiative.getInitiativeWorkspace(
+        principal,
+        initiativeId,
+      );
+      relatedRisks = (initWorkspace.initiative.risks ?? []).map((r) => ({
+        id: r.id,
+        referenceKey: r.referenceKey,
+        title: r.title,
+      }));
+    } catch {
+      relatedRisks = [];
+    }
   }
 
   const sectionLink = (id: string, label: string) => (
@@ -122,6 +180,7 @@ export default async function ProjectPage({
             {sectionLink("overview", "Overview")}
             {sectionLink("work", "Work")}
             {sectionLink("milestones", "Milestones")}
+            {sectionLink("issues", "Issues")}
             {sectionLink("budget", "Budget")}
             {sectionLink("risks", "Risks")}
             {sectionLink("decisions", "Decisions")}
@@ -129,7 +188,7 @@ export default async function ProjectPage({
             {sectionLink("history", "History")}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Panel>
               <p className="text-sm text-[var(--muted)]">Status</p>
               <p className={`mt-1 font-medium ${statusToneClass(project.status)}`}>
@@ -143,6 +202,21 @@ export default async function ProjectPage({
             <Panel>
               <p className="text-sm text-[var(--muted)]">Milestones</p>
               <p className="mt-1 font-medium">{project.milestones.length}</p>
+            </Panel>
+            <Panel>
+              <p className="text-sm text-[var(--muted)]">Open issues</p>
+              <p className="mt-1 font-medium">
+                {issueList?.summary.openCount ?? 0}
+              </p>
+            </Panel>
+            <Panel>
+              <p className="text-sm text-[var(--muted)]">Active blockers</p>
+              <p className="mt-1 font-medium">
+                {issueList?.summary.activeBlockerCount ?? 0}
+                {(issueList?.summary.criticalOpenCount ?? 0) > 0
+                  ? ` · ${issueList!.summary.criticalOpenCount} critical`
+                  : ""}
+              </p>
             </Panel>
           </div>
 
@@ -205,6 +279,136 @@ export default async function ProjectPage({
                       title: w.title,
                     }))}
                     capabilities={capabilities}
+                  />
+                </Panel>
+              </section>
+
+              <section id="issues">
+                <Panel>
+                  <h2 className="mb-3 font-medium">Issues</h2>
+                  <p className="mb-4 text-sm text-[var(--muted)]">
+                    Materialized delivery problems. Risks stay on the initiative
+                    risk register — link optionally when a risk becomes real.
+                    There is no separate Blocker entity; BLOCKER marks an active
+                    issue that currently prevents delivery.
+                  </p>
+                  <form
+                    className="mb-4 flex flex-wrap items-end gap-2 text-sm"
+                    method="get"
+                  >
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[var(--muted)]">Status</span>
+                      <select
+                        name="issueStatus"
+                        defaultValue={issueStatusFilter ?? ""}
+                        className="rounded-md border border-[var(--line)] bg-transparent px-2 py-1"
+                      >
+                        <option value="">All</option>
+                        <option value="OPEN">Open</option>
+                        <option value="IN_PROGRESS">In progress</option>
+                        <option value="RESOLVED">Resolved</option>
+                        <option value="CLOSED">Closed</option>
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[var(--muted)]">Severity</span>
+                      <select
+                        name="issueSeverity"
+                        defaultValue={issueSeverityFilter ?? ""}
+                        className="rounded-md border border-[var(--line)] bg-transparent px-2 py-1"
+                      >
+                        <option value="">All</option>
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="CRITICAL">Critical</option>
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[var(--muted)]">Blocker</span>
+                      <select
+                        name="issueBlocker"
+                        defaultValue={issueBlockerFilter ?? ""}
+                        className="rounded-md border border-[var(--line)] bg-transparent px-2 py-1"
+                      >
+                        <option value="">All</option>
+                        <option value="active">Active blockers</option>
+                        <option value="flagged">Flagged isBlocker</option>
+                      </select>
+                    </label>
+                    <button
+                      type="submit"
+                      className="rounded-md border border-[var(--line)] px-3 py-1.5"
+                    >
+                      Filter
+                    </button>
+                  </form>
+                  {!issueList || issueList.issues.length === 0 ? (
+                    <p className="mb-4 text-sm text-[var(--muted)]">
+                      No issues yet.
+                    </p>
+                  ) : (
+                    <ul className="mb-5 space-y-4">
+                      {issueList.issues.map((issue) => {
+                        const activeBlocker = isActiveBlockerIssue(issue);
+                        return (
+                          <li
+                            key={issue.id}
+                            className="border-t border-[var(--line)] pt-4 first:border-0 first:pt-0"
+                          >
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+                              <span className="font-medium">
+                                {issue.referenceKey} · {issue.title}
+                              </span>
+                              <span className="flex flex-wrap items-center gap-2">
+                                {activeBlocker ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded border border-[var(--danger,#b42318)] px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--danger,#b42318)]"
+                                    title="Active delivery blocker"
+                                  >
+                                    <span aria-hidden="true">▣</span>
+                                    BLOCKER
+                                  </span>
+                                ) : issue.isBlocker ? (
+                                  <span className="text-xs text-[var(--muted)]">
+                                    blocker flag (inactive)
+                                  </span>
+                                ) : null}
+                                <span className={statusToneClass(issue.status)}>
+                                  {humanize(issue.severity)} ·{" "}
+                                  {humanize(issue.status)}
+                                </span>
+                              </span>
+                            </div>
+                            <p className="mb-2 text-xs text-[var(--muted)]">
+                              Owner:{" "}
+                              {issue.ownerResource?.name ??
+                                issue.ownerName ??
+                                "Unassigned"}
+                              {" · "}
+                              Reported{" "}
+                              {new Date(issue.reportedAt).toLocaleDateString()}
+                              {issue.relatedRisk
+                                ? ` · Risk ${issue.relatedRisk.referenceKey}`
+                                : ""}
+                            </p>
+                            <UpdateIssueForm
+                              issue={issue}
+                              initiativeId={item.id}
+                              capabilities={capabilities}
+                              ownerPeople={ownerPeople}
+                            />
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  <CreateIssueForm
+                    projectId={project.id}
+                    initiativeId={item.id}
+                    capabilities={capabilities}
+                    ownerPeople={ownerPeople}
+                    relatedRisks={relatedRisks}
                   />
                 </Panel>
               </section>

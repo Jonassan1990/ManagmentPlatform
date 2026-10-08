@@ -60,7 +60,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [PHASE-6-BACKLOG.md](./PHASE-6-BACKLOG.md) | Must / Should / Could from acceptance findings (OIDC Must Fix done) |
 | [LOCAL-DEVELOPMENT.md](./LOCAL-DEVELOPMENT.md) | Local Docker/Postgres workflow |
 | [DEPLOYMENT-VERCEL.md](./DEPLOYMENT-VERCEL.md) | Vercel readiness (portable architecture) |
-| [adr/](./adr/) | Architecture Decision Records (incl. ADR-018–019 Phase 6, ADR-020 Phase 0A, ADR-021 Phase 0B, ADR-022 Phase 0C, ADR-023 Phase 1B governance boundaries) |
+| [adr/](./adr/) | Architecture Decision Records (incl. ADR-018–019 Phase 6, ADR-020–022 Phase 0, ADR-023 Phase 1B governance boundaries, ADR-024 Phase 1C Project Issue) |
 | [authorization-matrix.md](./authorization-matrix.md) | Phase 0C role/scope capability matrix |
 
 ---

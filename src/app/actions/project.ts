@@ -124,3 +124,67 @@ export async function updateWorkItemAction(input: unknown) {
     return result;
   });
 }
+
+export async function createIssueAction(input: unknown) {
+  return run(async () => {
+    const { authz, projectIssues } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await projectIssues.createIssue(principal, input);
+    const initiativeId = initiativeIdFrom(input);
+    if (initiativeId) {
+      revalidateProject(initiativeId, result.projectId);
+    } else {
+      revalidatePath("/");
+      revalidatePath("/initiatives");
+    }
+    return result;
+  });
+}
+
+export async function updateIssueAction(input: unknown) {
+  return run(async () => {
+    const { authz, projectIssues } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await projectIssues.updateIssue(principal, input);
+    const initiativeId = initiativeIdFrom(input);
+    if (initiativeId) {
+      revalidateProject(initiativeId, result.projectId);
+    } else {
+      revalidatePath("/");
+      revalidatePath("/initiatives");
+    }
+    return result;
+  });
+}
+
+export async function changeIssueStatusAction(input: unknown) {
+  return run(async () => {
+    const { authz, projectIssues } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await projectIssues.changeIssueStatus(principal, input);
+    const initiativeId = initiativeIdFrom(input);
+    if (initiativeId) {
+      revalidateProject(initiativeId, result.projectId);
+    } else {
+      revalidatePath("/");
+      revalidatePath("/initiatives");
+    }
+    return result;
+  });
+}
+
+export async function resolveIssueAction(input: unknown) {
+  return run(async () => {
+    const { authz, projectIssues } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await projectIssues.resolveIssue(principal, input);
+    const initiativeId = initiativeIdFrom(input);
+    if (initiativeId) {
+      revalidateProject(initiativeId, result.projectId);
+    } else {
+      revalidatePath("/");
+      revalidatePath("/initiatives");
+    }
+    return result;
+  });
+}

@@ -100,3 +100,66 @@ export const updateWorkItemInputSchema = z.object({
   parentId: uuidSchema.optional().nullable(),
   expectedVersion: z.number().int().positive(),
 });
+
+// ---------------------------------------------------------------------------
+// Phase 1C — Project Issues
+// ---------------------------------------------------------------------------
+
+export const issueSeveritySchema = z.enum([
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "CRITICAL",
+]);
+
+export const issueStatusSchema = z.enum([
+  "OPEN",
+  "IN_PROGRESS",
+  "RESOLVED",
+  "CLOSED",
+]);
+
+export const createIssueInputSchema = z.object({
+  projectId: uuidSchema,
+  title: z.string().trim().min(1).max(300),
+  description: z.string().trim().max(8000).optional().nullable(),
+  severity: issueSeveritySchema.default("MEDIUM"),
+  isBlocker: z.boolean().default(false),
+  ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
+  relatedRiskId: uuidSchema.optional().nullable(),
+});
+
+export const updateIssueInputSchema = z.object({
+  issueId: uuidSchema,
+  title: z.string().trim().min(1).max(300),
+  description: z.string().trim().max(8000).optional().nullable(),
+  severity: issueSeveritySchema,
+  isBlocker: z.boolean(),
+  ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
+  relatedRiskId: uuidSchema.optional().nullable(),
+  expectedVersion: z.number().int().positive(),
+});
+
+export const changeIssueStatusInputSchema = z.object({
+  issueId: uuidSchema,
+  toStatus: issueStatusSchema,
+  resolution: z.string().trim().max(8000).optional().nullable(),
+  expectedVersion: z.number().int().positive(),
+});
+
+export const resolveIssueInputSchema = z.object({
+  issueId: uuidSchema,
+  resolution: z.string().trim().min(1).max(8000),
+  close: z.boolean().default(false),
+  expectedVersion: z.number().int().positive(),
+});
+
+export const listProjectIssuesInputSchema = z.object({
+  projectId: uuidSchema,
+  status: issueStatusSchema.optional(),
+  severity: issueSeveritySchema.optional(),
+  isBlocker: z.boolean().optional(),
+  activeBlockersOnly: z.boolean().optional(),
+});
