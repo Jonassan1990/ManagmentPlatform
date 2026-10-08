@@ -253,7 +253,7 @@ Exact incidental JSON formatting is not a contract; actor, actionType, subject, 
 ## 15. Known inconsistencies / debt
 
 1. **`ApprovalRequest.assignedPrincipalId` unused** — permission inbox only.
-2. **GovernanceService overload** — Core + PoC + Pilot + conversion in one class (~2700 lines).
+2. **GovernanceService overload** — Resolved structurally in Phase 1B (facade + Core/PoC/Pilot/Conversion). Physical `experimentation` package still deferred.
 3. **Audit outside transactions** — see §14.
 4. **Zod vs service outcome allow-list** — schema accepts all outcomes; service rejects wrong gate.
 5. **Docs vs code:** Product docs may describe aspirational assignee workflows; runtime behavior is permission-based (this contract wins for Phase 1B).
@@ -261,33 +261,19 @@ Exact incidental JSON formatting is not a contract; actor, actionType, subject, 
 
 ---
 
-## 16. Public API contract (for Phase 1B facade)
+## 16. Public API contract (Phase 1B facade — implemented)
 
-Classify existing public methods (do **not** rename in 1A):
+Public signatures on `GovernanceService` are unchanged. Implementation location after Phase 1B:
 
-### KEEP FACADE (Server Actions / tests depend)
+| Method group | Implementation |
+|---|---|
+| `ensureTemplates`, submit*/revise, `recordApproval`, `recordDecision`, `resolveDecisionCondition`, templates, governance queries | `GovernanceCoreService` |
+| PoC create/update/transition/criteria/results | `PoCService` |
+| Pilot create/update/transition/criteria/results/feedback | `PilotService` |
+| `convertToProject` | `ProjectConversionService` |
+| All of the above public names | Delegated by `GovernanceService` facade |
 
-- `ensureTemplates`, `submitPreStudyForGovernance`, `submitPoCForGovernance`, `submitPilotForGovernance`, `reviseGovernanceSubmission`
-- `recordApproval`, `recordDecision`, `resolveDecisionCondition`
-- `createPoC`, `updatePoC`, `transitionPoC`, `upsertPoCCriterion`, `updateCriterionEvaluation`, `updatePoCResults`
-- `createPilot`, `updatePilot`, `transitionPilot`, `upsertPilotCriterion`, `evaluatePilotCriterion`, `updatePilotResults`, `addPilotFeedback`
-- `convertToProject`
-- `listApprovalTemplates`, `updateApprovalTemplate`
-- `getDecisionPackageView`, `getGateWorkspace`, `listMyApprovals`, `listMyDecisions`, `getPrincipalCapabilities`
-- `computeOverviewGovernanceMetrics`
-
-### MOVE INTERNALLY (extract modules; facade delegates)
-
-- Snapshot build / submission orchestration
-- Approval recording
-- Decision recording + outcome side effects
-- PoC / Pilot domain operations
-- Project conversion orchestration
-- Readiness policy evaluation (already partially separate files)
-
-### DEPRECATE LATER
-
-- None in Phase 1A. Facade retention preferred until callers migrate.
+Callers (Server Actions, tests, InitiativeService) continue to use the facade.
 
 ---
 
@@ -313,24 +299,32 @@ Classify existing public methods (do **not** rename in 1A):
 
 ---
 
-## 18. Service dependency map
+## 18. Service dependency map (Phase 1B)
 
 ```mermaid
 flowchart LR
-  SA[Server Actions] --> GS[GovernanceService]
-  GS --> Prisma[(PrismaClient)]
-  GS --> Authz[AuthorizationService]
-  GS --> Audit[AuditService]
-  GS --> Ready[Readiness policies]
-  GS --> Snap[snapshot-builder]
-  GS --> Own[ownership resolve helpers]
+  SA[Server Actions] --> GS[GovernanceService facade]
   IS[InitiativeService] --> GS
-  IS --> Prisma
-  IS --> Authz
-  IS --> Audit
+  GS --> Core[GovernanceCoreService]
+  GS --> PoC[PoCService]
+  GS --> Pilot[PilotService]
+  GS --> Conv[ProjectConversionService]
+  Core --> Prisma[(PrismaClient)]
+  PoC --> Prisma
+  Pilot --> Prisma
+  Conv --> Prisma
+  Core --> Authz[AuthorizationService]
+  PoC --> Authz
+  Pilot --> Authz
+  Conv --> Authz
+  Core --> Audit[AuditService]
+  PoC --> Audit
+  Pilot --> Audit
+  Conv --> Audit
+  Core --> Ready[Readiness / snapshot leaves]
 ```
 
-**Circular risk:** `InitiativeService` depends on `GovernanceService` for attention/workspace coupling. Phase 1B must not deepen Initiative↔Governance cycles when extracting PoC/Pilot/Conversion. Prefer orchestration that calls extracted services through a thin facade, with Initiative remaining unaware of internal governance modules where practical.
+**Acyclic:** children do not import the facade or each other. Initiative depends on the facade only. See ADR-023.
 
 ---
 
@@ -346,37 +340,27 @@ flowchart LR
 
 ---
 
-## 20. Phase 1B target boundaries (proposal only — do not implement here)
+## 20. Phase 1B boundaries (implemented)
 
-No-behavior-change structural split derived from current code:
+Structural split (behavior unchanged). Physical package remains `src/modules/governance/application/` (logical Experimentation; see ADR-023):
 
 ```text
-Governance Core
-├── Gate / Submission / ReviewSnapshot / Evidence
-├── ApprovalRequest / ApprovalRecord / Templates
-├── DecisionPackage / DecisionRecord / DecisionCondition
-└── Policy (approval templates)
+GovernanceService (facade)
+├── GovernanceCoreService
+│    ├── Gate / Submission / ReviewSnapshot / Evidence
+│    ├── ApprovalRequest / ApprovalRecord / Templates
+│    ├── DecisionPackage / DecisionRecord / DecisionCondition
+│    └── Policy + governance queries
+├── PoCService          (Experimentation — PoC ops)
+├── PilotService        (Experimentation — Pilot ops)
+└── ProjectConversionService  (Initiative → Project orchestration)
 
-Experimentation
-├── PoC (+ criteria, transitions, results, readiness)
-└── Pilot (+ criteria, feedback, extensions, readiness)
-
-Project
-└── Project entity writes remain ProjectService-owned where already separated;
-    conversion may create Project via orchestration
-
-Orchestration
-└── Initiative → gate prerequisites → convertToProject coordination
-    (explicit progression; no auto-create)
-
-Facade
-└── GovernanceService retains public method signatures initially;
-    delegates to extracted modules
+ProjectService (existing) — post-existence Project CRUD only
 ```
 
-**Phase 1B must preserve:** outcome matrix, immutability, recommendation≠decision, explicit progression, conversion idempotency (≤1 Project), authorization boundaries, audit actionTypes, transaction atomicity for domain writes listed in §14.
+**Preserved:** outcome matrix, immutability, recommendation≠decision, explicit progression, conversion idempotency (≤1 Project), authorization, audit actionTypes, transaction semantics (§14).
 
-**Phase 1B must not:** change Prisma schema, add features, rename public methods without a migration plan, or turn snapshots into live views.
+**Deferred:** physical `experimentation` package; moving audit into transactions; wiring `assignedPrincipalId`.
 
 ---
 
