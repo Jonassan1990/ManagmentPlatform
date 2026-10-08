@@ -47,6 +47,7 @@ async function resetDb() {
   await db.projectWorkItem.deleteMany();
   await db.projectMilestone.deleteMany();
   await db.projectParticipatingDepartment.deleteMany();
+  await db.projectClosure.deleteMany();
   await db.project.deleteMany();
   await db.projectReferenceCounter.deleteMany();
   await db.approvalRecord.deleteMany();

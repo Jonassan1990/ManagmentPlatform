@@ -55,6 +55,7 @@ async function resetDb() {
   await db.pilotCriterion.deleteMany();
   await db.pilotExtension.deleteMany();
   await db.pilot.deleteMany();
+  await db.projectClosure.deleteMany();
   await db.projectIssue.deleteMany();
   await db.projectWorkItem.deleteMany();
   await db.projectMilestone.deleteMany();

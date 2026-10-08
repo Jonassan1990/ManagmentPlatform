@@ -1,12 +1,17 @@
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import { IdentityService } from "@/modules/identity-access/application/identity-service";
+import { verifyTempAuthCredentials } from "@/modules/identity-access/application/temp-auth-credentials";
+import { TEMP_AUTH_PROVIDER_ID } from "@/modules/identity-access/application/temp-auth-constants";
 import { prisma } from "@/server/db";
 import {
   getAuthEnv,
+  getTempAuthEnv,
   isOidcConfigured,
+  resolveAuthSecret,
 } from "@/server/env";
 
 declare module "next-auth" {
@@ -33,15 +38,17 @@ declare module "@auth/core/jwt" {
 
 function buildAuthConfig(): NextAuthConfig {
   const oidcReady = isOidcConfigured();
-  // Lazy: only validate full auth secrets when OIDC is actually configured.
+  const tempConfig = getTempAuthEnv();
   const authEnv = oidcReady ? getAuthEnv() : null;
   const baseUrl =
     authEnv?.AUTH_URL ??
     authEnv?.APP_URL ??
-    process.env.AUTH_URL ??
-    process.env.APP_URL;
+    tempConfig
+      ? process.env.AUTH_URL || process.env.APP_URL
+      : process.env.AUTH_URL || process.env.APP_URL;
 
   const providers: NextAuthConfig["providers"] = [];
+
   if (authEnv) {
     providers.push({
       id: "oidc",
@@ -68,10 +75,67 @@ function buildAuthConfig(): NextAuthConfig {
     });
   }
 
-  // Placeholder secret allows `next build` without OIDC. Real AUTH_SECRET required
-  // when isOidcConfigured() — enforced via getAuthEnv() above.
+  if (tempConfig) {
+    providers.push(
+      Credentials({
+        id: TEMP_AUTH_PROVIDER_ID,
+        name: "Temporary owner access",
+        credentials: {
+          username: { label: "Username", type: "text" },
+          password: { label: "Password", type: "password" },
+        },
+        async authorize(credentials) {
+          const username =
+            typeof credentials?.username === "string"
+              ? credentials.username
+              : "";
+          const password =
+            typeof credentials?.password === "string"
+              ? credentials.password
+              : "";
+
+          const ok = await verifyTempAuthCredentials({
+            username,
+            password,
+            config: tempConfig,
+          });
+          if (!ok) {
+            return null;
+          }
+
+          const identity = new IdentityService(
+            prisma,
+            new AuthorizationService(prisma),
+            new AuditService(prisma),
+          );
+          try {
+            const principal = await identity.resolveOrCreateFromTempAuth({
+              principalId: tempConfig.TEMP_AUTH_PRINCIPAL_ID,
+              username: tempConfig.TEMP_AUTH_USERNAME,
+              displayName:
+                tempConfig.TEMP_AUTH_DISPLAY_NAME ?? "Platform Owner",
+            });
+            return {
+              id: principal.id,
+              name: principal.displayName,
+              principalId: principal.id,
+            };
+          } catch (error) {
+            console.error(
+              "[temp-auth] identity resolution failed (fail closed)",
+            );
+            void error;
+            return null;
+          }
+        },
+      }),
+    );
+  }
+
+  // Placeholder allows `next build` without auth secrets. Real secret required
+  // when OIDC and/or temp auth is configured (resolveAuthSecret).
   const secret =
-    authEnv?.AUTH_SECRET ??
+    resolveAuthSecret() ??
     process.env.AUTH_SECRET ??
     "phase6-build-placeholder-secret-do-not-use";
 
@@ -103,8 +167,15 @@ function buildAuthConfig(): NextAuthConfig {
       error: "/login",
     },
     callbacks: {
-      async signIn({ account, profile }) {
-        if (!account || account.provider !== "oidc" || !authEnv) {
+      async signIn({ account, profile, user }) {
+        if (!account) return false;
+        if (account.provider === TEMP_AUTH_PROVIDER_ID) {
+          return Boolean(
+            (user as { principalId?: string } | undefined)?.principalId ||
+              user?.id,
+          );
+        }
+        if (account.provider !== "oidc" || !authEnv) {
           return false;
         }
         const issuerRaw =
@@ -122,8 +193,6 @@ function buildAuthConfig(): NextAuthConfig {
         ) {
           return false;
         }
-        const issuer = issuerRaw;
-        const subject = subjectRaw;
 
         const identity = new IdentityService(
           prisma,
@@ -133,13 +202,13 @@ function buildAuthConfig(): NextAuthConfig {
         const preferred =
           profile &&
           "preferred_username" in profile &&
-          typeof (profile as { preferred_username?: unknown }).preferred_username ===
-            "string"
+          typeof (profile as { preferred_username?: unknown })
+            .preferred_username === "string"
             ? (profile as { preferred_username: string }).preferred_username
             : null;
         const principal = await identity.resolveOrCreateFromOidc({
-          issuer,
-          subject,
+          issuer: issuerRaw,
+          subject: subjectRaw,
           email: typeof profile?.email === "string" ? profile.email : null,
           displayName:
             typeof profile?.name === "string" ? profile.name : preferred,
@@ -147,7 +216,17 @@ function buildAuthConfig(): NextAuthConfig {
         (account as { principalId?: string }).principalId = principal.id;
         return true;
       },
-      async jwt({ token, account, profile }) {
+      async jwt({ token, account, profile, user }) {
+        if (account?.provider === TEMP_AUTH_PROVIDER_ID) {
+          const principalId =
+            (user as { principalId?: string } | undefined)?.principalId ??
+            user?.id;
+          if (principalId) {
+            token.principalId = principalId;
+          }
+          return token;
+        }
+
         if (account?.provider === "oidc" && authEnv) {
           const principalId = (account as { principalId?: string }).principalId;
           if (principalId) {
@@ -172,7 +251,8 @@ function buildAuthConfig(): NextAuthConfig {
               const principal = await identity.resolveOrCreateFromOidc({
                 issuer: issuerRaw,
                 subject: subjectRaw,
-                email: typeof profile?.email === "string" ? profile.email : null,
+                email:
+                  typeof profile?.email === "string" ? profile.email : null,
                 displayName:
                   typeof profile?.name === "string" ? profile.name : null,
               });

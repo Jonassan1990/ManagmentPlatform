@@ -6,8 +6,10 @@ import {
   getEnv,
   isDevAuthEnabled,
   isOidcConfigured,
+  isTempAuthConfigured,
 } from "@/server/env";
 import { SignInButton } from "./sign-in-button";
+import { TempCredentialsForm } from "./temp-credentials-form";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,10 @@ export default async function LoginPage({
 
   const env = getEnv();
   const oidc = isOidcConfigured();
+  const tempAuth = isTempAuthConfigured();
   const dev = isDevAuthEnabled(env);
+  const callbackUrl = params.callbackUrl ?? "/";
+  const hasProvider = oidc || tempAuth;
 
   return (
     <div className="mx-auto max-w-lg py-10">
@@ -38,25 +43,46 @@ export default async function LoginPage({
       {params.error ? (
         <Panel className="mb-4 border-red-300 bg-red-50 text-red-900">
           <p className="text-sm">
-            Sign-in failed{params.error ? ` (${params.error})` : ""}. Try again
-            or contact an administrator.
+            Sign-in failed. Try again or contact an administrator.
           </p>
         </Panel>
       ) : null}
 
-      {oidc ? (
-        <Panel>
-          <p className="mb-4 text-sm text-[var(--muted)]">
-            Continue with your organization identity provider.
-          </p>
-          <SignInButton callbackUrl={params.callbackUrl ?? "/"} />
-        </Panel>
-      ) : (
+      {!hasProvider ? (
         <EmptyState
-          title="Authentication not configured"
-          description="OIDC is not configured for this environment. Set OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, and AUTH_SECRET. Mutating routes remain fail-closed."
+          title="Sign-in is not available"
+          description="Authentication is not configured for this environment. Contact an administrator. Application access remains closed until sign-in is enabled."
         />
-      )}
+      ) : null}
+
+      {oidc ? (
+        <Panel className={tempAuth ? "mb-4" : undefined}>
+          <h2 className="mb-2 font-medium">Continue with SSO</h2>
+          <p className="mb-4 text-sm text-[var(--muted)]">
+            Sign in with your organization identity provider.
+          </p>
+          <SignInButton callbackUrl={callbackUrl} />
+        </Panel>
+      ) : null}
+
+      {tempAuth ? (
+        <Panel>
+          <h2 className="mb-2 font-medium">
+            {oidc ? "Temporary owner access" : "Sign in"}
+          </h2>
+          {oidc ? (
+            <p className="mb-4 text-sm text-[var(--muted)]">
+              Temporary credentials for platform recovery. Prefer SSO when
+              available.
+            </p>
+          ) : (
+            <p className="mb-4 text-sm text-[var(--muted)]">
+              Enter your owner username and password.
+            </p>
+          )}
+          <TempCredentialsForm callbackUrl={callbackUrl} />
+        </Panel>
+      ) : null}
 
       {dev ? (
         <Panel className="mt-4">

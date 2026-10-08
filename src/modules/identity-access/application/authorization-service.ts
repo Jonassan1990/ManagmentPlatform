@@ -13,6 +13,7 @@ import {
   ownershipGrantsPermission,
   type OwnershipRelationship,
 } from "./relationship-policy";
+import { TEMP_AUTH_ISSUER } from "./temp-auth-constants";
 
 export class AuthorizationService {
   constructor(private readonly db: PrismaClient) {}
@@ -21,8 +22,10 @@ export class AuthorizationService {
    * Resolves the current principal.
    * 1. Explicit override (tests)
    * 2. DEV auth bridge (development only)
-   * 3. OIDC session → Principal via session.principalId
+   * 3. Auth.js session (OIDC or temp-credentials) → Principal via session.principalId
    * 4. null (fail closed)
+   *
+   * DEV auth and temporary production credentials are separate paths.
    */
   async resolveCurrentPrincipal(
     override?: Principal | null,
@@ -62,15 +65,22 @@ export class AuthorizationService {
       }
       const row = await this.db.principal.findUnique({
         where: { id: principalId },
+        include: {
+          externalIdentities: {
+            where: { issuer: TEMP_AUTH_ISSUER },
+            take: 1,
+          },
+        },
       });
       if (!row) {
         return null;
       }
+      const viaTemp = row.externalIdentities.length > 0;
       return {
         id: row.id,
         displayName: row.displayName,
         email: row.email,
-        source: "oidc",
+        source: viaTemp ? "temp" : "oidc",
       };
     } catch {
       return null;
