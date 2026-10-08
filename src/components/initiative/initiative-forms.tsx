@@ -20,15 +20,21 @@ import {
   fieldClassName,
   useActionForm,
 } from "@/components/ui/forms";
+import {
+  OwnerResourceSelect,
+  type OwnerPersonOption,
+} from "@/components/organization/owner-resource-select";
 
 export function CreateInitiativeForm({
   organizations,
+  peopleByOrganization,
 }: {
   organizations: {
     id: string;
     name: string;
     departments: { id: string; name: string; sectionName: string }[];
   }[];
+  peopleByOrganization: Record<string, OwnerPersonOption[]>;
 }) {
   const router = useRouter();
   const form = useActionForm(createInitiativeAction, (data) => {
@@ -37,6 +43,7 @@ export function CreateInitiativeForm({
   });
 
   const org = organizations[0];
+  const people = peopleByOrganization[org?.id ?? ""] ?? [];
 
   return (
     <form
@@ -44,15 +51,24 @@ export function CreateInitiativeForm({
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
+        const businessOwnerResourceId =
+          String(fd.get("businessOwnerResourceId") ?? "") || null;
+        const requesterResourceId =
+          String(fd.get("requesterResourceId") ?? "") || null;
+        const sponsorResourceId =
+          String(fd.get("sponsorResourceId") ?? "") || null;
         form.submit({
           organizationId: String(fd.get("organizationId") ?? ""),
           departmentId: String(fd.get("departmentId") ?? ""),
           title: String(fd.get("title") ?? ""),
           requesterName: String(fd.get("requesterName") ?? ""),
           requesterContact: String(fd.get("requesterContact") ?? "") || null,
+          requesterResourceId,
           businessOwnerName: String(fd.get("businessOwnerName") ?? ""),
           businessOwnerContact:
             String(fd.get("businessOwnerContact") ?? "") || null,
+          businessOwnerResourceId,
+          sponsorResourceId,
           problemOpportunity: String(fd.get("problemOpportunity") ?? ""),
           reasonForRequest: String(fd.get("reasonForRequest") ?? ""),
           expectedValue: String(fd.get("expectedValue") ?? ""),
@@ -97,18 +113,45 @@ export function CreateInitiativeForm({
         <input id="title" name="title" required maxLength={300} className={fieldClassName} />
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Requester" htmlFor="requesterName" hint="Business person reference — not a login account.">
-          <input id="requesterName" name="requesterName" required className={fieldClassName} />
-        </FormField>
-        <FormField label="Requester contact" htmlFor="requesterContact">
-          <input id="requesterContact" name="requesterContact" className={fieldClassName} />
-        </FormField>
-        <FormField label="Business owner" htmlFor="businessOwnerName">
-          <input id="businessOwnerName" name="businessOwnerName" required className={fieldClassName} />
+        <OwnerResourceSelect
+          id="businessOwnerResourceId"
+          name="businessOwnerResourceId"
+          label="Business owner (person)"
+          hint="Structured ownership. Prefer selecting a person resource. Login is not required."
+          people={people}
+          emptyLabel="Use text snapshot only"
+        />
+        <FormField
+          label="Business owner name snapshot"
+          htmlFor="businessOwnerName"
+          hint="Required if no person selected. Filled automatically from the person when selected."
+        >
+          <input id="businessOwnerName" name="businessOwnerName" className={fieldClassName} />
         </FormField>
         <FormField label="Business owner contact" htmlFor="businessOwnerContact">
           <input id="businessOwnerContact" name="businessOwnerContact" className={fieldClassName} />
         </FormField>
+        <OwnerResourceSelect
+          id="requesterResourceId"
+          name="requesterResourceId"
+          label="Requester (person, optional)"
+          hint="External requesters may remain text-only."
+          people={people}
+          emptyLabel="External / text-only requester"
+        />
+        <FormField label="Requester name snapshot" htmlFor="requesterName">
+          <input id="requesterName" name="requesterName" className={fieldClassName} />
+        </FormField>
+        <FormField label="Requester contact" htmlFor="requesterContact">
+          <input id="requesterContact" name="requesterContact" className={fieldClassName} />
+        </FormField>
+        <OwnerResourceSelect
+          id="sponsorResourceId"
+          name="sponsorResourceId"
+          label="Sponsor (person, optional)"
+          people={people}
+          emptyLabel="No sponsor"
+        />
       </div>
       <FormField label="Problem / opportunity" htmlFor="problemOpportunity">
         <textarea id="problemOpportunity" name="problemOpportunity" rows={2} className={fieldClassName} />

@@ -12,6 +12,7 @@ import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS, type Permission } from "@/modules/shared/permissions";
 import { evaluatePreStudyReadiness } from "@/modules/initiative/application/readiness-policy";
@@ -939,6 +940,13 @@ export class GovernanceService {
       );
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: initiative.organizationId,
+      roleLabel: "PoC owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     const created = await this.db.$transaction(async (tx) => {
       const poc = await tx.poC.create({
         data: {
@@ -948,7 +956,8 @@ export class GovernanceService {
           hypothesis: input.hypothesis,
           scope: input.scope,
           outOfScope: input.outOfScope ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           plannedStart: input.plannedStart ?? null,
           plannedEnd: input.plannedEnd ?? null,
           estimatedCost: input.estimatedCost ?? null,
@@ -987,7 +996,12 @@ export class GovernanceService {
       subjectType: "PoC",
       subjectId: created.id,
       organizationId: initiative.organizationId,
-      payload: { initiativeId: initiative.id, title: created.title },
+      payload: {
+        initiativeId: initiative.id,
+        title: created.title,
+        ownerResourceId: created.ownerResourceId,
+        ownerName: created.ownerName,
+      },
       result: "success",
     });
 
@@ -1007,6 +1021,13 @@ export class GovernanceService {
     });
     this.assertVersion(poc.version, input.expectedVersion, "poc");
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: poc.initiative.organizationId,
+      roleLabel: "PoC owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const updated = await this.db.poC.update({
         where: { id: poc.id, version: input.expectedVersion },
@@ -1016,7 +1037,8 @@ export class GovernanceService {
           hypothesis: input.hypothesis,
           scope: input.scope,
           outOfScope: input.outOfScope ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           plannedStart: input.plannedStart ?? null,
           plannedEnd: input.plannedEnd ?? null,
           estimatedCost: input.estimatedCost ?? null,
@@ -1032,7 +1054,13 @@ export class GovernanceService {
         subjectType: "PoC",
         subjectId: updated.id,
         organizationId: poc.initiative.organizationId,
-        payload: { version: updated.version },
+        payload: {
+          version: updated.version,
+          oldOwnerResourceId: poc.ownerResourceId,
+          newOwnerResourceId: updated.ownerResourceId,
+          oldOwnerName: poc.ownerName,
+          newOwnerName: updated.ownerName,
+        },
         result: "success",
       });
       return updated;
@@ -1343,6 +1371,13 @@ export class GovernanceService {
       );
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: initiative.organizationId,
+      roleLabel: "Pilot owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     const created = await this.db.$transaction(async (tx) => {
       const pilot = await tx.pilot.create({
         data: {
@@ -1350,7 +1385,8 @@ export class GovernanceService {
           objective: input.objective,
           scope: input.scope,
           outOfScope: input.outOfScope ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           siteOrArea: input.siteOrArea ?? null,
           targetUsers: input.targetUsers ?? null,
           plannedStart: input.plannedStart ?? null,
@@ -1394,7 +1430,11 @@ export class GovernanceService {
       subjectType: "Pilot",
       subjectId: created.id,
       organizationId: initiative.organizationId,
-      payload: { initiativeId: initiative.id },
+      payload: {
+        initiativeId: initiative.id,
+        ownerResourceId: created.ownerResourceId,
+        ownerName: created.ownerName,
+      },
       result: "success",
     });
 
@@ -1414,6 +1454,13 @@ export class GovernanceService {
     });
     this.assertVersion(pilot.version, input.expectedVersion, "pilot");
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: pilot.initiative.organizationId,
+      roleLabel: "Pilot owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const updated = await this.db.pilot.update({
         where: { id: pilot.id, version: input.expectedVersion },
@@ -1421,7 +1468,8 @@ export class GovernanceService {
           objective: input.objective,
           scope: input.scope,
           outOfScope: input.outOfScope ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           siteOrArea: input.siteOrArea ?? null,
           targetUsers: input.targetUsers ?? null,
           plannedStart: input.plannedStart ?? null,
@@ -1442,7 +1490,13 @@ export class GovernanceService {
         subjectType: "Pilot",
         subjectId: updated.id,
         organizationId: pilot.initiative.organizationId,
-        payload: { version: updated.version },
+        payload: {
+          version: updated.version,
+          oldOwnerResourceId: pilot.ownerResourceId,
+          newOwnerResourceId: updated.ownerResourceId,
+          oldOwnerName: pilot.ownerName,
+          newOwnerName: updated.ownerName,
+        },
         result: "success",
       });
       return updated;
@@ -1814,6 +1868,14 @@ export class GovernanceService {
 
     const departmentId = input.departmentId ?? initiative.departmentId;
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: initiative.organizationId,
+      roleLabel: "project owner",
+    });
+    // Do not invent Initiative→Project owner copy; only use explicit convert input.
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const created = await this.db.$transaction(async (tx) => {
         const referenceKey = await this.allocateProjectReference(
@@ -1828,7 +1890,8 @@ export class GovernanceService {
             referenceKey,
             name: input.name,
             description: input.description ?? null,
-            ownerName: input.ownerName ?? null,
+            ownerName,
+            ownerResourceId: owner?.id ?? null,
             departmentId,
             status: "ACTIVE",
             priority: input.priority,

@@ -14,6 +14,10 @@ export default async function NewInitiativePage() {
   if (orgs.length === 0) redirect("/organization/setup");
 
   const organizations = [];
+  const peopleByOrganization: Record<
+    string,
+    Awaited<ReturnType<typeof organization.listPersonOwnerCandidates>>
+  > = {};
   for (const org of orgs) {
     const hierarchy = await organization.getHierarchy(principal, org.id);
     organizations.push({
@@ -28,6 +32,10 @@ export default async function NewInitiativePage() {
           })),
         ) ?? [],
     });
+    peopleByOrganization[org.id] = await organization.listPersonOwnerCandidates(
+      principal,
+      org.id,
+    );
   }
 
   if (organizations.every((o) => o.departments.length === 0)) {
@@ -48,7 +56,10 @@ export default async function NewInitiativePage() {
         description="Create a durable initiative root. Demand, requirements, and pre-study stay attached to this identity."
       />
       <Panel className="max-w-3xl">
-        <CreateInitiativeForm organizations={organizations} />
+        <CreateInitiativeForm
+          organizations={organizations}
+          peopleByOrganization={peopleByOrganization}
+        />
       </Panel>
     </div>
   );

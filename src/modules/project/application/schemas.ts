@@ -25,6 +25,7 @@ export const updateProjectInputSchema = z.object({
   name: z.string().trim().min(1).max(300),
   description: z.string().trim().max(8000).optional().nullable(),
   ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
   status: z.enum(["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED", "ARCHIVED"]),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   plannedStart: z.coerce.date().optional().nullable(),
@@ -50,6 +51,7 @@ export const createMilestoneInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
   description: z.string().trim().max(4000).optional().nullable(),
   ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
   plannedDate: z.coerce.date().optional().nullable(),
   actualDate: z.coerce.date().optional().nullable(),
   status: z
@@ -63,6 +65,7 @@ export const updateMilestoneInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
   description: z.string().trim().max(4000).optional().nullable(),
   ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
   plannedDate: z.coerce.date().optional().nullable(),
   actualDate: z.coerce.date().optional().nullable(),
   status: z.enum(["PLANNED", "IN_PROGRESS", "COMPLETED", "MISSED", "CANCELLED"]),
@@ -76,6 +79,7 @@ export const createWorkItemInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
   description: z.string().trim().max(8000).optional().nullable(),
   ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
   status: z
     .enum(["BACKLOG", "READY", "IN_PROGRESS", "DONE", "CANCELLED"])
     .default("BACKLOG"),
@@ -89,6 +93,7 @@ export const updateWorkItemInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
   description: z.string().trim().max(8000).optional().nullable(),
   ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
   status: z.enum(["BACKLOG", "READY", "IN_PROGRESS", "DONE", "CANCELLED"]),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   estimateHours: decimalHoursSchema,

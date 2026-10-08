@@ -864,6 +864,164 @@ export class OrganizationService {
     }));
   }
 
+  /**
+   * PERSON resources eligible for business ownership pickers (Phase 0B).
+   * Login (Principal link) is not required.
+   */
+  async listPersonOwnerCandidates(
+    principal: Principal,
+    organizationId: string,
+  ) {
+    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_READ, {
+      type: "ORGANIZATION",
+      organizationId,
+    });
+    const rows = await this.db.resource.findMany({
+      where: {
+        organizationId,
+        status: EntityStatus.ACTIVE,
+        type: ResourceType.PERSON,
+      },
+      include: {
+        memberships: {
+          where: { effectiveTo: null },
+          include: {
+            team: {
+              include: {
+                department: { include: { section: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { name: "asc" },
+    });
+
+    return rows.map((r) => {
+      const primary =
+        r.memberships.find((m) => m.isPrimary) ?? r.memberships[0] ?? null;
+      const team = primary?.team;
+      return {
+        id: r.id,
+        name: r.name,
+        functionRole: r.functionRole,
+        teamName: team?.name ?? null,
+        departmentName: team?.department.name ?? null,
+        sectionName: team?.department.section.name ?? null,
+        label: [
+          r.name,
+          team
+            ? `${team.name} · ${team.department.name}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" — "),
+      };
+    });
+  }
+
+  /**
+   * Structured ownership query: what does Resource X own? (entities normalized in 0B)
+   */
+  async getResourceOwnership(principal: Principal, resourceId: string) {
+    const resource = await this.db.resource.findUnique({
+      where: { id: resourceId },
+    });
+    if (!resource || resource.status === EntityStatus.ARCHIVED) {
+      throw new AppError("NOT_FOUND", "Resource not found.");
+    }
+    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_READ, {
+      type: "ORGANIZATION",
+      organizationId: resource.organizationId,
+    });
+
+    const [
+      initiativesAsBusinessOwner,
+      initiativesAsRequester,
+      initiativesAsSponsor,
+      projects,
+      pocs,
+      pilots,
+      risks,
+      workItems,
+      milestones,
+      dependencies,
+    ] = await Promise.all([
+      this.db.initiative.findMany({
+        where: { businessOwnerResourceId: resourceId },
+        select: { id: true, referenceKey: true, title: true, currentStage: true, status: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.initiative.findMany({
+        where: { requesterResourceId: resourceId },
+        select: { id: true, referenceKey: true, title: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.initiative.findMany({
+        where: { sponsorResourceId: resourceId },
+        select: { id: true, referenceKey: true, title: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.project.findMany({
+        where: { ownerResourceId: resourceId },
+        select: { id: true, referenceKey: true, name: true, status: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.poC.findMany({
+        where: { ownerResourceId: resourceId },
+        select: { id: true, title: true, status: true, initiativeId: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.pilot.findMany({
+        where: { ownerResourceId: resourceId },
+        select: { id: true, status: true, initiativeId: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.risk.findMany({
+        where: { ownerResourceId: resourceId },
+        select: { id: true, referenceKey: true, title: true, status: true, initiativeId: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.projectWorkItem.findMany({
+        where: { ownerResourceId: resourceId },
+        select: { id: true, referenceKey: true, title: true, status: true, projectId: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.projectMilestone.findMany({
+        where: { ownerResourceId: resourceId },
+        select: { id: true, referenceKey: true, title: true, status: true, projectId: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      this.db.planningDependency.findMany({
+        where: { ownerResourceId: resourceId },
+        select: { id: true, type: true, status: true, sourceType: true, targetType: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+    ]);
+
+    return {
+      resource: {
+        id: resource.id,
+        name: resource.name,
+        organizationId: resource.organizationId,
+        type: resource.type,
+        linkedPrincipalId: resource.linkedPrincipalId,
+      },
+      ownership: {
+        initiativesAsBusinessOwner,
+        initiativesAsRequester,
+        initiativesAsSponsor,
+        projects,
+        pocs,
+        pilots,
+        risks,
+        workItems,
+        milestones,
+        dependencies,
+      },
+    };
+  }
+
   async assignMembership(principal: Principal, raw: unknown) {
     const input = parse(assignMembershipInputSchema, raw);
     const resource = await this.db.resource.findUnique({

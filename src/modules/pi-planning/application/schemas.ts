@@ -160,6 +160,7 @@ export const createDependencyInputSchema = z
     targetType: z.enum(["WORK_ITEM", "PROJECT"]),
     targetId: uuidSchema,
     ownerName: z.string().trim().max(200).optional().nullable(),
+    ownerResourceId: uuidSchema.optional().nullable(),
     neededByDate: z.coerce.date().optional().nullable(),
     description: z.string().trim().max(4000).optional().nullable(),
   })
@@ -173,6 +174,7 @@ export const updateDependencyInputSchema = z.object({
   status: z.enum(["OPEN", "RESOLVED", "ACCEPTED", "CANCELLED"]),
   criticality: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   ownerName: z.string().trim().max(200).optional().nullable(),
+  ownerResourceId: uuidSchema.optional().nullable(),
   neededByDate: z.coerce.date().optional().nullable(),
   description: z.string().trim().max(4000).optional().nullable(),
   expectedVersion: z.number().int().positive(),

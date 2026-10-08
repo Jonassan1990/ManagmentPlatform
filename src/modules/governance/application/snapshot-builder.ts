@@ -45,6 +45,9 @@ export type ReviewSnapshotPayload = {
     version: number;
     requesterName: string;
     businessOwnerName: string;
+    requesterResourceId?: string | null;
+    businessOwnerResourceId?: string | null;
+    sponsorResourceId?: string | null;
     organizationId: string;
     departmentId: string;
   };
@@ -109,6 +112,9 @@ export function buildReviewSnapshotPayload(
       version: data.initiative.version,
       requesterName: data.initiative.requesterName,
       businessOwnerName: data.initiative.businessOwnerName,
+      requesterResourceId: data.initiative.requesterResourceId ?? null,
+      businessOwnerResourceId: data.initiative.businessOwnerResourceId ?? null,
+      sponsorResourceId: data.initiative.sponsorResourceId ?? null,
       organizationId: data.initiative.organizationId,
       departmentId: data.initiative.departmentId,
     },

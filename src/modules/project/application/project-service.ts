@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import {
@@ -86,6 +87,13 @@ export class ProjectService {
     });
     this.assertVersion(project.version, input.expectedVersion, "project");
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: project.organizationId,
+      roleLabel: "project owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const updated = await this.db.$transaction(async (tx) => {
         const next = await tx.project.update({
@@ -93,7 +101,8 @@ export class ProjectService {
           data: {
             name: input.name,
             description: input.description ?? null,
-            ownerName: input.ownerName ?? null,
+            ownerName,
+            ownerResourceId: owner?.id ?? null,
             status: input.status,
             priority: input.priority,
             plannedStart: input.plannedStart ?? null,
@@ -126,7 +135,13 @@ export class ProjectService {
         subjectType: "Project",
         subjectId: updated.id,
         organizationId: project.organizationId,
-        payload: { version: updated.version },
+        payload: {
+          version: updated.version,
+          oldOwnerResourceId: project.ownerResourceId,
+          newOwnerResourceId: updated.ownerResourceId,
+          oldOwnerName: project.ownerName,
+          newOwnerName: updated.ownerName,
+        },
         result: "success",
       });
       return updated;
@@ -182,6 +197,13 @@ export class ProjectService {
       organizationId: project.organizationId,
     });
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: project.organizationId,
+      roleLabel: "milestone owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     const referenceKey = await this.allocateMilestoneReference(project.id);
     const created = await this.db.projectMilestone.create({
       data: {
@@ -189,7 +211,8 @@ export class ProjectService {
         referenceKey,
         title: input.title,
         description: input.description ?? null,
-        ownerName: input.ownerName ?? null,
+        ownerName,
+        ownerResourceId: owner?.id ?? null,
         plannedDate: input.plannedDate ?? null,
         actualDate: input.actualDate ?? null,
         status: input.status,
@@ -221,13 +244,21 @@ export class ProjectService {
     });
     this.assertVersion(milestone.version, input.expectedVersion, "milestone");
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: milestone.project.organizationId,
+      roleLabel: "milestone owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const updated = await this.db.projectMilestone.update({
         where: { id: milestone.id, version: input.expectedVersion },
         data: {
           title: input.title,
           description: input.description ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           plannedDate: input.plannedDate ?? null,
           actualDate: input.actualDate ?? null,
           status: input.status,
@@ -267,6 +298,13 @@ export class ProjectService {
       }
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: project.organizationId,
+      roleLabel: "work item owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     const referenceKey = await this.allocateWorkItemReference(project.id);
     const created = await this.db.projectWorkItem.create({
       data: {
@@ -275,7 +313,8 @@ export class ProjectService {
         referenceKey,
         title: input.title,
         description: input.description ?? null,
-        ownerName: input.ownerName ?? null,
+        ownerName,
+        ownerResourceId: owner?.id ?? null,
         status: input.status,
         priority: input.priority,
         estimateHours: toDecimal(input.estimateHours),
@@ -319,13 +358,21 @@ export class ProjectService {
       }
     }
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: workItem.project.organizationId,
+      roleLabel: "work item owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const updated = await this.db.projectWorkItem.update({
         where: { id: workItem.id, version: input.expectedVersion },
         data: {
           title: input.title,
           description: input.description ?? null,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           status: input.status,
           priority: input.priority,
           estimateHours: toDecimal(input.estimateHours),

@@ -13,6 +13,7 @@ import type { Principal } from "@/modules/identity-access/domain/types";
 import { GovernanceService } from "@/modules/governance/application/governance-service";
 import { evaluatePoCReadiness } from "@/modules/governance/application/poc-readiness-policy";
 import { evaluatePilotGovernanceReadiness } from "@/modules/governance/application/pilot-readiness-policy";
+import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { buildAttentionItems } from "./attention";
@@ -134,6 +135,38 @@ export class InitiativeService {
       organizationId: input.organizationId,
     });
 
+    const businessOwner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.businessOwnerResourceId,
+      organizationId: input.organizationId,
+      roleLabel: "business owner",
+    });
+    const requester = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.requesterResourceId,
+      organizationId: input.organizationId,
+      roleLabel: "requester",
+    });
+    const sponsor = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.sponsorResourceId,
+      organizationId: input.organizationId,
+      roleLabel: "sponsor",
+    });
+
+    const businessOwnerName =
+      businessOwner?.name ?? input.businessOwnerName.trim();
+    const requesterName = requester?.name ?? input.requesterName.trim();
+    if (!businessOwnerName) {
+      throw new AppError(
+        "VALIDATION",
+        "Business owner is required (select a person resource or provide a name).",
+      );
+    }
+    if (!requesterName) {
+      throw new AppError(
+        "VALIDATION",
+        "Requester is required (select a person resource or provide a name).",
+      );
+    }
+
     const created = await this.db.$transaction(async (tx) => {
       const referenceKey = await this.allocateReference(tx, input.organizationId);
       const initiative = await tx.initiative.create({
@@ -142,10 +175,13 @@ export class InitiativeService {
           departmentId: input.departmentId,
           referenceKey,
           title: input.title,
-          requesterName: input.requesterName,
+          requesterName,
           requesterContact: input.requesterContact ?? null,
-          businessOwnerName: input.businessOwnerName,
+          requesterResourceId: requester?.id ?? null,
+          businessOwnerName,
           businessOwnerContact: input.businessOwnerContact ?? null,
+          businessOwnerResourceId: businessOwner?.id ?? null,
+          sponsorResourceId: sponsor?.id ?? null,
           currentStage: InitiativeStage.DEMAND,
           demand: {
             create: {
@@ -174,6 +210,11 @@ export class InitiativeService {
         referenceKey: created.referenceKey,
         title: created.title,
         departmentId: created.departmentId,
+        businessOwnerResourceId: created.businessOwnerResourceId,
+        requesterResourceId: created.requesterResourceId,
+        sponsorResourceId: created.sponsorResourceId,
+        businessOwnerName: created.businessOwnerName,
+        requesterName: created.requesterName,
       },
       result: "success",
     });
@@ -189,15 +230,50 @@ export class InitiativeService {
     });
     this.assertVersion(existing.version, input.expectedVersion, "initiative");
 
+    const businessOwner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.businessOwnerResourceId,
+      organizationId: existing.organizationId,
+      roleLabel: "business owner",
+    });
+    const requester = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.requesterResourceId,
+      organizationId: existing.organizationId,
+      roleLabel: "requester",
+    });
+    const sponsor = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.sponsorResourceId,
+      organizationId: existing.organizationId,
+      roleLabel: "sponsor",
+    });
+
+    const businessOwnerName =
+      businessOwner?.name ?? input.businessOwnerName.trim();
+    const requesterName = requester?.name ?? input.requesterName.trim();
+    if (!businessOwnerName) {
+      throw new AppError(
+        "VALIDATION",
+        "Business owner is required (select a person resource or provide a name).",
+      );
+    }
+    if (!requesterName) {
+      throw new AppError(
+        "VALIDATION",
+        "Requester is required (select a person resource or provide a name).",
+      );
+    }
+
     try {
       const updated = await this.db.initiative.update({
         where: { id: input.id, version: input.expectedVersion },
         data: {
           title: input.title,
-          requesterName: input.requesterName,
+          requesterName,
           requesterContact: input.requesterContact ?? null,
-          businessOwnerName: input.businessOwnerName,
+          requesterResourceId: requester?.id ?? null,
+          businessOwnerName,
           businessOwnerContact: input.businessOwnerContact ?? null,
+          businessOwnerResourceId: businessOwner?.id ?? null,
+          sponsorResourceId: sponsor?.id ?? null,
           version: { increment: 1 },
         },
       });
@@ -207,7 +283,18 @@ export class InitiativeService {
         subjectType: "Initiative",
         subjectId: updated.id,
         organizationId: updated.organizationId,
-        payload: { title: updated.title, version: updated.version },
+        payload: {
+          title: updated.title,
+          version: updated.version,
+          oldBusinessOwnerResourceId: existing.businessOwnerResourceId,
+          newBusinessOwnerResourceId: updated.businessOwnerResourceId,
+          oldBusinessOwnerName: existing.businessOwnerName,
+          newBusinessOwnerName: updated.businessOwnerName,
+          oldRequesterResourceId: existing.requesterResourceId,
+          newRequesterResourceId: updated.requesterResourceId,
+          oldSponsorResourceId: existing.sponsorResourceId,
+          newSponsorResourceId: updated.sponsorResourceId,
+        },
         result: "success",
       });
       return updated;
@@ -757,6 +844,13 @@ export class InitiativeService {
       organizationId: initiative.organizationId,
     });
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: initiative.organizationId,
+      roleLabel: "risk owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     const risk = await this.db.$transaction(async (tx) => {
       const referenceKey = await this.allocateRiskReference(tx, initiative.id);
       return tx.risk.create({
@@ -765,7 +859,8 @@ export class InitiativeService {
           referenceKey,
           title: input.title,
           description: input.description,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           probability: input.probability,
           impact: input.impact,
           status: input.status,
@@ -779,7 +874,12 @@ export class InitiativeService {
       subjectType: "Risk",
       subjectId: risk.id,
       organizationId: initiative.organizationId,
-      payload: { referenceKey: risk.referenceKey, title: risk.title },
+      payload: {
+        referenceKey: risk.referenceKey,
+        title: risk.title,
+        ownerResourceId: risk.ownerResourceId,
+        ownerName: risk.ownerName,
+      },
       result: "success",
     });
     return risk;
@@ -798,13 +898,21 @@ export class InitiativeService {
     });
     this.assertVersion(existing.version, input.expectedVersion, "risk");
 
+    const owner = await resolveOptionalBusinessOwner(this.db, {
+      resourceId: input.ownerResourceId,
+      organizationId: existing.initiative.organizationId,
+      roleLabel: "risk owner",
+    });
+    const ownerName = owner?.name ?? input.ownerName ?? null;
+
     try {
       const updated = await this.db.risk.update({
         where: { id: input.id, version: input.expectedVersion },
         data: {
           title: input.title,
           description: input.description,
-          ownerName: input.ownerName ?? null,
+          ownerName,
+          ownerResourceId: owner?.id ?? null,
           probability: input.probability,
           impact: input.impact,
           status: input.status,
@@ -818,7 +926,14 @@ export class InitiativeService {
         subjectType: "Risk",
         subjectId: updated.id,
         organizationId: existing.initiative.organizationId,
-        payload: { status: updated.status, version: updated.version },
+        payload: {
+          status: updated.status,
+          version: updated.version,
+          oldOwnerResourceId: existing.ownerResourceId,
+          newOwnerResourceId: updated.ownerResourceId,
+          oldOwnerName: existing.ownerName,
+          newOwnerName: updated.ownerName,
+        },
         result: "success",
       });
       return updated;
