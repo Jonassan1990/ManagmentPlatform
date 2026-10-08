@@ -58,6 +58,7 @@ export function getEnv(): AppEnv {
 export function resetEnvCacheForTests(): void {
   cached = null;
   cachedAuth = null;
+  cachedTempAuth = null;
 }
 
 /** DEV auth is only possible in development with an explicit flag and principal UUID. */
@@ -132,4 +133,149 @@ export function getBootstrapSetupToken(): string | null {
 
 export function getPublicAppUrl(env: AppEnv = getEnv()): string | undefined {
   return env.AUTH_URL ?? env.APP_URL;
+}
+
+/**
+ * Temporary single-owner credentials (ADR-026).
+ * Configured only when AUTH_SECRET + username + password hash + principal UUID are all valid.
+ * Partial / invalid configuration ⇒ TEMP AUTH DISABLED (fail closed).
+ */
+const tempAuthEnvSchema = z.object({
+  AUTH_SECRET: z.string().min(16, "AUTH_SECRET must be at least 16 characters"),
+  TEMP_AUTH_USERNAME: z.string().min(1).max(200),
+  TEMP_AUTH_PASSWORD_HASH: z
+    .string()
+    .min(20)
+    .refine(
+      (v) =>
+        v.startsWith("$2a$") ||
+        v.startsWith("$2b$") ||
+        v.startsWith("$2y$") ||
+        v.startsWith("$argon2"),
+      "TEMP_AUTH_PASSWORD_HASH must be a bcrypt or argon2 hash (raw or base64:…)",
+    ),
+  TEMP_AUTH_PRINCIPAL_ID: z.string().uuid(),
+  TEMP_AUTH_DISPLAY_NAME: z.string().max(200).optional(),
+});
+
+export type TempAuthEnv = z.infer<typeof tempAuthEnvSchema>;
+
+let cachedTempAuth: TempAuthEnv | false | null = null;
+
+/** Strip optional wrapping quotes left by some env loaders. */
+function stripEnvQuotes(value: string | undefined): string | undefined {
+  if (value == null) return undefined;
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+    (trimmed.startsWith('"') && trimmed.endsWith('"'))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed || undefined;
+}
+
+/**
+ * Resolve password hash from env.
+ * Prefer `base64:<…>` so dotenv / shell `$` expansion cannot corrupt bcrypt `$2b$…` strings.
+ * Raw `$2…` / `$argon2…` hashes are still accepted when the host preserves them.
+ */
+function resolveTempAuthPasswordHash(
+  raw: string | undefined,
+): string | undefined {
+  const value = stripEnvQuotes(raw);
+  if (!value) return undefined;
+  if (value.startsWith("base64:")) {
+    try {
+      const decoded = Buffer.from(value.slice("base64:".length), "base64").toString(
+        "utf8",
+      );
+      return decoded || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return value;
+}
+
+function peekTempAuthRaw(): Record<string, string | undefined> {
+  return {
+    AUTH_SECRET: process.env.AUTH_SECRET?.trim() || undefined,
+    TEMP_AUTH_USERNAME:
+      stripEnvQuotes(process.env.TEMP_AUTH_USERNAME) || undefined,
+    TEMP_AUTH_PASSWORD_HASH: resolveTempAuthPasswordHash(
+      process.env.TEMP_AUTH_PASSWORD_HASH,
+    ),
+    TEMP_AUTH_PRINCIPAL_ID:
+      stripEnvQuotes(process.env.TEMP_AUTH_PRINCIPAL_ID) || undefined,
+    TEMP_AUTH_DISPLAY_NAME:
+      stripEnvQuotes(process.env.TEMP_AUTH_DISPLAY_NAME) || undefined,
+  };
+}
+
+/** True only when every mandatory temp-auth value is present and valid. */
+export function isTempAuthConfigured(): boolean {
+  return getTempAuthEnv() !== null;
+}
+
+/**
+ * Returns validated temp-auth config, or null when disabled / incomplete / invalid.
+ * Never throws for missing config (fail closed silently for callers).
+ */
+export function getTempAuthEnv(): TempAuthEnv | null {
+  if (cachedTempAuth === false) return null;
+  if (cachedTempAuth) return cachedTempAuth;
+
+  const raw = peekTempAuthRaw();
+  const anyTempField = Boolean(
+    raw.TEMP_AUTH_USERNAME ||
+      raw.TEMP_AUTH_PASSWORD_HASH ||
+      raw.TEMP_AUTH_PRINCIPAL_ID,
+  );
+  if (!anyTempField && !raw.AUTH_SECRET) {
+    cachedTempAuth = false;
+    return null;
+  }
+  // Partial TEMP_AUTH_* without complete set → disabled
+  if (
+    !raw.TEMP_AUTH_USERNAME ||
+    !raw.TEMP_AUTH_PASSWORD_HASH ||
+    !raw.TEMP_AUTH_PRINCIPAL_ID
+  ) {
+    if (anyTempField) {
+      console.error(
+        "[temp-auth] TEMP AUTH DISABLED: incomplete configuration (username, password hash, and principal id are all required).",
+      );
+    }
+    cachedTempAuth = false;
+    return null;
+  }
+
+  const parsed = tempAuthEnvSchema.safeParse(raw);
+  if (!parsed.success) {
+    console.error(
+      "[temp-auth] TEMP AUTH DISABLED: invalid configuration.",
+      parsed.error.issues.map((i) => i.message).join("; "),
+    );
+    cachedTempAuth = false;
+    return null;
+  }
+  cachedTempAuth = parsed.data;
+  return cachedTempAuth;
+}
+
+/** AUTH_SECRET for Auth.js when OIDC and/or temp auth is active. */
+export function resolveAuthSecret(): string | null {
+  const oidc = isOidcConfigured();
+  const temp = getTempAuthEnv();
+  if (oidc) {
+    try {
+      return getAuthEnv().AUTH_SECRET;
+    } catch {
+      return null;
+    }
+  }
+  if (temp) return temp.AUTH_SECRET;
+  const soft = process.env.AUTH_SECRET?.trim();
+  return soft && soft.length >= 16 ? soft : null;
 }

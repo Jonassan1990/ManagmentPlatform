@@ -3,7 +3,7 @@ export type Principal = {
   displayName: string | null;
   /** Display-only; never used as an identity key. */
   email?: string | null;
-  source: "oidc" | "dev" | "test";
+  source: "oidc" | "dev" | "test" | "temp";
 };
 
 export type AuthScope =

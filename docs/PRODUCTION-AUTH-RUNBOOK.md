@@ -1,11 +1,11 @@
 # Production Auth Runbook
 
-Operator guide for wiring OIDC and first-time platform bootstrap.
+Operator guide for wiring OIDC, temporary owner credentials (ADR-026), and first-time platform bootstrap.
 
 ## Prerequisites
 
 - Managed PostgreSQL with `DATABASE_URL` (pooled OK for runtime) and `DIRECT_URL` (direct for migrations)
-- Auth.js secrets and OIDC client registered at your IdP
+- Auth.js secrets; OIDC client **or** temporary owner credentials (not `ALLOW_DEV_AUTH`)
 - Application URL (`APP_URL` / `AUTH_URL`) matching the deployment host
 
 ## Environment variables
@@ -14,15 +14,49 @@ Operator guide for wiring OIDC and first-time platform bootstrap.
 |---|---|---|
 | `DATABASE_URL` | Yes | Runtime DB (may be pooled) |
 | `DIRECT_URL` | Yes when schema declares it | Non-pooled URL for `prisma migrate` |
-| `AUTH_SECRET` | Yes when OIDC enabled | `openssl rand -base64 32` |
+| `AUTH_SECRET` | Yes when OIDC **or** temp auth enabled | `openssl rand -base64 32` |
 | `AUTH_URL` or `APP_URL` | Yes | Public base URL, e.g. `https://app.example.com` |
 | `OIDC_ISSUER` | Yes for SSO | Issuer URL (discovery) |
 | `OIDC_CLIENT_ID` | Yes for SSO | |
 | `OIDC_CLIENT_SECRET` | Yes for SSO | |
 | `OIDC_SCOPES` | Optional | Default `openid profile email` |
+| `TEMP_AUTH_USERNAME` | Temp owner login | Single username; all `TEMP_AUTH_*` required together |
+| `TEMP_AUTH_PASSWORD_HASH` | Temp owner login | bcrypt hash only — never plaintext |
+| `TEMP_AUTH_PRINCIPAL_ID` | Temp owner login | Stable Principal UUID |
+| `TEMP_AUTH_DISPLAY_NAME` | Optional | Display label |
 | `BOOTSTRAP_SETUP_TOKEN` | For first admin | Min 16 chars; one-time consume |
 | `ALLOW_DEV_AUTH` | Must be unset/false | Production rejects `true` |
 | `DEV_AUTH_*` | Must be unset | Not for production |
+
+## Temporary owner credentials (until OIDC)
+
+See [ADR-026](./adr/ADR-026-temporary-owner-credentials.md). This is **not** DEV auth.
+
+1. Generate secrets locally (do not commit):
+
+```bash
+# Principal UUID
+node -e "console.log(require('crypto').randomUUID())"
+
+# AUTH_SECRET
+openssl rand -base64 32
+
+# Password hash (interactive; prints dotenv-safe base64:… form by default)
+node scripts/generate-temp-auth-hash.mjs
+# Raw $2b$… also works if the host preserves `$` (use --raw); prefer base64: on Vercel/Next.
+
+# Bootstrap token (min 16 chars)
+openssl rand -base64 24
+```
+
+2. Set Production env on Vercel: `AUTH_SECRET`, `TEMP_AUTH_USERNAME`, `TEMP_AUTH_PASSWORD_HASH`, `TEMP_AUTH_PRINCIPAL_ID`, optional `TEMP_AUTH_DISPLAY_NAME`, and `BOOTSTRAP_SETUP_TOKEN` if bootstrap not yet consumed. Leave `ALLOW_DEV_AUTH` unset.
+3. Redeploy. `/login` shows the username/password form.
+4. Sign in → if no RoleBindings, complete `/setup/bootstrap` with the token (same ADR-019 flow).
+5. When OIDC is ready: verify SSO, confirm bindings, remove all `TEMP_AUTH_*`, redeploy.
+
+**Rate limiting:** in-process failure throttle is best-effort and not globally reliable across serverless instances.
+
+**Failure modes (temp auth):** incomplete `TEMP_AUTH_*` ⇒ provider disabled (fail closed). Wrong password ⇒ generic error. Identity conflicts ⇒ login denied without browser detail.
 
 ## IdP application setup
 
@@ -53,7 +87,8 @@ Use `DIRECT_URL` for migration connectivity when the runtime URL is pooled.
 
 | Symptom | Likely cause |
 |---|---|
-| Login shows “authentication not configured” | Missing `OIDC_*` env |
+| Login shows sign-in unavailable | Missing OIDC **and** temp auth config |
+| Login shows “authentication not configured” (legacy copy) | Missing `OIDC_*` / temp auth env |
 | Sign-in error redirect to `/login?error=` | IdP misconfig / redirect URI / secret |
 | Signed in but cannot mutate | No role bindings — complete bootstrap or ask admin |
 | Bootstrap “already consumed” | Another principal already used the token |

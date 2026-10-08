@@ -6,11 +6,18 @@ import { ROLE_KEYS } from "@/modules/shared/permissions";
 import type { Principal } from "../domain/types";
 import { AuthorizationService } from "./authorization-service";
 import { getBootstrapSetupToken } from "@/server/env";
+import { TEMP_AUTH_ISSUER } from "./temp-auth-constants";
 
 export type OidcIdentityInput = {
   issuer: string;
   subject: string;
   email?: string | null;
+  displayName?: string | null;
+};
+
+export type TempAuthIdentityInput = {
+  principalId: string;
+  username: string;
   displayName?: string | null;
 };
 
@@ -114,6 +121,142 @@ export class IdentityService {
       displayName: principal.displayName,
       email: principal.email ?? undefined,
       source: "oidc",
+    };
+  }
+
+  /**
+   * Resolve/create the single temporary owner Principal + ExternalIdentity (ADR-026).
+   * Uses configured TEMP_AUTH_PRINCIPAL_ID as the stable Principal id.
+   * Fails closed on conflicting identity state (never silently overwrite).
+   * Does NOT grant RoleBindings.
+   */
+  async resolveOrCreateFromTempAuth(
+    input: TempAuthIdentityInput,
+  ): Promise<Principal> {
+    const principalId = input.principalId.trim();
+    const subject = input.username.trim();
+    const issuer = TEMP_AUTH_ISSUER;
+    if (!principalId || !subject) {
+      throw new AppError(
+        "VALIDATION",
+        "Temporary auth principal id and username are required.",
+      );
+    }
+
+    const existingLink = await this.db.externalIdentity.findUnique({
+      where: { issuer_subject: { issuer, subject } },
+      include: { principal: true },
+    });
+
+    if (existingLink && existingLink.principalId !== principalId) {
+      console.error(
+        "[temp-auth] identity conflict: ExternalIdentity subject bound to a different Principal",
+      );
+      throw new AppError(
+        "CONFLICT",
+        "Temporary authentication is misconfigured.",
+      );
+    }
+
+    const principalRow = await this.db.principal.findUnique({
+      where: { id: principalId },
+      include: {
+        externalIdentities: {
+          where: { issuer },
+        },
+      },
+    });
+
+    if (principalRow) {
+      const otherTemp = principalRow.externalIdentities.find(
+        (ei) => ei.subject !== subject,
+      );
+      if (otherTemp) {
+        console.error(
+          "[temp-auth] identity conflict: Principal already has a different temp-auth subject",
+        );
+        throw new AppError(
+          "CONFLICT",
+          "Temporary authentication is misconfigured.",
+        );
+      }
+    }
+
+    if (existingLink) {
+      await this.db.externalIdentity.update({
+        where: { id: existingLink.id },
+        data: {
+          lastLoginAt: new Date(),
+          displayNameSnapshot:
+            input.displayName ?? existingLink.displayNameSnapshot,
+        },
+      });
+      if (input.displayName) {
+        await this.db.principal.update({
+          where: { id: principalId },
+          data: { displayName: input.displayName },
+        });
+      }
+      return {
+        id: principalId,
+        displayName:
+          input.displayName ??
+          existingLink.principal.displayName ??
+          existingLink.displayNameSnapshot,
+        email: existingLink.principal.email ?? undefined,
+        source: "temp",
+      };
+    }
+
+    const principal = await this.db.$transaction(async (tx) => {
+      const created =
+        principalRow ??
+        (await tx.principal.create({
+          data: {
+            id: principalId,
+            displayName: input.displayName ?? null,
+          },
+        }));
+
+      if (principalRow && input.displayName) {
+        await tx.principal.update({
+          where: { id: principalId },
+          data: { displayName: input.displayName },
+        });
+      }
+
+      await tx.externalIdentity.create({
+        data: {
+          issuer,
+          subject,
+          principalId,
+          displayNameSnapshot: input.displayName ?? null,
+          lastLoginAt: new Date(),
+        },
+      });
+
+      return created;
+    });
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "identity.temp_auth.resolve",
+      subjectType: "Principal",
+      subjectId: principal.id,
+      payload: {
+        issuer,
+        // subject is a configured username, not a secret — but keep payload minimal
+        subjectPresent: true,
+        createdPrincipal: !principalRow,
+      },
+      result: "success",
+    });
+
+    return {
+      id: principal.id,
+      displayName: input.displayName ?? principal.displayName,
+      email: principal.email ?? undefined,
+      source: "temp",
     };
   }
 
