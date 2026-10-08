@@ -1,9 +1,13 @@
 "use client";
 
 import {
+  changeIssueStatusAction,
+  createIssueAction,
   createMilestoneAction,
   createWorkItemAction,
+  resolveIssueAction,
   updateBudgetAction,
+  updateIssueAction,
   updateMilestoneAction,
   updateProjectAction,
   updateWorkItemAction,
@@ -737,5 +741,349 @@ export function UpdateWorkItemForm({
         {form.pending ? "Saving…" : "Update work item"}
       </PrimaryButton>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 1C — Issues
+// ---------------------------------------------------------------------------
+
+export function CreateIssueForm({
+  projectId,
+  initiativeId,
+  capabilities,
+  ownerPeople = [],
+  relatedRisks = [],
+}: {
+  projectId: string;
+  initiativeId: string;
+  capabilities?: Caps;
+  ownerPeople?: { id: string; name: string; label: string }[];
+  relatedRisks?: { id: string; referenceKey: string; title: string }[];
+}) {
+  const form = useActionForm(createIssueAction);
+  const allowed = capabilities?.canEditProject !== false;
+  return (
+    <form
+      className="space-y-3 border-t border-[var(--line)] pt-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!allowed) return;
+        const fd = new FormData(e.currentTarget);
+        form.submit({
+          projectId,
+          initiativeId,
+          title: String(fd.get("title") ?? ""),
+          description: optionalText(fd.get("description")),
+          severity: String(fd.get("severity") ?? "MEDIUM"),
+          isBlocker: fd.get("isBlocker") === "on",
+          ownerName: optionalText(fd.get("ownerName")),
+          ownerResourceId: String(fd.get("ownerResourceId") ?? "") || null,
+          relatedRiskId: String(fd.get("relatedRiskId") ?? "") || null,
+        });
+        e.currentTarget.reset();
+      }}
+    >
+      <h3 className="font-medium">Create issue</h3>
+      <p className="text-sm text-[var(--muted)]">
+        An issue is a problem that has happened — distinct from a risk (uncertain
+        future). Mark BLOCKER when it currently prevents delivery.
+      </p>
+      {form.ErrorAlert}
+      <FormField label="Title" htmlFor="issue-title">
+        <input
+          id="issue-title"
+          name="title"
+          required
+          className={fieldClassName}
+        />
+      </FormField>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <FormField label="Severity" htmlFor="issue-severity">
+          <select
+            id="issue-severity"
+            name="severity"
+            defaultValue="MEDIUM"
+            className={fieldClassName}
+          >
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="CRITICAL">Critical</option>
+          </select>
+        </FormField>
+        <FormField label="Owner" htmlFor="issue-owner">
+          <select
+            id="issue-owner"
+            name="ownerResourceId"
+            className={fieldClassName}
+            defaultValue=""
+          >
+            <option value="">Unassigned</option>
+            {ownerPeople.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      </div>
+      {relatedRisks.length > 0 ? (
+        <FormField label="Related risk (optional)" htmlFor="issue-risk">
+          <select
+            id="issue-risk"
+            name="relatedRiskId"
+            className={fieldClassName}
+            defaultValue=""
+          >
+            <option value="">None</option>
+            {relatedRisks.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.referenceKey} · {r.title}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      ) : null}
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="isBlocker" />
+        Mark as BLOCKER (currently prevents delivery)
+      </label>
+      <FormField label="Description" htmlFor="issue-desc">
+        <textarea
+          id="issue-desc"
+          name="description"
+          rows={2}
+          className={fieldClassName}
+        />
+      </FormField>
+      <PrimaryButton
+        disabled={!allowed || form.pending}
+        title={permissionTitle(allowed)}
+      >
+        {form.pending ? "Creating…" : "Create issue"}
+      </PrimaryButton>
+    </form>
+  );
+}
+
+export function UpdateIssueForm({
+  issue,
+  initiativeId,
+  capabilities,
+  ownerPeople = [],
+}: {
+  initiativeId: string;
+  issue: {
+    id: string;
+    version: number;
+    title: string;
+    description: string | null;
+    severity: string;
+    status: string;
+    isBlocker: boolean;
+    ownerName: string | null;
+    ownerResourceId: string | null;
+    resolution: string | null;
+  };
+  capabilities?: Caps;
+  ownerPeople?: { id: string; name: string; label: string }[];
+}) {
+  const updateForm = useActionForm(updateIssueAction);
+  const statusForm = useActionForm(changeIssueStatusAction);
+  const resolveForm = useActionForm(resolveIssueAction);
+  const allowed = capabilities?.canEditProject !== false;
+  const terminal = issue.status === "RESOLVED" || issue.status === "CLOSED";
+
+  return (
+    <div className="space-y-4">
+      <form
+        className="space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!allowed) return;
+          const fd = new FormData(e.currentTarget);
+          updateForm.submit({
+            issueId: issue.id,
+            initiativeId,
+            expectedVersion: issue.version,
+            title: String(fd.get("title") ?? ""),
+            description: optionalText(fd.get("description")),
+            severity: String(fd.get("severity") ?? "MEDIUM"),
+            isBlocker: fd.get("isBlocker") === "on",
+            ownerName: optionalText(fd.get("ownerName")),
+            ownerResourceId: String(fd.get("ownerResourceId") ?? "") || null,
+          });
+        }}
+      >
+        {updateForm.ErrorAlert}
+        <FormField label="Title" htmlFor={`issue-${issue.id}-title`}>
+          <input
+            id={`issue-${issue.id}-title`}
+            name="title"
+            required
+            defaultValue={issue.title}
+            className={fieldClassName}
+          />
+        </FormField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Severity" htmlFor={`issue-${issue.id}-sev`}>
+            <select
+              id={`issue-${issue.id}-sev`}
+              name="severity"
+              defaultValue={issue.severity}
+              className={fieldClassName}
+            >
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="CRITICAL">Critical</option>
+            </select>
+          </FormField>
+          <FormField label="Owner" htmlFor={`issue-${issue.id}-owner`}>
+            <select
+              id={`issue-${issue.id}-owner`}
+              name="ownerResourceId"
+              className={fieldClassName}
+              defaultValue={issue.ownerResourceId ?? ""}
+            >
+              <option value="">Unassigned</option>
+              {ownerPeople.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="isBlocker"
+            defaultChecked={issue.isBlocker}
+          />
+          BLOCKER (active only while status is open / in progress)
+        </label>
+        <FormField label="Description" htmlFor={`issue-${issue.id}-desc`}>
+          <textarea
+            id={`issue-${issue.id}-desc`}
+            name="description"
+            rows={2}
+            defaultValue={issue.description ?? ""}
+            className={fieldClassName}
+          />
+        </FormField>
+        <PrimaryButton
+          disabled={!allowed || updateForm.pending}
+          title={permissionTitle(allowed)}
+        >
+          {updateForm.pending ? "Saving…" : "Update issue"}
+        </PrimaryButton>
+      </form>
+
+      {!terminal ? (
+        <form
+          className="space-y-3 border-t border-[var(--line)] pt-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!allowed) return;
+            const fd = new FormData(e.currentTarget);
+            const toStatus = String(fd.get("toStatus") ?? "IN_PROGRESS");
+            if (toStatus === "RESOLVED" || toStatus === "CLOSED") {
+              resolveForm.submit({
+                issueId: issue.id,
+                initiativeId,
+                expectedVersion: issue.version,
+                resolution: String(fd.get("resolution") ?? ""),
+                close: toStatus === "CLOSED",
+              });
+            } else {
+              statusForm.submit({
+                issueId: issue.id,
+                initiativeId,
+                expectedVersion: issue.version,
+                toStatus,
+                resolution: optionalText(fd.get("resolution")),
+              });
+            }
+          }}
+        >
+          <h4 className="text-sm font-medium">Status</h4>
+          {statusForm.ErrorAlert}
+          {resolveForm.ErrorAlert}
+          <FormField label="Move to" htmlFor={`issue-${issue.id}-status`}>
+            <select
+              id={`issue-${issue.id}-status`}
+              name="toStatus"
+              defaultValue={
+                issue.status === "OPEN" ? "IN_PROGRESS" : "RESOLVED"
+              }
+              className={fieldClassName}
+            >
+              {issue.status === "OPEN" ? (
+                <option value="IN_PROGRESS">In progress</option>
+              ) : null}
+              <option value="RESOLVED">Resolved</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+          </FormField>
+          <FormField
+            label="Resolution (required when resolving)"
+            htmlFor={`issue-${issue.id}-resolution`}
+          >
+            <textarea
+              id={`issue-${issue.id}-resolution`}
+              name="resolution"
+              rows={2}
+              defaultValue={issue.resolution ?? ""}
+              className={fieldClassName}
+            />
+          </FormField>
+          <PrimaryButton
+            disabled={!allowed || statusForm.pending || resolveForm.pending}
+            title={permissionTitle(allowed)}
+          >
+            {statusForm.pending || resolveForm.pending
+              ? "Updating…"
+              : "Apply status"}
+          </PrimaryButton>
+        </form>
+      ) : (
+        <form
+          className="space-y-3 border-t border-[var(--line)] pt-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!allowed) return;
+            const fd = new FormData(e.currentTarget);
+            statusForm.submit({
+              issueId: issue.id,
+              initiativeId,
+              expectedVersion: issue.version,
+              toStatus: String(fd.get("toStatus") ?? "OPEN"),
+            });
+          }}
+        >
+          <h4 className="text-sm font-medium">Reopen</h4>
+          {statusForm.ErrorAlert}
+          <FormField label="Reopen as" htmlFor={`issue-${issue.id}-reopen`}>
+            <select
+              id={`issue-${issue.id}-reopen`}
+              name="toStatus"
+              defaultValue="OPEN"
+              className={fieldClassName}
+            >
+              <option value="OPEN">Open</option>
+              <option value="IN_PROGRESS">In progress</option>
+            </select>
+          </FormField>
+          <PrimaryButton
+            disabled={!allowed || statusForm.pending}
+            title={permissionTitle(allowed)}
+          >
+            {statusForm.pending ? "Reopening…" : "Reopen issue"}
+          </PrimaryButton>
+        </form>
+      )}
+    </div>
   );
 }
