@@ -317,7 +317,9 @@ export class AllocationService {
         status: { notIn: ["CANCELLED", "DONE"] },
         project: {
           organizationId: pi.organizationId,
-          status: { notIn: ["ARCHIVED", "CANCELLED"] },
+          // Closed / archived projects stay in historical allocations but
+          // are excluded from new planning candidates (Phase 1D).
+          status: { notIn: ["ARCHIVED", "CANCELLED", "COMPLETED"] },
           OR: [
             { departmentId: { in: deptIds } },
             {

@@ -34,6 +34,8 @@ export const PERMISSIONS = {
   PROJECT_CONVERT: "project.convert",
   PROJECT_VIEW: "project.view",
   PROJECT_EDIT: "project.edit",
+  /** Explicit Project closure — not granted via Project Owner ownership (ADR-025). */
+  PROJECT_CLOSE: "project.close",
   PROJECT_MANAGE_MILESTONES: "project.manage_milestones",
   PROJECT_MANAGE_WORKITEMS: "project.manage_workitems",
   GOVERNANCE_POLICY_MANAGE: "governance.policy.manage",

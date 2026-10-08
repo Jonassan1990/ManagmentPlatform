@@ -188,3 +188,13 @@ export async function resolveIssueAction(input: unknown) {
     return result;
   });
 }
+
+export async function closeProjectAction(input: unknown) {
+  return run(async () => {
+    const { authz, project } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await project.closeProject(principal, input);
+    revalidateProject(result.project.initiativeId, result.project.id);
+    return result;
+  });
+}

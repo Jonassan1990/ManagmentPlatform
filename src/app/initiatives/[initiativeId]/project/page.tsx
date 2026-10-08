@@ -9,6 +9,8 @@ import {
   LifecycleRail,
 } from "@/components/initiative/workspace";
 import {
+  ClosedProjectBanner,
+  CloseProjectPanel,
   CreateIssueForm,
   CreateMilestoneForm,
   CreateWorkItemForm,
@@ -19,6 +21,7 @@ import {
   UpdateWorkItemForm,
 } from "@/components/project/project-forms";
 import { isActiveBlockerIssue } from "@/modules/project/application/issue-policy";
+import { isProjectClosedStatus } from "@/modules/project/application/closure-policy";
 import { TraceabilityPanel } from "@/components/project/traceability-panel";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { createServices } from "@/server/container";
@@ -81,6 +84,9 @@ export default async function ProjectPage({
     ReturnType<typeof projectIssues.listProjectIssues>
   > | null = null;
   let relatedRisks: { id: string; referenceKey: string; title: string }[] = [];
+  let closureReadiness: Awaited<
+    ReturnType<typeof projectService.getClosureReadiness>
+  > | null = null;
   if (project) {
     try {
       issueList = await projectIssues.listProjectIssues(principal, {
@@ -107,6 +113,14 @@ export default async function ProjectPage({
       issueList = null;
     }
     try {
+      closureReadiness = await projectService.getClosureReadiness(principal, {
+        projectId: project.id,
+        outcome: "DELIVERED",
+      });
+    } catch {
+      closureReadiness = null;
+    }
+    try {
       const initWorkspace = await initiative.getInitiativeWorkspace(
         principal,
         initiativeId,
@@ -129,6 +143,18 @@ export default async function ProjectPage({
       {label}
     </a>
   );
+
+  const projectClosed = project
+    ? isProjectClosedStatus(project.status) || Boolean(project.closure)
+    : false;
+  // Closed projects are historical/read-only for delivery mutations (server enforces too).
+  const mutationCapabilities = projectClosed
+    ? {
+        ...capabilities,
+        canEditProject: false,
+        canCloseProject: false,
+      }
+    : capabilities;
 
   return (
     <div>
@@ -181,12 +207,22 @@ export default async function ProjectPage({
             {sectionLink("work", "Work")}
             {sectionLink("milestones", "Milestones")}
             {sectionLink("issues", "Issues")}
+            {sectionLink("closure", "Closure")}
             {sectionLink("budget", "Budget")}
             {sectionLink("risks", "Risks")}
             {sectionLink("decisions", "Decisions")}
             {sectionLink("documents", "Documents")}
             {sectionLink("history", "History")}
           </div>
+
+          {projectClosed ? (
+            <div className="mb-2">
+              <ClosedProjectBanner
+                projectStatus={project.status}
+                closure={project.closure}
+              />
+            </div>
+          ) : null}
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Panel>
@@ -227,7 +263,7 @@ export default async function ProjectPage({
                   <UpdateProjectForm
                     project={project}
                     initiativeId={item.id}
-                    capabilities={capabilities}
+                    capabilities={mutationCapabilities}
                     ownerPeople={ownerPeople}
                   />
                 </Panel>
@@ -264,7 +300,7 @@ export default async function ProjectPage({
                               referenceKey: w.referenceKey,
                               title: w.title,
                             }))}
-                            capabilities={capabilities}
+                            capabilities={mutationCapabilities}
                           />
                         </li>
                       ))}
@@ -278,7 +314,7 @@ export default async function ProjectPage({
                       referenceKey: w.referenceKey,
                       title: w.title,
                     }))}
-                    capabilities={capabilities}
+                    capabilities={mutationCapabilities}
                   />
                 </Panel>
               </section>
@@ -395,7 +431,7 @@ export default async function ProjectPage({
                             <UpdateIssueForm
                               issue={issue}
                               initiativeId={item.id}
-                              capabilities={capabilities}
+                              capabilities={mutationCapabilities}
                               ownerPeople={ownerPeople}
                             />
                           </li>
@@ -406,7 +442,7 @@ export default async function ProjectPage({
                   <CreateIssueForm
                     projectId={project.id}
                     initiativeId={item.id}
-                    capabilities={capabilities}
+                    capabilities={mutationCapabilities}
                     ownerPeople={ownerPeople}
                     relatedRisks={relatedRisks}
                   />
@@ -439,7 +475,7 @@ export default async function ProjectPage({
                           <UpdateMilestoneForm
                             milestone={ms}
                             initiativeId={item.id}
-                            capabilities={capabilities}
+                            capabilities={mutationCapabilities}
                           />
                         </li>
                       ))}
@@ -448,7 +484,7 @@ export default async function ProjectPage({
                   <CreateMilestoneForm
                     projectId={project.id}
                     initiativeId={item.id}
-                    capabilities={capabilities}
+                    capabilities={mutationCapabilities}
                   />
                 </Panel>
               </section>
@@ -458,8 +494,30 @@ export default async function ProjectPage({
                   <UpdateBudgetForm
                     project={project}
                     initiativeId={item.id}
-                    capabilities={capabilities}
+                    capabilities={mutationCapabilities}
                   />
+                </Panel>
+              </section>
+
+              <section id="closure">
+                <Panel>
+                  {isProjectClosedStatus(project.status) || project.closure ? (
+                    <ClosedProjectBanner
+                      projectStatus={project.status}
+                      closure={project.closure}
+                    />
+                  ) : closureReadiness ? (
+                    <CloseProjectPanel
+                      project={project}
+                      initiativeId={item.id}
+                      readiness={closureReadiness.readiness}
+                      capabilities={mutationCapabilities}
+                    />
+                  ) : (
+                    <p className="text-sm text-[var(--muted)]">
+                      Closure readiness is unavailable.
+                    </p>
+                  )}
                 </Panel>
               </section>
             </div>

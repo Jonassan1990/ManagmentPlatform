@@ -11,6 +11,7 @@ import type { Principal } from "@/modules/identity-access/domain/types";
 import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
+import { isProjectClosedStatus } from "./closure-policy";
 import {
   isActiveBlockerIssue,
   isAllowedIssueStatusTransition,
@@ -45,7 +46,7 @@ type ProjectRow = {
   organizationId: string;
   departmentId: string;
   initiativeId: string;
-  status: string;
+  status: import("@prisma/client").ProjectStatus;
 };
 
 export class ProjectIssueService {
@@ -379,6 +380,13 @@ export class ProjectIssueService {
   }
 
   private async assertCanEdit(principal: Principal, project: ProjectRow) {
+    if (isProjectClosedStatus(project.status)) {
+      throw new AppError(
+        "CONFLICT",
+        "Closed projects are read-only for delivery mutations.",
+        { details: { status: project.status } },
+      );
+    }
     await this.authz.assertCan(
       principal,
       PERMISSIONS.PROJECT_EDIT,
