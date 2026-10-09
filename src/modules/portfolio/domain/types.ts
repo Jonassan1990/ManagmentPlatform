@@ -411,3 +411,196 @@ export type DeliveryHealthProjectInput = {
   projectId: string;
   asOf?: Date;
 };
+
+// ---------------------------------------------------------------------------
+// M2E-A — Portfolio PI & Capacity query contracts
+// ---------------------------------------------------------------------------
+
+export type PortfolioPiLifecycleBucket =
+  | "ACTIVE"
+  | "UPCOMING"
+  | "COMPLETED"
+  | "OTHER";
+
+export type PortfolioPiStatus =
+  | "DRAFT"
+  | "PLANNING"
+  | "REVIEW"
+  | "BASELINED"
+  | "ACTIVE"
+  | "CLOSED";
+
+export type PortfolioPiListInput = {
+  organizationId: string;
+  departmentId?: string;
+  sectionId?: string;
+  /** When set, only this PI (still must be authorized). */
+  piId?: string;
+  /** Filter by lifecycle bucket (derived). Default: all. */
+  lifecycle?: PortfolioPiLifecycleBucket[];
+  asOf?: Date;
+  page?: number;
+  pageSize?: number;
+};
+
+export type PortfolioPiListItem = {
+  piId: string;
+  referenceKey: string;
+  name: string;
+  status: PortfolioPiStatus;
+  lifecycle: PortfolioPiLifecycleBucket;
+  sectionId: string | null;
+  startDate: string;
+  endDate: string;
+  href: string;
+  hasCurrentRevision: boolean;
+  baselineCount: number;
+  latestBaselineVersion: number | null;
+};
+
+export type PortfolioPiListResult = {
+  asOf: string;
+  scope: PortfolioQueryScopeApplied;
+  page: number;
+  pageSize: number;
+  total: number;
+  rows: PortfolioPiListItem[];
+};
+
+export type PortfolioPiCapacityInput = {
+  organizationId: string;
+  /** Required for detailed capacity; without it → no PI selected. */
+  piId?: string;
+  departmentId?: string;
+  sectionId?: string;
+  asOf?: Date;
+  /** Include resource-level rows (bounded). Default true when permitted. */
+  includeResources?: boolean;
+  /** Include project commitments. Default true. */
+  includeProjectCommitments?: boolean;
+  /** Include derived conflicts. Default true. */
+  includeConflicts?: boolean;
+  resourcePage?: number;
+  resourcePageSize?: number;
+};
+
+export type PortfolioCapacityHours = {
+  availableHours: number;
+  committedHours: number;
+  remainingHours: number;
+  utilization: number | null;
+  band: "none" | "under" | "ok" | "near" | "overload";
+};
+
+export type PortfolioPiCapacityMeta = {
+  piId: string;
+  referenceKey: string;
+  name: string;
+  status: PortfolioPiStatus;
+  startDate: string;
+  endDate: string;
+  revision: {
+    id: string;
+    key: string;
+    version: number;
+    isCurrent: true;
+  };
+  source: "live_capacity_policy";
+};
+
+export type PortfolioPiDepartmentCapacityRow = {
+  departmentId: string;
+  departmentName: string;
+} & PortfolioCapacityHours;
+
+export type PortfolioPiTeamCapacityRow = {
+  teamId: string;
+  teamName: string;
+  departmentId: string;
+  iterationId: string;
+  iterationName: string;
+} & PortfolioCapacityHours;
+
+export type PortfolioPiResourceCapacityRow = {
+  resourceId: string;
+  resourceName: string;
+  teamId: string;
+  iterationId: string;
+  /** Membership allocation % — not committed project load. */
+  membershipAllocationPercent: number;
+} & PortfolioCapacityHours;
+
+export type PortfolioPiProjectCommitmentRow = {
+  projectId: string;
+  initiativeId: string;
+  referenceKey: string;
+  name: string;
+  href: string;
+  committedHours: number;
+  workItemCount: number;
+  allocationCount: number;
+};
+
+export type PortfolioPiConflictRow = {
+  type: string;
+  severity: "INFO" | "WARNING" | "BLOCKER";
+  message: string;
+  subjectType: string;
+  subjectId: string;
+  relatedIds: string[];
+};
+
+export type PortfolioPiBaselineComparison =
+  | {
+      available: true;
+      baselineId: string;
+      versionNumber: number;
+      capturedAt: string;
+      revisionIdCaptured: string | null;
+      /** Sum of plannedHours in immutable baseline payload. */
+      baselineCommittedHours: number;
+      /** Live CURRENT revision committed hours. */
+      liveCommittedHours: number;
+      deltaHours: number;
+    }
+  | {
+      available: false;
+      reason: string;
+    };
+
+export type PortfolioPiCapacityDataQuality = {
+  /** True when ≥1 in-scope membership has null capacityHoursPerWeek and no override. */
+  missingCapacityInputs: boolean;
+  notes: string[];
+};
+
+export type PortfolioPiCapacityResult = {
+  asOf: string;
+  scope: PortfolioQueryScopeApplied;
+  /**
+   * Discriminated: no PI / unavailable / ready.
+   * Zero hours are valid when calculation succeeds with empty load/capacity.
+   */
+  capacity:
+    | { state: "no_pi_selected"; reason: string }
+    | { state: "unavailable"; reason: string }
+    | {
+        state: "ready";
+        meta: PortfolioPiCapacityMeta;
+        totals: PortfolioCapacityHours;
+        departments: PortfolioPiDepartmentCapacityRow[];
+        teams: PortfolioPiTeamCapacityRow[];
+        overloadedTeams: PortfolioPiTeamCapacityRow[];
+        underutilizedTeams: PortfolioPiTeamCapacityRow[];
+        resources: {
+          page: number;
+          pageSize: number;
+          total: number;
+          rows: PortfolioPiResourceCapacityRow[];
+        };
+        projectCommitments: PortfolioPiProjectCommitmentRow[];
+        conflicts: PortfolioPiConflictRow[];
+        baselineComparison: PortfolioPiBaselineComparison;
+        dataQuality: PortfolioPiCapacityDataQuality;
+      };
+};
