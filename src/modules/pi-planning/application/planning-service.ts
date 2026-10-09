@@ -16,6 +16,7 @@ import { deriveConflicts, type DerivedConflict } from "./conflict-engine";
 import { DependencyService } from "./dependency-service";
 import { PiService } from "./pi-service";
 import { ScenarioComparisonService } from "./scenario-comparison-service";
+import { ScenarioSelectionService } from "./scenario-selection-service";
 import { ScenarioService } from "./scenario-service";
 
 export class PlanningService {
@@ -26,6 +27,7 @@ export class PlanningService {
   readonly baselines: BaselineService;
   readonly scenarios: ScenarioService;
   readonly scenarioComparison: ScenarioComparisonService;
+  readonly scenarioSelection: ScenarioSelectionService;
 
   constructor(
     private readonly db: PrismaClient,
@@ -41,6 +43,14 @@ export class PlanningService {
     this.scenarioComparison = new ScenarioComparisonService(
       db,
       authz,
+      this.pi,
+      this.capacity,
+      this,
+    );
+    this.scenarioSelection = new ScenarioSelectionService(
+      db,
+      authz,
+      audit,
       this.pi,
       this.capacity,
       this,
@@ -118,6 +128,22 @@ export class PlanningService {
   compareScenarios = (
     ...args: Parameters<ScenarioComparisonService["compareScenarios"]>
   ) => this.scenarioComparison.compareScenarios(...args);
+
+  getScenarioSelection = (
+    ...args: Parameters<ScenarioSelectionService["getSelectionState"]>
+  ) => this.scenarioSelection.getSelectionState(...args);
+  listScenarioSelectionHistory = (
+    ...args: Parameters<ScenarioSelectionService["listSelectionHistory"]>
+  ) => this.scenarioSelection.listSelectionHistory(...args);
+  selectScenario = (
+    ...args: Parameters<ScenarioSelectionService["selectScenario"]>
+  ) => this.scenarioSelection.selectScenario(...args);
+  clearScenarioSelection = (
+    ...args: Parameters<ScenarioSelectionService["clearSelection"]>
+  ) => this.scenarioSelection.clearSelection(...args);
+  evaluateScenarioReadiness = (
+    ...args: Parameters<ScenarioSelectionService["evaluateReadiness"]>
+  ) => this.scenarioSelection.evaluateReadiness(...args);
 
   /**
    * Planning board: departments → teams → iterations → cards + capacity/utilization.

@@ -235,14 +235,44 @@ export class ScenarioService {
     }
 
     try {
-      const updated = await this.db.planningRevision.update({
-        where: { id: revision.id, version: input.expectedVersion },
-        data: {
-          status: "ARCHIVED",
-          archivedAt: new Date(),
-          version: { increment: 1 },
-        },
+      const updated = await this.db.$transaction(async (tx) => {
+        if (pi.selectedRevisionId === revision.id) {
+          await tx.programIncrement.update({
+            where: { id: pi.id },
+            data: {
+              selectedRevisionId: null,
+              version: { increment: 1 },
+            },
+          });
+        }
+        return tx.planningRevision.update({
+          where: { id: revision.id, version: input.expectedVersion },
+          data: {
+            status: "ARCHIVED",
+            archivedAt: new Date(),
+            selectedAt: null,
+            selectedByPrincipalId: null,
+            statusBeforeSelection: null,
+            version: { increment: 1 },
+          },
+        });
       });
+      if (pi.selectedRevisionId === revision.id) {
+        await this.audit.record({
+          actorPrincipalId: principal.id,
+          actionType: "pi.scenario.selection_cleared",
+          subjectType: "ProgramIncrement",
+          subjectId: pi.id,
+          organizationId: pi.organizationId,
+          payload: {
+            piId: pi.id,
+            oldRevisionId: revision.id,
+            newRevisionId: null,
+            reason: "scenario_archived",
+          },
+          result: "success",
+        });
+      }
       await this.audit.record({
         actorPrincipalId: principal.id,
         actionType: "pi.scenario.archived",

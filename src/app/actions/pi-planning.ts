@@ -350,3 +350,23 @@ export async function reopenScenarioAction(input: unknown) {
     return result;
   });
 }
+
+export async function selectScenarioAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.selectScenario(principal, input);
+    revalidatePi(result.piId);
+    return result;
+  });
+}
+
+export async function clearScenarioSelectionAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.clearScenarioSelection(principal, input);
+    revalidatePi(result.piId);
+    return result;
+  });
+}

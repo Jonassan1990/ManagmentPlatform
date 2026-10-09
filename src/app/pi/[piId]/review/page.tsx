@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { humanize } from "@/components/governance/governance-panels";
 import { TransitionPiButtons } from "@/components/pi-planning/pi-forms";
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
+import { ScenarioSelectionPanel } from "@/components/pi-planning/scenario-selection-panel";
 import {
   Breadcrumbs,
   PageHeader,
@@ -24,8 +25,26 @@ export default async function PiReviewPage({
   if (!principal) redirect("/");
 
   let overview;
+  let selection;
+  let scenarios;
+  let history;
+  let readiness = null;
   try {
     overview = await planning.getPiOverview(principal, piId);
+    selection = await planning.getScenarioSelection(principal, piId);
+    scenarios = await planning.listScenarios(principal, piId, {
+      includeArchived: true,
+    });
+    history = await planning.listScenarioSelectionHistory(principal, piId);
+    const readinessTarget =
+      selection.selectedRevision?.id ??
+      scenarios.find((s) => !s.isCurrent && s.status !== "ARCHIVED")?.id;
+    if (readinessTarget) {
+      readiness = await planning.evaluateScenarioReadiness(principal, {
+        piId,
+        revisionId: readinessTarget,
+      });
+    }
   } catch {
     notFound();
   }
@@ -100,6 +119,24 @@ export default async function PiReviewPage({
         description={`${pi.name} · ${piStatusLabel(pi.status)} — checklist from live conflicts and overview metrics.`}
       />
       <PiTabs piId={piId} active="review" />
+
+      <ScenarioSelectionPanel
+        piId={piId}
+        piVersion={selection.piVersion}
+        selection={selection}
+        readiness={readiness}
+        history={history}
+        scenarios={scenarios.map((s) => ({
+          id: s.id,
+          key: s.key,
+          label: s.label,
+          status: s.status,
+          isCurrent: s.isCurrent,
+          version: s.version,
+          archivedAt: s.archivedAt,
+        }))}
+        capabilities={capabilities}
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
