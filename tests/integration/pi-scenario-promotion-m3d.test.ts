@@ -571,7 +571,7 @@ describe("M3D-B prerequisites / auth / readiness", () => {
     ).rejects.toMatchObject({ code: "VALIDATION" });
 
     // READY_WITH_WARNINGS: empty scenario + zero capacity → missing-input warning, no overload
-    let piRow = await db.programIncrement.findUniqueOrThrow({
+    const piRow = await db.programIncrement.findUniqueOrThrow({
       where: { id: pi.id },
     });
     await planning.clearScenarioSelection(actor, {
