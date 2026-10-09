@@ -1,0 +1,82 @@
+{
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "open-scenario-b-board",
+      "status": "PASS"
+    },
+    {
+      "step": "inspect-readiness",
+      "status": "PASS"
+    },
+    {
+      "step": "select-scenario-b",
+      "status": "PASS"
+    },
+    {
+      "step": "promotion-panel-visible",
+      "status": "PASS"
+    },
+    {
+      "step": "baseline-disclaimer",
+      "status": "PASS"
+    },
+    {
+      "step": "current-matches-b",
+      "status": "PASS",
+      "currentAfterFp": "[{\"workItemId\":\"86ba8143-8bfd-44b4-af0d-f5f46a988e64\",\"plannedHours\":\"16\",\"iterationId\":\"253215ca-d03c-417e-9c69-2e47f1a4a704\",\"teamId\":\"e8d917d4-391d-4fcf-89d4-77a6c861c926\"},{\"workItemId\":\"97473c69-f574-4f0d-bd69-c746aa9e0943\",\"plannedHours\":\"8\",\"iterationId\":\"253215ca-d03c-417e-9c69-2e47f1a4a704\",\"teamId\":\"e8d917d4-391d-4fcf-89d4-77a6c861c926\"}]",
+      "bAfter": "[{\"workItemId\":\"86ba8143-8bfd-44b4-af0d-f5f46a988e64\",\"plannedHours\":\"16\",\"iterationId\":\"253215ca-d03c-417e-9c69-2e47f1a4a704\",\"teamId\":\"e8d917d4-391d-4fcf-89d4-77a6c861c926\"},{\"workItemId\":\"97473c69-f574-4f0d-bd69-c746aa9e0943\",\"plannedHours\":\"8\",\"iterationId\":\"253215ca-d03c-417e-9c69-2e47f1a4a704\",\"teamId\":\"e8d917d4-391d-4fcf-89d4-77a6c861c926\"}]",
+      "currentBefore": "[{\"workItemId\":\"86ba8143-8bfd-44b4-af0d-f5f46a988e64\",\"plannedHours\":\"8\",\"iterationId\":\"253215ca-d03c-417e-9c69-2e47f1a4a704\",\"teamId\":\"e8d917d4-391d-4fcf-89d4-77a6c861c926\"}]"
+    },
+    {
+      "step": "scenario-a-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "scenario-b-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "current-identity-preserved",
+      "status": "PASS"
+    },
+    {
+      "step": "source-promoted",
+      "status": "PASS"
+    },
+    {
+      "step": "selection-cleared",
+      "status": "PASS"
+    },
+    {
+      "step": "baseline-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "portfolio-reflects-current",
+      "status": "PASS"
+    },
+    {
+      "step": "stale-promote-guard",
+      "status": "PASS"
+    },
+    {
+      "step": "mobile-confirmation-ux",
+      "status": "PASS"
+    }
+  ],
+  "base": "http://localhost:43148",
+  "piId": "ad6c3b7b-5727-43cf-a848-49eda8d1bf56",
+  "seed": {
+    "organizationId": "b1bab264-869c-4a1d-8fdf-554404606c0b",
+    "piId": "ad6c3b7b-5727-43cf-a848-49eda8d1bf56",
+    "currentRevisionId": "17ed1b00-9b16-4914-b8e0-d7864def6bf5",
+    "scenarioAId": "8b9a92fc-f710-475f-a77a-bb893e92ef9f",
+    "scenarioBId": "8e9f09e7-e241-4a3b-a51c-d9f3338b45af",
+    "baselineId": "0531ff29-a91e-4ce9-ab6f-5a94d305b9bc",
+    "boardPath": "/pi/ad6c3b7b-5727-43cf-a848-49eda8d1bf56/board"
+  }
+}
