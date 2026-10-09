@@ -120,9 +120,28 @@ export function ScenarioPanel({
         <h2 className="text-sm font-semibold tracking-wide text-[var(--muted)] uppercase">
           Planning scenarios
         </h2>
-        {pending ? (
-          <span className="text-xs text-[var(--muted)]">Working…</span>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          {scenarios.length >= 2 ? (
+            <Link
+              href={`/pi/${piId}/compare?revs=${encodeURIComponent(
+                [
+                  scenarios.find((s) => s.isCurrent)?.id,
+                  scenarios.find((s) => !s.isCurrent)?.id,
+                ]
+                  .filter(Boolean)
+                  .join(","),
+              )}&ref=${encodeURIComponent(
+                scenarios.find((s) => s.isCurrent)?.id ?? scenarios[0]!.id,
+              )}`}
+              className="text-xs text-[var(--accent)] hover:underline"
+            >
+              Compare scenarios
+            </Link>
+          ) : null}
+          {pending ? (
+            <span className="text-xs text-[var(--muted)]">Working…</span>
+          ) : null}
+        </div>
       </div>
 
       {error ? <Alert tone="danger">{error}</Alert> : null}

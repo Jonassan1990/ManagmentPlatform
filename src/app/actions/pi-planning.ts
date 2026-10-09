@@ -32,6 +32,7 @@ function revalidatePi(piId?: string, organizationId?: string) {
     revalidatePath(`/pi/${piId}/review`);
     revalidatePath(`/pi/${piId}/baseline`);
     revalidatePath(`/pi/${piId}/settings`);
+    revalidatePath(`/pi/${piId}/compare`);
   }
   if (organizationId) {
     revalidatePath(`/organization/${organizationId}`);
