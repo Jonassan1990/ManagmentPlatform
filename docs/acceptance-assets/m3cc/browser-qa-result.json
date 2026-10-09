@@ -1,0 +1,75 @@
+{
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "nav-to-compare",
+      "status": "PASS"
+    },
+    {
+      "step": "two-scenario-compare",
+      "status": "PASS",
+      "url": "http://localhost:43147/pi/715a9713-9d4e-4d17-8b01-5898b70fa3b3/compare?revs=aecffd14-d8c6-4692-932f-9c45988d7bbc%2C048d429a-9fb0-4353-9121-69f8894896cd&ref=aecffd14-d8c6-4692-932f-9c45988d7bbc"
+    },
+    {
+      "step": "reference-selection",
+      "status": "PASS",
+      "url": "http://localhost:43147/pi/715a9713-9d4e-4d17-8b01-5898b70fa3b3/compare?revs=aecffd14-d8c6-4692-932f-9c45988d7bbc%2C048d429a-9fb0-4353-9121-69f8894896cd&ref=048d429a-9fb0-4353-9121-69f8894896cd"
+    },
+    {
+      "step": "three-scenario-compare",
+      "status": "PASS",
+      "url": "http://localhost:43147/pi/715a9713-9d4e-4d17-8b01-5898b70fa3b3/compare?revs=aecffd14-d8c6-4692-932f-9c45988d7bbc%2C048d429a-9fb0-4353-9121-69f8894896cd%2Ceec39f3a-0cfd-4d51-a71c-a6e9ac35658b&ref=aecffd14-d8c6-4692-932f-9c45988d7bbc"
+    },
+    {
+      "step": "edit-context-scenario-b",
+      "status": "PASS"
+    },
+    {
+      "step": "refresh-after-board",
+      "status": "PASS"
+    },
+    {
+      "step": "archived-scenario-compare",
+      "status": "PASS",
+      "url": "http://localhost:43147/pi/715a9713-9d4e-4d17-8b01-5898b70fa3b3/compare?revs=aecffd14-d8c6-4692-932f-9c45988d7bbc%2C2d98a3b5-32ae-42c1-900e-51391e7435d3&ref=aecffd14-d8c6-4692-932f-9c45988d7bbc"
+    },
+    {
+      "step": "empty-selection-state",
+      "status": "PASS"
+    },
+    {
+      "step": "invalid-revision-error",
+      "status": "PASS"
+    },
+    {
+      "step": "back-to-board",
+      "status": "PASS"
+    },
+    {
+      "step": "portfolio-current-only",
+      "status": "PASS"
+    },
+    {
+      "step": "mobile-layout",
+      "status": "PASS"
+    }
+  ],
+  "base": "http://localhost:43147",
+  "piId": "715a9713-9d4e-4d17-8b01-5898b70fa3b3",
+  "seed": {
+    "organizationId": "9e6f989f-5db7-4d81-b6b3-2a939693b9d0",
+    "piId": "715a9713-9d4e-4d17-8b01-5898b70fa3b3",
+    "currentRevisionId": "aecffd14-d8c6-4692-932f-9c45988d7bbc",
+    "scenarioAId": "048d429a-9fb0-4353-9121-69f8894896cd",
+    "scenarioBId": "eec39f3a-0cfd-4d51-a71c-a6e9ac35658b",
+    "archivedScenarioId": "2d98a3b5-32ae-42c1-900e-51391e7435d3"
+  },
+  "summary": {
+    "passed": 13,
+    "failed": 0,
+    "allPassed": true
+  }
+}

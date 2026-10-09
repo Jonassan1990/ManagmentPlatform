@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-10-09T16:14:58.417Z",
+  "databaseUrlHost": "localhost:5432",
+  "databaseName": "management_platform_m3c_int",
+  "revisions": {
+    "currentId": "bb2fcb3d-164b-4319-978a-330fcba1fc16",
+    "scenarioAId": "33c49286-78b4-4e78-8506-30b6953ef93b",
+    "scenarioBId": "49b4ebad-a99a-4d93-8302-4381653febb7",
+    "baselineId": "a05f414b-a46d-4589-9d8f-fd132b70b8c7"
+  },
+  "isolation": {
+    "compareDidNotMutate": true,
+    "beforeSha256": "cf9bec5b41767198825e9ac53861eb0671ad45b8a1629ae6d493a531e66acee0",
+    "afterCompareSha256": "cf9bec5b41767198825e9ac53861eb0671ad45b8a1629ae6d493a531e66acee0",
+    "baselinePayloadUnchanged": true
+  },
+  "editScenarioBIsolation": {
+    "currentUnchanged": true,
+    "scenarioAUnchanged": true,
+    "scenarioBHoursAfterEdit": "30"
+  },
+  "comparisonSamples": {
+    "currentVsA": {
+      "committed": [
+        16,
+        16
+      ],
+      "utilizationPercent": [
+        20,
+        20
+      ]
+    },
+    "threeWay": {
+      "committed": [
+        16,
+        16,
+        32
+      ],
+      "added": 1,
+      "removed": 0,
+      "changed": 1
+    },
+    "aVsB": {
+      "committed": [
+        16,
+        32
+      ],
+      "projectDeltas": [
+        {
+          "project": "Iso Project",
+          "deltas": [
+            {
+              "revisionId": "33c49286-78b4-4e78-8506-30b6953ef93b",
+              "deltaHours": 0
+            },
+            {
+              "revisionId": "49b4ebad-a99a-4d93-8302-4381653febb7",
+              "deltaHours": 16
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "portfolio": {
+    "state": "ready",
+    "isCurrent": true,
+    "committedHours": 16,
+    "note": "Portfolio must remain CURRENT-only (16h from CURRENT, not Scenario B 30/38h)"
+  },
+  "authorization": {
+    "crossOrgDenied": true,
+    "viewerCompareTotals": 2
+  }
+}
