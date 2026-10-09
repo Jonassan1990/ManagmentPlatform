@@ -1,0 +1,28 @@
+{
+  "durationMs": 2522,
+  "currentRevisionId": "77e46916-46d5-4e8d-960f-cc94609e1e35",
+  "fixture": {
+    "workItems": 3,
+    "iterations": 1,
+    "teams": 1
+  },
+  "promoteResult": {
+    "piId": "11667c0d-0ae9-4699-afaf-81baede1ac5f",
+    "piVersion": 11,
+    "currentRevisionId": "77e46916-46d5-4e8d-960f-cc94609e1e35",
+    "currentRevisionVersion": 3,
+    "sourceRevisionId": "37839338-d9b6-452f-8502-c87851a83efa",
+    "sourceRevisionVersion": 7,
+    "previousCurrentVersion": 2,
+    "allocationCount": 2,
+    "totalCommittedHours": 24,
+    "promotedAt": "2026-10-09T19:44:56.676Z",
+    "idempotentReplay": false,
+    "promotionDisclaimer": "Changes the authoritative plan — does not create an approved baseline"
+  },
+  "matrixSummary": {
+    "pass": 25,
+    "fail": 0,
+    "total": 25
+  }
+}
