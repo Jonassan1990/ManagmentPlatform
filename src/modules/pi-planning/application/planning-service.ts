@@ -15,6 +15,7 @@ import { CapacityService } from "./capacity-service";
 import { deriveConflicts, type DerivedConflict } from "./conflict-engine";
 import { DependencyService } from "./dependency-service";
 import { PiService } from "./pi-service";
+import { ScenarioComparisonService } from "./scenario-comparison-service";
 import { ScenarioService } from "./scenario-service";
 
 export class PlanningService {
@@ -24,6 +25,7 @@ export class PlanningService {
   readonly dependencies: DependencyService;
   readonly baselines: BaselineService;
   readonly scenarios: ScenarioService;
+  readonly scenarioComparison: ScenarioComparisonService;
 
   constructor(
     private readonly db: PrismaClient,
@@ -36,6 +38,13 @@ export class PlanningService {
     this.dependencies = new DependencyService(db, authz, audit);
     this.baselines = new BaselineService(db, authz, audit, this.pi);
     this.scenarios = new ScenarioService(db, authz, audit, this.pi);
+    this.scenarioComparison = new ScenarioComparisonService(
+      db,
+      authz,
+      this.pi,
+      this.capacity,
+      this,
+    );
   }
 
   // ---- Convenience delegates ----
@@ -105,6 +114,10 @@ export class PlanningService {
   ) => this.scenarios.markScenarioReady(...args);
   reopenScenario = (...args: Parameters<ScenarioService["reopenScenario"]>) =>
     this.scenarios.reopenScenario(...args);
+
+  compareScenarios = (
+    ...args: Parameters<ScenarioComparisonService["compareScenarios"]>
+  ) => this.scenarioComparison.compareScenarios(...args);
 
   /**
    * Planning board: departments → teams → iterations → cards + capacity/utilization.
