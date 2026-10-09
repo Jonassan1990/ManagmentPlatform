@@ -370,3 +370,14 @@ export async function clearScenarioSelectionAction(input: unknown) {
     return result;
   });
 }
+
+export async function promoteSelectedScenarioAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.promoteSelectedScenario(principal, input);
+    revalidatePi(result.piId);
+    revalidatePath("/portfolio");
+    return result;
+  });
+}

@@ -111,8 +111,11 @@ PI Planning → **Review** tab: selection panel with readiness KPIs, blockers/wa
 
 ---
 
-## 9. Out of scope (M3D-B)
+## 9. Promotion (M3D-B)
 
-- Controlled promotion of selected scenario → CURRENT
-- Baseline-from-promoted-plan path verification
+Controlled promotion of the selected scenario → CURRENT is implemented separately — see [PI-SCENARIO-PROMOTION.md](./PI-SCENARIO-PROMOTION.md).
+
+Still out of scope here (M3D-C):
+
+- Approval / immutable baseline-from-promoted-plan path verification
 - Approval workflow gates

@@ -16,6 +16,7 @@ import { deriveConflicts, type DerivedConflict } from "./conflict-engine";
 import { DependencyService } from "./dependency-service";
 import { PiService } from "./pi-service";
 import { ScenarioComparisonService } from "./scenario-comparison-service";
+import { ScenarioPromotionService } from "./scenario-promotion-service";
 import { ScenarioSelectionService } from "./scenario-selection-service";
 import { ScenarioService } from "./scenario-service";
 
@@ -28,6 +29,7 @@ export class PlanningService {
   readonly scenarios: ScenarioService;
   readonly scenarioComparison: ScenarioComparisonService;
   readonly scenarioSelection: ScenarioSelectionService;
+  readonly scenarioPromotion: ScenarioPromotionService;
 
   constructor(
     private readonly db: PrismaClient,
@@ -54,6 +56,13 @@ export class PlanningService {
       this.pi,
       this.capacity,
       this,
+    );
+    this.scenarioPromotion = new ScenarioPromotionService(
+      db,
+      authz,
+      audit,
+      this.pi,
+      this.scenarioSelection,
     );
   }
 
@@ -144,6 +153,13 @@ export class PlanningService {
   evaluateScenarioReadiness = (
     ...args: Parameters<ScenarioSelectionService["evaluateReadiness"]>
   ) => this.scenarioSelection.evaluateReadiness(...args);
+
+  getScenarioPromotionPreview = (
+    ...args: Parameters<ScenarioPromotionService["getPromotionPreview"]>
+  ) => this.scenarioPromotion.getPromotionPreview(...args);
+  promoteSelectedScenario = (
+    ...args: Parameters<ScenarioPromotionService["promoteSelectedScenario"]>
+  ) => this.scenarioPromotion.promoteSelectedScenario(...args);
 
   /**
    * Planning board: departments → teams → iterations → cards + capacity/utilization.
