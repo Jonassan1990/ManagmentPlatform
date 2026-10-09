@@ -142,6 +142,17 @@ export default async function PortfolioExplorerPage({
       ? deliveryRaw
       : undefined;
 
+  const deliveryHealthRaw = get("deliveryHealth");
+  const deliveryHealth =
+    deliveryHealthRaw === "BLOCKED" ||
+    deliveryHealthRaw === "AT_RISK" ||
+    deliveryHealthRaw === "ON_TRACK" ||
+    deliveryHealthRaw === "COMPLETED" ||
+    deliveryHealthRaw === "CANCELLED" ||
+    deliveryHealthRaw === "UNKNOWN"
+      ? deliveryHealthRaw
+      : undefined;
+
   const sortByRaw = get("sortBy");
   const sortBy: PortfolioExplorerSortBy | undefined =
     sortByRaw === "name" ||
@@ -167,6 +178,7 @@ export default async function PortfolioExplorerPage({
     projectStatus,
     ownerResourceId,
     delivery,
+    deliveryHealth,
     sortBy,
     sortDir,
     page: String(page),
@@ -184,6 +196,7 @@ export default async function PortfolioExplorerPage({
         ...(projectStatus ? { projectStatus } : {}),
         ...(ownerResourceId ? { ownerResourceId } : {}),
         ...(delivery ? { delivery } : {}),
+        ...(deliveryHealth ? { deliveryHealth } : {}),
         ...(sortBy ? { sortBy } : {}),
         ...(sortDir ? { sortDir } : {}),
         page,

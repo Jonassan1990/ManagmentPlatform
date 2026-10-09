@@ -1348,3 +1348,98 @@ describe("M2D-A Delivery Health Classification", () => {
     ).toBe(true);
   });
 });
+
+describe("M2D-B Delivery Health UI contracts", () => {
+  const AS_OF = new Date("2026-06-15T12:00:00.000Z");
+  const FUTURE = new Date("2026-12-01T00:00:00.000Z");
+
+  it("explorer deliveryHealth filter is server-side; attention includes owner", async () => {
+    const admin = principal();
+    const { org, deptA } = await seedOrg(admin);
+
+    const resource = await db.resource.create({
+      data: {
+        organizationId: org.id,
+        name: "Health Owner",
+        type: "PERSON",
+        referenceCode: "HO-1",
+      },
+    });
+
+    const initOk = await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-HOK",
+      stage: "PROJECT",
+    });
+    const initBlk = await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-HBLK",
+      stage: "PROJECT",
+    });
+    const ok = await db.project.create({
+      data: {
+        initiativeId: initOk.id,
+        organizationId: org.id,
+        departmentId: deptA.id,
+        referenceKey: "H-OK",
+        name: "Healthy",
+        status: "ACTIVE",
+        plannedEnd: FUTURE,
+        ownerResourceId: resource.id,
+      },
+    });
+    const blocked = await db.project.create({
+      data: {
+        initiativeId: initBlk.id,
+        organizationId: org.id,
+        departmentId: deptA.id,
+        referenceKey: "H-BLK",
+        name: "Blocked",
+        status: "ACTIVE",
+        plannedEnd: FUTURE,
+        ownerResourceId: resource.id,
+      },
+    });
+    await db.projectIssue.create({
+      data: {
+        projectId: blocked.id,
+        organizationId: org.id,
+        referenceKey: "ISS-H1",
+        title: "Blocker",
+        severity: "HIGH",
+        status: "OPEN",
+        isBlocker: true,
+      },
+    });
+
+    const filtered = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      deliveryHealth: "BLOCKED",
+      asOf: AS_OF,
+    });
+    expect(filtered.total).toBe(1);
+    expect(filtered.rows[0]?.referenceKey).toBe("H-BLK");
+    expect(filtered.rows[0]?.kind).toBe("PROJECT");
+    expect(filtered.rows[0]?.delivery.health).toBe("BLOCKED");
+
+    const onTrack = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      deliveryHealth: "ON_TRACK",
+      asOf: AS_OF,
+    });
+    expect(onTrack.rows.some((r) => r.id === ok.id)).toBe(true);
+    expect(onTrack.rows.every((r) => r.delivery.health === "ON_TRACK")).toBe(
+      true,
+    );
+
+    const attention = await portfolio.listDeliveryHealthAttention(admin, {
+      organizationId: org.id,
+      asOf: AS_OF,
+    });
+    expect(attention.rows[0]?.owner.resourceId).toBe(resource.id);
+    expect(attention.rows[0]?.owner.displayName).toBe("Health Owner");
+    expect(attention.rows[0]?.owner.source).toBe("resource");
+  });
+});

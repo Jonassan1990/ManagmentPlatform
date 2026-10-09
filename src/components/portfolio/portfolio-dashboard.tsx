@@ -4,7 +4,15 @@ import {
   utilizationBarClass,
 } from "@/components/pi-planning/pi-nav";
 import { Alert, EmptyState, Panel } from "@/components/ui/page";
-import type { PortfolioSnapshot } from "@/modules/portfolio/domain/types";
+import type {
+  DeliveryHealthAttentionResult,
+  DeliveryHealthSummary,
+  PortfolioSnapshot,
+} from "@/modules/portfolio/domain/types";
+import {
+  DeliveryHealthAttentionList,
+  DeliveryHealthCountsSection,
+} from "./delivery-health";
 import {
   CAPACITY_BAND_LABELS,
   DistributionBar,
@@ -188,10 +196,20 @@ export function PortfolioDashboardView({
   snapshot,
   organizationName,
   departmentName,
+  departmentId,
+  healthSummary,
+  healthAttention,
+  healthFocus,
+  healthError,
 }: {
   snapshot: PortfolioSnapshot;
   organizationName: string;
   departmentName: string | null;
+  departmentId?: string | null;
+  healthSummary?: DeliveryHealthSummary | null;
+  healthAttention?: DeliveryHealthAttentionResult | null;
+  healthFocus?: string | null;
+  healthError?: string | null;
 }) {
   const initiatives = snapshot.initiatives;
   const projects = snapshot.projects;
@@ -303,6 +321,30 @@ export function PortfolioDashboardView({
               Create an initiative
             </Link>
           }
+        />
+      ) : null}
+
+      {healthError ? (
+        <Alert tone="danger">
+          Delivery health could not be loaded — {healthError}
+        </Alert>
+      ) : null}
+
+      {healthSummary ? (
+        <DeliveryHealthCountsSection
+          summary={healthSummary}
+          organizationId={snapshot.scope.organizationId}
+          departmentId={departmentId}
+          healthFocus={healthFocus}
+        />
+      ) : null}
+
+      {healthAttention ? (
+        <DeliveryHealthAttentionList
+          attention={healthAttention}
+          organizationId={snapshot.scope.organizationId}
+          departmentId={departmentId}
+          healthFocus={healthFocus}
         />
       ) : null}
 
@@ -681,8 +723,9 @@ export function PortfolioDashboardView({
       </Panel>
 
       <Alert tone="ok">
-        Portfolio figures are read-only aggregates from the M2A query service.
-        Business calculations are not duplicated in the browser.
+        Portfolio figures are read-only aggregates from the M2A / M2D-A query
+        services. Delivery health and other business calculations are not
+        duplicated in the browser.
       </Alert>
     </div>
   );

@@ -181,6 +181,18 @@ export type PortfolioExplorerInput = {
    * (initiatives are excluded — delivery is project-derived).
    */
   delivery?: PortfolioDeliveryFilter;
+  /**
+   * M2D-B — when set, only PROJECT rows whose M2D-A classification matches.
+   * Evaluated server-side via delivery-health classifier (initiatives excluded).
+   * Mutually composable with `delivery` (both must match when both set).
+   */
+  deliveryHealth?:
+    | "BLOCKED"
+    | "AT_RISK"
+    | "ON_TRACK"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "UNKNOWN";
   sortBy?: PortfolioExplorerSortBy;
   sortDir?: "asc" | "desc";
   /** 1-based page index. */
@@ -204,6 +216,18 @@ export type PortfolioExplorerDeliverySignals = {
   delayed: boolean | null;
   activeBlocker: boolean | null;
   criticalOpenIssue: boolean | null;
+  /**
+   * M2D-A classification for projects; null for initiatives.
+   * Set server-side — never recomputed in the browser.
+   */
+  health:
+    | "BLOCKED"
+    | "AT_RISK"
+    | "ON_TRACK"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "UNKNOWN"
+    | null;
 };
 
 export type PortfolioExplorerRow = {
@@ -362,6 +386,8 @@ export type DeliveryHealthAttentionRow = {
   departmentName: string;
   sectionId: string;
   sectionName: string;
+  /** Project owner reference (Resource FK or legacy name snapshot). */
+  owner: PortfolioExplorerOwner;
   plannedEnd: string | null;
   updatedAt: string;
   reasons: DeliveryHealthReason[];
