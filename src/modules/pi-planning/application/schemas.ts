@@ -219,4 +219,24 @@ export const createBaselineInputSchema = z.object({
   label: z.string().trim().max(200).optional().nullable(),
 });
 
+export const compareScenariosInputSchema = z
+  .object({
+    piId: uuidSchema,
+    /** Two or three PlanningRevision ids on the same PI (CURRENT and/or scenarios). */
+    revisionIds: z.array(uuidSchema).min(2).max(3),
+    /** Defaults to the first entry in revisionIds. */
+    referenceRevisionId: uuidSchema.optional(),
+    asOf: z.coerce.date().optional(),
+  })
+  .superRefine((v, ctx) => {
+    const unique = new Set(v.revisionIds);
+    if (unique.size !== v.revisionIds.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "revisionIds must be distinct",
+        path: ["revisionIds"],
+      });
+    }
+  });
+
 export const decimalHoursRequiredSchema = decimalHoursSchema;
