@@ -278,20 +278,18 @@ export function appendPreservedQuery(
     const value = get(key);
     if (value == null || value === "") continue;
     if (value.length > 200) continue;
-    if (
+    if (key === "revs") {
+      const parts = value.split(",").filter(Boolean);
+      if (parts.length === 0 || parts.some((p) => !isUuid(p))) continue;
+    } else if (
       (key === "revisionId" ||
         key === "ref" ||
         key === "fromOrg" ||
         key === "fromDept" ||
         key === "fromPi") &&
-      !isUuid(value) &&
-      key !== "revs"
+      !isUuid(value)
     ) {
       continue;
-    }
-    if (key === "revs") {
-      const parts = value.split(",").filter(Boolean);
-      if (parts.length === 0 || parts.some((p) => !isUuid(p))) continue;
     }
     params.set(key, value);
   }
