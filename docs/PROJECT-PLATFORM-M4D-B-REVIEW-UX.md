@@ -145,11 +145,11 @@ Evidence: `artifacts/m4db-qa/`, `docs/acceptance-assets/m4db/screenshots/`
 | Gate | Result |
 |---|---|
 | `npm run typecheck` | PASS |
-| `npm run lint` | (run on branch) |
-| `npm test` | includes new workflow/disclosure tests |
-| `npm run test:integration` | M3D suites unchanged |
+| `npm run lint` | PASS (0 errors; 2 pre-existing warnings) |
+| `npm test` | PASS — **36** files / **233** tests |
+| `npm run test:integration` | PASS — **20** files / **190** tests |
 | `npm run build` | PASS |
-| Browser QA | `scripts/m4db-browser-qa.mjs` |
+| Browser QA | PASS — `scripts/m4db-browser-qa.mjs` (9/9) |
 
 ---
 
