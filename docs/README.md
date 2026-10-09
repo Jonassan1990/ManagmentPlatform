@@ -55,6 +55,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [PHASE-5-IMPLEMENTATION.md](./PHASE-5-IMPLEMENTATION.md) | Phase 5 PI Planning, capacity, dependencies, baselines |
 | [PHASE-6-IMPLEMENTATION.md](./PHASE-6-IMPLEMENTATION.md) | Phase 6 production OIDC, ExternalIdentity, secure bootstrap |
 | [PRODUCTION-AUTH-RUNBOOK.md](./PRODUCTION-AUTH-RUNBOOK.md) | Operator guide: OIDC env, bootstrap token procedure |
+| [PORTFOLIO-QUERY-CONTRACT.md](./PORTFOLIO-QUERY-CONTRACT.md) | M2A portfolio query metrics, scope rules, limitations |
 | [UX-ACCEPTANCE-REPORT.md](./UX-ACCEPTANCE-REPORT.md) | Phase 5.5 UX inventory, route audit, P0–P3 findings, fixes applied |
 | [DEPLOYMENT-ACCEPTANCE.md](./DEPLOYMENT-ACCEPTANCE.md) | Deploy readiness; Phase 6 auth ready; deploy blocked on credentials |
 | [PHASE-6-BACKLOG.md](./PHASE-6-BACKLOG.md) | Must / Should / Could from acceptance findings (OIDC Must Fix done) |
