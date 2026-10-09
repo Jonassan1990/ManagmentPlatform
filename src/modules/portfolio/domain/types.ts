@@ -234,3 +234,154 @@ export type PortfolioExplorerResult = {
   sortDir: "asc" | "desc";
   rows: PortfolioExplorerRow[];
 };
+
+// ---------------------------------------------------------------------------
+// M2D-A — Delivery Health Classification contracts
+// ---------------------------------------------------------------------------
+
+/**
+ * Deterministic delivery-health classifications for Projects.
+ * CANCELLED is distinct from COMPLETED (never conflated with successful delivery).
+ * ARCHIVED projects are out of portfolio scope and are never classified here.
+ */
+export type DeliveryHealthClassification =
+  | "BLOCKED"
+  | "AT_RISK"
+  | "ON_TRACK"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "UNKNOWN";
+
+export type DeliveryHealthReasonCode =
+  | "ACTIVE_BLOCKER_ISSUE"
+  | "CRITICAL_OPEN_ISSUE"
+  | "MISSED_MILESTONE"
+  | "OVERDUE_CRITICAL_MILESTONE"
+  | "OVERDUE_PROJECT_END"
+  | "CRITICAL_DEPENDENCY"
+  | "INSUFFICIENT_SCHEDULE_DATA"
+  | "PROJECT_COMPLETED"
+  | "PROJECT_CANCELLED"
+  | "SCHEDULE_EVIDENCE_PRESENT";
+
+export type DeliveryHealthReasonSeverity =
+  | "blocker"
+  | "critical"
+  | "warning"
+  | "info";
+
+export type DeliveryHealthReasonSourceType =
+  | "PROJECT"
+  | "PROJECT_ISSUE"
+  | "PROJECT_MILESTONE"
+  | "PLANNING_DEPENDENCY"
+  | "PROJECT_CLOSURE"
+  | "EVALUATION";
+
+export type DeliveryHealthReason = {
+  code: DeliveryHealthReasonCode;
+  severity: DeliveryHealthReasonSeverity;
+  message: string;
+  sourceType: DeliveryHealthReasonSourceType;
+  /** Null when the reason is evaluation-level (no single source row). */
+  sourceId: string | null;
+  /** ISO date or status string when applicable. */
+  relevantAt: string | null;
+  relevantStatus: string | null;
+};
+
+export type DeliveryHealthClosureOutcome =
+  | "DELIVERED"
+  | "PARTIALLY_DELIVERED"
+  | "CANCELLED"
+  | null;
+
+export type DeliveryHealthEvaluation = {
+  projectId: string;
+  classification: DeliveryHealthClassification;
+  asOf: string;
+  projectStatus: "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED";
+  closureOutcome: DeliveryHealthClosureOutcome;
+  reasons: DeliveryHealthReason[];
+  href: string;
+};
+
+export type DeliveryHealthCounts = Record<DeliveryHealthClassification, number>;
+
+export type DeliveryHealthSummaryInput = {
+  organizationId: string;
+  departmentId?: string;
+  sectionId?: string;
+  asOf?: Date;
+};
+
+export type DeliveryHealthSummary = {
+  asOf: string;
+  scope: PortfolioQueryScopeApplied;
+  counts: DeliveryHealthCounts;
+  /**
+   * Projects requiring management attention: BLOCKED + AT_RISK.
+   * Does not include CANCELLED / COMPLETED / UNKNOWN / ON_TRACK.
+   */
+  attentionCount: number;
+  totalProjects: number;
+};
+
+export type DeliveryHealthAttentionSortBy =
+  | "classification"
+  | "name"
+  | "updatedAt"
+  | "plannedEnd";
+
+export type DeliveryHealthAttentionInput = {
+  organizationId: string;
+  departmentId?: string;
+  sectionId?: string;
+  /**
+   * Default: BLOCKED and AT_RISK.
+   * COMPLETED / CANCELLED / ON_TRACK / UNKNOWN may be requested explicitly.
+   */
+  classifications?: DeliveryHealthClassification[];
+  sortBy?: DeliveryHealthAttentionSortBy;
+  sortDir?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  asOf?: Date;
+};
+
+export type DeliveryHealthAttentionRow = {
+  projectId: string;
+  initiativeId: string;
+  referenceKey: string;
+  name: string;
+  href: string;
+  projectStatus: "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED";
+  classification: DeliveryHealthClassification;
+  closureOutcome: DeliveryHealthClosureOutcome;
+  departmentId: string;
+  departmentName: string;
+  sectionId: string;
+  sectionName: string;
+  plannedEnd: string | null;
+  updatedAt: string;
+  reasons: DeliveryHealthReason[];
+};
+
+export type DeliveryHealthAttentionResult = {
+  asOf: string;
+  scope: PortfolioQueryScopeApplied;
+  page: number;
+  pageSize: number;
+  total: number;
+  sortBy: DeliveryHealthAttentionSortBy;
+  sortDir: "asc" | "desc";
+  classifications: DeliveryHealthClassification[];
+  attentionCount: number;
+  rows: DeliveryHealthAttentionRow[];
+};
+
+export type DeliveryHealthProjectInput = {
+  organizationId: string;
+  projectId: string;
+  asOf?: Date;
+};

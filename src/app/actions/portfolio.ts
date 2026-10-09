@@ -3,6 +3,9 @@
 import { z } from "zod";
 import { AppError, toErrorPayload } from "@/modules/shared/errors";
 import type {
+  DeliveryHealthAttentionResult,
+  DeliveryHealthEvaluation,
+  DeliveryHealthSummary,
   PortfolioExplorerResult,
   PortfolioSnapshot,
 } from "@/modules/portfolio/domain/types";
@@ -131,5 +134,87 @@ export async function explorePortfolioAction(
     const { authz, portfolio } = createServices();
     const principal = await authz.requirePrincipal();
     return portfolio.explorePortfolio(principal, parsed);
+  });
+}
+
+const deliveryHealthSummarySchema = z.object({
+  organizationId: z.string().uuid(),
+  departmentId: z.string().uuid().optional(),
+  sectionId: z.string().uuid().optional(),
+  asOf: z.coerce.date().optional(),
+});
+
+const deliveryHealthClassificationSchema = z.enum([
+  "BLOCKED",
+  "AT_RISK",
+  "ON_TRACK",
+  "COMPLETED",
+  "CANCELLED",
+  "UNKNOWN",
+]);
+
+const deliveryHealthAttentionSchema = z.object({
+  organizationId: z.string().uuid(),
+  departmentId: z.string().uuid().optional(),
+  sectionId: z.string().uuid().optional(),
+  classifications: z
+    .array(deliveryHealthClassificationSchema)
+    .min(1)
+    .max(6)
+    .optional(),
+  sortBy: z
+    .enum(["classification", "name", "updatedAt", "plannedEnd"])
+    .optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  asOf: z.coerce.date().optional(),
+});
+
+const deliveryHealthProjectSchema = z.object({
+  organizationId: z.string().uuid(),
+  projectId: z.string().uuid(),
+  asOf: z.coerce.date().optional(),
+});
+
+/**
+ * M2D-A — delivery-health counts by classification (read-only).
+ */
+export async function getDeliveryHealthSummaryAction(
+  input: unknown,
+): Promise<ActionResult<DeliveryHealthSummary>> {
+  return run(async () => {
+    const parsed = deliveryHealthSummarySchema.parse(input);
+    const { authz, portfolio } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolio.getDeliveryHealthSummary(principal, parsed);
+  });
+}
+
+/**
+ * M2D-A — paginated at-risk / blocked (or explicit classification) Project list.
+ */
+export async function listDeliveryHealthAttentionAction(
+  input: unknown,
+): Promise<ActionResult<DeliveryHealthAttentionResult>> {
+  return run(async () => {
+    const parsed = deliveryHealthAttentionSchema.parse(input);
+    const { authz, portfolio } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolio.listDeliveryHealthAttention(principal, parsed);
+  });
+}
+
+/**
+ * M2D-A — single Project delivery-health evaluation.
+ */
+export async function getProjectDeliveryHealthAction(
+  input: unknown,
+): Promise<ActionResult<DeliveryHealthEvaluation>> {
+  return run(async () => {
+    const parsed = deliveryHealthProjectSchema.parse(input);
+    const { authz, portfolio } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolio.getProjectDeliveryHealth(principal, parsed);
   });
 }

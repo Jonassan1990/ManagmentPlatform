@@ -861,3 +861,490 @@ describe("M2C Portfolio Explorer", () => {
     expect(view.scope.mode).toBe("organization");
   });
 });
+
+describe("M2D-A Delivery Health Classification", () => {
+  const AS_OF = new Date("2026-06-15T12:00:00.000Z");
+  const PAST = new Date("2026-01-01T00:00:00.000Z");
+  const FUTURE = new Date("2026-12-01T00:00:00.000Z");
+  const BOUNDARY = new Date("2026-06-15T12:00:00.000Z");
+
+  async function createProjectFor(
+    orgId: string,
+    deptId: string,
+    ref: string,
+    data: {
+      status?: "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED";
+      plannedEnd?: Date | null;
+      plannedStart?: Date | null;
+      name?: string;
+    } = {},
+  ) {
+    const init = await createInitiative({
+      organizationId: orgId,
+      departmentId: deptId,
+      referenceKey: `INIT-${ref}`,
+      stage: "PROJECT",
+    });
+    return db.project.create({
+      data: {
+        initiativeId: init.id,
+        organizationId: orgId,
+        departmentId: deptId,
+        referenceKey: ref,
+        name: data.name ?? ref,
+        status: data.status ?? "ACTIVE",
+        plannedEnd: data.plannedEnd === undefined ? null : data.plannedEnd,
+        plannedStart: data.plannedStart === undefined ? null : data.plannedStart,
+      },
+    });
+  }
+
+  it("empty portfolio returns zero counts and empty attention", async () => {
+    const admin = principal();
+    const { org } = await seedOrg(admin);
+
+    const summary = await portfolio.getDeliveryHealthSummary(admin, {
+      organizationId: org.id,
+      asOf: AS_OF,
+    });
+    expect(summary.totalProjects).toBe(0);
+    expect(summary.attentionCount).toBe(0);
+    expect(summary.counts).toEqual({
+      BLOCKED: 0,
+      AT_RISK: 0,
+      ON_TRACK: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
+      UNKNOWN: 0,
+    });
+
+    const attention = await portfolio.listDeliveryHealthAttention(admin, {
+      organizationId: org.id,
+      asOf: AS_OF,
+    });
+    expect(attention.total).toBe(0);
+    expect(attention.rows).toEqual([]);
+    expect(attention.attentionCount).toBe(0);
+  });
+
+  it("classifies UNKNOWN, ON_TRACK, BLOCKED, AT_RISK, COMPLETED, CANCELLED with precedence", async () => {
+    const admin = principal();
+    const { org, deptA } = await seedOrg(admin);
+
+    const unknown = await createProjectFor(org.id, deptA.id, "DH-UNK");
+    const onTrack = await createProjectFor(org.id, deptA.id, "DH-OK", {
+      plannedEnd: FUTURE,
+    });
+    const blocked = await createProjectFor(org.id, deptA.id, "DH-BLK", {
+      plannedEnd: FUTURE,
+    });
+    await db.projectIssue.create({
+      data: {
+        projectId: blocked.id,
+        organizationId: org.id,
+        referenceKey: "ISS-BLK",
+        title: "Active blocker",
+        severity: "HIGH",
+        status: "OPEN",
+        isBlocker: true,
+      },
+    });
+    // Mixed: blocker + overdue — precedence stays BLOCKED
+    await db.projectMilestone.create({
+      data: {
+        projectId: blocked.id,
+        referenceKey: "MS-MISS",
+        title: "Missed",
+        status: "MISSED",
+        criticality: true,
+      },
+    });
+
+    const atRiskCritical = await createProjectFor(org.id, deptA.id, "DH-CRIT", {
+      plannedEnd: FUTURE,
+    });
+    await db.projectIssue.create({
+      data: {
+        projectId: atRiskCritical.id,
+        organizationId: org.id,
+        referenceKey: "ISS-CRIT",
+        title: "Critical open",
+        severity: "CRITICAL",
+        status: "IN_PROGRESS",
+        isBlocker: false,
+      },
+    });
+
+    const atRiskMs = await createProjectFor(org.id, deptA.id, "DH-MS", {
+      plannedEnd: FUTURE,
+    });
+    await db.projectMilestone.create({
+      data: {
+        projectId: atRiskMs.id,
+        referenceKey: "MS-1",
+        title: "Late",
+        status: "MISSED",
+        criticality: false,
+      },
+    });
+
+    const atRiskDep = await createProjectFor(org.id, deptA.id, "DH-DEP", {
+      plannedEnd: FUTURE,
+    });
+    await db.planningDependency.create({
+      data: {
+        organizationId: org.id,
+        type: "BLOCKS",
+        status: "OPEN",
+        criticality: "CRITICAL",
+        sourceType: "PROJECT",
+        sourceId: atRiskDep.id,
+        targetType: "PROJECT",
+        targetId: atRiskDep.id,
+      },
+    });
+
+    const completed = await createProjectFor(org.id, deptA.id, "DH-DONE", {
+      status: "COMPLETED",
+      plannedEnd: PAST,
+    });
+    await db.projectClosure.create({
+      data: {
+        projectId: completed.id,
+        closedAt: PAST,
+        closedByPrincipalId: admin.id,
+        outcome: "DELIVERED",
+        readinessSnapshot: {},
+      },
+    });
+
+    const cancelled = await createProjectFor(org.id, deptA.id, "DH-CAN", {
+      status: "CANCELLED",
+      plannedEnd: PAST,
+    });
+
+    const summary = await portfolio.getDeliveryHealthSummary(admin, {
+      organizationId: org.id,
+      asOf: AS_OF,
+    });
+    expect(summary.counts.UNKNOWN).toBe(1);
+    expect(summary.counts.ON_TRACK).toBe(1);
+    expect(summary.counts.BLOCKED).toBe(1);
+    expect(summary.counts.AT_RISK).toBe(3);
+    expect(summary.counts.COMPLETED).toBe(1);
+    expect(summary.counts.CANCELLED).toBe(1);
+    expect(summary.attentionCount).toBe(4);
+    expect(summary.totalProjects).toBe(8);
+
+    const unk = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: unknown.id,
+      asOf: AS_OF,
+    });
+    expect(unk.classification).toBe("UNKNOWN");
+    expect(unk.reasons.some((r) => r.code === "INSUFFICIENT_SCHEDULE_DATA")).toBe(
+      true,
+    );
+
+    const ok = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: onTrack.id,
+      asOf: AS_OF,
+    });
+    expect(ok.classification).toBe("ON_TRACK");
+    expect(
+      ok.reasons.some((r) => r.code === "SCHEDULE_EVIDENCE_PRESENT"),
+    ).toBe(true);
+
+    const depEval = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: atRiskDep.id,
+      asOf: AS_OF,
+    });
+    expect(depEval.classification).toBe("AT_RISK");
+    expect(depEval.reasons.some((r) => r.code === "CRITICAL_DEPENDENCY")).toBe(
+      true,
+    );
+
+    const blk = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: blocked.id,
+      asOf: AS_OF,
+    });
+    expect(blk.classification).toBe("BLOCKED");
+    expect(blk.reasons.some((r) => r.code === "ACTIVE_BLOCKER_ISSUE")).toBe(true);
+    expect(
+      blk.reasons.some((r) => r.code === "OVERDUE_CRITICAL_MILESTONE"),
+    ).toBe(true);
+
+    const done = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: completed.id,
+      asOf: AS_OF,
+    });
+    expect(done.classification).toBe("COMPLETED");
+    expect(done.closureOutcome).toBe("DELIVERED");
+    expect(done.reasons.some((r) => r.code === "PROJECT_COMPLETED")).toBe(true);
+
+    const can = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: cancelled.id,
+      asOf: AS_OF,
+    });
+    expect(can.classification).toBe("CANCELLED");
+    expect(can.classification).not.toBe("COMPLETED");
+    expect(can.reasons.some((r) => r.code === "PROJECT_CANCELLED")).toBe(true);
+  });
+
+  it("resolved blocker no longer BLOCKED; overdue plannedEnd and as-of boundary", async () => {
+    const admin = principal();
+    const { org, deptA } = await seedOrg(admin);
+
+    const project = await createProjectFor(org.id, deptA.id, "DH-RES", {
+      plannedEnd: FUTURE,
+    });
+    const issue = await db.projectIssue.create({
+      data: {
+        projectId: project.id,
+        organizationId: org.id,
+        referenceKey: "ISS-RES",
+        title: "Was blocker",
+        severity: "HIGH",
+        status: "OPEN",
+        isBlocker: true,
+      },
+    });
+
+    let eval1 = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: project.id,
+      asOf: AS_OF,
+    });
+    expect(eval1.classification).toBe("BLOCKED");
+
+    await db.projectIssue.update({
+      where: { id: issue.id },
+      data: { status: "RESOLVED", resolvedAt: AS_OF },
+    });
+
+    eval1 = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: project.id,
+      asOf: AS_OF,
+    });
+    expect(eval1.classification).toBe("ON_TRACK");
+
+    // plannedEnd exactly equal to asOf is NOT overdue
+    const boundary = await createProjectFor(org.id, deptA.id, "DH-BND", {
+      plannedEnd: BOUNDARY,
+    });
+    const atBoundary = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: boundary.id,
+      asOf: AS_OF,
+    });
+    expect(atBoundary.classification).toBe("ON_TRACK");
+
+    const overdue = await createProjectFor(org.id, deptA.id, "DH-OVR", {
+      plannedEnd: PAST,
+    });
+    const overEval = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: overdue.id,
+      asOf: AS_OF,
+    });
+    expect(overEval.classification).toBe("AT_RISK");
+    expect(overEval.reasons.some((r) => r.code === "OVERDUE_PROJECT_END")).toBe(
+      true,
+    );
+
+    // asOf before plannedEnd → not overdue
+    const early = await portfolio.getProjectDeliveryHealth(admin, {
+      organizationId: org.id,
+      projectId: overdue.id,
+      asOf: new Date("2019-01-01T00:00:00.000Z"),
+    });
+    expect(early.classification).toBe("ON_TRACK");
+  });
+
+  it("enforces scope isolation; owner does not expand portfolio; pagination stable", async () => {
+    const admin = principal();
+    const { org, section, deptA, deptB } = await seedOrg(admin);
+
+    const pA = await createProjectFor(org.id, deptA.id, "DH-A1", {
+      plannedEnd: PAST,
+      name: "Alpha Risk",
+    });
+    const pA2 = await createProjectFor(org.id, deptA.id, "DH-A2", {
+      plannedEnd: FUTURE,
+      name: "Beta Ok",
+    });
+    await db.projectIssue.create({
+      data: {
+        projectId: pA2.id,
+        organizationId: org.id,
+        referenceKey: "ISS-A2",
+        title: "Blocker A2",
+        severity: "MEDIUM",
+        status: "OPEN",
+        isBlocker: true,
+      },
+    });
+    const pB = await createProjectFor(org.id, deptB.id, "DH-B1", {
+      plannedEnd: PAST,
+      name: "Sibling Risk",
+    });
+
+    const mgr = principal();
+    await db.principal.create({ data: { id: mgr.id, displayName: "DeptMgr" } });
+    await bindRole(admin, mgr.id, ROLE_KEYS.DEPARTMENT_MANAGER, {
+      scopeType: ScopeType.DEPARTMENT,
+      organizationId: org.id,
+      scopeId: deptA.id,
+    });
+
+    const scoped = await portfolio.getDeliveryHealthSummary(mgr, {
+      organizationId: org.id,
+      asOf: AS_OF,
+    });
+    expect(scoped.totalProjects).toBe(2);
+    expect(scoped.counts.AT_RISK).toBe(1);
+    expect(scoped.counts.BLOCKED).toBe(1);
+    expect(scoped.scope.mode).toBe("departments");
+
+    await expect(
+      portfolio.getDeliveryHealthSummary(mgr, {
+        organizationId: org.id,
+        departmentId: deptB.id,
+        asOf: AS_OF,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    await expect(
+      portfolio.getProjectDeliveryHealth(mgr, {
+        organizationId: org.id,
+        projectId: pB.id,
+        asOf: AS_OF,
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    const sectionSummary = await portfolio.getDeliveryHealthSummary(admin, {
+      organizationId: org.id,
+      sectionId: section.id,
+      asOf: AS_OF,
+    });
+    expect(sectionSummary.totalProjects).toBe(3);
+
+    const sectionMgr = principal();
+    await db.principal.create({
+      data: { id: sectionMgr.id, displayName: "SectionMgr" },
+    });
+    await bindRole(admin, sectionMgr.id, ROLE_KEYS.SECTION_MANAGER, {
+      scopeType: ScopeType.SECTION,
+      organizationId: org.id,
+      scopeId: section.id,
+    });
+    const sectionMgrSummary = await portfolio.getDeliveryHealthSummary(
+      sectionMgr,
+      { organizationId: org.id, asOf: AS_OF },
+    );
+    expect(sectionMgrSummary.totalProjects).toBe(3);
+    expect(sectionMgrSummary.scope.mode).toBe("departments");
+
+    // Owner relationship alone does not grant portfolio visibility
+    const ownerOnly = principal();
+    await db.principal.create({
+      data: { id: ownerOnly.id, displayName: "OwnerOnly" },
+    });
+    const resource = await db.resource.create({
+      data: {
+        organizationId: org.id,
+        name: "Owner Person",
+        type: "PERSON",
+        referenceCode: "OWN-1",
+      },
+    });
+    await db.project.update({
+      where: { id: pA.id },
+      data: { ownerResourceId: resource.id },
+    });
+    await expect(
+      portfolio.getDeliveryHealthSummary(ownerOnly, {
+        organizationId: org.id,
+        asOf: AS_OF,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    // Cross-org denial
+    const other = await organization.createOrganization(admin, {
+      name: "Other Health Org",
+    });
+    await expect(
+      portfolio.getDeliveryHealthSummary(mgr, {
+        organizationId: other.id,
+        asOf: AS_OF,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    // Viewer org-wide
+    const viewer = principal();
+    await db.principal.create({
+      data: { id: viewer.id, displayName: "HealthViewer" },
+    });
+    await bindRole(admin, viewer.id, ROLE_KEYS.VIEWER, {
+      scopeType: ScopeType.ORGANIZATION,
+      organizationId: org.id,
+      scopeId: org.id,
+    });
+    const viewSummary = await portfolio.getDeliveryHealthSummary(viewer, {
+      organizationId: org.id,
+      asOf: AS_OF,
+    });
+    expect(viewSummary.totalProjects).toBe(3);
+
+    // Pagination + stable ordering (classification then referenceKey)
+    const page1 = await portfolio.listDeliveryHealthAttention(admin, {
+      organizationId: org.id,
+      asOf: AS_OF,
+      page: 1,
+      pageSize: 1,
+      sortBy: "classification",
+      sortDir: "asc",
+    });
+    // BLOCKED (pA2) + AT_RISK (pA, pB) → 3
+    expect(page1.total).toBe(3);
+    expect(page1.rows).toHaveLength(1);
+    expect(page1.rows[0]?.classification).toBe("BLOCKED");
+    expect(page1.rows[0]?.referenceKey).toBe("DH-A2");
+    expect(page1.rows[0]?.href).toMatch(/^\/initiatives\/.+\/project$/);
+    expect(page1.rows[0]?.reasons.length).toBeGreaterThan(0);
+
+    const page2 = await portfolio.listDeliveryHealthAttention(admin, {
+      organizationId: org.id,
+      asOf: AS_OF,
+      page: 2,
+      pageSize: 1,
+      sortBy: "classification",
+      sortDir: "asc",
+    });
+    expect(page2.rows[0]?.classification).toBe("AT_RISK");
+    expect(page2.attentionCount).toBe(3);
+
+    const page3 = await portfolio.listDeliveryHealthAttention(admin, {
+      organizationId: org.id,
+      asOf: AS_OF,
+      page: 3,
+      pageSize: 1,
+      sortBy: "classification",
+      sortDir: "asc",
+    });
+    expect(page3.rows[0]?.classification).toBe("AT_RISK");
+    // Stable: referenceKey order among AT_RISK
+    expect(["DH-A1", "DH-B1"]).toContain(page2.rows[0]?.referenceKey);
+    expect(["DH-A1", "DH-B1"]).toContain(page3.rows[0]?.referenceKey);
+    expect(page2.rows[0]?.referenceKey).not.toBe(page3.rows[0]?.referenceKey);
+    expect(
+      (page2.rows[0]?.referenceKey ?? "") < (page3.rows[0]?.referenceKey ?? ""),
+    ).toBe(true);
+  });
+});
