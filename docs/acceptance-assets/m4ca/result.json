@@ -1,0 +1,44 @@
+{
+  "steps": [
+    {
+      "name": "home",
+      "status": "PASS",
+      "homeCurrent": 1
+    },
+    {
+      "name": "portfolio-flow",
+      "status": "PASS"
+    },
+    {
+      "name": "initiatives",
+      "status": "PASS"
+    },
+    {
+      "name": "governance",
+      "status": "PASS"
+    },
+    {
+      "name": "pi",
+      "status": "PASS"
+    },
+    {
+      "name": "organization",
+      "status": "PASS"
+    },
+    {
+      "name": "active-route",
+      "status": "PASS",
+      "activeText": "Delivery health"
+    },
+    {
+      "name": "mobile-drawer",
+      "status": "PASS",
+      "drawerVisible": true
+    }
+  ],
+  "a11y": {
+    "activeLabel": "Delivery health",
+    "focusTag": "A"
+  },
+  "verdict": "PASS"
+}
