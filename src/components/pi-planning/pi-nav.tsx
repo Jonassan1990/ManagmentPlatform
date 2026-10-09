@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { humanize } from "@/components/governance/governance-panels";
+import { appendPreservedQuery } from "@/modules/navigation/return-context";
 
 export const PI_STATUS_ORDER = [
   "DRAFT",
@@ -39,12 +40,20 @@ const TABS: { key: PiTabKey; label: string; href: (id: string) => string }[] = [
   { key: "settings", label: "Settings", href: (id) => `/pi/${id}/settings` },
 ];
 
+/**
+ * PI section tabs. Pass `preserveQuery` (page searchParams) so Board → Compare →
+ * Review keeps revisionId / revs / ref and validated return context.
+ */
 export function PiTabs({
   piId,
   active,
+  preserveQuery,
 }: {
   piId: string;
   active: PiTabKey;
+  preserveQuery?:
+    | URLSearchParams
+    | Record<string, string | string[] | undefined>;
 }) {
   return (
     <nav
@@ -53,10 +62,14 @@ export function PiTabs({
     >
       {TABS.map((tab) => {
         const isActive = tab.key === active;
+        const href = preserveQuery
+          ? appendPreservedQuery(tab.href(piId), preserveQuery)
+          : tab.href(piId);
         return (
           <Link
             key={tab.key}
-            href={tab.href(piId)}
+            href={href}
+            aria-current={isActive ? "page" : undefined}
             className={`rounded-md px-3 py-1.5 text-sm ${
               isActive
                 ? "bg-[var(--accent-soft)] text-[var(--accent)]"

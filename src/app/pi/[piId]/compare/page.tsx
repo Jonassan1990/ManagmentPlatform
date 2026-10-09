@@ -3,6 +3,8 @@ import { ScenarioComparisonView } from "@/components/pi-planning/scenario-compar
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
 import { Breadcrumbs, PageHeader } from "@/components/ui/page";
 import { AppError } from "@/modules/shared/errors";
+import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import {
   COMPARE_MIN_REVISIONS,
   parseCompareSearchParams,
@@ -17,10 +19,13 @@ export default async function PiComparePage({
   searchParams,
 }: {
   params: Promise<{ piId: string }>;
-  searchParams: Promise<{ revs?: string; ref?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { piId } = await params;
   const sp = await searchParams;
+  const returnContext = parseReturnContext(sp);
+  const revs = typeof sp.revs === "string" ? sp.revs : undefined;
+  const ref = typeof sp.ref === "string" ? sp.ref : undefined;
   const { authz, planning } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -36,7 +41,7 @@ export default async function PiComparePage({
     notFound();
   }
 
-  const parsed = parseCompareSearchParams(sp.revs, sp.ref);
+  const parsed = parseCompareSearchParams(revs, ref);
   let comparison: ScenarioComparisonResult | null = null;
   let compareError: string | null = parsed.error;
 
@@ -88,18 +93,19 @@ export default async function PiComparePage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "PI Planning", href: "/pi" },
-          { label: pi.referenceKey, href: `/pi/${piId}` },
-          { label: "Compare scenarios" },
-        ]}
+        items={buildPiTrail({
+          piId,
+          referenceKey: pi.referenceKey,
+          name: pi.name,
+          leaf: "Compare",
+          returnContext,
+        })}
       />
       <PageHeader
         title="Compare scenarios"
         description={`${pi.name} · ${piStatusLabel(pi.status)} — read-only side-by-side what-if analysis. CURRENT remains authoritative.`}
       />
-      <PiTabs piId={piId} active="compare" />
+      <PiTabs piId={piId} active="compare" preserveQuery={sp} />
       <ScenarioComparisonView
         piId={piId}
         piReferenceKey={pi.referenceKey}

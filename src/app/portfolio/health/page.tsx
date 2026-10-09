@@ -9,6 +9,7 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
+import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
 import { createServices } from "@/server/container";
 import { prisma } from "@/server/db";
 
@@ -40,11 +41,7 @@ export default async function PortfolioHealthExplanationPage({
     return (
       <div>
         <Breadcrumbs
-          items={[
-            { label: "Overview", href: "/" },
-            { label: "Portfolio", href: "/portfolio" },
-            { label: "Delivery health" },
-          ]}
+          items={buildPortfolioTrail({ leaf: "Delivery health" })}
         />
         <PageHeader
           title="Delivery health explanation"
@@ -92,11 +89,10 @@ export default async function PortfolioHealthExplanationPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Portfolio", href: `/portfolio?organizationId=${organizationId}` },
-          { label: "Delivery health" },
-        ]}
+        items={buildPortfolioTrail({
+          leaf: "Delivery health",
+          organizationId,
+        })}
       />
       <PageHeader
         title="Delivery health explanation"

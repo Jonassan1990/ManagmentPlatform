@@ -15,16 +15,22 @@ import {
   Panel,
 } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
+import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
 export default async function PiSettingsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ piId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { piId } = await params;
+  const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, organization, planning } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -94,18 +100,19 @@ export default async function PiSettingsPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "PI Planning", href: "/pi" },
-          { label: pi.referenceKey, href: `/pi/${piId}` },
-          { label: "Settings" },
-        ]}
+        items={buildPiTrail({
+          piId,
+          referenceKey: pi.referenceKey,
+          name: pi.name,
+          leaf: "Settings",
+          returnContext,
+        })}
       />
       <PageHeader
         title="PI settings"
         description={`${pi.name} · ${piStatusLabel(pi.status)} — iterations and participation.`}
       />
-      <PiTabs piId={piId} active="settings" />
+      <PiTabs piId={piId} active="settings" preserveQuery={query} />
 
       <div className="space-y-6">
         <Panel className="max-w-3xl">

@@ -6,6 +6,7 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
+import { homeCrumb, piPlanningHubCrumb } from "@/modules/navigation/breadcrumbs";
 import { CreatePiForm } from "@/components/pi-planning/pi-forms";
 import { piStatusLabel } from "@/components/pi-planning/pi-nav";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
@@ -23,10 +24,7 @@ export default async function PiListPage() {
     return (
       <div>
         <Breadcrumbs
-          items={[
-            { label: "Overview", href: "/" },
-            { label: "PI Planning" },
-          ]}
+          items={[homeCrumb(), { label: piPlanningHubCrumb().label }]}
         />
         <EmptyState
           title="Organization required"
@@ -84,10 +82,7 @@ export default async function PiListPage() {
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "PI Planning" },
-        ]}
+        items={[homeCrumb(), { label: piPlanningHubCrumb().label }]}
       />
       <PageHeader
         title="PI Planning"

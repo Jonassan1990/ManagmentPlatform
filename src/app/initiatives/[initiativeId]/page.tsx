@@ -16,6 +16,8 @@ import {
   CreatePilotForm,
 } from "@/components/pilot/pilot-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { stageLabel } from "@/modules/initiative/application/attention";
 import { createServices } from "@/server/container";
 
@@ -23,10 +25,14 @@ export const dynamic = "force-dynamic";
 
 export default async function InitiativeOverviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ initiativeId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { initiativeId } = await params;
+  const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, initiative, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -95,11 +101,12 @@ export default async function InitiativeOverviewPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives", href: "/initiatives" },
-          { label: item.referenceKey },
-        ]}
+        items={buildInitiativeTrail({
+          initiativeId: item.id,
+          referenceKey: item.referenceKey,
+          title: item.title,
+          returnContext,
+        })}
       />
       <PageHeader
         title={item.title}

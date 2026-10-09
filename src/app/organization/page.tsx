@@ -6,6 +6,7 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
+import { homeCrumb, organizationHubCrumb } from "@/modules/navigation/breadcrumbs";
 import { CreateOrganizationForm } from "@/components/organization/create-organization-form";
 import { createOrganizationService } from "@/server/container";
 
@@ -23,10 +24,7 @@ export default async function OrganizationIndexPage() {
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Organization" },
-        ]}
+        items={[homeCrumb(), { label: organizationHubCrumb().label }]}
       />
       <PageHeader
         title="Organization"

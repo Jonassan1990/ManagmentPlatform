@@ -7,21 +7,61 @@ export type { AlertProps, AlertTone, LegacyAlertTone } from "@/components/ui/ale
 export type Crumb = { label: string; href?: string };
 
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
+  const collapseMiddle = items.length > 3;
   return (
     <nav aria-label="Breadcrumb" className="mb-3 text-sm text-[var(--muted)]">
-      <ol className="flex flex-wrap items-center gap-1">
-        {items.map((item, index) => (
-          <li key={`${item.label}-${index}`} className="flex items-center gap-1">
-            {index > 0 ? <span aria-hidden="true">/</span> : null}
-            {item.href ? (
-              <Link href={item.href} className="hover:text-[var(--ink)]">
-                {item.label}
-              </Link>
-            ) : (
-              <span className="text-[var(--ink)]">{item.label}</span>
-            )}
-          </li>
-        ))}
+      <ol className="flex max-w-full flex-wrap items-center gap-1 sm:gap-1.5">
+        {items.map((item, index) => {
+          const isLast = index === items.length - 1;
+          const isCurrent = isLast || !item.href;
+          const isMiddle =
+            collapseMiddle && index > 0 && index < items.length - 2;
+          const nodes = [];
+          if (index === 1 && collapseMiddle) {
+            nodes.push(
+              <li
+                key="ellipsis"
+                aria-hidden="true"
+                className="flex items-center gap-1 sm:hidden"
+              >
+                <span className="text-[var(--muted)]">/</span>
+                <span title="Ancestor pages omitted on small screens">…</span>
+              </li>,
+            );
+          }
+          nodes.push(
+            <li
+              key={`${item.label}-${index}`}
+              className={`min-w-0 max-w-[min(100%,14rem)] items-center gap-1 sm:max-w-xs ${
+                isMiddle ? "hidden sm:flex" : "flex"
+              }`}
+            >
+              {index > 0 ? (
+                <span aria-hidden="true" className="shrink-0 text-[var(--muted)]">
+                  /
+                </span>
+              ) : null}
+              {item.href && !isCurrent ? (
+                <Link
+                  href={item.href}
+                  className="truncate hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  title={item.label}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span
+                  className="truncate font-medium text-[var(--ink)]"
+                  title={item.label}
+                  aria-current={isLast ? "page" : undefined}
+                >
+                  {item.label}
+                </span>
+              )}
+            </li>,
+          );
+          return nodes;
+        })}
       </ol>
     </nav>
   );

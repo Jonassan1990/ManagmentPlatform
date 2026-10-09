@@ -10,16 +10,25 @@ import {
   Panel,
 } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
+import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
+import {
+  appendPreservedQuery,
+  parseReturnContext,
+} from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
 export default async function PiOverviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ piId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { piId } = await params;
+  const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, planning } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -97,25 +106,26 @@ export default async function PiOverviewPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "PI Planning", href: "/pi" },
-          { label: pi.referenceKey },
-        ]}
+        items={buildPiTrail({
+          piId,
+          referenceKey: pi.referenceKey,
+          name: pi.name,
+          returnContext,
+        })}
       />
       <PageHeader
         title={pi.name}
         description={`${pi.referenceKey} · ${piStatusLabel(pi.status)} · ${pi.startDate.toISOString().slice(0, 10)} → ${pi.endDate.toISOString().slice(0, 10)}`}
         actions={
           <Link
-            href={`/pi/${piId}/board`}
+            href={appendPreservedQuery(`/pi/${piId}/board`, query)}
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
           >
             Planning board
           </Link>
         }
       />
-      <PiTabs piId={piId} active="overview" />
+      <PiTabs piId={piId} active="overview" preserveQuery={query} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">

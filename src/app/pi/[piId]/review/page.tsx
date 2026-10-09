@@ -12,16 +12,22 @@ import {
   Panel,
 } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
+import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
 export default async function PiReviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ piId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { piId } = await params;
+  const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, planning } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -116,18 +122,19 @@ export default async function PiReviewPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "PI Planning", href: "/pi" },
-          { label: pi.referenceKey, href: `/pi/${piId}` },
-          { label: "Review" },
-        ]}
+        items={buildPiTrail({
+          piId,
+          referenceKey: pi.referenceKey,
+          name: pi.name,
+          leaf: "Review",
+          returnContext,
+        })}
       />
       <PageHeader
         title="Management review"
         description={`${pi.name} · ${piStatusLabel(pi.status)} — checklist from live conflicts and overview metrics.`}
       />
-      <PiTabs piId={piId} active="review" />
+      <PiTabs piId={piId} active="review" preserveQuery={query} />
 
       <ScenarioSelectionPanel
         piId={piId}

@@ -5,6 +5,10 @@ import {
   mapDeliveryHealthBadge,
   mapExplorerStatusBadge,
 } from "@/components/ui/status-adapters";
+import {
+  appendReturnContext,
+  explorerReturnInput,
+} from "@/modules/navigation/return-context";
 import type {
   PortfolioExplorerResult,
   PortfolioExplorerRow,
@@ -51,6 +55,31 @@ function buildExplorerHref(
     if (value) params.set(key, value);
   }
   return `/portfolio/explorer?${params.toString()}`;
+}
+
+/** Preserve explorer filters when opening Initiative/Project detail. */
+function contextualRowHref(
+  row: PortfolioExplorerRow,
+  filters: ExplorerFilterState,
+): string {
+  return appendReturnContext(
+    row.href,
+    explorerReturnInput({
+      organizationId: filters.organizationId,
+      departmentId: filters.departmentId,
+      sectionId: filters.sectionId,
+      q: filters.q,
+      kind: filters.kind,
+      initiativeStage: filters.initiativeStage,
+      projectStatus: filters.projectStatus,
+      ownerResourceId: filters.ownerResourceId,
+      delivery: filters.delivery,
+      deliveryHealth: filters.deliveryHealth,
+      sortBy: filters.sortBy,
+      sortDir: filters.sortDir,
+      page: filters.page,
+    }),
+  );
 }
 
 function DeliveryCell({ row }: { row: PortfolioExplorerRow }) {
@@ -321,6 +350,7 @@ export function PortfolioExplorerResults({
   const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
   const from = result.total === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
   const to = Math.min(result.total, result.page * result.pageSize);
+  const rowHref = (row: PortfolioExplorerRow) => contextualRowHref(row, filters);
 
   if (result.total === 0) {
     return (
@@ -385,12 +415,12 @@ export function PortfolioExplorerResults({
                     {row.kind === "INITIATIVE" ? "Initiative" : "Project"}
                   </td>
                   <td className="py-3 pr-3 font-medium">
-                    <Link href={row.href} className="text-[var(--accent)]">
+                    <Link href={rowHref(row)} className="text-[var(--accent)]">
                       {row.referenceKey}
                     </Link>
                   </td>
                   <td className="py-3 pr-3">
-                    <Link href={row.href} className="hover:text-[var(--accent)]">
+                    <Link href={rowHref(row)} className="hover:text-[var(--accent)]">
                       {row.title}
                     </Link>
                   </td>
@@ -431,7 +461,7 @@ export function PortfolioExplorerResults({
                 {row.kind === "INITIATIVE" ? "Initiative" : "Project"}
               </p>
               <Link
-                href={row.href}
+                href={rowHref(row)}
                 className="mt-1 block font-medium text-[var(--accent)]"
               >
                 {row.referenceKey} · {row.title}

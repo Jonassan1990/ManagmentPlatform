@@ -24,6 +24,8 @@ import { isActiveBlockerIssue } from "@/modules/project/application/issue-policy
 import { isProjectClosedStatus } from "@/modules/project/application/closure-policy";
 import { TraceabilityPanel } from "@/components/project/traceability-panel";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +39,7 @@ export default async function ProjectPage({
 }) {
   const { initiativeId } = await params;
   const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const issueStatusFilter =
     typeof query.issueStatus === "string" ? query.issueStatus : undefined;
   const issueSeverityFilter =
@@ -159,12 +162,13 @@ export default async function ProjectPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives", href: "/initiatives" },
-          { label: item.referenceKey, href: `/initiatives/${item.id}` },
-          { label: "Project" },
-        ]}
+        items={buildInitiativeTrail({
+          initiativeId: item.id,
+          referenceKey: item.referenceKey,
+          title: item.title,
+          leaf: "Project",
+          returnContext,
+        })}
       />
       <PageHeader
         title={project?.name ?? item.title}

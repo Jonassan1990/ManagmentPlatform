@@ -5,6 +5,7 @@ import {
   ResourcePlatformIdentityPanel,
 } from "@/components/organization/org-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createOrganizationService } from "@/server/container";
 
@@ -75,13 +76,12 @@ export default async function ResourceDetailPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Organization", href: "/organization" },
-          { label: org.name, href: `/organization/${org.id}` },
-          { label: "Resources", href: `/organization/${org.id}/resources` },
-          { label: resource.name },
-        ]}
+        items={buildOrganizationTrail({
+          organizationId: org.id,
+          organizationName: org.name,
+          resourcesHub: true,
+          leaf: resource.name,
+        })}
       />
       <PageHeader
         title={resource.name}
