@@ -1,8 +1,9 @@
-# Portfolio PI & Capacity UI (M2E-B)
+# Portfolio PI & Capacity UI (M2E-B + M4E-B)
 
 **Route:** `/portfolio/capacity`  
 **Reference:** `docs/ui-reference/resource-overview.html`  
-**Data:** M2E-A `listPortfolioProgramIncrementsAction` + `getPortfolioPiCapacityAction`
+**Data:** M2E-A `listPortfolioProgramIncrementsAction` + `getPortfolioPiCapacityAction`  
+**UX upgrade:** [M4E-B Capacity UX](./PROJECT-PLATFORM-M4E-B-CAPACITY-UX.md)
 
 ## Visual mapping
 
@@ -10,10 +11,11 @@
 |---|---|
 | Navy header / teal accents | Existing app shell (`--sidebar` navy) + teal `#087f78` KPI/dept accents |
 | KPI cards | Available / Committed / Remaining / Utilization / Overloaded teams / Conflicts |
-| Expandable department cards | Department → teams → resources |
+| Expandable department cards | Department → teams → resources (`aria-expanded`, StatusBadge, CapacityBar) |
 | Stacked allocation bars | Committed-load bar vs available hours (truthful). No invented workstream % |
 | Search | Department / team / resource text filter (client, authorized rows only) |
 | Dependency panels | Replaced with **Project commitments** + **Planning conflicts** from M2E-A |
+| Manager attention | M4E-B section D: overloaded teams, shortages, conflicts, missing data |
 
 ## Explicit non-copies
 
