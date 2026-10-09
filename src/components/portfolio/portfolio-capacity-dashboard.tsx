@@ -5,6 +5,10 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CAPACITY_BAND_LABELS } from "@/components/portfolio/metric";
 import { CapacityBar } from "@/components/ui/capacity-bar";
+import {
+  appendReturnContext,
+  capacityReturnInput,
+} from "@/modules/navigation/return-context";
 import type {
   PortfolioPiCapacityResult,
   PortfolioPiListItem,
@@ -385,6 +389,23 @@ export function PortfolioCapacityDashboard({
   const selectedPi = pis.find((p) => p.piId === piId) ?? null;
   const ready =
     capacity?.capacity.state === "ready" ? capacity.capacity : null;
+  const returnInput = capacityReturnInput({
+    organizationId,
+    departmentId,
+    piId,
+  });
+  const openPiTarget =
+    selectedPi?.href ??
+    (piId ? `/pi/${piId}` : null) ??
+    (ready?.meta.piId ? `/pi/${ready.meta.piId}` : null) ??
+    "/pi";
+  const openPiHref =
+    openPiTarget === "/pi"
+      ? "/pi"
+      : appendReturnContext(openPiTarget, returnInput);
+  const selectedPiMetaHref = ready?.meta.piId
+    ? appendReturnContext(`/pi/${ready.meta.piId}`, returnInput)
+    : openPiHref;
 
   const cards = useMemo(() => {
     if (!ready) return [];
@@ -458,10 +479,10 @@ export function PortfolioCapacityDashboard({
             Portfolio
           </Link>
           <Link
-            href={selectedPi ? selectedPi.href : "/pi"}
+            href={openPiHref}
             className="rounded-md bg-[#087f78] px-3 py-2 text-sm font-semibold text-white"
           >
-            {selectedPi ? "Open PI Planning" : "PI Planning"}
+            {openPiTarget === "/pi" ? "PI Planning" : "Open PI Planning"}
           </Link>
         </div>
       </div>
@@ -489,7 +510,7 @@ export function PortfolioCapacityDashboard({
             <div>
               <span className="text-[#74848e]">Selected PI </span>
               <Link
-                href={ready.meta.piId ? `/pi/${ready.meta.piId}` : "/pi"}
+                href={selectedPiMetaHref}
                 className="font-semibold text-[#087f78] underline-offset-2 hover:underline"
               >
                 {ready.meta.referenceKey} · {ready.meta.name}

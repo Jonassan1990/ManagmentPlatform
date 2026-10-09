@@ -3,16 +3,22 @@ import { BaselinePanels } from "@/components/pi-planning/baseline-panels";
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
 import { Breadcrumbs, PageHeader } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
+import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
 export default async function PiBaselinePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ piId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { piId } = await params;
+  const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, planning } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -43,18 +49,19 @@ export default async function PiBaselinePage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "PI Planning", href: "/pi" },
-          { label: pi.referenceKey, href: `/pi/${piId}` },
-          { label: "Baseline" },
-        ]}
+        items={buildPiTrail({
+          piId,
+          referenceKey: pi.referenceKey,
+          name: pi.name,
+          leaf: "Baseline",
+          returnContext,
+        })}
       />
       <PageHeader
         title="Baseline"
         description={`${pi.name} · ${piStatusLabel(pi.status)} — freeze the approved CURRENT plan and track drift.`}
       />
-      <PiTabs piId={piId} active="baseline" />
+      <PiTabs piId={piId} active="baseline" preserveQuery={query} />
       <BaselinePanels
         piId={piId}
         piStatus={pi.status}

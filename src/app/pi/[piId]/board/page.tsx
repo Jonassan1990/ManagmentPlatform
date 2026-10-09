@@ -7,6 +7,8 @@ import {
 } from "@/components/pi-planning/scenario-panel";
 import { Breadcrumbs, PageHeader } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
+import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +18,13 @@ export default async function PiBoardPage({
   searchParams,
 }: {
   params: Promise<{ piId: string }>;
-  searchParams: Promise<{ revisionId?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { piId } = await params;
-  const { revisionId: revisionIdParam } = await searchParams;
+  const query = await searchParams;
+  const revisionIdParam =
+    typeof query.revisionId === "string" ? query.revisionId : undefined;
+  const returnContext = parseReturnContext(query);
   const { authz, planning } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -67,18 +72,19 @@ export default async function PiBoardPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "PI Planning", href: "/pi" },
-          { label: board.pi.referenceKey, href: `/pi/${piId}` },
-          { label: "Board" },
-        ]}
+        items={buildPiTrail({
+          piId,
+          referenceKey: board.pi.referenceKey,
+          name: board.pi.name,
+          leaf: "Board",
+          returnContext,
+        })}
       />
       <PageHeader
         title="Planning board"
         description={`${board.pi.name} · ${piStatusLabel(board.pi.status)} — drag work onto team × iteration cells, or use Move / Allocate forms.`}
       />
-      <PiTabs piId={piId} active="board" />
+      <PiTabs piId={piId} active="board" preserveQuery={query} />
       <ScenarioModeBanner revision={board.revision} />
       <ScenarioPanel
         piId={piId}
@@ -94,6 +100,7 @@ export default async function PiBoardPage({
           archivedAt: s.archivedAt,
         }))}
         capabilities={capabilities}
+        preserveQuery={query}
       />
       <PlanningBoard
         piId={piId}

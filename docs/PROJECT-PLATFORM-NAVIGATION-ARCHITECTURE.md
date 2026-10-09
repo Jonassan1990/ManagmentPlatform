@@ -1,8 +1,8 @@
-# Project Platform — Navigation Architecture (M4C-A)
+# Project Platform — Navigation Architecture (M4C-A / M4C-B)
 
-**Status:** M4C-A workflow-oriented navigation  
+**Status:** M4C-A workflow navigation + M4C-B breadcrumbs & context preservation  
 **Date:** 2026-10-09  
-**Baseline main SHA:** `9a2f54707a06aac73e3cbdb84d4cf87e7d41e099`  
+**Baseline main SHA (M4C-B start):** `a357c300196252228dd6ee54f997c56f20471ad9`  
 **Related:** [M4 UX Audit](./PROJECT-PLATFORM-M4-UX-AUDIT.md), [Design System](./PROJECT-PLATFORM-DESIGN-SYSTEM.md)
 
 ---
@@ -111,10 +111,61 @@ Active items use `aria-current="page"`.
 
 ---
 
-## 7. Deferred (M4C-B+)
+## 7. Breadcrumbs & context preservation (M4C-B)
 
-- Shared breadcrumb service aligned to workflow groups (M4C-B).
-- Merged “Home attention” feed from portfolio attention cards (no new engine in M4C-A).
+### 7.1 Contracts
+
+| Module | Role |
+|---|---|
+| `src/modules/navigation/breadcrumbs.ts` | Typed trail builders (`buildPortfolioTrail`, `buildInitiativeTrail`, `buildPiTrail`, `buildOrganizationTrail`) |
+| `src/modules/navigation/return-context.ts` | Allowlisted `from` tokens, explorer/capacity filter packing, PI query preserve, open-redirect-safe return hrefs |
+| `src/components/ui/page.tsx` → `Breadcrumbs` | Shared placement, truncation, `aria-current`, mobile middle-collapse |
+
+Crumbs are `{ label, href? }`. The last crumb is always the current page (no `href`). Pages must not redefine ad-hoc Overview→… trails for covered workflows.
+
+### 7.2 Entity label resolution
+
+- Labels come from **already-authorized** application/service payloads on the page (initiative `referenceKey`, PI `referenceKey`/`name`, org/dept/resource `name`, etc.).
+- `entityLabel(preferred, fallback)` never surfaces a UUID-shaped string; missing/denied entities use a generic fallback (`Initiative`, `Program Increment`, …).
+- No separate breadcrumb lookup DB and no N+1 label fetches.
+- Unauthorized entities still fail at the page AuthZ boundary (`notFound` / redirect); breadcrumbs never invent titles for data the principal cannot read.
+
+### 7.3 Context parameters (shareable, non-sensitive)
+
+| Param | Meaning |
+|---|---|
+| `from` | Allowlisted return token: `explorer` \| `capacity` \| `health` \| `approvals` \| `decisions` \| `portfolio` \| `pi-list` |
+| `fromOrg` / `fromDept` / `fromPi` | UUID-validated scope for reconstructing return URLs |
+| `fx_*` | Packed Explorer filters (`q`, `kind`, stages/status, sort, page, …) — M2C contract keys only |
+| `revisionId` / `revs` / `ref` | PI scenario context preserved across Board / Compare / Review via `appendPreservedQuery` |
+
+Browser storage is **not** used for return or AuthZ decisions. Arbitrary external URLs are never accepted as return targets (`isSafeInternalPath`).
+
+### 7.4 Return-link validation
+
+- `appendReturnContext` only attaches params to relative internal paths.
+- `resolveReturnHref` maps tokens → fixed route templates (`/portfolio/explorer`, `/portfolio/capacity`, …).
+- Invalid UUIDs, oversized filter values, and unknown `from` tokens are dropped; deep links without context still render trails from hubs.
+
+### 7.5 Authorization boundaries
+
+- Shell capability OR flags (M4C-A) remain **visibility only**.
+- Destination pages continue to enforce server-side AuthZ; breadcrumbs and return crumbs are not an access grant.
+- Cross-org isolation: non-UUID / foreign org ids in query params are ignored when reconstructing returns; entity pages still `assertCan` on load.
+
+### 7.6 Known limitations
+
+- Initiative Documents/Risks/Demand trails do not yet pack Explorer return context (detail + Project do).
+- Scenario panel Compare link preserves return/PI query keys but does not rewrite business promotion flows.
+- Mobile breadcrumbs collapse middle ancestors visually; full trail remains available from `sm` breakpoint and in the accessibility tree for shown links.
+- M4C-C acceptance / Home attention merge / auto-select latest PI remain deferred.
+
+---
+
+## 8. Deferred (M4C-C+)
+
+- Navigation acceptance pass (M4C-C).
+- Merged “Home attention” feed from portfolio attention cards (no new engine in M4C-A/B).
 - Auto-select latest REVIEW/ACTIVE PI shortcuts in global nav.
 - Capability-aware Home quick links (strip currently static; pages still AuthZ).
 - Collapsed “Organize / Work / Govern” super-groups if density requires.

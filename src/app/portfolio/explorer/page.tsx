@@ -18,6 +18,7 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
+import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
 import type {
   PortfolioDeliveryFilter,
   PortfolioExplorerEntityKind,
@@ -67,11 +68,7 @@ export default async function PortfolioExplorerPage({
     return (
       <div>
         <Breadcrumbs
-          items={[
-            { label: "Overview", href: "/" },
-            { label: "Portfolio", href: "/portfolio" },
-            { label: "Explorer" },
-          ]}
+          items={buildPortfolioTrail({ leaf: "Explorer" })}
         />
         <PageHeader
           title="Portfolio Explorer"
@@ -210,11 +207,10 @@ export default async function PortfolioExplorerPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Portfolio", href: "/portfolio" },
-          { label: "Explorer" },
-        ]}
+        items={buildPortfolioTrail({
+          leaf: "Explorer",
+          organizationId,
+        })}
       />
       <PageHeader
         title="Portfolio Explorer"

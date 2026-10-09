@@ -12,6 +12,7 @@ import {
   EmptyState,
   PageHeader,
 } from "@/components/ui/page";
+import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
 import type {
   PortfolioPiCapacityResult,
   PortfolioPiListItem,
@@ -59,11 +60,7 @@ export default async function PortfolioCapacityPage({
     return (
       <div>
         <Breadcrumbs
-          items={[
-            { label: "Overview", href: "/" },
-            { label: "Portfolio", href: "/portfolio" },
-            { label: "PI & Capacity" },
-          ]}
+          items={buildPortfolioTrail({ leaf: "PI & Capacity" })}
         />
         <PageHeader
           title="PI & Resource Capacity"
@@ -153,11 +150,10 @@ export default async function PortfolioCapacityPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Portfolio", href: `/portfolio?organizationId=${organizationId}` },
-          { label: "PI & Capacity" },
-        ]}
+        items={buildPortfolioTrail({
+          leaf: "PI & Capacity",
+          organizationId,
+        })}
       />
       <PageHeader
         title="PI & Resource Capacity"

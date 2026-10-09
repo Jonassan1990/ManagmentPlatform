@@ -3,16 +3,22 @@ import { DependencyPanels } from "@/components/pi-planning/dependency-forms";
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
 import { Breadcrumbs, PageHeader } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
+import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
 export default async function PiDependenciesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ piId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { piId } = await params;
+  const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, planning } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -81,18 +87,19 @@ export default async function PiDependenciesPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "PI Planning", href: "/pi" },
-          { label: pi.referenceKey, href: `/pi/${piId}` },
-          { label: "Dependencies" },
-        ]}
+        items={buildPiTrail({
+          piId,
+          referenceKey: pi.referenceKey,
+          name: pi.name,
+          leaf: "Dependencies",
+          returnContext,
+        })}
       />
       <PageHeader
         title="Dependencies"
         description={`${pi.name} · ${piStatusLabel(pi.status)} — cross-team and cross-project planning links.`}
       />
-      <PiTabs piId={piId} active="dependencies" />
+      <PiTabs piId={piId} active="dependencies" preserveQuery={query} />
       <DependencyPanels
         piId={piId}
         organizationId={pi.organizationId}

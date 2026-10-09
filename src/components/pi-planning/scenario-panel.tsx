@@ -19,6 +19,10 @@ import {
   permissionTitle,
 } from "@/components/ui/forms";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
+import {
+  appendPreservedQuery,
+  PI_CONTEXT_QUERY_KEYS,
+} from "@/modules/navigation/return-context";
 
 type Caps = Partial<PrincipalCapabilities>;
 
@@ -68,18 +72,26 @@ export function ScenarioModeBanner({
   );
 }
 
+const SCENARIO_PRESERVE_KEYS = PI_CONTEXT_QUERY_KEYS.filter(
+  (k) => k !== "revisionId",
+);
+
 export function ScenarioPanel({
   piId,
   activeRevisionId,
   scenarios,
   capabilities,
   boardHrefBase,
+  preserveQuery,
 }: {
   piId: string;
   activeRevisionId: string;
   scenarios: ScenarioListItem[];
   capabilities?: Caps;
   boardHrefBase?: string;
+  preserveQuery?:
+    | URLSearchParams
+    | Record<string, string | string[] | undefined>;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -94,12 +106,30 @@ export function ScenarioPanel({
   const draftScenarios = scenarios.filter(
     (s) => !s.isCurrent && s.status === "DRAFT",
   );
-  const base = boardHrefBase ?? `/pi/${piId}/board`;
+  const basePath = boardHrefBase ?? `/pi/${piId}/board`;
+  const base = preserveQuery
+    ? appendPreservedQuery(basePath, preserveQuery, SCENARIO_PRESERVE_KEYS)
+    : basePath;
 
   function hrefFor(revisionId: string, isCurrent: boolean) {
     if (isCurrent) return base;
     const sep = base.includes("?") ? "&" : "?";
     return `${base}${sep}revisionId=${revisionId}`;
+  }
+
+  function compareHref(): string {
+    const revs = [
+      scenarios.find((s) => s.isCurrent)?.id,
+      scenarios.find((s) => !s.isCurrent)?.id,
+    ]
+      .filter(Boolean)
+      .join(",");
+    const ref =
+      scenarios.find((s) => s.isCurrent)?.id ?? scenarios[0]!.id;
+    const path = `/pi/${piId}/compare?revs=${encodeURIComponent(revs)}&ref=${encodeURIComponent(ref)}`;
+    return preserveQuery
+      ? appendPreservedQuery(path, preserveQuery, SCENARIO_PRESERVE_KEYS)
+      : path;
   }
 
   function run(action: () => Promise<{ ok: boolean; error?: { message: string } }>) {
@@ -123,16 +153,7 @@ export function ScenarioPanel({
         <div className="flex flex-wrap items-center gap-3">
           {scenarios.length >= 2 ? (
             <Link
-              href={`/pi/${piId}/compare?revs=${encodeURIComponent(
-                [
-                  scenarios.find((s) => s.isCurrent)?.id,
-                  scenarios.find((s) => !s.isCurrent)?.id,
-                ]
-                  .filter(Boolean)
-                  .join(","),
-              )}&ref=${encodeURIComponent(
-                scenarios.find((s) => s.isCurrent)?.id ?? scenarios[0]!.id,
-              )}`}
+              href={compareHref()}
               className="text-xs text-[var(--accent)] hover:underline"
             >
               Compare scenarios

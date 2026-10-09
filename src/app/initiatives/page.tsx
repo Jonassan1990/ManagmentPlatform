@@ -6,6 +6,7 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
+import { homeCrumb, initiativesHubCrumb } from "@/modules/navigation/breadcrumbs";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { mapInitiativeStageBadge } from "@/components/ui/status-adapters";
 import { createServices } from "@/server/container";
@@ -27,10 +28,7 @@ export default async function InitiativesPage({
     return (
       <div>
         <Breadcrumbs
-          items={[
-            { label: "Overview", href: "/" },
-            { label: "Initiatives" },
-          ]}
+          items={[homeCrumb(), { label: initiativesHubCrumb().label }]}
         />
         <EmptyState
           title="Organization required"
@@ -62,10 +60,7 @@ export default async function InitiativesPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives" },
-        ]}
+        items={[homeCrumb(), { label: initiativesHubCrumb().label }]}
       />
       <PageHeader
         title="Initiatives"

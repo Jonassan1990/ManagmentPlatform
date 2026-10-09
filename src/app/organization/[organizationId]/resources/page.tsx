@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CreateResourceForm } from "@/components/organization/org-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
 import { createOrganizationService } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -40,12 +41,11 @@ export default async function ResourcesPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Organization", href: "/organization" },
-          { label: org.name, href: `/organization/${org.id}` },
-          { label: "Resources" },
-        ]}
+        items={buildOrganizationTrail({
+          organizationId: org.id,
+          organizationName: org.name,
+          leaf: "Resources",
+        })}
       />
       <PageHeader
         title="Resources"

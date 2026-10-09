@@ -5,6 +5,7 @@ import {
   EditSectionForm,
 } from "@/components/organization/org-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
 import { createOrganizationService } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -34,12 +35,11 @@ export default async function SectionPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Organization", href: "/organization" },
-          { label: org.name, href: `/organization/${org.id}` },
-          { label: section.name },
-        ]}
+        items={buildOrganizationTrail({
+          organizationId: org.id,
+          organizationName: org.name,
+          section: { id: section.id, name: section.name },
+        })}
       />
       <PageHeader
         title={section.name}

@@ -6,6 +6,7 @@ import {
   EditOrganizationForm,
 } from "@/components/organization/org-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
 import { createOrganizationService } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -40,11 +41,10 @@ export default async function OrganizationDetailPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Organization", href: "/organization" },
-          { label: hierarchy.name },
-        ]}
+        items={buildOrganizationTrail({
+          organizationId,
+          organizationName: hierarchy.name,
+        })}
       />
       <PageHeader
         title={hierarchy.name}

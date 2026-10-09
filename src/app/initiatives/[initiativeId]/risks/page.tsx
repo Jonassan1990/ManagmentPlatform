@@ -5,6 +5,7 @@ import {
   LifecycleRail,
 } from "@/components/initiative/workspace";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -29,12 +30,12 @@ export default async function RisksPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives", href: "/initiatives" },
-          { label: item.referenceKey, href: `/initiatives/${item.id}` },
-          { label: "Risks" },
-        ]}
+        items={buildInitiativeTrail({
+          initiativeId: item.id,
+          referenceKey: item.referenceKey,
+          title: item.title,
+          leaf: "Risks",
+        })}
       />
       <PageHeader title={item.title} description={`${item.referenceKey} · Risks`} />
       <div className="mb-5">

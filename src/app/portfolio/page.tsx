@@ -17,6 +17,7 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
+import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
 import type { DeliveryHealthClassification } from "@/modules/portfolio/domain/types";
 import { createServices } from "@/server/container";
 
@@ -66,12 +67,7 @@ export default async function PortfolioPage({
   if (orgs.length === 0) {
     return (
       <div>
-        <Breadcrumbs
-          items={[
-            { label: "Overview", href: "/" },
-            { label: "Portfolio" },
-          ]}
-        />
+        <Breadcrumbs items={buildPortfolioTrail({})} />
         <PageHeader
           title="Portfolio"
           description="Executive view of initiatives, delivery health, governance attention, and PI capacity."
@@ -157,10 +153,7 @@ export default async function PortfolioPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Portfolio" },
-        ]}
+        items={buildPortfolioTrail({ organizationId })}
       />
       <PageHeader
         title="Portfolio"

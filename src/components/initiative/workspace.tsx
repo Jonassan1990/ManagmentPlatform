@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { InitiativeStage } from "@prisma/client";
 import { stageLabel } from "@/modules/initiative/application/attention";
+import { appendPreservedQuery } from "@/modules/navigation/return-context";
 
 const ACTIVE: InitiativeStage[] = [
   "DEMAND",
@@ -77,6 +78,7 @@ export function InitiativeTabs({
   hasPoC,
   hasPilot,
   hasProject,
+  preserveQuery,
 }: {
   initiativeId: string;
   active: InitiativeTabKey;
@@ -85,6 +87,10 @@ export function InitiativeTabs({
   hasPoC?: boolean;
   hasPilot?: boolean;
   hasProject?: boolean;
+  /** Pack validated return-context query keys across initiative tabs. */
+  preserveQuery?:
+    | URLSearchParams
+    | Record<string, string | string[] | undefined>;
 }) {
   const stageReached =
     currentStage != null && STAGE_RANK[currentStage] >= STAGE_RANK.PRE_STUDY;
@@ -135,10 +141,13 @@ export function InitiativeTabs({
       aria-label="Initiative sections"
     >
       {tabs.map(({ key, label }) => {
-        const href =
+        const path =
           key === "overview"
             ? `/initiatives/${initiativeId}`
             : `/initiatives/${initiativeId}/${key}`;
+        const href = preserveQuery
+          ? appendPreservedQuery(path, preserveQuery)
+          : path;
         const isActive = active === key;
         return (
           <Link
