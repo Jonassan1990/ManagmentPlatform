@@ -264,8 +264,8 @@ className="bg-[var(--color-surface)] text-[var(--color-text)]"
 ## 10. Migration / adoption strategy
 
 1. **M4B-A:** Tokens + globals (done).
-2. **M4B-B (this milestone):** Primitives + `/ui` showcase + unit tests. No domain screen redesigns.
-3. **M4B-C:** Adopt primitives on high-traffic surfaces (Review confirms, status chips, capacity rows) with visual QA.
+2. **M4B-B:** Primitives + `/ui` showcase (done).
+3. **M4B-C (this milestone):** Selective adoption on consequential surfaces — see §12.
 4. Prefer new primitives when touching a file; leave unrelated call sites alone.
 5. Keep `PrimaryButton` / legacy `Alert` tones until call sites migrate.
 6. **Never** change Prisma enums to match presentation status keys.
@@ -277,16 +277,71 @@ className="bg-[var(--color-surface)] text-[var(--color-text)]"
 |---|---|
 | `src/styles/design-tokens.css` | Token definitions |
 | `src/app/globals.css` | Import, `@theme`, a11y, status utilities |
-| `src/components/ui/*` | M4B-B primitives + barrel `index.ts` |
+| `src/components/ui/*` | Primitives + `status-adapters.ts` |
 | `src/app/ui/` | Component showcase |
-| `tests/unit/ui-*.test.*` | Component / derivation tests |
+| `tests/unit/ui-*.test.*` / `status-adapters.test.ts` | Component + mapping tests |
 
 ---
 
 ## 11. Out of scope (later)
 
-- M4B-C component QA & adoption on domain screens  
 - M4C navigation IA  
 - M4D PI workflow simplification  
 - Portfolio redesign  
 - Schema / AuthZ / Auth changes  
+
+---
+
+## 12. M4B-C adoption inventory
+
+### Adopted (this milestone)
+
+| Surface | Component | Pattern |
+|---|---|---|
+| PI Review — promote | `ConfirmDialog` | Destructive confirm; error stays open |
+| PI Review — approve | `ConfirmDialog` | Pending + error; ack checkbox stays outside |
+| PI Review — baseline | `ConfirmDialog` | Destructive; label input stays outside |
+| PI Review — selection / promote status | `StatusBadge` + adapters | Scenario status presentation |
+| PI Review — approval state | `StatusBadge` | Approved / invalidated / not approved |
+| PI Capacity tables | `CapacityBar` | Uses server `effectiveCapacityHours` / `plannedLoadHours`; band `none` → unavailable |
+| Portfolio Capacity dept cards | `CapacityBar` | Available/committed from portfolio query |
+| Delivery Health | `HealthBadge` → `StatusBadge` | Via `mapDeliveryHealthBadge` |
+| Portfolio Explorer | `StatusBadge` | Stage/status + delivery health cells |
+| Initiatives list | `StatusBadge` | Stage via `mapInitiativeStageBadge` |
+| Touched Review panels | `Alert` | warning/error/success feedback |
+
+### Migration patterns
+
+```tsx
+// Confirm — keep Server Action; on failure set error, leave open
+<ConfirmDialog
+  open={open}
+  pending={pending}
+  error={error}
+  onConfirm={runAction}
+  onOpenChange={setOpen}
+/>
+
+// Status — map in adapters, never in domain services
+const badge = mapScenarioStatusBadge(revision.status);
+<StatusBadge {...badge} size="compact" />
+
+// Capacity — pass service hours; never compute load inside the bar
+<CapacityBar available={row.effectiveCapacityHours} committed={row.plannedLoadHours} unavailable={row.band === "none"} />
+```
+
+### Known exceptions
+
+- Scenario Comparison and Explorer **tables** remain custom (diff columns / server query paging) — `DataTable` not forced.
+- Portfolio Capacity **resource** committed bars remain custom dense chrome (dept-level adopted).
+- Org resource lists remain `<ul>` lists.
+- `PrimaryButton` retained as thin wrappers on Review actions.
+
+### Remaining adoption backlog (post–M4B)
+
+- Governance approval/decision chips → `StatusBadge`
+- Scenario Comparison mini util tracks → `CapacityBar` where hours exist
+- Project detail status header → `StatusBadge`
+- Optional `DataTable` for simple org lists after query contracts stabilize
+- Broader `Alert` tone migration (`danger`→`error`, `ok`→`success`) outside Review  
+

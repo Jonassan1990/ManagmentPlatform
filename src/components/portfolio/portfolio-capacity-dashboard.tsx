@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CAPACITY_BAND_LABELS } from "@/components/portfolio/metric";
+import { CapacityBar } from "@/components/ui/capacity-bar";
 import type {
   PortfolioPiCapacityResult,
   PortfolioPiListItem,
@@ -18,7 +19,6 @@ import {
   formatCapacityHours,
   formatUtilizationPct,
   initials,
-  utilTrackWidthPct,
 } from "./portfolio-capacity-model";
 
 export type CapacityOrgOption = { id: string; name: string };
@@ -152,10 +152,6 @@ function DepartmentCard({
   open: boolean;
   onToggle: () => void;
 }) {
-  const tone = bandTone(card.band);
-  const utilLabel = formatUtilizationPct(card.utilization);
-  const trackPct = utilTrackWidthPct(card.utilization);
-
   return (
     <article
       className={`overflow-hidden rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a] ${
@@ -205,24 +201,12 @@ function DepartmentCard({
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-[1fr_auto] items-center gap-[9px] px-[17px] pb-[13px]">
-        <div
-          className="h-[7px] overflow-hidden rounded-lg bg-[#eef2f3]"
-          role="img"
-          aria-label={`Utilization ${utilLabel}`}
-        >
-          <i
-            className={`block h-full rounded-lg ${
-              tone === "over"
-                ? "bg-[#d65d57]"
-                : tone === "high"
-                  ? "bg-[#e3a640]"
-                  : "bg-[#087f78]"
-            }`}
-            style={{ width: `${trackPct}%` }}
-          />
-        </div>
-        <div className="text-[10px] font-bold text-[#526572]">{utilLabel}</div>
+      <div className="px-[17px] pb-[13px]">
+        <CapacityBar
+          available={card.availableHours}
+          committed={card.committedHours}
+          unavailable={card.band === "none"}
+        />
       </div>
       <button
         type="button"

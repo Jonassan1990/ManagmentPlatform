@@ -6,12 +6,11 @@ import {
   approveCurrentPlanAction,
   createBaselineAction,
 } from "@/app/actions/pi-planning";
-import { Alert } from "@/components/ui/page";
-import {
-  PrimaryButton,
-  SecondaryButton,
-  permissionTitle,
-} from "@/components/ui/forms";
+import { Alert } from "@/components/ui/alert";
+import { ConfirmDialog } from "@/components/ui/dialog";
+import { PrimaryButton, permissionTitle } from "@/components/ui/forms";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { mapApprovalStateBadge } from "@/components/ui/status-adapters";
 import { formatHours } from "@/components/pi-planning/pi-nav";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
 import type { PlanApprovalPreview } from "@/modules/pi-planning/application/plan-approval-types";
@@ -33,6 +32,9 @@ export function PlanApprovalPanel({
   const [confirmApprove, setConfirmApprove] = useState(false);
   const [confirmBaseline, setConfirmBaseline] = useState(false);
   const [baselineLabel, setBaselineLabel] = useState("");
+  const [activeDialog, setActiveDialog] = useState<"approve" | "baseline" | null>(
+    null,
+  );
 
   const canReview = capabilities?.canReviewPi === true;
   const canBaselinePerm = capabilities?.canBaselinePi === true;
@@ -50,10 +52,16 @@ export function PlanApprovalPanel({
     !preview.activeApproval ||
     !preview.currentRevision;
 
+  const approvalBadge = mapApprovalStateBadge({
+    hasValidApproval: Boolean(preview.activeApproval),
+    invalidated: preview.latestApproval?.status === "INVALIDATED",
+  });
+
   function approve() {
     if (!preview.currentRevision) return;
     setError(null);
     setSuccess(null);
+    setActiveDialog("approve");
     startTransition(async () => {
       const result = await approveCurrentPlanAction({
         piId: preview.piId,
@@ -63,10 +71,10 @@ export function PlanApprovalPanel({
       });
       if (!result.ok) {
         setError(result.error?.message ?? "Approval failed.");
-        setConfirmApprove(false);
         return;
       }
       setConfirmApprove(false);
+      setActiveDialog(null);
       setSuccess(
         `Approved CURRENT version ${result.data.currentRevisionVersion}. Baseline was not created.`,
       );
@@ -78,6 +86,7 @@ export function PlanApprovalPanel({
     if (!preview.activeApproval || !preview.currentRevision) return;
     setError(null);
     setSuccess(null);
+    setActiveDialog("baseline");
     startTransition(async () => {
       const result = await createBaselineAction({
         piId: preview.piId,
@@ -88,16 +97,22 @@ export function PlanApprovalPanel({
       });
       if (!result.ok) {
         setError(result.error?.message ?? "Baseline creation failed.");
-        setConfirmBaseline(false);
         return;
       }
       setConfirmBaseline(false);
+      setActiveDialog(null);
       setSuccess(
         `Created immutable baseline v${result.data.versionNumber}. Historical snapshots remain unchanged.`,
       );
       router.refresh();
     });
   }
+
+  const dialogError =
+    (confirmApprove && activeDialog === "approve") ||
+    (confirmBaseline && activeDialog === "baseline")
+      ? error
+      : null;
 
   return (
     <section className="mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]">
@@ -115,15 +130,24 @@ export function PlanApprovalPanel({
         className="rounded-md border border-[#e3a640]/40 bg-[#e3a640]/10 px-3 py-2 text-sm text-[#102a43]"
         role="status"
       >
-        <strong>{preview.stateMessage}</strong>
+        <div className="flex flex-wrap items-center gap-2">
+          <strong>{preview.stateMessage}</strong>
+          <StatusBadge
+            status={approvalBadge.status}
+            label={approvalBadge.label}
+            size="compact"
+          />
+        </div>
         <span className="mt-1 block text-xs text-[#74848e]">
           Lifecycle: Selected for review → Promoted to CURRENT — not approved →
           Approved CURRENT version → Baselined — immutable commitment
         </span>
       </div>
 
-      {error ? <Alert tone="danger">{error}</Alert> : null}
-      {success ? <Alert tone="ok">{success}</Alert> : null}
+      {error && !confirmApprove && !confirmBaseline ? (
+        <Alert tone="error">{error}</Alert>
+      ) : null}
+      {success ? <Alert tone="success">{success}</Alert> : null}
 
       <div className="grid gap-3 text-sm sm:grid-cols-2">
         <p>
@@ -158,21 +182,27 @@ export function PlanApprovalPanel({
         <div className="rounded-md border border-[#e2e8eb] px-3 py-2 text-sm">
           <p>
             Approver:{" "}
-            <strong>{preview.activeApproval.approvedByPrincipalId.slice(0, 8)}…</strong>
+            <strong>
+              {preview.activeApproval.approvedByPrincipalId.slice(0, 8)}…
+            </strong>
           </p>
           <p className="text-xs text-[#74848e]">
-            Approved at {preview.activeApproval.approvedAt.replace("T", " ").replace("Z", " UTC")}
-            {" · "}fingerprint {preview.activeApproval.allocationFingerprint.slice(0, 12)}…
+            Approved at{" "}
+            {preview.activeApproval.approvedAt
+              .replace("T", " ")
+              .replace("Z", " UTC")}
+            {" · "}fingerprint{" "}
+            {preview.activeApproval.allocationFingerprint.slice(0, 12)}…
           </p>
         </div>
       ) : preview.latestApproval?.status === "INVALIDATED" ? (
-        <p className="text-sm text-[#d65d57]">
+        <Alert tone="warning" title="Approval invalidated">
           Previous approval invalidated
           {preview.latestApproval.invalidatedReason
             ? ` (${preview.latestApproval.invalidatedReason})`
             : ""}
           . Re-approve the current CURRENT plan before baselining.
-        </p>
+        </Alert>
       ) : null}
 
       {preview.readiness && preview.readiness.blockers.length > 0 ? (
@@ -217,41 +247,41 @@ export function PlanApprovalPanel({
       ) : null}
 
       {preview.approveDisabledReasons.length > 0 ? (
-        <ul className="list-disc space-y-1 pl-5 text-xs text-[#74848e]">
-          {preview.approveDisabledReasons.map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ul>
+        <Alert tone="warning">
+          {preview.approveDisabledReasons.join(" ")}
+        </Alert>
       ) : null}
 
-      {!confirmApprove ? (
-        <PrimaryButton
-          disabled={pending || approveBlocked}
-          title={permissionTitle(canReview && preview.canApprove)}
-          onClick={() => setConfirmApprove(true)}
-        >
-          Approve CURRENT plan
-        </PrimaryButton>
-      ) : (
-        <div className="space-y-2 rounded-md border border-[#102a43]/20 bg-[#f7fafc] p-3">
-          <p className="text-sm">
-            Confirm approval of CURRENT version{" "}
-            <strong>{preview.currentRevision?.version}</strong>. This does not
-            create an immutable baseline.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <PrimaryButton disabled={pending} onClick={approve}>
-              {pending ? "Approving…" : "Confirm approval"}
-            </PrimaryButton>
-            <SecondaryButton
-              disabled={pending}
-              onClick={() => setConfirmApprove(false)}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
-      )}
+      <PrimaryButton
+        disabled={pending || approveBlocked}
+        title={permissionTitle(canReview && preview.canApprove)}
+        onClick={() => {
+          setError(null);
+          setActiveDialog("approve");
+          setConfirmApprove(true);
+        }}
+      >
+        Approve CURRENT plan
+      </PrimaryButton>
+
+      <ConfirmDialog
+        open={confirmApprove}
+        onOpenChange={(open) => {
+          if (pending && !open) return;
+          setConfirmApprove(open);
+          if (!open) {
+            setError(null);
+            setActiveDialog(null);
+          }
+        }}
+        title="Approve CURRENT plan?"
+        description={`Confirm approval of CURRENT version ${preview.currentRevision?.version ?? "—"}. This does not create an immutable baseline.`}
+        confirmLabel="Confirm approval"
+        cancelLabel="Cancel"
+        pending={pending && activeDialog === "approve"}
+        error={confirmApprove ? dialogError : null}
+        onConfirm={approve}
+      />
 
       <hr className="border-[#e2e8eb]" />
 
@@ -265,11 +295,7 @@ export function PlanApprovalPanel({
       </div>
 
       {preview.baselineDisabledReasons.length > 0 ? (
-        <ul className="list-disc space-y-1 pl-5 text-xs text-[#74848e]">
-          {preview.baselineDisabledReasons.map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ul>
+        <Alert tone="info">{preview.baselineDisabledReasons.join(" ")}</Alert>
       ) : null}
 
       <label className="block text-sm">
@@ -282,34 +308,37 @@ export function PlanApprovalPanel({
         />
       </label>
 
-      {!confirmBaseline ? (
-        <PrimaryButton
-          disabled={pending || baselineBlocked}
-          title={permissionTitle(canBaselinePerm && preview.canBaseline)}
-          onClick={() => setConfirmBaseline(true)}
-        >
-          Create immutable baseline
-        </PrimaryButton>
-      ) : (
-        <div className="space-y-2 rounded-md border border-[#102a43]/20 bg-[#f7fafc] p-3">
-          <p className="text-sm">
-            Confirm immutable baseline from approved CURRENT version{" "}
-            <strong>{preview.currentRevision?.version}</strong>. Historical
-            baselines will not be modified.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <PrimaryButton disabled={pending} onClick={baseline}>
-              {pending ? "Creating…" : "Confirm baseline"}
-            </PrimaryButton>
-            <SecondaryButton
-              disabled={pending}
-              onClick={() => setConfirmBaseline(false)}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
-      )}
+      <PrimaryButton
+        disabled={pending || baselineBlocked}
+        title={permissionTitle(canBaselinePerm && preview.canBaseline)}
+        onClick={() => {
+          setError(null);
+          setActiveDialog("baseline");
+          setConfirmBaseline(true);
+        }}
+      >
+        Create immutable baseline
+      </PrimaryButton>
+
+      <ConfirmDialog
+        open={confirmBaseline}
+        onOpenChange={(open) => {
+          if (pending && !open) return;
+          setConfirmBaseline(open);
+          if (!open) {
+            setError(null);
+            setActiveDialog(null);
+          }
+        }}
+        title="Create immutable baseline?"
+        description={`Confirm immutable baseline from approved CURRENT version ${preview.currentRevision?.version ?? "—"}. Historical baselines will not be modified.`}
+        confirmLabel="Confirm baseline"
+        cancelLabel="Cancel"
+        variant="destructive"
+        pending={pending && activeDialog === "baseline"}
+        error={confirmBaseline ? dialogError : null}
+        onConfirm={baseline}
+      />
     </section>
   );
 }

@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { humanize } from "@/components/governance/governance-panels";
 import { EmptyState, Panel } from "@/components/ui/page";
+import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  mapDeliveryHealthBadge,
+  mapExplorerStatusBadge,
+} from "@/components/ui/status-adapters";
 import type {
   PortfolioExplorerResult,
   PortfolioExplorerRow,
@@ -52,37 +56,32 @@ function buildExplorerHref(
 function DeliveryCell({ row }: { row: PortfolioExplorerRow }) {
   if (row.kind === "INITIATIVE") {
     return (
-      <span className="text-[var(--muted)]" title="Delivery signals apply to projects">
-        Unavailable
-      </span>
+      <StatusBadge
+        status="unavailable"
+        label="Unavailable"
+        size="compact"
+      />
     );
   }
-  const healthLabel =
-    row.delivery.health === "BLOCKED"
-      ? "Blocked"
-      : row.delivery.health === "AT_RISK"
-        ? "At risk"
-        : row.delivery.health === "ON_TRACK"
-          ? "On track"
-          : row.delivery.health === "UNKNOWN"
-            ? "Unknown"
-            : row.delivery.health === "COMPLETED"
-              ? "Completed"
-              : row.delivery.health === "CANCELLED"
-                ? "Cancelled"
-                : null;
+  const health = row.delivery.health
+    ? mapDeliveryHealthBadge(row.delivery.health)
+    : null;
   const parts: string[] = [];
   if (row.delivery.delayed) parts.push("Delayed");
   if (row.delivery.activeBlocker) parts.push("Active blocker");
   if (row.delivery.criticalOpenIssue) parts.push("Critical issue");
   return (
-    <div className="space-y-0.5 text-xs">
-      {healthLabel ? (
-        <p className="font-medium">{healthLabel}</p>
+    <div className="space-y-1 text-xs">
+      {health ? (
+        <StatusBadge
+          status={health.status}
+          label={health.label}
+          size="compact"
+        />
       ) : null}
       {parts.length === 0 ? (
         <span className="text-[var(--muted)]">
-          {healthLabel ? "No legacy signals" : "No signals"}
+          {health ? "No legacy signals" : "No signals"}
         </span>
       ) : (
         <ul className="space-y-0.5">
@@ -94,6 +93,13 @@ function DeliveryCell({ row }: { row: PortfolioExplorerRow }) {
         </ul>
       )}
     </div>
+  );
+}
+
+function ExplorerStatusCell({ row }: { row: PortfolioExplorerRow }) {
+  const mapped = mapExplorerStatusBadge(row.kind, row.statusLabel);
+  return (
+    <StatusBadge status={mapped.status} label={mapped.label} size="compact" />
   );
 }
 
@@ -388,7 +394,9 @@ export function PortfolioExplorerResults({
                       {row.title}
                     </Link>
                   </td>
-                  <td className="py-3 pr-3">{humanize(row.statusLabel)}</td>
+                  <td className="py-3 pr-3">
+                    <ExplorerStatusCell row={row} />
+                  </td>
                   <td className="py-3 pr-3 text-[var(--muted)]">
                     {row.sectionName} / {row.departmentName}
                   </td>
@@ -428,9 +436,10 @@ export function PortfolioExplorerResults({
               >
                 {row.referenceKey} · {row.title}
               </Link>
-              <p className="mt-1 text-sm">
-                {humanize(row.statusLabel)} · {row.departmentName}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                <ExplorerStatusCell row={row} />
+                <span className="text-[var(--muted)]">{row.departmentName}</span>
+              </div>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 Owner: {row.owner.displayName}
                 {row.owner.source === "legacy" ? " (legacy)" : ""}

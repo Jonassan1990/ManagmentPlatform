@@ -7,12 +7,14 @@ import {
   clearScenarioSelectionAction,
   selectScenarioAction,
 } from "@/app/actions/pi-planning";
-import { Alert } from "@/components/ui/page";
+import { Alert } from "@/components/ui/alert";
 import {
   PrimaryButton,
   SecondaryButton,
   permissionTitle,
 } from "@/components/ui/forms";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { mapScenarioStatusBadge } from "@/components/ui/status-adapters";
 import { formatHours } from "@/components/pi-planning/pi-nav";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
 import type {
@@ -129,17 +131,23 @@ export function ScenarioSelectionPanel({
         className="rounded-md border border-[#087f78]/30 bg-[#087f78]/5 px-3 py-2 text-sm text-[#102a43]"
         role="status"
       >
-        <strong>Selected for review — not approved</strong>
-        {selected ? (
-          <span className="ml-2">
-            · {selected.label ?? selected.key} ({selected.status})
-          </span>
-        ) : (
-          <span className="ml-2 text-[#74848e]">· none selected</span>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <strong>Selected for review — not approved</strong>
+          {selected ? (
+            <>
+              <span>· {selected.label ?? selected.key}</span>
+              <StatusBadge
+                {...mapScenarioStatusBadge(selected.status)}
+                size="compact"
+              />
+            </>
+          ) : (
+            <span className="text-[#74848e]">· none selected</span>
+          )}
+        </div>
       </div>
 
-      {error ? <Alert tone="danger">{error}</Alert> : null}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
       {readiness ? (
         <div className="space-y-3">

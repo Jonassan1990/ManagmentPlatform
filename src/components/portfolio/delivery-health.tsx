@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { EmptyState, Panel } from "@/components/ui/page";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { mapDeliveryHealthBadge } from "@/components/ui/status-adapters";
 import type {
   DeliveryHealthAttentionResult,
   DeliveryHealthAttentionRow,
@@ -79,12 +81,13 @@ export function HealthBadge({
 }: {
   classification: DeliveryHealthClassification;
 }) {
+  const mapped = mapDeliveryHealthBadge(classification);
   return (
-    <span
-      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${healthBadgeClass(classification)}`}
-    >
-      {HEALTH_LABELS[classification]}
-    </span>
+    <StatusBadge
+      status={mapped.status}
+      label={mapped.label}
+      size="compact"
+    />
   );
 }
 
