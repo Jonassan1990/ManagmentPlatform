@@ -1,0 +1,93 @@
+{
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "open-scenario-b-board",
+      "status": "PASS"
+    },
+    {
+      "step": "select-scenario-b",
+      "status": "PASS"
+    },
+    {
+      "step": "promoted-state",
+      "status": "PASS"
+    },
+    {
+      "step": "approve-enabled",
+      "status": "PASS"
+    },
+    {
+      "step": "approved-state",
+      "status": "PASS"
+    },
+    {
+      "step": "approval-actor",
+      "status": "PASS",
+      "approvalId": "3a1d76d4-e235-4b8f-961c-c83cf6b64cd4",
+      "version": 2
+    },
+    {
+      "step": "baseline-enabled",
+      "status": "PASS"
+    },
+    {
+      "step": "baseline-created",
+      "status": "PASS"
+    },
+    {
+      "step": "baselined-copy",
+      "status": "PASS"
+    },
+    {
+      "step": "current-edited",
+      "status": "PASS"
+    },
+    {
+      "step": "approval-stale",
+      "status": "PASS"
+    },
+    {
+      "step": "stale-approval-blocks-baseline",
+      "status": "PASS"
+    },
+    {
+      "step": "historical-baseline-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "scenario-a-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "scenario-b-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "portfolio-current-only",
+      "status": "PASS"
+    },
+    {
+      "step": "viewer-denied-integration-covered",
+      "status": "PASS",
+      "note": "Viewer FORBIDDEN covered in pi-plan-approval-m3d.test.ts"
+    },
+    {
+      "step": "mobile-approval-ux",
+      "status": "PASS"
+    }
+  ],
+  "base": "http://localhost:43148",
+  "piId": "a7a58aba-180a-4ade-ac76-b49bb05f6a38",
+  "seed": {
+    "organizationId": "87b5a50d-9cb2-4a0c-b640-e585fa3e7c20",
+    "piId": "a7a58aba-180a-4ade-ac76-b49bb05f6a38",
+    "currentRevisionId": "aac7bb09-f58e-475b-bb0d-c90d2e046443",
+    "scenarioAId": "a2559e36-6110-4792-8e77-1bd474fd85b9",
+    "scenarioBId": "96cf2c7b-38c2-4747-91ef-f41f4355824c",
+    "boardPath": "/pi/a7a58aba-180a-4ade-ac76-b49bb05f6a38/board"
+  }
+}
