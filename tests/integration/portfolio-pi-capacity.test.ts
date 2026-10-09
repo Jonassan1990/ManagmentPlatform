@@ -593,24 +593,26 @@ describe("M2E-A capacity hours", () => {
     });
     expect(noRev.capacity.state).toBe("unavailable");
 
-    // Missing capacityHoursPerWeek flagged in dataQuality (still ready with 0)
-    const admin2 = principal();
-    const ctx2 = await seedOrg(admin2);
-    const { pi: pi2, it1 } = await createPiWithTwoIters(admin2, ctx2);
+  });
+
+  it("flags missing capacityHoursPerWeek in dataQuality while keeping zero hours", async () => {
+    const admin = principal();
+    const ctx = await seedOrg(admin);
+    const { pi, it1 } = await createPiWithTwoIters(admin, ctx);
     await db.resource.update({
-      where: { id: ctx2.resourceA.id },
+      where: { id: ctx.resourceA.id },
       data: { capacityHoursPerWeek: null },
     });
-    const missing = await piCapacity.getPiCapacityOverview(admin2, {
-      organizationId: ctx2.org.id,
-      piId: pi2.id,
+    const missing = await piCapacity.getPiCapacityOverview(admin, {
+      organizationId: ctx.org.id,
+      piId: pi.id,
     });
     expect(missing.capacity.state).toBe("ready");
     if (missing.capacity.state === "ready") {
       expect(missing.capacity.dataQuality.missingCapacityInputs).toBe(true);
       const row = missing.capacity.resources.rows.find(
         (r) =>
-          r.resourceId === ctx2.resourceA.id && r.iterationId === it1.id,
+          r.resourceId === ctx.resourceA.id && r.iterationId === it1.id,
       );
       expect(row!.availableHours).toBe(0);
     }
@@ -644,7 +646,7 @@ describe("M2E-A revision vs baseline", () => {
       toStatus: "PLANNING",
       expectedVersion: current.version,
     });
-    current = await planning.transitionStatus(admin, {
+    await planning.transitionStatus(admin, {
       piId: pi.id,
       toStatus: "REVIEW",
       expectedVersion: current.version,
