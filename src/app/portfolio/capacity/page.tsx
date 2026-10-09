@@ -2,9 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   getPortfolioPiCapacityAction,
+  getPortfolioSnapshotAction,
   listPortfolioDepartmentOptionsAction,
   listPortfolioProgramIncrementsAction,
 } from "@/app/actions/portfolio";
+import type { CapacityDependenciesView } from "@/components/portfolio/portfolio-capacity-coordination";
+import {
+  mapPlanningDependencyRows,
+  summarizeDependencyCounts,
+} from "@/components/portfolio/portfolio-capacity-coordination";
 import { PortfolioCapacityDashboard } from "@/components/portfolio/portfolio-capacity-dashboard";
 import {
   Alert,
@@ -15,6 +21,7 @@ import {
 import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
 import { selectAuthorizedPiEntry } from "@/modules/navigation/home-experience";
 import { resolveShellNavContext } from "@/modules/navigation/resolve-shell-nav";
+import { AppError } from "@/modules/shared/errors";
 import type {
   PortfolioPiCapacityResult,
   PortfolioPiListItem,
@@ -164,6 +171,7 @@ export default async function PortfolioCapacityPage({
 
   let capacity: PortfolioPiCapacityResult | null = null;
   let capacityError: string | null = null;
+  let capacityErrorCode: string | null = null;
   if (piId) {
     const capResult = await getPortfolioPiCapacityAction({
       organizationId,
@@ -178,6 +186,7 @@ export default async function PortfolioCapacityPage({
       capacity = capResult.data;
     } else {
       capacityError = capResult.error.message;
+      capacityErrorCode = capResult.error.code;
     }
   } else {
     // Explicit no-PI state using the same contract shape (no invented metrics).
@@ -197,6 +206,72 @@ export default async function PortfolioCapacityPage({
     };
   }
 
+  // M4E-C: PlanningDependencies via existing DependencyService (ORGANIZATION PI_VIEW).
+  // Dept Managers without org-scoped PI_VIEW get an unavailable state — never broaden RBAC.
+  const projectCommitments =
+    capacity?.capacity.state === "ready"
+      ? capacity.capacity.projectCommitments
+      : [];
+  let dependencies: CapacityDependenciesView = {
+    state: "unavailable",
+    reason:
+      "PlanningDependency list requires organization-scoped PI_VIEW. Open PI Dependencies when authorized, or use portfolio dependency counts below when available.",
+  };
+
+  const snapshotResult = await getPortfolioSnapshotAction({
+    organizationId,
+    departmentId,
+  });
+  const snapshotCounts =
+    snapshotResult.ok && snapshotResult.data.dependencies.available
+      ? snapshotResult.data.dependencies.value
+      : null;
+
+  try {
+    const { authz, planning } = createServices();
+    const principal = await authz.resolveCurrentPrincipal();
+    if (principal) {
+      const listed = await planning.listDependencies(
+        principal,
+        organizationId,
+      );
+      const rows = mapPlanningDependencyRows(listed, projectCommitments);
+      const counts = summarizeDependencyCounts(rows);
+      dependencies = {
+        state: "ready",
+        rows,
+        openCount: counts.openCount,
+        criticalCount: counts.criticalCount,
+      };
+    }
+  } catch (error) {
+    const reason =
+      error instanceof AppError
+        ? error.message
+        : "Unable to list PlanningDependencies for this organization.";
+    dependencies = {
+      state: "unavailable",
+      reason:
+        error instanceof AppError && error.code === "FORBIDDEN"
+          ? "Dependency list is organization-scoped (PI_VIEW at ORGANIZATION). Department-scoped principals see counts when the portfolio snapshot returns them, not unscoped resource details."
+          : reason,
+      openCount: snapshotCounts?.openDependencies,
+      criticalCount: snapshotCounts?.criticalOpenDependencies,
+    };
+  }
+
+  if (
+    dependencies.state === "unavailable" &&
+    snapshotCounts &&
+    dependencies.openCount == null
+  ) {
+    dependencies = {
+      ...dependencies,
+      openCount: snapshotCounts.openDependencies,
+      criticalCount: snapshotCounts.criticalOpenDependencies,
+    };
+  }
+
   return (
     <div>
       <Breadcrumbs
@@ -207,7 +282,7 @@ export default async function PortfolioCapacityPage({
       />
       <PageHeader
         title="PI & Resource Capacity"
-        description="Available, committed and remaining hours by department, team and resource — CURRENT planning revision."
+        description="Available, committed and remaining hours by department, team and resource — CURRENT planning revision. Cross-department coordination uses authorized capacity, conflicts, and PlanningDependencies only."
       />
       <PortfolioCapacityDashboard
         organizationName={organizationName}
@@ -220,6 +295,8 @@ export default async function PortfolioCapacityPage({
         listError={listError}
         capacity={capacity}
         capacityError={capacityError}
+        capacityErrorCode={capacityErrorCode}
+        dependencies={dependencies}
       />
     </div>
   );
