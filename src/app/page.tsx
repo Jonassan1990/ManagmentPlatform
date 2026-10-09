@@ -188,22 +188,30 @@ export default async function HomePage() {
         }
 
         if (capabilities.canViewPi) {
-          try {
-            const pis = await planning.listProgramIncrements(
-              principal,
-              organizationId,
-            );
-            piEntry = selectAuthorizedPiEntry(
-              pis.map((p) => ({
-                id: p.id,
-                status: p.status,
-                startDate: p.startDate,
-                referenceKey: p.referenceKey,
-                name: p.name,
-              })),
-            );
-          } catch {
-            piEntry = null;
+          // Prefer shell org, then other listable orgs, for an entry-worthy PI.
+          const piOrgOrder = [
+            organizationId,
+            ...orgIds.filter((id) => id !== organizationId),
+          ];
+          for (const orgId of piOrgOrder) {
+            try {
+              const pis = await planning.listProgramIncrements(
+                principal,
+                orgId,
+              );
+              piEntry = selectAuthorizedPiEntry(
+                pis.map((p) => ({
+                  id: p.id,
+                  status: p.status,
+                  startDate: p.startDate,
+                  referenceKey: p.referenceKey,
+                  name: p.name,
+                })),
+              );
+              if (piEntry) break;
+            } catch {
+              // Forbidden / empty for this org — try next.
+            }
           }
         }
       }
@@ -287,8 +295,8 @@ export default async function HomePage() {
                     Continue PI planning
                   </h2>
                   <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                    Latest authorized {piEntry.status === "ACTIVE" ? "ACTIVE" : "REVIEW"}{" "}
-                    PI: <strong>{piEntry.referenceKey}</strong> — {piEntry.name}
+                    Latest authorized {piEntry.status} PI:{" "}
+                    <strong>{piEntry.referenceKey}</strong> — {piEntry.name}
                   </p>
                 </div>
                 <Link

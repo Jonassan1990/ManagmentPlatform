@@ -29,22 +29,26 @@ export type AuthorizedPiEntry = {
   href: string;
 };
 
-const ENTRY_STATUSES = new Set(["ACTIVE", "REVIEW"]);
+/** Entry-worthy lifecycle states (newest preferred within the same rank). */
+const ENTRY_RANK: Record<string, number> = {
+  ACTIVE: 0,
+  REVIEW: 1,
+  BASELINED: 2,
+};
 
 /**
  * Pick the latest authorized PI for entry shortcuts.
- * Prefer ACTIVE over REVIEW, then newer startDate.
+ * Prefer ACTIVE → REVIEW → BASELINED, then newer startDate.
  * Candidates must already be AuthZ-filtered by the caller.
  */
 export function selectAuthorizedPiEntry(
   candidates: AuthorizedPiEntryCandidate[],
 ): AuthorizedPiEntry | null {
-  const eligible = candidates.filter((p) => ENTRY_STATUSES.has(p.status));
+  const eligible = candidates.filter((p) => p.status in ENTRY_RANK);
   if (eligible.length === 0) return null;
 
   eligible.sort((a, b) => {
-    const rank = (s: string) => (s === "ACTIVE" ? 0 : 1);
-    const byStatus = rank(a.status) - rank(b.status);
+    const byStatus = (ENTRY_RANK[a.status] ?? 99) - (ENTRY_RANK[b.status] ?? 99);
     if (byStatus !== 0) return byStatus;
     const aTime = new Date(a.startDate).getTime();
     const bTime = new Date(b.startDate).getTime();

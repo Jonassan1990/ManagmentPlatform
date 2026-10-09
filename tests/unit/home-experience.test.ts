@@ -63,6 +63,27 @@ describe("selectAuthorizedPiEntry", () => {
     expect(pick?.href).toBe("/pi/r2/review");
   });
 
+  it("falls back to BASELINED when no ACTIVE/REVIEW", () => {
+    const pick = selectAuthorizedPiEntry([
+      {
+        id: "b1",
+        status: "BASELINED",
+        startDate: "2026-05-01",
+        referenceKey: "PI-B1",
+        name: "Baselined",
+      },
+      {
+        id: "d1",
+        status: "DRAFT",
+        startDate: "2026-09-01",
+        referenceKey: "PI-D",
+        name: "Draft",
+      },
+    ]);
+    expect(pick?.id).toBe("b1");
+    expect(pick?.href).toBe("/pi/b1/board");
+  });
+
   it("returns null when no entry statuses", () => {
     expect(
       selectAuthorizedPiEntry([
