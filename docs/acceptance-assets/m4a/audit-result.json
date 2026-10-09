@@ -1,0 +1,498 @@
+{
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T20:02:30.362Z",
+  "seed": {
+    "organizationId": "4cbdcdc6-e91f-4114-a9dd-971719348dc9",
+    "piId": "960860ac-c3e0-46b2-84a5-5cde50647584",
+    "currentRevisionId": "0e7b71df-3176-44c0-bb61-80464abfd248",
+    "workItemIdA": "7a124da5-8ddf-4b4f-88b1-e169ef5c237b",
+    "workItemIdB": "403fa60b-73f7-4643-a6d9-702095d2b74c",
+    "iterationId": "7757937b-2833-45c4-809c-b2f5e6e5da9f",
+    "teamId": "a83c0597-2758-49a6-8ad0-17a12a2e5501",
+    "boardPath": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board"
+  },
+  "steps": [
+    {
+      "step": "login-desktop",
+      "status": "PASS"
+    },
+    {
+      "step": "01-overview",
+      "status": "PASS",
+      "route": "/",
+      "headings": [
+        "Overview",
+        "Lifecycle",
+        "Governance",
+        "Delivery",
+        "PI Planning"
+      ],
+      "buttons": 1,
+      "links": 40,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 1166
+    },
+    {
+      "step": "02-portfolio-dashboard",
+      "status": "PASS",
+      "route": "/portfolio",
+      "headings": [
+        "Portfolio",
+        "Portfolio scope",
+        "M3B Scenario Org",
+        "Key indicators",
+        "Delivery health",
+        "Management attention — blocked & at risk",
+        "No projects in this attention view",
+        "Initiative lifecycle"
+      ],
+      "buttons": 2,
+      "links": 40,
+      "tables": 1,
+      "forms": 1,
+      "bodyChars": 3253
+    },
+    {
+      "step": "03-portfolio-explorer",
+      "status": "PASS",
+      "route": "/portfolio/explorer",
+      "headings": [
+        "Portfolio Explorer",
+        "Search and filters"
+      ],
+      "buttons": 2,
+      "links": 18,
+      "tables": 1,
+      "forms": 1,
+      "bodyChars": 1538
+    },
+    {
+      "step": "04-delivery-health",
+      "status": "PASS",
+      "route": "/portfolio/health",
+      "headings": [
+        "Delivery health explanation",
+        "Project required"
+      ],
+      "buttons": 1,
+      "links": 13,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 446
+    },
+    {
+      "step": "05-pi-capacity",
+      "status": "PASS",
+      "route": "/portfolio/capacity",
+      "headings": [
+        "PI & Resource Capacity",
+        "PI & Resource Capacity"
+      ],
+      "buttons": 3,
+      "links": 14,
+      "tables": 0,
+      "forms": 1,
+      "bodyChars": 869
+    },
+    {
+      "step": "06-organization",
+      "status": "PASS",
+      "route": "/organization",
+      "headings": [
+        "Organization",
+        "Organizations",
+        "Create another organization"
+      ],
+      "buttons": 2,
+      "links": 16,
+      "tables": 0,
+      "forms": 1,
+      "bodyChars": 693
+    },
+    {
+      "step": "07-initiatives",
+      "status": "PASS",
+      "route": "/initiatives",
+      "headings": [
+        "Initiatives"
+      ],
+      "buttons": 1,
+      "links": 24,
+      "tables": 1,
+      "forms": 0,
+      "bodyChars": 671
+    },
+    {
+      "step": "08-approvals",
+      "status": "PASS",
+      "route": "/approvals",
+      "headings": [
+        "My Approvals",
+        "Nothing waiting for your approval"
+      ],
+      "buttons": 1,
+      "links": 12,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 471
+    },
+    {
+      "step": "09-decisions",
+      "status": "PASS",
+      "route": "/decisions",
+      "headings": [
+        "My Decisions",
+        "No decisions waiting"
+      ],
+      "buttons": 1,
+      "links": 12,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 451
+    },
+    {
+      "step": "10-pi-list",
+      "status": "PASS",
+      "route": "/pi",
+      "headings": [
+        "PI Planning"
+      ],
+      "buttons": 1,
+      "links": 36,
+      "tables": 1,
+      "forms": 0,
+      "bodyChars": 1537
+    },
+    {
+      "step": "11-org-detail",
+      "status": "PASS",
+      "route": "/organization/4cbdcdc6-e91f-4114-a9dd-971719348dc9",
+      "headings": [
+        "M3D-D Acceptance Org",
+        "Hierarchy",
+        "Resources",
+        "Edit organization"
+      ],
+      "buttons": 4,
+      "links": 19,
+      "tables": 0,
+      "forms": 3,
+      "bodyChars": 882
+    },
+    {
+      "step": "12-resources",
+      "status": "PASS",
+      "route": "/organization/4cbdcdc6-e91f-4114-a9dd-971719348dc9/resources",
+      "headings": [
+        "Resources"
+      ],
+      "buttons": 2,
+      "links": 14,
+      "tables": 0,
+      "forms": 1,
+      "bodyChars": 729
+    },
+    {
+      "step": "13-access-roles",
+      "status": "PASS",
+      "route": "/organization/4cbdcdc6-e91f-4114-a9dd-971719348dc9/access",
+      "headings": [
+        "Access & roles"
+      ],
+      "buttons": 3,
+      "links": 14,
+      "tables": 0,
+      "forms": 1,
+      "bodyChars": 1928
+    },
+    {
+      "step": "20-pi-overview",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584",
+      "headings": [
+        "M3D-D Acceptance PI aad144ae",
+        "Attention",
+        "Status transition",
+        "Next actions"
+      ],
+      "buttons": 3,
+      "links": 21,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 788
+    },
+    {
+      "step": "21-pi-board",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board",
+      "headings": [
+        "Planning board",
+        "Planning scenarios",
+        "Unallocated backlog",
+        "Unallocated backlog"
+      ],
+      "buttons": 9,
+      "links": 22,
+      "tables": 1,
+      "forms": 3,
+      "bodyChars": 1276
+    },
+    {
+      "step": "22-pi-compare",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/compare",
+      "headings": [
+        "Compare scenarios",
+        "Select scenarios (2–3)"
+      ],
+      "buttons": 1,
+      "links": 22,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 790
+    },
+    {
+      "step": "23-pi-capacity",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/capacity",
+      "headings": [
+        "Capacity",
+        "Team capacity by iteration",
+        "Resource capacity by iteration",
+        "Set resource availability"
+      ],
+      "buttons": 2,
+      "links": 21,
+      "tables": 2,
+      "forms": 1,
+      "bodyChars": 957
+    },
+    {
+      "step": "24-pi-review",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/review",
+      "headings": [
+        "Management review",
+        "Scenario selection",
+        "Promote selected scenario to CURRENT",
+        "Approve CURRENT plan & create baseline",
+        "Review checklist",
+        "Derived conflicts",
+        "Status",
+        "Links"
+      ],
+      "buttons": 7,
+      "links": 25,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 2433
+    },
+    {
+      "step": "25-pi-baseline",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/baseline",
+      "headings": [
+        "Baseline",
+        "Create immutable baseline",
+        "Baselines",
+        "Changes since latest baseline"
+      ],
+      "buttons": 2,
+      "links": 22,
+      "tables": 0,
+      "forms": 1,
+      "bodyChars": 988
+    },
+    {
+      "step": "26-pi-dependencies",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/dependencies",
+      "headings": [
+        "Dependencies",
+        "Create dependency",
+        "Dependencies"
+      ],
+      "buttons": 2,
+      "links": 21,
+      "tables": 0,
+      "forms": 1,
+      "bodyChars": 883
+    },
+    {
+      "step": "27-pi-settings",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/settings",
+      "headings": [
+        "PI settings",
+        "Iterations",
+        "Participating departments",
+        "Participating teams"
+      ],
+      "buttons": 6,
+      "links": 21,
+      "tables": 0,
+      "forms": 3,
+      "bodyChars": 879
+    },
+    {
+      "step": "a11y-keyboard-tab-review",
+      "status": "PASS",
+      "focused": {
+        "tag": "A",
+        "role": null,
+        "text": "Portfolio",
+        "outline": "auto"
+      }
+    },
+    {
+      "step": "a11y-landmarks-review",
+      "status": "PASS",
+      "landmarks": {
+        "nav": 3,
+        "main": 1,
+        "h1": 1,
+        "labeledButtons": 7,
+        "unlabeledInputs": 0
+      }
+    },
+    {
+      "step": "login-mobile",
+      "status": "PASS"
+    },
+    {
+      "step": "m01-overview",
+      "status": "PASS",
+      "route": "/",
+      "headings": [
+        "Overview",
+        "Lifecycle",
+        "Governance",
+        "Delivery",
+        "PI Planning"
+      ],
+      "buttons": 2,
+      "links": 40,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 1160
+    },
+    {
+      "step": "m02-portfolio",
+      "status": "PASS",
+      "route": "/portfolio",
+      "headings": [
+        "Portfolio",
+        "Portfolio scope",
+        "M3B Scenario Org",
+        "Key indicators",
+        "Delivery health",
+        "Management attention — blocked & at risk",
+        "No projects in this attention view",
+        "Initiative lifecycle"
+      ],
+      "buttons": 3,
+      "links": 40,
+      "tables": 1,
+      "forms": 1,
+      "bodyChars": 3247
+    },
+    {
+      "step": "m03-capacity",
+      "status": "PASS",
+      "route": "/portfolio/capacity",
+      "headings": [
+        "PI & Resource Capacity",
+        "PI & Resource Capacity"
+      ],
+      "buttons": 4,
+      "links": 14,
+      "tables": 0,
+      "forms": 1,
+      "bodyChars": 863
+    },
+    {
+      "step": "m04-initiatives",
+      "status": "PASS",
+      "route": "/initiatives",
+      "headings": [
+        "Initiatives"
+      ],
+      "buttons": 2,
+      "links": 24,
+      "tables": 1,
+      "forms": 0,
+      "bodyChars": 665
+    },
+    {
+      "step": "m05-pi-list",
+      "status": "PASS",
+      "route": "/pi",
+      "headings": [
+        "PI Planning"
+      ],
+      "buttons": 2,
+      "links": 36,
+      "tables": 1,
+      "forms": 0,
+      "bodyChars": 1531
+    },
+    {
+      "step": "m06-pi-board",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board",
+      "headings": [
+        "Planning board",
+        "Planning scenarios",
+        "Unallocated backlog",
+        "Unallocated backlog"
+      ],
+      "buttons": 10,
+      "links": 22,
+      "tables": 1,
+      "forms": 3,
+      "bodyChars": 1286
+    },
+    {
+      "step": "m07-pi-compare",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/compare",
+      "headings": [
+        "Compare scenarios",
+        "Select scenarios (2–3)"
+      ],
+      "buttons": 2,
+      "links": 22,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 784
+    },
+    {
+      "step": "m08-pi-review",
+      "status": "PASS",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/review",
+      "headings": [
+        "Management review",
+        "Scenario selection",
+        "Promote selected scenario to CURRENT",
+        "Approve CURRENT plan & create baseline",
+        "Review checklist",
+        "Derived conflicts",
+        "Status",
+        "Links"
+      ],
+      "buttons": 8,
+      "links": 25,
+      "tables": 0,
+      "forms": 0,
+      "bodyChars": 2427
+    },
+    {
+      "step": "mobile-nav-drawer",
+      "status": "PASS"
+    }
+  ],
+  "notes": [
+    "Browser session uses single temp-auth Organization Admin (owner). Viewer/Dept/Team/Project Manager UI personas NOT VERIFIED in browser — infer from capabilities + role packs."
+  ]
+}
