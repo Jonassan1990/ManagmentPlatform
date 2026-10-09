@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions/organization";
-import { Alert } from "@/components/ui/page";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 export function FormField({
   label,
@@ -31,6 +32,7 @@ export function FormField({
 export const fieldClassName =
   "w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)] disabled:bg-[var(--color-disabled-bg)] disabled:text-[var(--color-disabled)]";
 
+/** Compatibility wrapper — prefer `Button variant="primary"` for new code. */
 export function PrimaryButton({
   children,
   disabled,
@@ -45,18 +47,19 @@ export function PrimaryButton({
   title?: string;
 }) {
   return (
-    <button
+    <Button
+      variant="primary"
       type={type}
       disabled={disabled}
       onClick={onClick}
       title={title}
-      className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
+/** Compatibility wrapper — prefer `Button variant="secondary"` for new code. */
 export function SecondaryButton({
   children,
   type = "button",
@@ -71,15 +74,15 @@ export function SecondaryButton({
   title?: string;
 }) {
   return (
-    <button
+    <Button
+      variant="secondary"
       type={type}
-      onClick={onClick}
       disabled={disabled}
+      onClick={onClick}
       title={title}
-      className="rounded-md border border-[var(--line)] bg-white px-4 py-2 text-sm disabled:opacity-60"
     >
       {children}
-    </button>
+    </Button>
   );
 }
 

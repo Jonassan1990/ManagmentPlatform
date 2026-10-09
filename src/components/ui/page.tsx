@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+/** Rich alert with dismiss / live regions — client component. */
+export { Alert, InlineFeedback } from "@/components/ui/alert";
+export type { AlertProps, AlertTone, LegacyAlertTone } from "@/components/ui/alert";
+
 export type Crumb = { label: string; href?: string };
 
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
@@ -78,32 +82,5 @@ export function EmptyState({
       <p className="mx-auto mt-2 max-w-xl text-[var(--muted)]">{description}</p>
       {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </Panel>
-  );
-}
-
-export function Alert({
-  tone = "danger",
-  children,
-}: {
-  /** Semantic feedback tone — maps to design-system color tokens. */
-  tone?: "danger" | "warning" | "ok" | "info";
-  children: React.ReactNode;
-}) {
-  const color =
-    tone === "ok"
-      ? "var(--color-success)"
-      : tone === "warning"
-        ? "var(--color-warning)"
-        : tone === "info"
-          ? "var(--color-info)"
-          : "var(--color-error)";
-  return (
-    <div
-      role="alert"
-      className="rounded-md border px-3 py-2 text-sm"
-      style={{ borderColor: color, color }}
-    >
-      {children}
-    </div>
   );
 }

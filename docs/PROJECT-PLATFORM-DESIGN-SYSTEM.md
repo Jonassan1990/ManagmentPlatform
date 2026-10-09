@@ -110,18 +110,105 @@ Loaded in `src/app/layout.tsx` via `next/font` → `--font-source-sans` / `--fon
 
 ---
 
-## 6. Component conventions (for M4B-B+)
+## 6. Reusable components (M4B-B)
+
+Import from `@/components/ui` (barrel) or individual modules. Showcase: **`/ui`** (demo data only).
+
+| Component | Module | Client? | Notes |
+|---|---|---|---|
+| `Button` | `button.tsx` | No | Variants: primary, secondary, outline, ghost, destructive; sizes sm/md/lg; `loading` disables submit |
+| `Dialog` | `dialog.tsx` | Yes | Radix Dialog — focus trap, Escape, restore focus |
+| `ConfirmDialog` | `dialog.tsx` | Yes | Pending + `error` stay open on failure |
+| `StatusBadge` | `status-badge.tsx` | No | Presentation keys only; visible text + marker |
+| `DataTable` | `data-table.tsx` | Yes | Presentational; no fetch/SSR pagination engine |
+| `CapacityBar` | `capacity-bar.tsx` | No | Values from services; `deriveCapacityBar` for tests |
+| `Alert` / `InlineFeedback` | `alert.tsx` | Yes | info/success/warning/error (+ legacy danger/ok) |
+
+Compatibility: `PrimaryButton` / `SecondaryButton` wrap `Button`. Existing `Alert` imports from `@/components/ui/page` still work.
+
+### 6.1 Button
+
+```tsx
+import { Button } from "@/components/ui";
+
+<Button type="submit" variant="primary" loading={pending}>Save</Button>
+<Button type="button" variant="destructive" disabled={!canDelete}>Delete</Button>
+```
+
+### 6.2 Dialog / ConfirmDialog
+
+```tsx
+<Dialog open={open} onOpenChange={setOpen} title="…" description="…" footer={…}>
+  …
+</Dialog>
+
+<ConfirmDialog
+  open={open}
+  onOpenChange={setOpen}
+  title="Approve CURRENT plan?"
+  description="Makes the selected scenario authoritative."
+  variant="destructive"
+  pending={pending}
+  error={error}
+  onConfirm={run}
+/>
+```
+
+Do not auto-close on failure — set `error` and keep `open`.
+
+### 6.3 StatusBadge
+
+```tsx
+<StatusBadge status="blocked" />
+<StatusBadge status="pending" size="compact" label="Awaiting review" />
+```
+
+Map domain enums in adapters (M4B-C+). No transition logic in the badge.
+
+### 6.4 DataTable
+
+```tsx
+<DataTable
+  columns={columns}
+  rows={rows}
+  getRowId={(r) => r.id}
+  loading={isLoading}
+  error={error}
+  sort={sort}
+  onSortChange={setSort}
+  pagination={{ page, pageSize, total, onPageChange: setPage }}
+/>
+```
+
+Callers own queries and server-side pagination contracts.
+
+### 6.5 CapacityBar
+
+```tsx
+<CapacityBar available={100} committed={55} showPercent />
+<CapacityBar available={0} committed={0} unavailable />
+```
+
+No hidden capacity engine inside the component.
+
+### 6.6 Alert / InlineFeedback
+
+```tsx
+<Alert tone="error">Save failed.</Alert>
+<Alert tone="warning" title="Stale approval" action={{ href: "/pi/…/review", label: "Review" }} />
+<InlineFeedback tone="info" dismissible>Optional tip</InlineFeedback>
+```
+
+`role="alert"` for error/warning; `role="status"` for info/success.
+
+### 6.7 Conventions (shell)
 
 | Pattern | Convention |
 |---|---|
 | Page | `Breadcrumbs` + `PageHeader` + sections |
-| Surface | `Panel` / white `--surface` + `--line` border + optional `--shadow-sm` |
-| Primary button | Filled `--color-primary`, white text |
-| Secondary button | Surface + border |
-| Forms | `FormField` + `fieldClassName` (focus border + disabled tokens) |
-| Alerts | `Alert` tones: `danger` \| `warning` \| `ok` \| `info` |
-| Status | Prefer `.ds-status--*` until `StatusBadge` lands |
-| Focus | Global `:focus-visible` — do not remove outlines without replacement |
+| Surface | `Panel` / white `--surface` + `--line` border |
+| Forms | `FormField` + `fieldClassName` |
+| Focus | Global `:focus-visible` — do not remove outlines |
 
 ---
 
@@ -136,7 +223,7 @@ Loaded in `src/app/layout.tsx` via `next/font` → `--font-source-sans` / `--fon
 | Reduced motion | `prefers-reduced-motion` collapses transitions/animations |
 | Touch / hit targets | Prefer ≥36px controls (enforce in M4B-B primitives) |
 
-**Claim limit:** CSS foundations support WCAG 2.2 AA; full compliance requires component behavior (dialogs, live regions) in later phases — do not claim AA from CSS alone.
+**Claim limit:** Foundations + primitives target WCAG 2.2 AA patterns (focus trap via Radix, live regions, labeled controls). Full product compliance still requires screen-level audits (M4B-C+) — do not claim site-wide AA from components alone.
 
 ---
 
@@ -160,10 +247,10 @@ className="bg-[var(--surface)] text-[var(--ink)] border-[var(--line)]"
 className="bg-[var(--color-surface)] text-[var(--color-text)]"
 ```
 
-### Status chip (foundation utility)
+### StatusBadge
 
-```html
-<span class="ds-status ds-status--blocked">Blocked</span>
+```tsx
+<StatusBadge status="blocked" />
 ```
 
 ### Alert info tone
@@ -174,14 +261,15 @@ className="bg-[var(--color-surface)] text-[var(--color-text)]"
 
 ---
 
-## 10. Migration strategy for existing components
+## 10. Migration / adoption strategy
 
-1. **M4B-A (this milestone):** Tokens + globals + tiny Alert/forms wiring. No page redesigns.
-2. **M4B-B:** Build primitives on tokens (`Button`, `Dialog`, `StatusBadge`, …).
-3. **Incremental:** When touching a file, prefer `--color-*` / theme utilities; leave unrelated files alone.
-4. **Do not** mass-replace 700+ call sites in one PR.
-5. **Never** change Prisma enums to match presentation status keys.
-6. **Visual guard:** Compatibility hex values for `--sidebar`, `--accent`, `--bg`, `--surface` stay stable unless a dedicated visual milestone says otherwise.
+1. **M4B-A:** Tokens + globals (done).
+2. **M4B-B (this milestone):** Primitives + `/ui` showcase + unit tests. No domain screen redesigns.
+3. **M4B-C:** Adopt primitives on high-traffic surfaces (Review confirms, status chips, capacity rows) with visual QA.
+4. Prefer new primitives when touching a file; leave unrelated call sites alone.
+5. Keep `PrimaryButton` / legacy `Alert` tones until call sites migrate.
+6. **Never** change Prisma enums to match presentation status keys.
+7. **Visual guard:** Brand hex values stay stable unless a dedicated visual milestone says otherwise.
 
 ### File map
 
@@ -189,15 +277,15 @@ className="bg-[var(--color-surface)] text-[var(--color-text)]"
 |---|---|
 | `src/styles/design-tokens.css` | Token definitions |
 | `src/app/globals.css` | Import, `@theme`, a11y, status utilities |
-| `src/components/ui/page.tsx` | `Alert` uses semantic color tokens (+ `info`) |
-| `src/components/ui/forms.tsx` | Field disabled/radius token wiring |
-| `tests/unit/design-tokens.test.ts` | Token presence / identity guards |
+| `src/components/ui/*` | M4B-B primitives + barrel `index.ts` |
+| `src/app/ui/` | Component showcase |
+| `tests/unit/ui-*.test.*` | Component / derivation tests |
 
 ---
 
 ## 11. Out of scope (later)
 
-- M4B-B reusable components  
+- M4B-C component QA & adoption on domain screens  
 - M4C navigation IA  
 - M4D PI workflow simplification  
 - Portfolio redesign  
