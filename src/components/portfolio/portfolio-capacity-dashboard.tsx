@@ -484,8 +484,14 @@ export function PortfolioCapacityDashboard({
 
       {/* Context strip */}
       <div className="rounded-[11px] border border-[#e2e8eb] bg-white p-4 text-sm shadow-[0_7px_22px_#1b33440a]">
-        {!piId || !capacity ? (
+        {!piId ? (
           <p className="text-[#74848e]">No PI selected — choose a Program Increment to load capacity.</p>
+        ) : !capacity ? (
+          <p role="status" className="text-[#74848e]">
+            {capacityError
+              ? "Capacity could not be loaded for the selected Program Increment."
+              : "Capacity data was not returned for the selected Program Increment."}
+          </p>
         ) : capacity.capacity.state === "no_pi_selected" ? (
           <p role="status" className="text-[#74848e]">
             {capacity.capacity.reason}
