@@ -2,20 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import {
+  extractActivePiId,
+  resolveNavGroups,
+} from "@/modules/navigation/nav-definition";
+import type {
+  ResolvedNavGroup,
+  ShellNavCapabilities,
+} from "@/modules/navigation/types";
 import { SignOutButton } from "./sign-out-button";
-
-const navItems = [
-  { href: "/", label: "Overview", available: true },
-  { href: "/portfolio", label: "Portfolio", available: true },
-  { href: "/portfolio/explorer", label: "Explorer", available: true },
-  { href: "/portfolio/capacity", label: "PI & Capacity", available: true },
-  { href: "/organization", label: "Organization", available: true },
-  { href: "/initiatives", label: "Initiatives", available: true },
-  { href: "/approvals", label: "Approvals", available: true },
-  { href: "/decisions", label: "Decisions", available: true },
-  { href: "/pi", label: "PI Planning", available: true },
-];
 
 export type ShellPrincipal = {
   displayName: string | null;
@@ -24,20 +20,53 @@ export type ShellPrincipal = {
   hasAccess: boolean;
 };
 
+export type ShellNavProps = {
+  capabilities: ShellNavCapabilities;
+  organizationId: string | null;
+};
+
 export function AppShell({
   children,
   principal,
+  nav,
 }: {
   children: React.ReactNode;
   principal?: ShellPrincipal | null;
+  nav: ShellNavProps;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() || "/";
   const [open, setOpen] = useState(false);
+  const navId = useId();
 
-  const governancePolicyHref = useMemo(() => {
-    const match = pathname.match(/^\/organization\/([^/]+)/);
-    return match ? `/organization/${match[1]}/governance-policy` : null;
-  }, [pathname]);
+  const groups = useMemo(() => {
+    return resolveNavGroups(pathname, {
+      capabilities: nav.capabilities,
+      organizationId: nav.organizationId,
+      activePiId: extractActivePiId(pathname),
+    });
+  }, [pathname, nav.capabilities, nav.organizationId]);
+
+  /** Manual expand/collapse; active route groups always stay open. */
+  const [manualExpanded, setManualExpanded] = useState<Record<string, boolean>>(
+    {},
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  function isGroupExpanded(group: ResolvedNavGroup): boolean {
+    if (group.containsActive) return true;
+    if (manualExpanded[group.id] !== undefined) {
+      return manualExpanded[group.id]!;
+    }
+    return false;
+  }
 
   const label =
     principal?.displayName ||
@@ -47,6 +76,7 @@ export function AppShell({
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
       <aside
+        id={navId}
         className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-[var(--sidebar)] text-[var(--sidebar-ink)] transition-transform lg:static lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -56,44 +86,24 @@ export function AppShell({
             <p className="font-[family-name:var(--font-display)] text-lg tracking-tight text-white">
               Management Platform
             </p>
-            <p className="text-xs text-white/60">Phase 6 identity</p>
+            <p className="text-xs text-white/60">Workflow navigation</p>
           </div>
         </div>
         <nav className="space-y-1 p-3" aria-label="Primary">
-          {navItems.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : item.href === "/portfolio"
-                  ? pathname === "/portfolio" || pathname === "/portfolio/"
-                  : pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={`block rounded-md px-3 py-2 text-sm ${
-                  active
-                    ? "bg-[var(--sidebar-active)] text-white"
-                    : "hover:bg-white/5"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-          <Link
-            href={governancePolicyHref ?? "/organization"}
-            onClick={() => setOpen(false)}
-            className={`block rounded-md px-3 py-2 text-sm text-white/80 ${
-              pathname.includes("/governance-policy")
-                ? "bg-[var(--sidebar-active)] text-white"
-                : "hover:bg-white/5"
-            }`}
-          >
-            Governance policy
-          </Link>
+          {groups.map((group) => (
+            <NavGroupBlock
+              key={group.id}
+              group={group}
+              expanded={isGroupExpanded(group)}
+              onToggle={() =>
+                setManualExpanded((prev) => ({
+                  ...prev,
+                  [group.id]: !isGroupExpanded(group),
+                }))
+              }
+              onNavigate={() => setOpen(false)}
+            />
+          ))}
         </nav>
       </aside>
 
@@ -114,12 +124,12 @@ export function AppShell({
               className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm lg:hidden"
               onClick={() => setOpen(true)}
               aria-label="Open navigation"
+              aria-expanded={open}
+              aria-controls={navId}
             >
               Menu
             </button>
-            <p className="text-sm text-[var(--muted)]">
-              Structured management foundation
-            </p>
+            <p className="text-sm text-[var(--muted)]">Management workspace</p>
           </div>
           <div className="flex items-center gap-3">
             {label ? (
@@ -151,6 +161,96 @@ export function AppShell({
         </header>
         <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
+    </div>
+  );
+}
+
+function NavGroupBlock({
+  group,
+  expanded,
+  onToggle,
+  onNavigate,
+}: {
+  group: ResolvedNavGroup;
+  expanded: boolean;
+  onToggle: () => void;
+  onNavigate: () => void;
+}) {
+  const hasChildren = group.items.length > 0;
+  const panelId = `nav-group-${group.id}`;
+
+  // Home / single-hub without children: just a link
+  if (!hasChildren && group.hubHref) {
+    return (
+      <Link
+        href={group.hubHref}
+        onClick={onNavigate}
+        aria-current={group.hubActive ? "page" : undefined}
+        className={`block rounded-md px-3 py-2 text-sm ${
+          group.hubActive
+            ? "bg-[var(--sidebar-active)] text-white"
+            : "hover:bg-white/5"
+        }`}
+      >
+        {group.label}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-stretch gap-0.5">
+        {group.hubHref ? (
+          <Link
+            href={group.hubHref}
+            onClick={onNavigate}
+            aria-current={group.hubActive ? "page" : undefined}
+            className={`min-w-0 flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+              group.hubActive
+                ? "bg-[var(--sidebar-active)] text-white"
+                : "hover:bg-white/5"
+            }`}
+          >
+            {group.label}
+          </Link>
+        ) : (
+          <span className="min-w-0 flex-1 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/55">
+            {group.label}
+          </span>
+        )}
+        {hasChildren ? (
+          <button
+            type="button"
+            className="rounded-md px-2 text-white/70 hover:bg-white/5 hover:text-white"
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}
+            onClick={onToggle}
+          >
+            <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+          </button>
+        ) : null}
+      </div>
+      {hasChildren && expanded ? (
+        <ul id={panelId} className="space-y-0.5 pb-1 pl-2">
+          {group.items.map((item) => (
+            <li key={item.id}>
+              <Link
+                href={item.href}
+                onClick={onNavigate}
+                aria-current={item.active ? "page" : undefined}
+                className={`block rounded-md px-3 py-1.5 text-sm ${
+                  item.active
+                    ? "bg-[var(--sidebar-active)] text-white"
+                    : "text-white/85 hover:bg-white/5"
+                }`}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

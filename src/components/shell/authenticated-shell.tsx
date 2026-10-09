@@ -2,6 +2,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { SessionProvider } from "@/components/shell/session-provider";
+import { DEFAULT_SHELL_CAPABILITIES } from "@/modules/navigation/nav-definition";
+import { resolveShellNavContext } from "@/modules/navigation/resolve-shell-nav";
 import { createServices } from "@/server/container";
 import { isDevAuthEnabled, getEnv } from "@/server/env";
 
@@ -29,15 +31,13 @@ export async function AuthenticatedShell({
     headerList.get("next-url") ??
     "";
 
-  // Fallback: middleware sets x-middleware-request-pathname in some setups;
-  // also try referer-less path from x-invoke-path.
   const path =
     pathname ||
     headerList.get("x-invoke-path") ||
     headerList.get("x-matched-path") ||
     "";
 
-  const { authz, identity } = createServices();
+  const { authz, identity, organization } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   const env = getEnv();
   const dev = isDevAuthEnabled(env);
@@ -45,15 +45,12 @@ export async function AuthenticatedShell({
   let hasAccess = false;
   if (principal) {
     hasAccess = await identity.hasAnyAccess(principal.id);
-    // DEV empty-state bootstrap may grant on first ensureBootstrapBinding call;
-    // re-check after ensuring for DEV so shell reflects access.
     if (!hasAccess && (dev || env.NODE_ENV === "test")) {
       await authz.ensureBootstrapBinding(principal.id);
       hasAccess = await identity.hasAnyAccess(principal.id);
     }
   }
 
-  // Prefer pathname from request URL rewritten by our middleware header.
   const requestPath =
     headerList.get("x-mgmt-pathname") || path || "/";
 
@@ -63,6 +60,52 @@ export async function AuthenticatedShell({
     !pathAllowedWithoutAccess(requestPath)
   ) {
     redirect("/access-not-configured");
+  }
+
+  let nav = {
+    capabilities: DEFAULT_SHELL_CAPABILITIES,
+    organizationId: null as string | null,
+  };
+
+  if (principal && hasAccess) {
+    try {
+      const orgs = await organization.listOrganizations(principal);
+      const resolved = await resolveShellNavContext(
+        authz,
+        principal,
+        orgs.map((o) => o.id),
+      );
+      nav = {
+        capabilities: resolved.capabilities,
+        organizationId: resolved.organizationId,
+      };
+    } catch {
+      // Fail soft for chrome — pages still enforce AuthZ.
+      nav = {
+        capabilities: {
+          ...DEFAULT_SHELL_CAPABILITIES,
+          canManageGovernancePolicy: false,
+          canManageAccess: false,
+          canCreatePi: false,
+          canCreateInitiative: false,
+        },
+        organizationId: null,
+      };
+    }
+  } else if (!principal) {
+    nav = {
+      capabilities: {
+        canViewApprovals: false,
+        canViewDecisions: false,
+        canManageGovernancePolicy: false,
+        canManageAccess: false,
+        canViewPi: false,
+        canCreatePi: false,
+        canViewInitiatives: false,
+        canCreateInitiative: false,
+      },
+      organizationId: null,
+    };
   }
 
   return (
@@ -78,6 +121,7 @@ export async function AuthenticatedShell({
               }
             : null
         }
+        nav={nav}
       >
         {children}
       </AppShell>

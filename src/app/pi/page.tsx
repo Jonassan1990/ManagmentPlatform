@@ -91,7 +91,7 @@ export default async function PiListPage() {
       />
       <PageHeader
         title="PI Planning"
-        description="Plan Program Increments across departments and teams — capacity, dependencies, and baselines."
+        description="Program Increments hub — open a PI for the planning board, scenarios, compare, review, capacity, and baselines."
         actions={
           canCreateSomewhere ? (
             <Link
