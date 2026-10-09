@@ -447,7 +447,11 @@ export default async function HomePage() {
             <MetricTile
               label="Projects at risk"
               value={metrics.projectsAtRisk}
-              href="/portfolio/health"
+              href={
+                organizationId
+                  ? `/portfolio/health?organizationId=${organizationId}&healthFocus=ATTENTION`
+                  : "/portfolio/health"
+              }
             />
             <MetricTile
               label="Upcoming milestones (14d)"

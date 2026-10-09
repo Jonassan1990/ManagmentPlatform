@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EmptyState, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { mapDeliveryHealthBadge } from "@/components/ui/status-adapters";
+import { appendReturnContext } from "@/modules/navigation/return-context";
 import type {
   DeliveryHealthAttentionResult,
   DeliveryHealthAttentionRow,
@@ -125,7 +126,8 @@ export function reasonEvidenceHref(
   }
 }
 
-function buildDashboardHref(opts: {
+/** M4E-D: classification chips target the Delivery Health hub (not Portfolio). */
+export function buildHealthHubHref(opts: {
   organizationId: string;
   departmentId?: string | null;
   healthFocus?: DeliveryHealthClassification | "ATTENTION" | null;
@@ -134,7 +136,18 @@ function buildDashboardHref(opts: {
   params.set("organizationId", opts.organizationId);
   if (opts.departmentId) params.set("departmentId", opts.departmentId);
   if (opts.healthFocus) params.set("healthFocus", opts.healthFocus);
-  return `/portfolio?${params.toString()}`;
+  return `/portfolio/health?${params.toString()}`;
+}
+
+function healthReturn(
+  organizationId: string,
+  departmentId?: string | null,
+) {
+  return {
+    from: "health" as const,
+    organizationId,
+    departmentId: departmentId ?? undefined,
+  };
 }
 
 export function DeliveryHealthCountsSection({
@@ -188,12 +201,12 @@ export function DeliveryHealthCountsSection({
               } ${active ? "ring-2 ring-[var(--accent)]" : ""}`}
             >
               <Link
-                href={buildDashboardHref({
+                href={buildHealthHubHref({
                   organizationId,
                   departmentId,
                   healthFocus: key,
                 })}
-                className="block rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className="block min-h-11 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 <p className="text-sm text-[var(--muted)]">
                   {HEALTH_LABELS[key]}
@@ -251,12 +264,12 @@ export function DeliveryHealthAttentionList({
         <div className="flex flex-wrap gap-2">
           {healthFocus ? (
             <Link
-              href={buildDashboardHref({
+              href={buildHealthHubHref({
                 organizationId,
                 departmentId,
                 healthFocus: null,
               })}
-              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               Clear health focus
             </Link>
@@ -272,7 +285,7 @@ export function DeliveryHealthAttentionList({
                 ? `&deliveryHealth=${healthFocus}&kind=PROJECT`
                 : "&kind=PROJECT&deliveryHealth=AT_RISK"
             }`}
-            className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             Open in explorer
           </Link>
@@ -313,6 +326,7 @@ export function DeliveryHealthAttentionList({
                     key={row.projectId}
                     row={row}
                     organizationId={organizationId}
+                    departmentId={departmentId}
                   />
                 ))}
               </tbody>
@@ -329,6 +343,7 @@ export function DeliveryHealthAttentionList({
                 <AttentionRowMobile
                   row={row}
                   organizationId={organizationId}
+                  departmentId={departmentId}
                 />
               </li>
             ))}
@@ -360,16 +375,26 @@ function AttentionSignals({ row }: { row: DeliveryHealthAttentionRow }) {
 function AttentionRowDesktop({
   row,
   organizationId,
+  departmentId,
 }: {
   row: DeliveryHealthAttentionRow;
   organizationId: string;
+  departmentId?: string | null;
 }) {
   const primary = primaryReason(row.reasons);
-  const explainHref = `/portfolio/health?organizationId=${organizationId}&projectId=${row.projectId}`;
+  const ret = healthReturn(organizationId, departmentId);
+  const explainHref = `/portfolio/health?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}&projectId=${row.projectId}`;
+  const projectTarget = primary
+    ? reasonEvidenceHref(row.href, primary)
+    : { href: row.href, label: "Open project" };
+  const projectHref = appendReturnContext(projectTarget.href, ret);
   return (
     <tr>
       <td className="py-3 pr-3">
-        <Link href={row.href} className="font-medium text-[var(--accent)]">
+        <Link
+          href={projectHref}
+          className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        >
           {row.referenceKey}
         </Link>
         <p className="text-[var(--muted)]">{row.name}</p>
@@ -405,11 +430,19 @@ function AttentionRowDesktop({
       </td>
       <td className="py-3">
         <div className="flex flex-col gap-1">
-          <Link href={explainHref} className="text-[var(--accent)] underline">
+          <Link
+            href={explainHref}
+            className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
             Explain
           </Link>
-          <Link href={row.href} className="text-[var(--accent)] underline">
-            Open project
+          <Link
+            href={projectHref}
+            className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
+            {projectTarget.label.startsWith("Open project")
+              ? "Open project"
+              : projectTarget.label}
           </Link>
         </div>
       </td>
@@ -420,16 +453,26 @@ function AttentionRowDesktop({
 function AttentionRowMobile({
   row,
   organizationId,
+  departmentId,
 }: {
   row: DeliveryHealthAttentionRow;
   organizationId: string;
+  departmentId?: string | null;
 }) {
   const primary = primaryReason(row.reasons);
-  const explainHref = `/portfolio/health?organizationId=${organizationId}&projectId=${row.projectId}`;
+  const ret = healthReturn(organizationId, departmentId);
+  const explainHref = `/portfolio/health?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}&projectId=${row.projectId}`;
+  const projectTarget = primary
+    ? reasonEvidenceHref(row.href, primary)
+    : { href: row.href, label: "Open project" };
+  const projectHref = appendReturnContext(projectTarget.href, ret);
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link href={row.href} className="font-medium text-[var(--accent)]">
+        <Link
+          href={projectHref}
+          className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        >
           {row.referenceKey} · {row.name}
         </Link>
         <HealthBadge classification={row.classification} />
@@ -446,10 +489,16 @@ function AttentionRowMobile({
         <AttentionSignals row={row} />
       </p>
       <div className="mt-2 flex flex-wrap gap-3 text-sm">
-        <Link href={explainHref} className="text-[var(--accent)] underline">
+        <Link
+          href={explainHref}
+          className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        >
           Explain health
         </Link>
-        <Link href={row.href} className="text-[var(--accent)] underline">
+        <Link
+          href={projectHref}
+          className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        >
           Open project
         </Link>
       </div>
@@ -471,6 +520,9 @@ export function DeliveryHealthExplanation({
       SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
       a.code.localeCompare(b.code),
   );
+  const ret = healthReturn(organizationId);
+  const projectHref = appendReturnContext(evaluation.href, ret);
+  const hubHref = buildHealthHubHref({ organizationId });
 
   return (
     <div className="space-y-4">
@@ -497,16 +549,25 @@ export function DeliveryHealthExplanation({
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              href={evaluation.href}
-              className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white"
+              href={projectHref}
+              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               Open project
             </Link>
             <Link
-              href={`/portfolio?organizationId=${organizationId}`}
-              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+              href={hubHref}
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
-              Back to dashboard
+              Health hub
+            </Link>
+            <Link
+              href={appendReturnContext(
+                `/portfolio?organizationId=${organizationId}`,
+                ret,
+              )}
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            >
+              Portfolio
             </Link>
           </div>
         </div>
@@ -547,7 +608,7 @@ export function DeliveryHealthExplanation({
                       </p>
                     </div>
                     <Link
-                      href={nav.href}
+                      href={appendReturnContext(nav.href, ret)}
                       className="text-sm text-[var(--accent)] underline"
                     >
                       {nav.label}

@@ -12,10 +12,6 @@ import {
   appendReturnContext,
 } from "@/modules/navigation/return-context";
 import {
-  DeliveryHealthAttentionList,
-  DeliveryHealthCountsSection,
-} from "./delivery-health";
-import {
   CAPACITY_BAND_LABELS,
   DistributionBar,
   MetricFigure,
@@ -185,7 +181,7 @@ function ScopeBanner({
               `/portfolio/explorer?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               ret,
             )}
-            className="min-h-9 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             Open explorer
           </Link>
@@ -194,13 +190,16 @@ function ScopeBanner({
               `/portfolio/capacity?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               ret,
             )}
-            className="min-h-9 rounded-md bg-[#087f78] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+            className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
           >
             PI &amp; Capacity
           </Link>
           <Link
-            href={`/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`}
-            className="min-h-9 rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            href={appendReturnContext(
+              `/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
+              ret,
+            )}
+            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             Delivery health
           </Link>
@@ -361,13 +360,17 @@ export function PortfolioDashboardView({
     projects.value.completed === 0 &&
     projects.value.cancelled === 0;
 
-  const blockedHref = `/portfolio?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}&healthFocus=BLOCKED`;
-  const atRiskHref = `/portfolio?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}&healthFocus=AT_RISK`;
-  const attentionHref = `/portfolio?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}&healthFocus=ATTENTION`;
-  const healthExplainHref = `/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`;
+  const blockedHref = `/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}&healthFocus=BLOCKED`;
+  const atRiskHref = `/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}&healthFocus=AT_RISK`;
+  const attentionHref = `/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}&healthFocus=ATTENTION`;
+  const healthHubHref = `/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`;
   const approvalsHref = appendReturnContext("/approvals", ret);
   const decisionsHref = appendReturnContext("/decisions", ret);
   const initiativesHref = appendReturnContext("/initiatives", ret);
+  const explorerProjectsHref = appendReturnContext(
+    `/portfolio/explorer?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}&kind=PROJECT`,
+    ret,
+  );
   const piHref = appendReturnContext("/pi", ret);
   const capacityHref = appendReturnContext(
     `/portfolio/capacity?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
@@ -412,9 +415,9 @@ export function PortfolioDashboardView({
           </KpiCard>
           <KpiCard
             label="Active projects"
-            href={initiativesHref}
-            actionLabel="Open initiatives"
-            hint="Status ACTIVE"
+            href={explorerProjectsHref}
+            actionLabel="Open in Explorer"
+            hint="Status ACTIVE — find and inspect work"
           >
             <MetricFigure
               metric={
@@ -447,7 +450,7 @@ export function PortfolioDashboardView({
                 : "default"
             }
             href={blockedHref}
-            actionLabel="Filter blocked"
+            actionLabel="Review blocked"
             hint={
               healthSummary
                 ? "Delivery-health BLOCKED classification"
@@ -622,8 +625,8 @@ export function PortfolioDashboardView({
                 ? `${dependencies.value.openDependencies} open dependencies in scope`
                 : dependencies.reason
             }
-            href={piHref}
-            action="Open PI Planning"
+            href={capacityHref}
+            action="Open Capacity coordination"
             tone={criticalDeps > 0 ? "attention" : "default"}
           />
           <AttentionActionCard
@@ -631,8 +634,8 @@ export function PortfolioDashboardView({
             count={delayedCount}
             unavailable={!delayed.available}
             detail="Missed milestone or planned end before as-of (snapshot definition)."
-            href={healthExplainHref}
-            action="Explain delivery health"
+            href={healthHubHref}
+            action="Open delivery health"
             tone={delayedCount > 0 ? "attention" : "default"}
           />
         </div>
@@ -644,30 +647,113 @@ export function PortfolioDashboardView({
             {blockerCount > 0
               ? ` (${blockerCount} active blocker${blockerCount === 1 ? "" : "s"})`
               : ""}
-            . Drill into projects via delivery attention below — issue IDs are
-            not inventable from aggregates.
+            . Open Delivery Health for attention rows — issue IDs are not
+            inventable from aggregates.
           </Alert>
         ) : null}
 
-        {healthSummary ? (
-          <div className="mb-4">
-            <DeliveryHealthCountsSection
-              summary={healthSummary}
-              organizationId={orgId}
-              departmentId={departmentId}
-              healthFocus={healthFocus}
-            />
+        {/* M4E-D: summary only — full list lives on /portfolio/health hub */}
+        <Panel data-testid="portfolio-health-summary">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="font-medium">Delivery health summary</h3>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                What needs attention — open the Delivery Health hub for the full
+                list and Explain. Portfolio does not duplicate that workspace.
+              </p>
+            </div>
+            <Link
+              href={healthHubHref}
+              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            >
+              Open delivery health
+            </Link>
           </div>
-        ) : null}
-
-        {healthAttention ? (
-          <DeliveryHealthAttentionList
-            attention={healthAttention}
-            organizationId={orgId}
-            departmentId={departmentId}
-            healthFocus={healthFocus}
-          />
-        ) : null}
+          {healthSummary ? (
+            <div className="mt-3 flex flex-wrap gap-2 text-sm">
+              <StatusBadge
+                status="blocked"
+                label={`Blocked ${healthSummary.counts.BLOCKED}`}
+                size="compact"
+              />
+              <StatusBadge
+                status="at-risk"
+                label={`At risk ${healthSummary.counts.AT_RISK}`}
+                size="compact"
+              />
+              <StatusBadge
+                status="completed"
+                label={`On track ${healthSummary.counts.ON_TRACK}`}
+                size="compact"
+              />
+              <span className="text-[var(--muted)]">
+                Attention: {healthSummary.attentionCount}
+              </span>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-[var(--muted)]">
+              Delivery-health summary unavailable
+              {healthError ? ` — ${healthError}` : "."}
+            </p>
+          )}
+          {healthAttention && healthAttention.rows.length > 0 ? (
+            <ul className="mt-3 divide-y divide-[var(--line)]">
+              {healthAttention.rows.slice(0, 5).map((row) => (
+                <li
+                  key={row.projectId}
+                  className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                >
+                  <Link
+                    href={appendReturnContext(row.href, ret)}
+                    className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  >
+                    {row.referenceKey} · {row.name}
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge
+                      status={
+                        row.classification === "BLOCKED"
+                          ? "blocked"
+                          : row.classification === "AT_RISK"
+                            ? "at-risk"
+                            : "pending"
+                      }
+                      label={row.classification.replace("_", " ")}
+                      size="compact"
+                    />
+                    <Link
+                      href={`/portfolio/health?organizationId=${orgId}&projectId=${row.projectId}`}
+                      className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    >
+                      Explain
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : healthAttention ? (
+            <p className="mt-3 text-sm text-[var(--muted)]">
+              No blocked or at-risk projects in this scope.
+            </p>
+          ) : null}
+          {healthFocus ? (
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              Health focus “{healthFocus}” is applied on the Delivery Health hub.
+              <Link
+                href={
+                  healthFocus === "BLOCKED"
+                    ? blockedHref
+                    : healthFocus === "AT_RISK"
+                      ? atRiskHref
+                      : attentionHref
+                }
+                className="ml-1 text-[var(--accent)] underline"
+              >
+                Open filtered hub
+              </Link>
+            </p>
+          ) : null}
+        </Panel>
       </section>
 
       {/* ——— Level 3: Portfolio Insights (progressive) ——— */}

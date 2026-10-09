@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CAPACITY_BAND_LABELS } from "@/components/portfolio/metric";
 import { Alert } from "@/components/ui/alert";
 import { CapacityBar } from "@/components/ui/capacity-bar";
+import { EmptyState } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { StatusBadgeVariant } from "@/components/ui/status-badge";
 import {
@@ -664,20 +665,20 @@ export function PortfolioCapacityDashboard({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#087f78]">
-            Manager dashboard · {organizationName}
+            Manager workspace · {organizationName}
           </p>
-          <h1 className="mt-1 font-[family-name:var(--font-display)] text-[25px] font-bold tracking-[-0.03em] text-[#102a43]">
-            PI &amp; Resource Capacity
-          </h1>
-          <p className="mt-1 text-sm text-[#74848e]">
-            Live capacity from the CURRENT planning revision. Hours come from
-            capacity-policy — membership % is not project commitment. Draft
-            scenarios are not shown as authoritative load.
+          <p className="mt-1 max-w-3xl text-sm text-[#74848e]">
+            Where resources are committed on the CURRENT planning revision —
+            not a second Portfolio dashboard. Hours come from capacity-policy;
+            draft scenarios are never authoritative load.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/portfolio"
+            href={appendReturnContext(
+              `/portfolio?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
+              returnInput,
+            )}
             className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-white px-3 py-2 text-sm font-semibold text-[#425968] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
           >
             Portfolio
@@ -1412,20 +1413,15 @@ export function PortfolioCapacityDashboard({
           </div>
 
           {cards.length === 0 ? (
-            <p
-              role="status"
-              className="rounded-[11px] border border-[#e2e8eb] bg-white p-6 text-sm text-[#74848e]"
-            >
-              No participating departments returned for this PI in your
-              authorized scope.
-            </p>
+            <EmptyState
+              title="No participating departments"
+              description="No departments were returned for this PI in your authorized scope."
+            />
           ) : filtered.length === 0 ? (
-            <p
-              role="status"
-              className="rounded-[11px] border border-[#e2e8eb] bg-white p-6 text-sm text-[#74848e]"
-            >
-              No departments match the current filters.
-            </p>
+            <EmptyState
+              title="No departments match"
+              description="No departments match the current team, overloaded-only, or search filters. Clear filters to widen the hierarchy."
+            />
           ) : (
             <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
               {filtered.map((card) => (

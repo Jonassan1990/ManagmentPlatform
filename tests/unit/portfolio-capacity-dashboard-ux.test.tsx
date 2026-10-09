@@ -217,6 +217,33 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("M4E-D: links Portfolio and PI Planning with org context; empty filter feedback", () => {
+    render(<PortfolioCapacityDashboard {...baseProps} />);
+
+    const portfolio = screen.getByRole("link", { name: /^Portfolio$/i });
+    expect(portfolio).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/portfolio?organizationId=${ORG}`),
+    );
+    expect(portfolio).toHaveAttribute(
+      "href",
+      expect.stringContaining("from="),
+    );
+
+    const piPlanning = screen.getByRole("link", {
+      name: /Open PI Planning|PI Planning/i,
+    });
+    expect(piPlanning).toHaveAttribute("href", expect.stringContaining("/pi/"));
+
+    fireEvent.change(
+      screen.getByLabelText(/Search departments or people/i),
+      { target: { value: "zzz-no-match" } },
+    );
+    expect(
+      screen.getByRole("heading", { name: /No departments match/i }),
+    ).toBeInTheDocument();
+  });
+
   it("shows capacity KPIs from service totals", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
     const kpis = screen.getByTestId("capacity-kpis");

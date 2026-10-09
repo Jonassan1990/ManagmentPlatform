@@ -76,11 +76,36 @@ export function buildHomeQuickLinks(input: {
   piEntry?: AuthorizedPiEntry | null;
 }): HomeQuickLink[] {
   const { capabilities: caps, organizationId, piEntry } = input;
+  const orgQ = organizationId
+    ? `?organizationId=${organizationId}`
+    : "";
   const links: HomeQuickLink[] = [
-    { id: "portfolio", label: "Portfolio", href: "/portfolio" },
-    { id: "explorer", label: "Explorer", href: "/portfolio/explorer" },
-    { id: "health", label: "Delivery health", href: "/portfolio/health" },
-    { id: "capacity", label: "PI & capacity", href: "/portfolio/capacity" },
+    {
+      id: "portfolio",
+      label: "Portfolio",
+      href: organizationId ? `/portfolio${orgQ}` : "/portfolio",
+    },
+    {
+      id: "explorer",
+      label: "Explorer",
+      href: organizationId
+        ? `/portfolio/explorer${orgQ}`
+        : "/portfolio/explorer",
+    },
+    {
+      id: "health",
+      label: "Delivery health",
+      href: organizationId
+        ? `/portfolio/health${orgQ}`
+        : "/portfolio/health",
+    },
+    {
+      id: "capacity",
+      label: "PI & capacity",
+      href: organizationId
+        ? `/portfolio/capacity${orgQ}`
+        : "/portfolio/capacity",
+    },
   ];
 
   if (caps.canViewInitiatives) {

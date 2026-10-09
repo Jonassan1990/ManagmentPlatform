@@ -226,13 +226,34 @@ describe("M4E-A PortfolioDashboardView", () => {
       expect.stringContaining("from=portfolio"),
     );
 
-    expect(
-      screen.getByRole("link", { name: /Filter blocked/i }),
-    ).toHaveAttribute("href", expect.stringContaining("healthFocus=BLOCKED"));
+    const blocked = screen.getAllByRole("link", { name: /Review blocked/i });
+    expect(blocked.length).toBeGreaterThan(0);
+    expect(blocked[0]).toHaveAttribute(
+      "href",
+      expect.stringContaining("/portfolio/health"),
+    );
+    expect(blocked[0]).toHaveAttribute(
+      "href",
+      expect.stringContaining("healthFocus=BLOCKED"),
+    );
 
     expect(
       screen.getByRole("link", { name: /Blocked delivery/i }),
-    ).toHaveAttribute("href", "/initiatives/init-1/project");
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining("/initiatives/init-1/project"),
+    );
+    expect(
+      screen.getByTestId("portfolio-health-summary"),
+    ).toBeInTheDocument();
+    const healthLinks = screen.getAllByRole("link", {
+      name: /Open delivery health/i,
+    });
+    expect(healthLinks.length).toBeGreaterThan(0);
+    expect(healthLinks[0]).toHaveAttribute(
+      "href",
+      expect.stringContaining("/portfolio/health"),
+    );
   });
 
   it("shows empty portfolio state when counts are zero", () => {
