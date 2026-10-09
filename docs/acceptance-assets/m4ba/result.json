@@ -1,0 +1,100 @@
+{
+  "steps": [
+    {
+      "name": "02-portfolio-dashboard",
+      "route": "/portfolio",
+      "status": "PASS",
+      "colors": {
+        "sidebarBg": "rgb(16, 42, 67)",
+        "accent": "#0f4c5c",
+        "colorPrimary": "#0f4c5c",
+        "focusRing": "#0f4c5c",
+        "statusBlocked": "#9b2226",
+        "bg": "#f4f6f8"
+      }
+    },
+    {
+      "name": "03-portfolio-explorer",
+      "route": "/portfolio/explorer",
+      "status": "PASS",
+      "colors": {
+        "sidebarBg": "rgb(16, 42, 67)",
+        "accent": "#0f4c5c",
+        "colorPrimary": "#0f4c5c",
+        "focusRing": "#0f4c5c",
+        "statusBlocked": "#9b2226",
+        "bg": "#f4f6f8"
+      }
+    },
+    {
+      "name": "05-pi-capacity",
+      "route": "/portfolio/capacity",
+      "status": "PASS",
+      "colors": {
+        "sidebarBg": "rgb(16, 42, 67)",
+        "accent": "#0f4c5c",
+        "colorPrimary": "#0f4c5c",
+        "focusRing": "#0f4c5c",
+        "statusBlocked": "#9b2226",
+        "bg": "#f4f6f8"
+      }
+    },
+    {
+      "name": "21-pi-board",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board",
+      "status": "PASS",
+      "colors": {
+        "sidebarBg": "rgb(16, 42, 67)",
+        "accent": "#0f4c5c",
+        "colorPrimary": "#0f4c5c",
+        "focusRing": "#0f4c5c",
+        "statusBlocked": "#9b2226",
+        "bg": "#f4f6f8"
+      }
+    },
+    {
+      "name": "22-pi-compare",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/compare",
+      "status": "PASS",
+      "colors": {
+        "sidebarBg": "rgb(16, 42, 67)",
+        "accent": "#0f4c5c",
+        "colorPrimary": "#0f4c5c",
+        "focusRing": "#0f4c5c",
+        "statusBlocked": "#9b2226",
+        "bg": "#f4f6f8"
+      }
+    },
+    {
+      "name": "24-pi-review",
+      "route": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/review",
+      "status": "PASS",
+      "colors": {
+        "sidebarBg": "rgb(16, 42, 67)",
+        "accent": "#0f4c5c",
+        "colorPrimary": "#0f4c5c",
+        "focusRing": "#0f4c5c",
+        "statusBlocked": "#9b2226",
+        "bg": "#f4f6f8"
+      }
+    },
+    {
+      "name": "14-initiative-workspace",
+      "route": "/initiatives/1b0f65b3-3356-4bcf-8175-e74d31cce606",
+      "status": "PASS"
+    },
+    {
+      "name": "15-project",
+      "route": "/initiatives/1b0f65b3-3356-4bcf-8175-e74d31cce606/project",
+      "status": "PASS"
+    }
+  ],
+  "focusCheck": {
+    "tag": "A",
+    "outlineStyle": "solid",
+    "outlineWidth": "2px",
+    "outlineColor": "rgb(15, 76, 92)"
+  },
+  "reducedMotion": true,
+  "brandOk": true
+}
