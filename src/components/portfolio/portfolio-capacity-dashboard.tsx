@@ -18,11 +18,19 @@ import type {
   PortfolioPiListItem,
 } from "@/modules/portfolio/domain/types";
 import {
+  availableCapacityDepartments,
+  criticalityToBadge,
+  dependencyStatusToBadge,
+  explainConflict,
+  formatNeededBy,
+  isPiViewForbiddenMessage,
+  type CapacityDependenciesView,
+} from "./portfolio-capacity-coordination";
+import {
   bandTone,
   buildDepartmentCards,
   capacityStatusLabel,
   committedLoadBarPct,
-  conflictSubjectLabel,
   filterDepartmentCards,
   formatCapacityHours,
   formatUtilizationPct,
@@ -462,6 +470,11 @@ export function PortfolioCapacityDashboard({
   listError,
   capacity,
   capacityError,
+  capacityErrorCode,
+  dependencies = {
+    state: "unavailable",
+    reason: "PlanningDependencies were not loaded for this view.",
+  },
 }: {
   organizationName: string;
   organizations: CapacityOrgOption[];
@@ -473,6 +486,8 @@ export function PortfolioCapacityDashboard({
   listError?: string | null;
   capacity: PortfolioPiCapacityResult | null;
   capacityError?: string | null;
+  capacityErrorCode?: string | null;
+  dependencies?: CapacityDependenciesView;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -500,6 +515,16 @@ export function PortfolioCapacityDashboard({
   const selectedPiMetaHref = ready?.meta.piId
     ? appendReturnContext(`/pi/${ready.meta.piId}`, returnInput)
     : openPiHref;
+  const piIdForNav = ready?.meta.piId ?? piId ?? null;
+  const dependenciesHref = piIdForNav
+    ? appendReturnContext(`/pi/${piIdForNav}/dependencies`, returnInput)
+    : "/pi";
+  const boardHref = piIdForNav
+    ? appendReturnContext(`/pi/${piIdForNav}/board`, returnInput)
+    : openPiHref;
+  const piViewForbidden =
+    capacityErrorCode === "FORBIDDEN" ||
+    isPiViewForbiddenMessage(capacityError);
 
   const cards = useMemo(() => {
     if (!ready) return [];
@@ -567,6 +592,18 @@ export function PortfolioCapacityDashboard({
     );
   }, [ready]);
 
+  const availableDepts = useMemo(
+    () => (ready ? availableCapacityDepartments(ready.departments) : []),
+    [ready],
+  );
+
+  const conflictExplanations = useMemo(() => {
+    if (!ready) return [];
+    return ready.conflicts.map((c) =>
+      explainConflict(c, ready.teams, ready.resources.rows),
+    );
+  }, [ready]);
+
   function expandDepartment(departmentId: string, teamIdFocus?: string) {
     setOpenDepts((prev) => new Set(prev).add(departmentId));
     if (teamIdFocus) {
@@ -605,8 +642,22 @@ export function PortfolioCapacityDashboard({
         </Alert>
       ) : null}
       {capacityError ? (
-        <Alert tone="error" live="assertive">
-          {capacityError}
+        <Alert
+          tone="error"
+          live="assertive"
+          title={piViewForbidden ? "PI capacity unavailable for this scope" : undefined}
+        >
+          {piViewForbidden ? (
+            <>
+              {capacityError} Department Managers with only department-scoped
+              PI_VIEW cannot open section- or organization-scoped Program
+              Increments. This is intentional Phase 0C isolation — not a missing
+              KPI. Ask for section/org PI access, or use department portfolio
+              views that remain in scope.
+            </>
+          ) : (
+            capacityError
+          )}
         </Alert>
       ) : null}
 
@@ -857,7 +908,7 @@ export function PortfolioCapacityDashboard({
             id="capacity-management-attention"
             level="D · Management attention"
             title="Management attention"
-            description="Overloaded teams, capacity shortages, planning conflicts, and missing capacity data that need action."
+            description="Overloaded teams, capacity shortages, planning conflicts, missing capacity data, and coordination signals that need action."
           />
           <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
             <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
@@ -974,50 +1025,310 @@ export function PortfolioCapacityDashboard({
               </div>
             </article>
 
-            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a] lg:col-span-2">
+            <article
+              className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a] lg:col-span-2"
+              data-testid="capacity-conflict-explanations"
+            >
               <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[#102a43]">
                   Planning conflicts
                 </h3>
                 <p className="mt-1 text-[10px] text-[#74848e]">
-                  Derived from the existing conflict engine — not invented here
+                  What conflicts, who is affected, which iteration, severity, and
+                  the next authorized navigation — from the existing conflict
+                  engine only
                 </p>
               </div>
               <div className="px-4 py-3">
-                {ready.conflicts.length === 0 ? (
+                {conflictExplanations.length === 0 ? (
                   <p role="status" className="text-[11px] text-[#74848e]">
                     No conflicts.
                   </p>
                 ) : (
-                  ready.conflicts.map((c, idx) => (
+                  conflictExplanations.map((ex, idx) => (
                     <div
-                      key={`${c.type}-${c.subjectId}-${idx}`}
-                      className="grid grid-cols-1 gap-2 border-b border-[#edf1f2] py-2 text-[9px] text-[#526572] last:border-0 sm:grid-cols-[1.5fr_1fr_auto] sm:items-center"
+                      key={`${ex.type}-${ex.affected}-${idx}`}
+                      className="border-b border-[#edf1f2] py-3 last:border-0"
                     >
-                      <span className="font-bold text-[#394f5c]">
-                        {c.message}
-                      </span>
-                      <span>
-                        {conflictSubjectLabel(
-                          c,
-                          ready.teams,
-                          ready.resources.rows,
-                        )}
-                      </span>
-                      <StatusBadge
-                        status={
-                          c.severity === "BLOCKER"
-                            ? "blocked"
-                            : c.severity === "WARNING"
-                              ? "at-risk"
-                              : "pending"
-                        }
-                        label={c.severity}
-                        size="compact"
-                      />
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-bold text-[#394f5c]">
+                            {ex.headline}
+                          </p>
+                          <p className="mt-1 text-[10px] text-[#526572]">
+                            {ex.what}
+                          </p>
+                          <dl className="mt-2 grid grid-cols-1 gap-1 text-[10px] sm:grid-cols-3">
+                            <div>
+                              <dt className="uppercase tracking-wide text-[#98a5ad]">
+                                Affected
+                              </dt>
+                              <dd className="font-semibold text-[#102a43]">
+                                {ex.affected}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="uppercase tracking-wide text-[#98a5ad]">
+                                Iteration / PI
+                              </dt>
+                              <dd className="font-semibold text-[#102a43]">
+                                {ex.iterationHint ??
+                                  ready.meta.referenceKey ??
+                                  "—"}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="uppercase tracking-wide text-[#98a5ad]">
+                                Type
+                              </dt>
+                              <dd className="font-semibold text-[#102a43]">
+                                {ex.type.replace(/_/g, " ")}
+                              </dd>
+                            </div>
+                          </dl>
+                        </div>
+                        <StatusBadge
+                          status={
+                            ex.severity === "BLOCKER"
+                              ? "blocked"
+                              : ex.severity === "WARNING"
+                                ? "at-risk"
+                                : "pending"
+                          }
+                          label={ex.severity}
+                          size="compact"
+                        />
+                      </div>
+                      <div className="mt-2">
+                        {ex.actionKind === "expand_team" &&
+                        ex.departmentId &&
+                        ex.teamId ? (
+                          <button
+                            type="button"
+                            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            onClick={() =>
+                              expandDepartment(ex.departmentId!, ex.teamId)
+                            }
+                          >
+                            {ex.actionLabel}
+                          </button>
+                        ) : ex.actionKind === "open_dependencies" ? (
+                          <Link
+                            href={dependenciesHref}
+                            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                          >
+                            {ex.actionLabel}
+                          </Link>
+                        ) : ex.actionKind === "open_pi_board" ? (
+                          <Link
+                            href={boardHref}
+                            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                          >
+                            {ex.actionLabel}
+                          </Link>
+                        ) : null}
+                      </div>
                     </div>
                   ))
                 )}
+              </div>
+            </article>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ——— E. Cross-department coordination ——— */}
+      {ready ? (
+        <section
+          aria-labelledby="capacity-cross-department"
+          data-testid="capacity-cross-department"
+        >
+          <SectionHeading
+            id="capacity-cross-department"
+            level="E · Cross-department"
+            title="Cross-department coordination"
+            description="Authorized available capacity, PlanningDependencies, and project commitments that need coordination. Sibling departments outside your scope are never loaded."
+          />
+          <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
+            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
+              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[#102a43]">
+                  Departments with available capacity
+                </h3>
+                <p className="mt-1 text-[10px] text-[#74848e]">
+                  Remaining hours &gt; 0 in your authorized capacity response
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                {availableDepts.length === 0 ? (
+                  <p role="status" className="text-[11px] text-[#74848e]">
+                    No departments with remaining capacity in the returned
+                    scope.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {availableDepts.map((d) => (
+                      <li
+                        key={d.departmentId}
+                        className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf1f2] py-2 last:border-0"
+                      >
+                        <div>
+                          <p className="text-[11px] font-bold text-[#102a43]">
+                            {d.departmentName}
+                          </p>
+                          <p className="text-[9px] text-[#89969e]">
+                            {formatCapacityHours(d.remainingHours)}h remaining ·{" "}
+                            {formatCapacityHours(d.committedHours)}h /{" "}
+                            {formatCapacityHours(d.availableHours)}h
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge
+                            status={bandToStatus(d.band)}
+                            label={d.statusLabel}
+                            size="compact"
+                          />
+                          <button
+                            type="button"
+                            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            onClick={() => expandDepartment(d.departmentId)}
+                          >
+                            Open department
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </article>
+
+            <article
+              className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]"
+              data-testid="capacity-dependencies-panel"
+            >
+              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#102a43]">
+                      Planning dependencies
+                    </h3>
+                    <p className="mt-1 text-[10px] text-[#74848e]">
+                      Existing PlanningDependency records — status, severity,
+                      owner, required-by
+                    </p>
+                  </div>
+                  {piIdForNav ? (
+                    <Link
+                      href={dependenciesHref}
+                      className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-3 py-1.5 text-[11px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                    >
+                      Open PI dependencies
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+              <div className="px-4 py-3">
+                {dependencies.state === "unavailable" ? (
+                  <div className="space-y-2">
+                    <Alert tone="warning" live="polite" title="Scoped / unavailable">
+                      {dependencies.reason}
+                    </Alert>
+                    {dependencies.openCount != null ? (
+                      <p className="text-[11px] text-[#526572]">
+                        Portfolio snapshot counts in your scope:{" "}
+                        <strong>{dependencies.openCount}</strong> open ·{" "}
+                        <strong>{dependencies.criticalCount ?? 0}</strong>{" "}
+                        critical/high. Individual dependency rows are not shown
+                        without organization-scoped PI_VIEW.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : dependencies.rows.length === 0 ? (
+                  <p role="status" className="text-[11px] text-[#74848e]">
+                    No PlanningDependencies in this organization.
+                  </p>
+                ) : (
+                  <ul className="max-h-72 space-y-2 overflow-y-auto">
+                    {dependencies.rows.slice(0, 12).map((dep) => (
+                      <li
+                        key={dep.id}
+                        className="border-b border-[#edf1f2] py-2 last:border-0"
+                        data-dependency-id={dep.id}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge
+                            status={dependencyStatusToBadge(dep.status)}
+                            label={dep.status}
+                            size="compact"
+                          />
+                          <StatusBadge
+                            status={criticalityToBadge(dep.criticality)}
+                            label={dep.criticality}
+                            size="compact"
+                          />
+                          <span className="text-[10px] font-bold text-[#102a43]">
+                            {dep.type.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[10px] text-[#526572]">
+                          <span className="font-semibold text-[#394f5c]">
+                            {dep.sourceLabel}
+                          </span>
+                          {" → "}
+                          <span className="font-semibold text-[#394f5c]">
+                            {dep.targetLabel}
+                          </span>
+                        </p>
+                        <p className="mt-0.5 text-[9px] text-[#89969e]">
+                          Owner: {dep.ownerName ?? "Unassigned"} · Needed by:{" "}
+                          {formatNeededBy(dep.neededByDate)}
+                        </p>
+                        {dep.description ? (
+                          <p className="mt-0.5 text-[9px] text-[#74848e]">
+                            {dep.description}
+                          </p>
+                        ) : null}
+                        {dep.sourceType === "PROJECT" ? (
+                          (() => {
+                            const commitment = ready.projectCommitments.find(
+                              (p) => p.projectId === dep.sourceId,
+                            );
+                            return commitment ? (
+                              <Link
+                                href={commitment.href}
+                                className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                              >
+                                Open source project
+                              </Link>
+                            ) : (
+                              <Link
+                                href={dependenciesHref}
+                                className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                              >
+                                View on PI dependencies
+                              </Link>
+                            );
+                          })()
+                        ) : (
+                          <Link
+                            href={dependenciesHref}
+                            className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                          >
+                            View on PI dependencies
+                          </Link>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {dependencies.state === "ready" ? (
+                  <p className="mt-3 text-[10px] text-[#74848e]">
+                    {dependencies.openCount} open · {dependencies.criticalCount}{" "}
+                    critical/high (authorized org list — not a new reporting
+                    permission)
+                  </p>
+                ) : null}
               </div>
             </article>
           </div>

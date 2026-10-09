@@ -309,6 +309,33 @@ async function main() {
   const heavy = await ensureProject("PRJ-M2E-HEAVY", "Heavy Delivery", deptA.id);
   const light = await ensureProject("PRJ-M2E-LIGHT", "Light Support", deptB.id);
 
+  // M4E-C fixture: cross-department PlanningDependency (existing semantics only).
+  const existingDep = await db.planningDependency.findFirst({
+    where: {
+      organizationId: org.id,
+      sourceId: heavy.project.id,
+      targetId: light.project.id,
+    },
+  });
+  if (!existingDep) {
+    await db.planningDependency.create({
+      data: {
+        organizationId: org.id,
+        type: "BLOCKS",
+        status: "OPEN",
+        criticality: "HIGH",
+        sourceType: "PROJECT",
+        sourceId: heavy.project.id,
+        targetType: "PROJECT",
+        targetId: light.project.id,
+        ownerName: "M2E Capacity Coordinator",
+        neededByDate: new Date("2026-02-15T00:00:00.000Z"),
+        description:
+          "Cross-department coordination fixture for capacity UX browser QA",
+      },
+    });
+  }
+
   async function ensureAllocation(workItemId, teamId, resourceId, plannedHours) {
     const existing = await db.workAllocation.findFirst({
       where: { revisionId: revision.id, workItemId },

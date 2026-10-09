@@ -16,6 +16,7 @@
 | Search | Department / team / resource text filter (client, authorized rows only) |
 | Dependency panels | Replaced with **Project commitments** + **Planning conflicts** from M2E-A |
 | Manager attention | M4E-B section D: overloaded teams, shortages, conflicts, missing data |
+| Cross-dept coordination | M4E-C section E: available capacity depts, PlanningDependencies, conflict explanations |
 
 ## Explicit non-copies
 

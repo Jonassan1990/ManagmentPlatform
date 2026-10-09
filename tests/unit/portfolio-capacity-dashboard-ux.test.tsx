@@ -236,7 +236,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
     ).toBeGreaterThan(0);
 
     fireEvent.click(
-      within(attention).getByRole("button", { name: /Inspect team/i }),
+      within(attention).getByRole("button", { name: /^Inspect team$/i }),
     );
 
     expect(
@@ -389,5 +389,88 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
     expect(
       screen.getByText(/must not have full capacity counted independently/i),
     ).toBeTruthy();
+  });
+
+  it("renders conflict explanations with actionable navigation", () => {
+    render(<PortfolioCapacityDashboard {...baseProps} />);
+    const panel = screen.getByTestId("capacity-conflict-explanations");
+    expect(within(panel).getByText(/Team Platform exceeds capacity/i)).toBeTruthy();
+    expect(within(panel).getByText(/exceed available capacity/i)).toBeTruthy();
+    expect(
+      within(panel).getByRole("button", { name: /Inspect team capacity/i }),
+    ).toBeTruthy();
+  });
+
+  it("renders cross-department coordination and dependency rows when authorized", () => {
+    render(
+      <PortfolioCapacityDashboard
+        {...baseProps}
+        dependencies={{
+          state: "ready",
+          openCount: 1,
+          criticalCount: 1,
+          rows: [
+            {
+              id: "dep-1",
+              type: "BLOCKS",
+              status: "OPEN",
+              criticality: "CRITICAL",
+              sourceType: "PROJECT",
+              sourceId: "proj-1",
+              targetType: "PROJECT",
+              targetId: "proj-2",
+              ownerName: "Alex",
+              neededByDate: "2026-11-01T00:00:00.000Z",
+              description: "Needs partner capacity",
+              sourceLabel: "PRJ-1 · Core delivery",
+              targetLabel: "Project proj-2…",
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("capacity-cross-department")).toBeTruthy();
+    expect(screen.getByText(/Departments with available capacity/i)).toBeTruthy();
+    const deps = screen.getByTestId("capacity-dependencies-panel");
+    expect(within(deps).getByText(/PRJ-1 · Core delivery/i)).toBeTruthy();
+    expect(within(deps).getByText(/Needs partner capacity/i)).toBeTruthy();
+    expect(
+      within(deps).getByRole("link", { name: /Open PI dependencies/i }),
+    ).toBeTruthy();
+  });
+
+  it("shows scoped unavailable dependency state without inventing rows", () => {
+    render(
+      <PortfolioCapacityDashboard
+        {...baseProps}
+        dependencies={{
+          state: "unavailable",
+          reason: "Dependency list is organization-scoped.",
+          openCount: 2,
+          criticalCount: 1,
+        }}
+      />,
+    );
+    const deps = screen.getByTestId("capacity-dependencies-panel");
+    expect(within(deps).getByText(/Scoped \/ unavailable/i)).toBeTruthy();
+    expect(within(deps).getByText(/Portfolio snapshot counts/i)).toBeTruthy();
+  });
+
+  it("explains FORBIDDEN PI view without inventing capacity", () => {
+    render(
+      <PortfolioCapacityDashboard
+        {...baseProps}
+        capacity={null}
+        capacityError="Missing PI view permission."
+        capacityErrorCode="FORBIDDEN"
+      />,
+    );
+    expect(
+      screen.getByText(/PI capacity unavailable for this scope/i),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Department Managers with only department-scoped/i),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("capacity-kpis")).toBeNull();
   });
 });
