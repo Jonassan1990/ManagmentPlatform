@@ -2,6 +2,7 @@
 
 **Date:** 2026-10-09  
 **Starting main SHA:** `4519bbd04f7fc3d4683b2df7b49b05193bb71ba9`  
+**Final main SHA (acceptance merge):** `6bb7789bc7b533b3077b9cae06aa5e5c38ba3e50`  
 **Scope:** Final M3 milestone acceptance and production-release assessment. **No new product features. No M4.**
 
 Prerequisite: [PI-SCENARIO-M3D-ACCEPTANCE.md](./PI-SCENARIO-M3D-ACCEPTANCE.md) — **STATUS: PASS (functional)**.
