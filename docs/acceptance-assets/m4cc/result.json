@@ -1,0 +1,54 @@
+{
+  "steps": [
+    {
+      "name": "home-attention",
+      "status": "PASS"
+    },
+    {
+      "name": "pi-entry",
+      "status": "PASS"
+    },
+    {
+      "name": "capability-links",
+      "status": "PASS"
+    },
+    {
+      "name": "/portfolio",
+      "status": "PASS"
+    },
+    {
+      "name": "/portfolio/explorer",
+      "status": "PASS"
+    },
+    {
+      "name": "/initiatives",
+      "status": "PASS"
+    },
+    {
+      "name": "/approvals",
+      "status": "PASS"
+    },
+    {
+      "name": "/pi",
+      "status": "PASS"
+    },
+    {
+      "name": "/organization",
+      "status": "PASS"
+    },
+    {
+      "name": "capacity-autoselect",
+      "status": "PASS",
+      "url": "http://localhost:43148/portfolio/capacity?organizationId=b1bab264-869c-4a1d-8fdf-554404606c0b&piId=ad6c3b7b-5727-43cf-a848-49eda8d1bf56"
+    },
+    {
+      "name": "home-mobile",
+      "status": "PASS"
+    },
+    {
+      "name": "active-nav",
+      "status": "PASS"
+    }
+  ],
+  "verdict": "PASS"
+}

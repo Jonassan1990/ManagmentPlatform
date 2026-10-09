@@ -1,5 +1,18 @@
 import Link from "next/link";
+import { HomeAttentionPanel } from "@/components/home/home-attention";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import {
+  buildHomeFooterLinks,
+  buildHomeQuickLinks,
+  selectAuthorizedPiEntry,
+  type AuthorizedPiEntry,
+} from "@/modules/navigation/home-experience";
+import { resolveShellNavContext } from "@/modules/navigation/resolve-shell-nav";
+import type { ShellNavCapabilities } from "@/modules/navigation/types";
+import type {
+  DeliveryHealthAttentionResult,
+  DeliveryHealthSummary,
+} from "@/modules/portfolio/domain/types";
 import { createServices } from "@/server/container";
 import { isDevAuthEnabled, getEnv } from "@/server/env";
 
@@ -26,7 +39,10 @@ function MetricTile({
   return (
     <Panel>
       {href ? (
-        <Link href={href} className="block rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+        <Link
+          href={href}
+          className="block rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
           {body}
         </Link>
       ) : (
@@ -50,6 +66,29 @@ function MetricSection({
       </h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
     </section>
+  );
+}
+
+function QuickLinkChip({
+  href,
+  label,
+  primary,
+}: {
+  href: string;
+  label: string;
+  primary?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={
+        primary
+          ? "rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
+          : "rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+      }
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -90,19 +129,92 @@ export default async function HomePage() {
     piBlockerConflicts: 0,
   };
   let orgCount = 0;
-  let firstOrgId: string | null = null;
+  let organizationId: string | null = null;
+  let capabilities: ShellNavCapabilities = {
+    canViewApprovals: false,
+    canViewDecisions: false,
+    canManageGovernancePolicy: false,
+    canManageAccess: false,
+    canViewPi: false,
+    canCreatePi: false,
+    canViewInitiatives: false,
+    canCreateInitiative: false,
+  };
+  let piEntry: AuthorizedPiEntry | null = null;
+  let healthSummary: DeliveryHealthSummary | null = null;
+  let healthAttention: DeliveryHealthAttentionResult | null = null;
+  let healthError: string | null = null;
 
   try {
     const env = getEnv();
-    const { authz, organization, initiative, planning } = createServices();
+    const {
+      authz,
+      organization,
+      initiative,
+      planning,
+      portfolio,
+    } = createServices();
     const principal = await authz.resolveCurrentPrincipal();
     principalAvailable = Boolean(principal);
     if (principal) {
       const orgs = await organization.listOrganizations(principal);
       orgCount = orgs.length;
-      firstOrgId = orgs[0]?.id ?? null;
+      const orgIds = orgs.map((o) => o.id);
+      const navCtx = await resolveShellNavContext(authz, principal, orgIds);
+      organizationId = navCtx.organizationId;
+      capabilities = navCtx.capabilities;
+
       metrics = await initiative.getOverviewMetrics(principal);
       piMetrics = await planning.getExecutivePiMetrics(principal);
+
+      if (organizationId) {
+        try {
+          healthSummary = await portfolio.getDeliveryHealthSummary(principal, {
+            organizationId,
+          });
+          healthAttention = await portfolio.listDeliveryHealthAttention(
+            principal,
+            {
+              organizationId,
+              sortBy: "classification",
+              sortDir: "asc",
+              page: 1,
+              pageSize: 5,
+            },
+          );
+        } catch (err) {
+          healthError =
+            err instanceof Error ? err.message : "Delivery health unavailable.";
+        }
+
+        if (capabilities.canViewPi) {
+          // Prefer shell org, then other listable orgs, for an entry-worthy PI.
+          const piOrgOrder = [
+            organizationId,
+            ...orgIds.filter((id) => id !== organizationId),
+          ];
+          for (const orgId of piOrgOrder) {
+            try {
+              const pis = await planning.listProgramIncrements(
+                principal,
+                orgId,
+              );
+              piEntry = selectAuthorizedPiEntry(
+                pis.map((p) => ({
+                  id: p.id,
+                  status: p.status,
+                  startDate: p.startDate,
+                  referenceKey: p.referenceKey,
+                  name: p.name,
+                })),
+              );
+              if (piEntry) break;
+            } catch {
+              // Forbidden / empty for this org — try next.
+            }
+          }
+        }
+      }
     } else if (env.NODE_ENV === "development" && !isDevAuthEnabled(env)) {
       authHint =
         "DEV auth is not configured. Set ALLOW_DEV_AUTH=true and DEV_AUTH_PRINCIPAL_ID (UUID) in .env.";
@@ -117,12 +229,23 @@ export default async function HomePage() {
         : "Application configuration is incomplete.";
   }
 
+  const quickLinks = buildHomeQuickLinks({
+    capabilities,
+    organizationId,
+    piEntry,
+  });
+  const footerLinks = buildHomeFooterLinks({
+    capabilities,
+    organizationId,
+    piEntry,
+  });
+
   return (
     <div>
       <Breadcrumbs items={[{ label: "Home" }]} />
       <PageHeader
         title="Home"
-        description="Attention signals and workflow entry points across initiatives, governance, delivery, and PI planning."
+        description="Attention-first entry: capability-aware destinations, delivery health signals, and authorized PI shortcuts."
       />
 
       {authHint ? (
@@ -152,65 +275,57 @@ export default async function HomePage() {
         />
       ) : (
         <div className="space-y-6">
+          {organizationId ? (
+            <HomeAttentionPanel
+              organizationId={organizationId}
+              summary={healthSummary}
+              attention={healthAttention}
+              error={healthError}
+              initiativeNeedsAttention={metrics.needsAttention}
+              piNeedsAttention={piMetrics.piNeedsAttention}
+              waitingApproval={metrics.waitingForApproval}
+            />
+          ) : null}
+
+          {piEntry ? (
+            <Panel className="border-[var(--color-primary)]/25 bg-[var(--color-primary-soft)]/40">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-[var(--color-text)]">
+                    Continue PI planning
+                  </h2>
+                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                    Latest authorized {piEntry.status} PI:{" "}
+                    <strong>{piEntry.referenceKey}</strong> — {piEntry.name}
+                  </p>
+                </div>
+                <Link
+                  href={piEntry.href}
+                  className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                >
+                  Open {piEntry.referenceKey}
+                </Link>
+              </div>
+            </Panel>
+          ) : null}
+
           <Panel>
             <h2 className="mb-2 text-sm font-medium tracking-wide text-[var(--muted)]">
               Workflow destinations
             </h2>
+            <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
+              Links reflect your shell capabilities. Destination pages still
+              enforce authorization.
+            </p>
             <div className="flex flex-wrap gap-2">
-              <Link
-                href="/portfolio"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                Portfolio
-              </Link>
-              <Link
-                href="/portfolio/explorer"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                Explorer
-              </Link>
-              <Link
-                href="/portfolio/health"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                Delivery health
-              </Link>
-              <Link
-                href="/portfolio/capacity"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                PI &amp; capacity
-              </Link>
-              <Link
-                href="/initiatives"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                Initiatives
-              </Link>
-              <Link
-                href="/approvals"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                Approvals
-              </Link>
-              <Link
-                href="/decisions"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                Decisions
-              </Link>
-              <Link
-                href="/pi"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                PI Planning
-              </Link>
-              <Link
-                href="/organization"
-                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
-              >
-                Organization
-              </Link>
+              {quickLinks.map((link) => (
+                <QuickLinkChip
+                  key={link.id}
+                  href={link.href}
+                  label={link.label}
+                  primary={link.primary}
+                />
+              ))}
             </div>
           </Panel>
 
@@ -218,42 +333,54 @@ export default async function HomePage() {
             <MetricTile
               label="Active initiatives"
               value={metrics.activeInitiatives}
-              href="/initiatives"
+              href={capabilities.canViewInitiatives ? "/initiatives" : undefined}
             />
             <MetricTile
               label="In Demand"
               value={metrics.demand}
-              href="/initiatives?stage=DEMAND"
+              href={
+                capabilities.canViewInitiatives
+                  ? "/initiatives?stage=DEMAND"
+                  : undefined
+              }
             />
             <MetricTile
               label="In Requirements"
               value={metrics.requirements}
-              href="/initiatives?stage=REQUIREMENTS"
+              href={
+                capabilities.canViewInitiatives
+                  ? "/initiatives?stage=REQUIREMENTS"
+                  : undefined
+              }
             />
             <MetricTile
               label="In Pre-study"
               value={metrics.preStudy}
-              href="/initiatives?stage=PRE_STUDY"
+              href={
+                capabilities.canViewInitiatives
+                  ? "/initiatives?stage=PRE_STUDY"
+                  : undefined
+              }
             />
             <MetricTile
               label="In PoC"
               value={metrics.poc}
-              href="/initiatives"
+              href={capabilities.canViewInitiatives ? "/initiatives" : undefined}
             />
             <MetricTile
               label="In Pilot"
               value={metrics.pilot}
-              href="/initiatives"
+              href={capabilities.canViewInitiatives ? "/initiatives" : undefined}
             />
             <MetricTile
               label="In Project"
               value={metrics.project}
-              href="/initiatives"
+              href={capabilities.canViewInitiatives ? "/initiatives" : undefined}
             />
             <MetricTile
               label="Needs attention"
               value={metrics.needsAttention}
-              href="/initiatives"
+              href={capabilities.canViewInitiatives ? "/initiatives" : undefined}
             />
           </MetricSection>
 
@@ -265,12 +392,12 @@ export default async function HomePage() {
             <MetricTile
               label="Waiting for approval"
               value={metrics.waitingForApproval}
-              href="/approvals"
+              href={capabilities.canViewApprovals ? "/approvals" : undefined}
             />
             <MetricTile
               label="Waiting for decision"
               value={metrics.waitingForDecision}
-              href="/decisions"
+              href={capabilities.canViewDecisions ? "/decisions" : undefined}
             />
             <MetricTile
               label="Changes requested"
@@ -290,37 +417,37 @@ export default async function HomePage() {
             <MetricTile
               label="Active PoCs"
               value={metrics.activePocs}
-              href="/initiatives"
+              href={capabilities.canViewInitiatives ? "/initiatives" : undefined}
             />
             <MetricTile
               label="PoCs ready for decision"
               value={metrics.pocsReadyForDecision}
-              href="/decisions"
+              href={capabilities.canViewDecisions ? "/decisions" : undefined}
             />
             <MetricTile
               label="Active Pilots"
               value={metrics.activePilots}
-              href="/initiatives"
+              href={capabilities.canViewInitiatives ? "/initiatives" : undefined}
             />
             <MetricTile
               label="Pilots ready for decision"
               value={metrics.pilotsReadyForDecision}
-              href="/decisions"
+              href={capabilities.canViewDecisions ? "/decisions" : undefined}
             />
             <MetricTile
               label="Scale decisions waiting"
               value={metrics.scaleDecisionsWaiting}
-              href="/decisions"
+              href={capabilities.canViewDecisions ? "/decisions" : undefined}
             />
             <MetricTile
               label="Projects"
               value={metrics.projects}
-              href="/initiatives"
+              href={capabilities.canViewInitiatives ? "/initiatives" : undefined}
             />
             <MetricTile
               label="Projects at risk"
               value={metrics.projectsAtRisk}
-              href="/initiatives"
+              href="/portfolio/health"
             />
             <MetricTile
               label="Upcoming milestones (14d)"
@@ -332,84 +459,55 @@ export default async function HomePage() {
             <MetricTile
               label="Program Increments"
               value={piMetrics.programIncrements}
-              href="/pi"
+              href={capabilities.canViewPi ? "/pi" : undefined}
             />
             <MetricTile
               label="PIs in planning/draft"
               value={piMetrics.piPlanning}
-              href="/pi"
+              href={capabilities.canViewPi ? "/pi" : undefined}
             />
             <MetricTile
               label="PIs in review"
               value={piMetrics.piInReview}
-              href="/pi"
+              href={capabilities.canViewPi ? "/pi" : undefined}
             />
             <MetricTile
               label="PIs baselined"
               value={piMetrics.piBaselined}
-              href="/pi"
+              href={capabilities.canViewPi ? "/pi" : undefined}
             />
             <MetricTile
               label="PIs active"
               value={piMetrics.piActive}
-              href="/pi"
+              href={capabilities.canViewPi ? "/pi" : undefined}
             />
             <MetricTile
               label="PIs needing attention"
               value={piMetrics.piNeedsAttention}
-              href="/pi"
+              href={capabilities.canViewPi ? "/pi" : undefined}
             />
             <MetricTile
               label="PI blocker conflicts"
               value={piMetrics.piBlockerConflicts}
-              href="/pi"
+              href={capabilities.canViewPi ? "/pi" : undefined}
             />
           </MetricSection>
 
           <Panel>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-[var(--muted)]">
-                Metrics are derived from live database records. Zero is a valid state.
+                Metrics are derived from live database records. Zero is a valid
+                state. Navigation visibility is not an access grant.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/approvals"
-                  className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
-                >
-                  Approvals
-                </Link>
-                <Link
-                  href="/decisions"
-                  className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
-                >
-                  Decisions
-                </Link>
-                {firstOrgId ? (
-                  <Link
-                    href={`/organization/${firstOrgId}/governance-policy`}
-                    className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
-                  >
-                    Governance policy
-                  </Link>
-                ) : null}
-                <Link
-                  href="/pi"
-                  className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
-                >
-                  PI Planning
-                </Link>
-                <Link
-                  href="/portfolio"
-                  className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
-                >
-                  Portfolio
-                </Link>
-                <Link
-                  href="/initiatives"
-                  className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
-                >
-                  Open initiatives
-                </Link>
+                {footerLinks.map((link) => (
+                  <QuickLinkChip
+                    key={`footer-${link.id}`}
+                    href={link.href}
+                    label={link.label}
+                    primary={link.id === "initiatives" || link.id === "pi-entry"}
+                  />
+                ))}
               </div>
             </div>
           </Panel>

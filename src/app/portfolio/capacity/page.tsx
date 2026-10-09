@@ -13,6 +13,8 @@ import {
   PageHeader,
 } from "@/components/ui/page";
 import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
+import { selectAuthorizedPiEntry } from "@/modules/navigation/home-experience";
+import { resolveShellNavContext } from "@/modules/navigation/resolve-shell-nav";
 import type {
   PortfolioPiCapacityResult,
   PortfolioPiListItem,
@@ -44,11 +46,19 @@ export default async function PortfolioCapacityPage({
 
   let orgs: Array<{ id: string; name: string }> = [];
   let orgListError: string | null = null;
+  let preferredOrgId: string | null = null;
   try {
-    orgs = (await organization.listOrganizations(principal)).map((o) => ({
+    const listed = await organization.listOrganizations(principal);
+    orgs = listed.map((o) => ({
       id: o.id,
       name: o.name,
     }));
+    const navCtx = await resolveShellNavContext(
+      authz,
+      principal,
+      listed.map((o) => o.id),
+    );
+    preferredOrgId = navCtx.organizationId;
   } catch (error) {
     orgListError =
       error instanceof Error
@@ -87,7 +97,9 @@ export default async function PortfolioCapacityPage({
   }
 
   const organizationId =
-    optionalUuid(params.organizationId) ?? orgs[0]!.id;
+    optionalUuid(params.organizationId) ??
+    preferredOrgId ??
+    orgs[0]!.id;
   const departmentId = optionalUuid(params.departmentId);
   const piId = optionalUuid(params.piId);
 
@@ -110,6 +122,44 @@ export default async function PortfolioCapacityPage({
     pis = listResult.data.rows;
   } else {
     listError = listResult.error.message;
+  }
+
+  // M4C-C: when no PI chosen, enter the latest authorized ACTIVE/REVIEW/BASELINED PI.
+  // Rows are AuthZ-filtered. If the preferred org has none, try other listable orgs.
+  if (!piId) {
+    const tryOrgs = [
+      organizationId,
+      ...orgs.map((o) => o.id).filter((id) => id !== organizationId),
+    ];
+    for (const orgId of tryOrgs) {
+      let candidates = pis;
+      if (orgId !== organizationId) {
+        const alt = await listPortfolioProgramIncrementsAction({
+          organizationId: orgId,
+          pageSize: 100,
+        });
+        if (!alt.ok) continue;
+        candidates = alt.data.rows;
+      }
+      const entry = selectAuthorizedPiEntry(
+        candidates.map((p) => ({
+          id: p.piId,
+          status: p.status,
+          startDate: p.startDate,
+          referenceKey: p.referenceKey,
+          name: p.name,
+        })),
+      );
+      if (entry) {
+        const next = new URLSearchParams();
+        next.set("organizationId", orgId);
+        if (departmentId && orgId === organizationId) {
+          next.set("departmentId", departmentId);
+        }
+        next.set("piId", entry.id);
+        redirect(`/portfolio/capacity?${next.toString()}`);
+      }
+    }
   }
 
   let capacity: PortfolioPiCapacityResult | null = null;
