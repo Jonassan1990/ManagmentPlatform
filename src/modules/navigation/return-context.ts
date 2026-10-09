@@ -11,6 +11,7 @@ export const RETURN_FROM_TOKENS = [
   "decisions",
   "portfolio",
   "pi-list",
+  "home",
 ] as const;
 
 export type ReturnFromToken = (typeof RETURN_FROM_TOKENS)[number];
@@ -223,6 +224,8 @@ export function resolveReturnHref(ctx: ParsedReturnContext): string | null {
     }
     case "pi-list":
       return "/pi";
+    case "home":
+      return "/";
     default:
       return null;
   }
@@ -244,6 +247,8 @@ export function returnCrumbLabel(from: ReturnFromToken): string {
       return "Portfolio";
     case "pi-list":
       return "PI Planning";
+    case "home":
+      return "Home";
     default:
       return "Back";
   }

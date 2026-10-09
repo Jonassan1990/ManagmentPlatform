@@ -1,0 +1,15 @@
+PASS login 
+PASS 1-home-attention 
+PASS 1b-home-pi-link /pi?from=home&fromOrg=4b712b88-5e13-4493-997b-392e369e44b2
+PASS 2-explorer-initiative {
+  href: '/initiatives/50ca27ba-a91c-4927-a521-478ce6d21cb3/project?from=explorer&fromOrg=4b712b88-5e13-4493-997b-392e369e44b2&fx_page=1',
+  hasExplorerCrumb: true
+}
+PASS 3-breadcrumb-home { homeCrumb: true, overviewLegacy: false }
+PASS 4-pi-board-a11y-archive { focusClassOk: true, archiveConfirm: true }
+PASS 5-board-compare-review {
+  ch: '/pi/cc07145d-ba1f-4ffd-9f8c-defd422fc6f4/compare',
+  rh: '/pi/cc07145d-ba1f-4ffd-9f8c-defd422fc6f4/review'
+}
+PASS 6-mobile-home 
+VERDICT PASS

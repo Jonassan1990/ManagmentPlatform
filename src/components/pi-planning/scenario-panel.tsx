@@ -14,6 +14,7 @@ import {
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { CapacityBar } from "@/components/ui/capacity-bar";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import {
   FormField,
   fieldClassName,
@@ -150,6 +151,12 @@ export function ScenarioPanel({
   const [cloneLabel, setCloneLabel] = useState("");
   const [renameId, setRenameId] = useState("");
   const [renameLabel, setRenameLabel] = useState("");
+  const [archiveTarget, setArchiveTarget] = useState<{
+    id: string;
+    version: number;
+    label: string;
+  } | null>(null);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
 
   const revision =
     activeRevision ??
@@ -506,6 +513,11 @@ export function ScenarioPanel({
                       disabled={
                         !canAllocate || pending || draftScenarios.length === 0
                       }
+                      title={
+                        draftScenarios.length === 0
+                          ? "No DRAFT scenarios available to clone"
+                          : permissionTitle(canAllocate)
+                      }
                     >
                       <option value="">Select…</option>
                       {draftScenarios.map((s) => (
@@ -524,6 +536,7 @@ export function ScenarioPanel({
                       maxLength={200}
                       required
                       disabled={!canAllocate || pending}
+                      title={permissionTitle(canAllocate)}
                     />
                   </FormField>
                   <Button
@@ -533,6 +546,11 @@ export function ScenarioPanel({
                     loading={pending}
                     disabled={
                       !canAllocate || pending || draftScenarios.length === 0
+                    }
+                    title={
+                      draftScenarios.length === 0
+                        ? "No DRAFT scenarios available to clone"
+                        : permissionTitle(canAllocate)
                     }
                   >
                     Clone scenario
@@ -581,6 +599,7 @@ export function ScenarioPanel({
                         setRenameLabel(s?.label ?? "");
                       }}
                       disabled={!canAllocate || pending}
+                      title={permissionTitle(canAllocate)}
                     >
                       <option value="">Select…</option>
                       {scenarios
@@ -601,6 +620,7 @@ export function ScenarioPanel({
                       maxLength={200}
                       required
                       disabled={!canAllocate || pending}
+                      title={permissionTitle(canAllocate)}
                     />
                   </FormField>
                   <Button
@@ -609,6 +629,7 @@ export function ScenarioPanel({
                     size="sm"
                     loading={pending}
                     disabled={!canAllocate || pending}
+                    title={permissionTitle(canAllocate)}
                   >
                     Rename
                   </Button>
@@ -676,17 +697,17 @@ export function ScenarioPanel({
                             ) : null}
                             <button
                               type="button"
-                              className="text-xs text-[var(--danger)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                              className="min-h-9 text-xs text-[var(--danger)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                               disabled={!canAllocate || pending}
                               title={permissionTitle(canAllocate)}
-                              onClick={() =>
-                                run(() =>
-                                  archiveScenarioAction({
-                                    revisionId: s.id,
-                                    expectedVersion: s.version,
-                                  }),
-                                )
-                              }
+                              onClick={() => {
+                                setArchiveError(null);
+                                setArchiveTarget({
+                                  id: s.id,
+                                  version: s.version,
+                                  label: s.label ?? s.key,
+                                });
+                              }}
                             >
                               Archive
                             </button>
@@ -707,6 +728,47 @@ export function ScenarioPanel({
             </div>
           ) : null}
         </div>
+
+        <ConfirmDialog
+          open={archiveTarget != null}
+          onOpenChange={(open) => {
+            if (!open && !pending) {
+              setArchiveTarget(null);
+              setArchiveError(null);
+            }
+          }}
+          title="Archive scenario?"
+          description={
+            archiveTarget
+              ? `Archive “${archiveTarget.label}”. It will leave the active scenario list. CURRENT, SELECTED, and approvals are unchanged. Archiving is reversible only by creating a new scenario.`
+              : "Archive this scenario."
+          }
+          confirmLabel="Archive scenario"
+          cancelLabel="Cancel"
+          variant="destructive"
+          pending={pending}
+          error={archiveError}
+          onConfirm={() => {
+            if (!archiveTarget || !canAllocate) return;
+            const target = archiveTarget;
+            setArchiveError(null);
+            startTransition(async () => {
+              const result = await archiveScenarioAction({
+                revisionId: target.id,
+                expectedVersion: target.version,
+              });
+              if (!result.ok) {
+                setArchiveError(
+                  result.error?.message ?? "Could not archive scenario.",
+                );
+                return;
+              }
+              setArchiveTarget(null);
+              setArchiveError(null);
+              router.refresh();
+            });
+          }}
+        />
       </section>
     </div>
   );

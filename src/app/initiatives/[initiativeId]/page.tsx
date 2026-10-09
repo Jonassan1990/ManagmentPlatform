@@ -201,7 +201,11 @@ export default async function InitiativeOverviewPage({
             </Panel>
           ) : null}
           <Panel>
-            <h2 className="mb-2 font-medium">Next action</h2>
+            <h2 className="mb-2 font-medium">Act on next step</h2>
+            <p className="mb-3 text-xs text-[var(--muted)]">
+              Same required next action as the lifecycle strip above — controls
+              live here. Visual stage is not an approval.
+            </p>
             {item.currentStage === "DEMAND" ? (
               <div className="space-y-3">
                 <p className="text-sm text-[var(--muted)]">

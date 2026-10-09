@@ -229,6 +229,41 @@ describe("M4D-A ScenarioPanel board UX", () => {
     const currentLink = screen.getByRole("link", { name: /^CURRENT/i });
     expect(currentLink.getAttribute("href")).not.toContain("revisionId=");
   });
+
+  it("M4D-D: Archive opens ConfirmDialog instead of silent one-click archive", async () => {
+    const user = userEvent.setup();
+    const { archiveScenarioAction } = await import("@/app/actions/pi-planning");
+    vi.mocked(archiveScenarioAction).mockResolvedValue({
+      ok: true,
+      data: { piId: "pi-1" },
+    } as never);
+    render(
+      <ScenarioPanel
+        piId="pi-1"
+        activeRevisionId="rev-current"
+        scenarios={scenarios}
+        capabilities={{ canAllocatePi: true }}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /Create, clone, rename, archive|Hide create/i,
+      }),
+    );
+    const archiveButtons = screen.getAllByRole("button", { name: /^Archive$/i });
+    await user.click(archiveButtons[0]!);
+
+    expect(
+      screen.getByRole("heading", { name: /Archive scenario\?/i }),
+    ).toBeInTheDocument();
+    expect(archiveScenarioAction).not.toHaveBeenCalled();
+
+    await user.click(
+      screen.getByRole("button", { name: /^Archive scenario$/i }),
+    );
+    expect(archiveScenarioAction).toHaveBeenCalled();
+  });
 });
 
 describe("ScenarioModeBanner clarity", () => {

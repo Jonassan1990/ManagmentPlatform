@@ -6,6 +6,7 @@ import {
 } from "@/components/initiative/workspace";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
 import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function DocumentsPage({
 }) {
   const { initiativeId } = await params;
   const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, initiative } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -38,6 +40,7 @@ export default async function DocumentsPage({
           referenceKey: item.referenceKey,
           title: item.title,
           leaf: "Documents",
+        returnContext,
         })}
       />
       <PageHeader
