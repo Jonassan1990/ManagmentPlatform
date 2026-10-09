@@ -31,10 +31,13 @@ export const dynamic = "force-dynamic";
 
 export default async function PilotPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ initiativeId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { initiativeId } = await params;
+  const query = await searchParams;
   const { authz, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -137,7 +140,26 @@ export default async function PilotPage({
         hasPoC={Boolean(item.poc)}
         hasPilot={Boolean(item.pilot)}
         hasProject={Boolean(item.project)}
+        preserveQuery={query}
       />
+
+      <Panel className="mb-4">
+        <h2 className="text-sm font-medium">Keep these distinct</h2>
+        <ul className="mt-2 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-3">
+          <li>
+            <strong className="text-[var(--ink)]">Operational evaluation</strong>
+            — pilot objectives, criteria, and observed results.
+          </li>
+          <li>
+            <strong className="text-[var(--ink)]">Recommendation</strong>
+            — scale / extend / stop proposal from the pilot team.
+          </li>
+          <li>
+            <strong className="text-[var(--ink)]">Formal decision</strong>
+            — SCALE does not auto-create a Project; conversion is separate.
+          </li>
+        </ul>
+      </Panel>
 
       {!pilot ? (
         <div className="space-y-4">

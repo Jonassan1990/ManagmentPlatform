@@ -26,10 +26,13 @@ export const dynamic = "force-dynamic";
 
 export default async function PoCPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ initiativeId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { initiativeId } = await params;
+  const query = await searchParams;
   const { authz, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -101,7 +104,26 @@ export default async function PoCPage({
         hasPoC={Boolean(item.poc)}
         hasPilot={Boolean(item.pilot)}
         hasProject={Boolean(item.project)}
+        preserveQuery={query}
       />
+
+      <Panel className="mb-4">
+        <h2 className="text-sm font-medium">Keep these distinct</h2>
+        <ul className="mt-2 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-3">
+          <li>
+            <strong className="text-[var(--ink)]">Operational evaluation</strong>
+            — objectives, criteria, and measured results on this PoC.
+          </li>
+          <li>
+            <strong className="text-[var(--ink)]">Recommendation</strong>
+            — the PoC conclusion you propose for governance.
+          </li>
+          <li>
+            <strong className="text-[var(--ink)]">Formal decision</strong>
+            — recorded separately under Decisions after approvals.
+          </li>
+        </ul>
+      </Panel>
 
       {!poc ? (
         <div className="space-y-4">

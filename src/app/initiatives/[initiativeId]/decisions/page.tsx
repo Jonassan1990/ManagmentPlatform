@@ -23,10 +23,13 @@ export const dynamic = "force-dynamic";
 
 export default async function InitiativeDecisionsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ initiativeId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { initiativeId } = await params;
+  const query = await searchParams;
   const { authz, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -143,6 +146,7 @@ export default async function InitiativeDecisionsPage({
         hasPoC={Boolean(item.poc)}
         hasPilot={Boolean(item.pilot)}
         hasProject={Boolean(item.project)}
+        preserveQuery={query}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">

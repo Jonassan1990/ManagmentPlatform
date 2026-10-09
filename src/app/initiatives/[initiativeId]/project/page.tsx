@@ -207,17 +207,24 @@ export default async function ProjectPage({
         />
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" aria-label="Project sections">
             {sectionLink("overview", "Overview")}
             {sectionLink("work", "Work")}
             {sectionLink("milestones", "Milestones")}
-            {sectionLink("issues", "Issues")}
+            {sectionLink("issues", "Issues / blockers")}
             {sectionLink("closure", "Closure")}
-            {sectionLink("budget", "Budget")}
-            {sectionLink("risks", "Risks")}
-            {sectionLink("decisions", "Decisions")}
-            {sectionLink("documents", "Documents")}
-            {sectionLink("history", "History")}
+            <details className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm">
+              <summary className="cursor-pointer text-[var(--muted)]">
+                More sections
+              </summary>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {sectionLink("budget", "Budget")}
+                {sectionLink("risks", "Risks")}
+                {sectionLink("decisions", "Decisions")}
+                {sectionLink("documents", "Documents")}
+                {sectionLink("history", "History")}
+              </div>
+            </details>
           </div>
 
           {projectClosed ? (
