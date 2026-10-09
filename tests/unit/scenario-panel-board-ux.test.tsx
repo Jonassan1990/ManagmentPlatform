@@ -132,10 +132,9 @@ describe("M4D-A ScenarioPanel board UX", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Compare" })).toHaveAttribute(
-      "href",
-      expect.stringContaining("/pi/pi-1/compare"),
-    );
+    expect(
+      screen.getByRole("link", { name: "Compare scenarios" }),
+    ).toHaveAttribute("href", expect.stringContaining("/pi/pi-1/compare"));
     expect(screen.getByRole("link", { name: "Review" })).toHaveAttribute(
       "href",
       expect.stringContaining("/pi/pi-1/review"),
@@ -175,7 +174,9 @@ describe("M4D-A ScenarioPanel board UX", () => {
       screen.getByText(/require planning permission/i),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create scenario" })).toBeDisabled();
-    expect(screen.getByRole("link", { name: "Compare" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Compare scenarios" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Review" })).toHaveAttribute(
       "href",
       expect.stringContaining("revisionId=rev-draft"),

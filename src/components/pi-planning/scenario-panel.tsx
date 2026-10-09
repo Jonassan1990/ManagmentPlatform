@@ -340,7 +340,7 @@ export function ScenarioPanel({
                 href={compareHref()}
                 className="rounded-[var(--radius-md)] border border-[var(--line)] px-2.5 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
-                Compare
+                Compare scenarios
               </Link>
             ) : null}
             <Link
