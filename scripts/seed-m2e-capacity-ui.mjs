@@ -341,14 +341,154 @@ async function main() {
   // Underutilize team B
   await ensureAllocation(light.wi.id, teamB.id, resB.id, "10");
 
+  // Unavailable capacity PI — CURRENT revision exists but no participating teams.
+  let unavailablePi = await db.programIncrement.findFirst({
+    where: { organizationId: org.id, referenceKey: "PI-M2E-EMPTY" },
+  });
+  if (!unavailablePi) {
+    unavailablePi = await db.programIncrement.create({
+      data: {
+        organizationId: org.id,
+        sectionId: section.id,
+        referenceKey: "PI-M2E-EMPTY",
+        name: "M2E Empty Capacity PI",
+        status: "PLANNING",
+        startDate: PI_START,
+        endDate: PI_END,
+        planningOwnerName: "Planner",
+      },
+    });
+  }
+  const emptyRev = await db.planningRevision.findFirst({
+    where: { piId: unavailablePi.id, isCurrent: true },
+  });
+  if (!emptyRev) {
+    await db.planningRevision.create({
+      data: {
+        piId: unavailablePi.id,
+        key: "CURRENT",
+        version: 1,
+        isCurrent: true,
+      },
+    });
+  }
+  const emptyIt = await db.piIteration.findFirst({
+    where: { piId: unavailablePi.id, sequence: 1 },
+  });
+  if (!emptyIt) {
+    await db.piIteration.create({
+      data: {
+        piId: unavailablePi.id,
+        referenceKey: "IT-1",
+        name: "Iteration 1",
+        sequence: 1,
+        startDate: IT1_START,
+        endDate: IT1_END,
+      },
+    });
+  }
+
+  async function ensureRole(key, name, permissions) {
+    let role = await db.roleDefinition.findFirst({ where: { key } });
+    if (!role) {
+      role = await db.roleDefinition.create({
+        data: { key, name, description: "seed", permissions },
+      });
+    }
+    return role;
+  }
+
+  const viewerRole = await ensureRole("organization.viewer", "Viewer", [
+    "org.structure.read",
+    "initiative.view",
+    "project.view",
+    "pi.view",
+    "governance.view",
+  ]);
+  const deptMgrRole = await ensureRole("department.manager", "Department Manager", [
+    "org.structure.read",
+    "initiative.view",
+    "initiative.edit",
+    "project.view",
+    "project.edit",
+    "pi.view",
+    "governance.view",
+  ]);
+
+  const viewerId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeee0001";
+  const deptMgrId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeee0002";
+  const unauthorizedId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeee0003";
+
+  await db.principal.upsert({
+    where: { id: viewerId },
+    create: { id: viewerId, displayName: "M2E Viewer" },
+    update: { displayName: "M2E Viewer" },
+  });
+  await db.principal.upsert({
+    where: { id: deptMgrId },
+    create: { id: deptMgrId, displayName: "M2E Dept Manager A" },
+    update: { displayName: "M2E Dept Manager A" },
+  });
+  await db.principal.upsert({
+    where: { id: unauthorizedId },
+    create: { id: unauthorizedId, displayName: "M2E Unauthorized" },
+    update: { displayName: "M2E Unauthorized" },
+  });
+
+  async function ensureBinding({ principalId, roleDefinitionId, scopeType, organizationId, scopeId }) {
+    const existing = await db.roleBinding.findFirst({
+      where: {
+        principalId,
+        roleDefinitionId,
+        organizationId,
+        scopeType,
+        scopeId,
+        effectiveTo: null,
+      },
+    });
+    if (existing) return existing;
+    return db.roleBinding.create({
+      data: {
+        principalId,
+        roleDefinitionId,
+        scopeType,
+        organizationId,
+        scopeId,
+      },
+    });
+  }
+
+  await ensureBinding({
+    principalId: viewerId,
+    roleDefinitionId: viewerRole.id,
+    scopeType: "ORGANIZATION",
+    organizationId: org.id,
+    scopeId: org.id,
+  });
+  await ensureBinding({
+    principalId: deptMgrId,
+    roleDefinitionId: deptMgrRole.id,
+    scopeType: "DEPARTMENT",
+    organizationId: org.id,
+    scopeId: deptA.id,
+  });
+
   console.log(
     JSON.stringify(
       {
         organizationId: org.id,
         piId: pi.id,
+        unavailablePiId: unavailablePi.id,
         capacityUrl: `/portfolio/capacity?organizationId=${org.id}&piId=${pi.id}`,
+        unavailableUrl: `/portfolio/capacity?organizationId=${org.id}&piId=${unavailablePi.id}`,
         departmentAId: deptA.id,
         departmentBId: deptB.id,
+        principals: {
+          admin: principalId,
+          viewer: viewerId,
+          departmentManagerA: deptMgrId,
+          unauthorized: unauthorizedId,
+        },
       },
       null,
       2,
