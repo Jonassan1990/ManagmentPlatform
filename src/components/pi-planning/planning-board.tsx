@@ -6,13 +6,13 @@ import {
   allocateWorkAction,
   moveAllocationAction,
 } from "@/app/actions/pi-planning";
-import { Alert } from "@/components/ui/page";
+import { Alert } from "@/components/ui/alert";
+import { CapacityBar } from "@/components/ui/capacity-bar";
 import { fieldClassName } from "@/components/ui/forms";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
 import { BoardFilters, BacklogPanel } from "./backlog-panel";
 import { MoveWorkForm } from "./move-work-form";
 import { WorkCard, type WorkCardData, type BacklogItemData } from "./work-card";
-import { formatHours, utilizationBarClass } from "./pi-nav";
 
 type Caps = Partial<PrincipalCapabilities>;
 
@@ -328,6 +328,7 @@ export function PlanningBoard({
         <div className="rounded-lg border border-[var(--line)]">
           <BacklogPanel
             piId={piId}
+            revisionId={revisionId}
             items={backlog}
             iterations={iterations}
             teams={allTeams}
@@ -469,14 +470,11 @@ function CellBody({
   expandedId: string | null;
   setExpandedId: (id: string | null) => void;
 }) {
-  const utilPct =
-    cell.capacity?.utilization != null
-      ? Math.round(cell.capacity.utilization * 100)
-      : null;
+  const capacityUnavailable = cell.capacity == null;
 
   return (
     <div className="min-h-[5rem] space-y-2">
-      <div className="flex items-center justify-between gap-1 text-[10px]">
+      <div className="flex flex-wrap items-center gap-1 text-[10px]">
         {cell.hasOverload || cell.utilizationBand === "overload" ? (
           <span className="rounded bg-[var(--danger)]/10 px-1.5 py-0.5 font-medium text-[var(--danger)]">
             Overload
@@ -485,26 +483,29 @@ function CellBody({
           <span className="rounded bg-[var(--warning)]/15 px-1.5 py-0.5 text-[var(--warning)]">
             Near capacity
           </span>
-        ) : (
-          <span className="text-[var(--muted)]">
-            {cell.capacity
-              ? `${formatHours(cell.capacity.plannedLoadHours)} / ${formatHours(cell.capacity.effectiveCapacityHours)}`
-              : "No capacity"}
+        ) : null}
+        {cell.conflictCount > 0 ? (
+          <span
+            className="rounded bg-[var(--warning)]/15 px-1.5 py-0.5 text-[var(--warning)]"
+            title={`${cell.conflictCount} conflict(s) touching this cell`}
+          >
+            {cell.conflictCount} conflict{cell.conflictCount === 1 ? "" : "s"}
           </span>
-        )}
-        {utilPct != null ? (
-          <span className="text-[var(--muted)]">{utilPct}%</span>
         ) : null}
       </div>
-      {cell.capacity ? (
-        <div className="h-1 overflow-hidden rounded-full bg-[var(--line)]">
-          <div
-            className={`h-full ${utilizationBarClass(cell.capacity.band)}`}
-            style={{
-              width: `${Math.min(100, (cell.capacity.utilization ?? 0) * 100)}%`,
-            }}
-          />
-        </div>
+      <CapacityBar
+        available={cell.capacity?.effectiveCapacityHours ?? 0}
+        committed={cell.capacity?.plannedLoadHours ?? 0}
+        unavailable={capacityUnavailable}
+        showPercent={!capacityUnavailable}
+        className="[&_p]:text-[10px] [&_div.text-xs]:text-[10px]"
+      />
+      {cell.cards.length === 0 ? (
+        <p className="text-[10px] text-[var(--muted)]">
+          {canAllocate
+            ? "Empty — drop work here or Allocate from backlog."
+            : "No allocations in this cell."}
+        </p>
       ) : null}
       {cell.cards.map((card) => (
         <WorkCard
@@ -539,6 +540,7 @@ function CellBody({
                 defaultIterationId={cell.iteration.id}
                 defaultTeamId={teamId}
                 capabilities={capabilities}
+                onDone={() => setExpandedId(null)}
               />
             ) : null
           }
