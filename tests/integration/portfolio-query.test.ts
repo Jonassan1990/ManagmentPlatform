@@ -602,3 +602,262 @@ describe("M2B Portfolio Dashboard — scope options", () => {
     expect(all.map((d) => d.id).sort()).toEqual([deptA.id, deptB.id].sort());
   });
 });
+
+describe("M2C Portfolio Explorer", () => {
+  it("empty portfolio returns total 0 with available empty rows", async () => {
+    const admin = principal();
+    const { org } = await seedOrg(admin);
+    const result = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+    });
+    expect(result.total).toBe(0);
+    expect(result.rows).toEqual([]);
+    expect(result.page).toBe(1);
+    expect(result.scope.mode).toBe("organization");
+  });
+
+  it("searches, filters, sorts, paginates with stable ordering and truthful hrefs", async () => {
+    const admin = principal();
+    const { org, section, deptA, deptB } = await seedOrg(admin);
+    const resource = await db.resource.create({
+      data: { organizationId: org.id, name: "Structured Owner" },
+    });
+
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "EXP-A1",
+      stage: "DEMAND",
+      businessOwnerResourceId: resource.id,
+    });
+    // Force legacy owner name on a second initiative
+    await db.initiative.create({
+      data: {
+        organizationId: org.id,
+        departmentId: deptA.id,
+        referenceKey: "EXP-A2",
+        title: "Legacy owned demand",
+        requesterName: "R",
+        businessOwnerName: "Legacy Label",
+        currentStage: "REQUIREMENTS",
+        status: "ACTIVE",
+      },
+    });
+    const initProject = await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "EXP-A3",
+      stage: "PROJECT",
+      businessOwnerResourceId: resource.id,
+    });
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptB.id,
+      referenceKey: "EXP-B1",
+      stage: "POC",
+    });
+
+    const delayed = await db.project.create({
+      data: {
+        initiativeId: initProject.id,
+        organizationId: org.id,
+        departmentId: deptA.id,
+        referenceKey: "EXP-PRJ-1",
+        name: "Delivery Alpha",
+        status: "ACTIVE",
+        plannedEnd: new Date(Date.now() - 86400000),
+        ownerResourceId: resource.id,
+      },
+    });
+    await db.projectIssue.create({
+      data: {
+        organizationId: org.id,
+        projectId: delayed.id,
+        title: "Blocker",
+        description: "Blocks delivery",
+        status: "OPEN",
+        severity: "CRITICAL",
+        isBlocker: true,
+        referenceKey: "ISS-1",
+      },
+    });
+
+    // Search by reference
+    const search = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      q: "EXP-A1",
+    });
+    expect(search.total).toBe(1);
+    expect(search.rows[0]?.referenceKey).toBe("EXP-A1");
+    expect(search.rows[0]?.href).toBe(`/initiatives/${search.rows[0]?.id}`);
+
+    // Stage filter
+    const byStage = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      initiativeStage: "DEMAND",
+      entityKinds: ["INITIATIVE"],
+    });
+    expect(byStage.total).toBe(1);
+    expect(byStage.rows.every((r) => r.statusLabel === "DEMAND")).toBe(true);
+
+    // Department filter
+    const byDept = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      departmentId: deptB.id,
+    });
+    expect(byDept.rows.every((r) => r.departmentId === deptB.id)).toBe(true);
+    expect(byDept.total).toBe(1);
+
+    // Section filter
+    const bySection = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      sectionId: section.id,
+      entityKinds: ["INITIATIVE"],
+    });
+    expect(bySection.total).toBe(4);
+
+    // Owner resource filter + legacy fallback display
+    const byOwner = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      ownerResourceId: resource.id,
+      entityKinds: ["INITIATIVE"],
+    });
+    expect(byOwner.total).toBe(2);
+    expect(byOwner.rows.every((r) => r.owner.source === "resource")).toBe(true);
+
+    const legacy = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      q: "Legacy owned",
+      entityKinds: ["INITIATIVE"],
+    });
+    expect(legacy.rows[0]?.owner).toEqual({
+      resourceId: null,
+      displayName: "Legacy Label",
+      source: "legacy",
+    });
+
+    // Project status + delivery filters
+    const delayedOnly = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      delivery: "DELAYED",
+    });
+    expect(delayedOnly.total).toBe(1);
+    expect(delayedOnly.rows[0]?.kind).toBe("PROJECT");
+    expect(delayedOnly.rows[0]?.href).toBe(
+      `/initiatives/${initProject.id}/project`,
+    );
+    expect(delayedOnly.rows[0]?.delivery.delayed).toBe(true);
+
+    const blocked = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      delivery: "ACTIVE_BLOCKER",
+    });
+    expect(blocked.total).toBe(1);
+    expect(blocked.rows[0]?.delivery.activeBlocker).toBe(true);
+    expect(blocked.rows[0]?.delivery.criticalOpenIssue).toBe(true);
+
+    // Sort by name asc — stable
+    const sorted = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      entityKinds: ["INITIATIVE"],
+      sortBy: "name",
+      sortDir: "asc",
+      pageSize: 2,
+      page: 1,
+    });
+    expect(sorted.rows).toHaveLength(2);
+    expect(sorted.total).toBe(4);
+    expect(sorted.rows[0]!.title <= sorted.rows[1]!.title).toBe(true);
+    const page2 = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      entityKinds: ["INITIATIVE"],
+      sortBy: "name",
+      sortDir: "asc",
+      pageSize: 2,
+      page: 2,
+    });
+    expect(page2.rows).toHaveLength(2);
+    const allKeys = [...sorted.rows, ...page2.rows].map((r) => r.referenceKey);
+    expect(new Set(allKeys).size).toBe(4);
+
+    // Combined filters
+    const combined = await portfolio.explorePortfolio(admin, {
+      organizationId: org.id,
+      departmentId: deptA.id,
+      q: "EXP",
+      entityKinds: ["PROJECT"],
+      projectStatus: "ACTIVE",
+      ownerResourceId: resource.id,
+      delivery: "CRITICAL_ISSUE",
+    });
+    expect(combined.total).toBe(1);
+    expect(combined.rows[0]?.referenceKey).toBe("EXP-PRJ-1");
+  });
+
+  it("enforces org and department isolation; viewer read; unauthorized denied", async () => {
+    const admin = principal();
+    const { org, deptA, deptB } = await seedOrg(admin);
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "ISO-A",
+    });
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptB.id,
+      referenceKey: "ISO-B",
+    });
+
+    const otherOrg = await organization.createOrganization(admin, {
+      name: "Other Explorer Org",
+    });
+
+    const mgr = principal();
+    await db.principal.create({ data: { id: mgr.id, displayName: "Mgr" } });
+    await bindRole(admin, mgr.id, ROLE_KEYS.DEPARTMENT_MANAGER, {
+      scopeType: ScopeType.DEPARTMENT,
+      organizationId: org.id,
+      scopeId: deptA.id,
+    });
+
+    const scoped = await portfolio.explorePortfolio(mgr, {
+      organizationId: org.id,
+    });
+    expect(scoped.rows.every((r) => r.departmentId === deptA.id)).toBe(true);
+    expect(scoped.total).toBe(1);
+
+    await expect(
+      portfolio.explorePortfolio(mgr, {
+        organizationId: org.id,
+        departmentId: deptB.id,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    await expect(
+      portfolio.explorePortfolio(mgr, { organizationId: otherOrg.id }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    const outsider = principal();
+    await db.principal.create({
+      data: { id: outsider.id, displayName: "Outsider" },
+    });
+    await expect(
+      portfolio.explorePortfolio(outsider, { organizationId: org.id }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    const viewer = principal();
+    await db.principal.create({
+      data: { id: viewer.id, displayName: "Viewer" },
+    });
+    await bindRole(admin, viewer.id, ROLE_KEYS.VIEWER, {
+      scopeType: ScopeType.ORGANIZATION,
+      organizationId: org.id,
+      scopeId: org.id,
+    });
+    const view = await portfolio.explorePortfolio(viewer, {
+      organizationId: org.id,
+    });
+    expect(view.total).toBe(2);
+    expect(view.scope.mode).toBe("organization");
+  });
+});

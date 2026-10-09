@@ -34,11 +34,21 @@ import type {
   OwnershipReference,
   PiCapacityPortfolioSummary,
   PiCapacityTeamSummary,
+  PortfolioExplorerEntityKind,
+  PortfolioExplorerInput,
+  PortfolioExplorerOwner,
+  PortfolioExplorerResult,
+  PortfolioExplorerRow,
+  PortfolioExplorerSortBy,
   PortfolioQueryInput,
   PortfolioSnapshot,
   ProjectStatusCounts,
 } from "../domain/types";
 import { resolvePortfolioVisibility } from "./portfolio-scope";
+
+const DEFAULT_PAGE_SIZE = 25;
+const MAX_PAGE_SIZE = 100;
+const MAX_EXPLORER_CANDIDATES = 5000;
 
 const STAGES: InitiativeStage[] = [
   "DEMAND",
@@ -76,6 +86,24 @@ function emptyLifecycle(): InitiativeLifecycleDistribution {
   };
 }
 
+function ownerFrom(
+  resource: { id: string; name: string } | null | undefined,
+  legacyName: string | null | undefined,
+): PortfolioExplorerOwner {
+  if (resource) {
+    return {
+      resourceId: resource.id,
+      displayName: resource.name,
+      source: "resource",
+    };
+  }
+  return {
+    resourceId: null,
+    displayName: legacyName?.trim() || "Unassigned",
+    source: "legacy",
+  };
+}
+
 export class PortfolioQueryService {
   constructor(
     private readonly db: PrismaClient,
@@ -108,6 +136,450 @@ export class PortfolioQueryService {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });
+  }
+
+  /**
+   * Section labels that contain at least one visible department.
+   */
+  async listSectionOptions(
+    principal: Principal,
+    organizationId: string,
+  ): Promise<Array<{ id: string; name: string }>> {
+    const visibility = await resolvePortfolioVisibility(
+      this.db,
+      principal,
+      organizationId,
+    );
+    const depts = await this.db.department.findMany({
+      where: {
+        status: "ACTIVE",
+        section: { organizationId: visibility.organizationId },
+        ...(visibility.departmentIds
+          ? { id: { in: visibility.departmentIds } }
+          : {}),
+      },
+      select: {
+        section: { select: { id: true, name: true } },
+      },
+    });
+    const map = new Map<string, string>();
+    for (const d of depts) map.set(d.section.id, d.section.name);
+    return [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Resource owners appearing on in-scope initiatives/projects (structured only).
+   */
+  async listOwnerOptions(
+    principal: Principal,
+    organizationId: string,
+  ): Promise<Array<{ id: string; name: string }>> {
+    const visibility = await resolvePortfolioVisibility(
+      this.db,
+      principal,
+      organizationId,
+    );
+    const deptFilter = visibility.departmentIds;
+    const initiativeWhere: Prisma.InitiativeWhereInput = {
+      organizationId: visibility.organizationId,
+      status: { not: "ARCHIVED" },
+      ...(deptFilter ? { departmentId: { in: deptFilter } } : {}),
+      businessOwnerResourceId: { not: null },
+    };
+    const projectWhere: Prisma.ProjectWhereInput = {
+      organizationId: visibility.organizationId,
+      status: { not: "ARCHIVED" },
+      ...(deptFilter ? { departmentId: { in: deptFilter } } : {}),
+      ownerResourceId: { not: null },
+    };
+    const [initOwners, projectOwners] = await Promise.all([
+      this.db.initiative.findMany({
+        where: initiativeWhere,
+        select: {
+          businessOwnerResource: { select: { id: true, name: true } },
+        },
+        distinct: ["businessOwnerResourceId"],
+      }),
+      this.db.project.findMany({
+        where: projectWhere,
+        select: {
+          ownerResource: { select: { id: true, name: true } },
+        },
+        distinct: ["ownerResourceId"],
+      }),
+    ]);
+    const map = new Map<string, string>();
+    for (const row of initOwners) {
+      if (row.businessOwnerResource) {
+        map.set(row.businessOwnerResource.id, row.businessOwnerResource.name);
+      }
+    }
+    for (const row of projectOwners) {
+      if (row.ownerResource) {
+        map.set(row.ownerResource.id, row.ownerResource.name);
+      }
+    }
+    return [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * M2C — paginated, filtered, sorted portfolio explorer.
+   * Authorization via resolvePortfolioVisibility before any reads.
+   */
+  async explorePortfolio(
+    principal: Principal,
+    input: PortfolioExplorerInput,
+  ): Promise<PortfolioExplorerResult> {
+    if (!input.organizationId?.trim()) {
+      throw new AppError("VALIDATION", "organizationId is required.");
+    }
+
+    const asOf = input.asOf ?? new Date();
+    const page = Math.max(1, input.page ?? 1);
+    const pageSize = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, input.pageSize ?? DEFAULT_PAGE_SIZE),
+    );
+    const sortBy: PortfolioExplorerSortBy = input.sortBy ?? "updatedAt";
+    const sortDir = input.sortDir === "asc" ? "asc" : "desc";
+    const kinds: PortfolioExplorerEntityKind[] =
+      input.entityKinds && input.entityKinds.length > 0
+        ? input.entityKinds
+        : ["INITIATIVE", "PROJECT"];
+
+    const visibility = await resolvePortfolioVisibility(
+      this.db,
+      principal,
+      input.organizationId,
+      input.departmentId,
+    );
+
+    let deptIds = visibility.departmentIds;
+    if (input.sectionId) {
+      const section = await this.db.section.findUnique({
+        where: { id: input.sectionId },
+        select: {
+          id: true,
+          status: true,
+          organizationId: true,
+          departments: {
+            where: { status: "ACTIVE" },
+            select: { id: true },
+          },
+        },
+      });
+      if (
+        !section ||
+        section.status !== "ACTIVE" ||
+        section.organizationId !== visibility.organizationId
+      ) {
+        throw new AppError("NOT_FOUND", "Section not found in organization.");
+      }
+      const sectionDeptIds = section.departments.map((d) => d.id);
+      const allowed =
+        deptIds === null
+          ? sectionDeptIds
+          : sectionDeptIds.filter((id) => deptIds!.includes(id));
+      if (allowed.length === 0) {
+        throw new AppError(
+          "FORBIDDEN",
+          "No department in this section is visible for portfolio exploration.",
+        );
+      }
+      deptIds = allowed;
+    }
+
+    const q = input.q?.trim();
+    const includeInitiatives =
+      kinds.includes("INITIATIVE") && !input.delivery && !input.projectStatus;
+    const includeProjects = kinds.includes("PROJECT") && !input.initiativeStage;
+
+    type Candidate = {
+      kind: PortfolioExplorerEntityKind;
+      id: string;
+      initiativeId: string;
+      referenceKey: string;
+      title: string;
+      statusLabel: string;
+      statusSort: string;
+      departmentId: string;
+      departmentName: string;
+      sectionId: string;
+      sectionName: string;
+      owner: PortfolioExplorerOwner;
+      updatedAt: Date;
+      targetDate: Date | null;
+      delayed: boolean | null;
+      activeBlocker: boolean | null;
+      criticalOpenIssue: boolean | null;
+    };
+
+    const candidates: Candidate[] = [];
+
+    if (includeInitiatives) {
+      const initiativeWhere: Prisma.InitiativeWhereInput = {
+        organizationId: visibility.organizationId,
+        status: { not: "ARCHIVED" },
+        ...(deptIds ? { departmentId: { in: deptIds } } : {}),
+        ...(input.initiativeStage
+          ? { currentStage: input.initiativeStage }
+          : {}),
+        ...(input.ownerResourceId
+          ? { businessOwnerResourceId: input.ownerResourceId }
+          : {}),
+        ...(q
+          ? {
+              OR: [
+                { title: { contains: q, mode: "insensitive" } },
+                { referenceKey: { contains: q, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      };
+      const initiatives = await this.db.initiative.findMany({
+        where: initiativeWhere,
+        take: MAX_EXPLORER_CANDIDATES,
+        select: {
+          id: true,
+          referenceKey: true,
+          title: true,
+          currentStage: true,
+          updatedAt: true,
+          departmentId: true,
+          businessOwnerName: true,
+          businessOwnerResourceId: true,
+          businessOwnerResource: { select: { id: true, name: true } },
+          department: {
+            select: {
+              id: true,
+              name: true,
+              section: { select: { id: true, name: true } },
+            },
+          },
+        },
+      });
+      for (const row of initiatives) {
+        candidates.push({
+          kind: "INITIATIVE",
+          id: row.id,
+          initiativeId: row.id,
+          referenceKey: row.referenceKey,
+          title: row.title,
+          statusLabel: row.currentStage,
+          statusSort: row.currentStage,
+          departmentId: row.department.id,
+          departmentName: row.department.name,
+          sectionId: row.department.section.id,
+          sectionName: row.department.section.name,
+          owner: ownerFrom(
+            row.businessOwnerResource,
+            row.businessOwnerName,
+          ),
+          updatedAt: row.updatedAt,
+          targetDate: null,
+          delayed: null,
+          activeBlocker: null,
+          criticalOpenIssue: null,
+        });
+      }
+    }
+
+    if (includeProjects) {
+      const projectWhere: Prisma.ProjectWhereInput = {
+        organizationId: visibility.organizationId,
+        status: { not: "ARCHIVED" },
+        ...(deptIds ? { departmentId: { in: deptIds } } : {}),
+        ...(input.projectStatus ? { status: input.projectStatus } : {}),
+        ...(input.ownerResourceId
+          ? { ownerResourceId: input.ownerResourceId }
+          : {}),
+        ...(q
+          ? {
+              OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                { referenceKey: { contains: q, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      };
+      const projects = await this.db.project.findMany({
+        where: projectWhere,
+        take: MAX_EXPLORER_CANDIDATES,
+        select: {
+          id: true,
+          initiativeId: true,
+          referenceKey: true,
+          name: true,
+          status: true,
+          updatedAt: true,
+          plannedEnd: true,
+          departmentId: true,
+          ownerName: true,
+          ownerResourceId: true,
+          ownerResource: { select: { id: true, name: true } },
+          department: {
+            select: {
+              id: true,
+              name: true,
+              section: { select: { id: true, name: true } },
+            },
+          },
+          milestones: { select: { status: true } },
+          issues: {
+            select: { status: true, severity: true, isBlocker: true },
+          },
+        },
+      });
+
+      for (const row of projects) {
+        const delayed =
+          (row.status === "ACTIVE" || row.status === "ON_HOLD") &&
+          (row.milestones.some((m) => m.status === "MISSED") ||
+            (row.plannedEnd != null && row.plannedEnd < asOf));
+        const openIssues = row.issues.filter(
+          (i) =>
+            !isTerminalIssueStatus(
+              i.status as "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED",
+            ),
+        );
+        const activeBlocker = row.issues.some((i) =>
+          isActiveBlockerIssue({
+            isBlocker: i.isBlocker,
+            status: i.status as "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED",
+          }),
+        );
+        const criticalOpenIssue = openIssues.some(
+          (i) => i.severity === "CRITICAL",
+        );
+
+        if (input.delivery === "DELAYED" && !delayed) continue;
+        if (input.delivery === "ACTIVE_BLOCKER" && !activeBlocker) continue;
+        if (input.delivery === "CRITICAL_ISSUE" && !criticalOpenIssue) continue;
+
+        candidates.push({
+          kind: "PROJECT",
+          id: row.id,
+          initiativeId: row.initiativeId,
+          referenceKey: row.referenceKey,
+          title: row.name,
+          statusLabel: row.status,
+          statusSort: row.status,
+          departmentId: row.department.id,
+          departmentName: row.department.name,
+          sectionId: row.department.section.id,
+          sectionName: row.department.section.name,
+          owner: ownerFrom(row.ownerResource, row.ownerName),
+          updatedAt: row.updatedAt,
+          targetDate: row.plannedEnd,
+          delayed,
+          activeBlocker,
+          criticalOpenIssue,
+        });
+      }
+    }
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    candidates.sort((a, b) => {
+      let cmp = 0;
+      switch (sortBy) {
+        case "name":
+          cmp = a.title.localeCompare(b.title);
+          break;
+        case "status":
+          cmp = a.statusSort.localeCompare(b.statusSort);
+          break;
+        case "targetDate": {
+          const at = a.targetDate?.getTime() ?? null;
+          const bt = b.targetDate?.getTime() ?? null;
+          if (at == null && bt == null) cmp = 0;
+          else if (at == null) cmp = 1;
+          else if (bt == null) cmp = -1;
+          else cmp = at - bt;
+          break;
+        }
+        case "updatedAt":
+        default:
+          cmp = a.updatedAt.getTime() - b.updatedAt.getTime();
+          break;
+      }
+      if (cmp !== 0) return cmp * dir;
+      // Stable tie-breaker: kind then referenceKey then id
+      cmp = a.kind.localeCompare(b.kind);
+      if (cmp !== 0) return cmp;
+      cmp = a.referenceKey.localeCompare(b.referenceKey);
+      if (cmp !== 0) return cmp;
+      return a.id.localeCompare(b.id);
+    });
+
+    const total = candidates.length;
+    const start = (page - 1) * pageSize;
+    const pageRows = candidates.slice(start, start + pageSize);
+
+    const rows: PortfolioExplorerRow[] = pageRows.map((c) => ({
+      kind: c.kind,
+      id: c.id,
+      initiativeId: c.initiativeId,
+      referenceKey: c.referenceKey,
+      title: c.title,
+      href:
+        c.kind === "INITIATIVE"
+          ? `/initiatives/${c.initiativeId}`
+          : `/initiatives/${c.initiativeId}/project`,
+      statusLabel: c.statusLabel,
+      departmentId: c.departmentId,
+      departmentName: c.departmentName,
+      sectionId: c.sectionId,
+      sectionName: c.sectionName,
+      owner: c.owner,
+      updatedAt: c.updatedAt.toISOString(),
+      targetDate: c.targetDate ? c.targetDate.toISOString() : null,
+      delivery: {
+        delayed: c.delayed,
+        activeBlocker: c.activeBlocker,
+        criticalOpenIssue: c.criticalOpenIssue,
+      },
+    }));
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "portfolio.query.explore",
+      subjectType: "Organization",
+      subjectId: visibility.organizationId,
+      organizationId: visibility.organizationId,
+      payload: {
+        scopeMode: visibility.applied.mode,
+        page,
+        pageSize,
+        total,
+        sortBy,
+        sortDir,
+        q: q ?? null,
+        delivery: input.delivery ?? null,
+      },
+      result: "success",
+    });
+
+    return {
+      asOf: asOf.toISOString(),
+      scope:
+        deptIds === null
+          ? { mode: "organization", organizationId: visibility.organizationId }
+          : {
+              mode: "departments",
+              organizationId: visibility.organizationId,
+              departmentIds: deptIds,
+            },
+      page,
+      pageSize,
+      total,
+      sortBy,
+      sortDir,
+      rows,
+    };
   }
 
   /**

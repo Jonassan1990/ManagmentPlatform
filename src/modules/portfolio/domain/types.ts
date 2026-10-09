@@ -140,3 +140,97 @@ export type PortfolioSnapshot = {
   dependencies: PortfolioMetric<DependencyExposureCounts>;
   piCapacity: PortfolioMetric<PiCapacityPortfolioSummary>;
 };
+
+// ---------------------------------------------------------------------------
+// M2C — Portfolio Explorer contracts
+// ---------------------------------------------------------------------------
+
+export type PortfolioExplorerEntityKind = "INITIATIVE" | "PROJECT";
+
+/** Delivery signals derived only from existing milestone/issue policies. */
+export type PortfolioDeliveryFilter =
+  | "DELAYED"
+  | "ACTIVE_BLOCKER"
+  | "CRITICAL_ISSUE";
+
+export type PortfolioExplorerSortBy =
+  | "name"
+  | "updatedAt"
+  | "status"
+  | "targetDate";
+
+export type PortfolioExplorerInput = {
+  organizationId: string;
+  departmentId?: string;
+  sectionId?: string;
+  /** Case-insensitive match on title/name or reference key. */
+  q?: string;
+  /** Default: both INITIATIVE and PROJECT. */
+  entityKinds?: PortfolioExplorerEntityKind[];
+  initiativeStage?:
+    | "DEMAND"
+    | "REQUIREMENTS"
+    | "PRE_STUDY"
+    | "POC"
+    | "PILOT"
+    | "PROJECT";
+  projectStatus?: "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED";
+  ownerResourceId?: string;
+  /**
+   * When set, only PROJECT rows that match the signal are returned
+   * (initiatives are excluded — delivery is project-derived).
+   */
+  delivery?: PortfolioDeliveryFilter;
+  sortBy?: PortfolioExplorerSortBy;
+  sortDir?: "asc" | "desc";
+  /** 1-based page index. */
+  page?: number;
+  /** Default 25, max 100. */
+  pageSize?: number;
+  asOf?: Date;
+};
+
+export type PortfolioExplorerOwner = {
+  resourceId: string | null;
+  displayName: string;
+  source: "resource" | "legacy";
+};
+
+export type PortfolioExplorerDeliverySignals = {
+  /**
+   * true/false for projects; null for initiatives (not applicable).
+   * Definition matches M2A delayedProjects.
+   */
+  delayed: boolean | null;
+  activeBlocker: boolean | null;
+  criticalOpenIssue: boolean | null;
+};
+
+export type PortfolioExplorerRow = {
+  kind: PortfolioExplorerEntityKind;
+  id: string;
+  initiativeId: string;
+  referenceKey: string;
+  title: string;
+  href: string;
+  statusLabel: string;
+  departmentId: string;
+  departmentName: string;
+  sectionId: string;
+  sectionName: string;
+  owner: PortfolioExplorerOwner;
+  updatedAt: string;
+  targetDate: string | null;
+  delivery: PortfolioExplorerDeliverySignals;
+};
+
+export type PortfolioExplorerResult = {
+  asOf: string;
+  scope: PortfolioQueryScopeApplied;
+  page: number;
+  pageSize: number;
+  total: number;
+  sortBy: PortfolioExplorerSortBy;
+  sortDir: "asc" | "desc";
+  rows: PortfolioExplorerRow[];
+};
