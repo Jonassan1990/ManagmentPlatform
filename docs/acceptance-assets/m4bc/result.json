@@ -1,0 +1,51 @@
+{
+  "steps": [
+    {
+      "name": "review-badges",
+      "status": "PASS",
+      "badges": 2
+    },
+    {
+      "name": "approve-dialog",
+      "status": "PASS",
+      "focusIn": true,
+      "focusBack": true
+    },
+    {
+      "name": "baseline-dialog",
+      "status": "WARN",
+      "note": "disabled on fixture"
+    },
+    {
+      "name": "pi-capacity",
+      "status": "PASS",
+      "capLabels": 5
+    },
+    {
+      "name": "portfolio-capacity",
+      "status": "PASS"
+    },
+    {
+      "name": "explorer-badges",
+      "status": "PASS",
+      "explorerBadges": 9
+    },
+    {
+      "name": "initiatives-badges",
+      "status": "PASS",
+      "initBadges": 5
+    },
+    {
+      "name": "mobile-review",
+      "status": "PASS",
+      "overflow": false
+    }
+  ],
+  "a11y": {
+    "approveDialog": {
+      "focusIn": true,
+      "focusBack": true
+    }
+  },
+  "verdict": "PASS"
+}
