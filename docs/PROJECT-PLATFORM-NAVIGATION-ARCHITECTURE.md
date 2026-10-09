@@ -158,14 +158,35 @@ Browser storage is **not** used for return or AuthZ decisions. Arbitrary externa
 - Initiative Documents/Risks/Demand trails do not yet pack Explorer return context (detail + Project do).
 - Scenario panel Compare link preserves return/PI query keys but does not rewrite business promotion flows.
 - Mobile breadcrumbs collapse middle ancestors visually; full trail remains available from `sm` breakpoint and in the accessibility tree for shown links.
-- M4C-C acceptance / Home attention merge / auto-select latest PI remain deferred.
-
 ---
 
-## 8. Deferred (M4C-C+)
+## 8. Home experience & navigation acceptance (M4C-C)
 
-- Navigation acceptance pass (M4C-C).
-- Merged “Home attention” feed from portfolio attention cards (no new engine in M4C-A/B).
-- Auto-select latest REVIEW/ACTIVE PI shortcuts in global nav.
-- Capability-aware Home quick links (strip currently static; pages still AuthZ).
+### 8.1 Home attention
+
+- `HomeAttentionPanel` leads Home with delivery-health summary + top attention rows from existing `PortfolioQueryService` APIs (no new scoring engine).
+- Also surfaces initiative / approval / PI attention counts already computed for overview metrics.
+- Deep-links to `/portfolio/health` and related hubs.
+
+### 8.2 Capability-aware quick links
+
+- Home resolves `resolveShellNavContext` (same OR flags as the shell).
+- `buildHomeQuickLinks` / `buildHomeFooterLinks` hide Approvals, Decisions, Create, Access, Policy, and PI entry when flags are false.
+- Metric tile `href`s are similarly gated. **Visibility ≠ AuthZ.**
+
+### 8.3 Authorized PI entry
+
+- `selectAuthorizedPiEntry` prefers latest **ACTIVE**, else latest **REVIEW**, from AuthZ-filtered PI lists.
+- Home shows a “Continue PI planning” card → Board (ACTIVE) or Review (REVIEW).
+- Portfolio Capacity auto-selects that PI when `piId` is absent (redirect preserves org/dept query).
+
+### 8.4 Acceptance evidence
+
+- Unit: `tests/unit/home-experience.test.ts`
+- Browser: `docs/acceptance-assets/m4cc/`
+
+### 8.5 Deferred (M4D+)
+
 - Collapsed “Organize / Work / Govern” super-groups if density requires.
+- PI Board / Review workflow simplification (M4D).
+- Capacity scenario-admin progressive disclosure beyond auto-select.

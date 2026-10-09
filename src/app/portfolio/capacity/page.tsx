@@ -13,6 +13,7 @@ import {
   PageHeader,
 } from "@/components/ui/page";
 import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
+import { selectAuthorizedPiEntry } from "@/modules/navigation/home-experience";
 import type {
   PortfolioPiCapacityResult,
   PortfolioPiListItem,
@@ -110,6 +111,27 @@ export default async function PortfolioCapacityPage({
     pis = listResult.data.rows;
   } else {
     listError = listResult.error.message;
+  }
+
+  // M4C-C: when no PI chosen, enter the latest authorized ACTIVE/REVIEW PI.
+  // List rows are already AuthZ-filtered by the portfolio capacity query.
+  if (!piId && pis.length > 0) {
+    const entry = selectAuthorizedPiEntry(
+      pis.map((p) => ({
+        id: p.piId,
+        status: p.status,
+        startDate: p.startDate,
+        referenceKey: p.referenceKey,
+        name: p.name,
+      })),
+    );
+    if (entry) {
+      const next = new URLSearchParams();
+      next.set("organizationId", organizationId);
+      if (departmentId) next.set("departmentId", departmentId);
+      next.set("piId", entry.id);
+      redirect(`/portfolio/capacity?${next.toString()}`);
+    }
   }
 
   let capacity: PortfolioPiCapacityResult | null = null;
