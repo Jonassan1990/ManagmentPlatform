@@ -164,7 +164,29 @@ export default async function PortfolioPage({
       />
       <PageHeader
         title="Portfolio"
-        description="Authorization-aware executive dashboard for lifecycle, delivery health, governance attention, experimentation, and PI capacity."
+        description="Executive overview of lifecycle, delivery health, governance attention, and PI capacity."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/portfolio/explorer"
+              className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
+            >
+              Explorer
+            </Link>
+            <Link
+              href="/portfolio/health"
+              className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
+            >
+              Delivery health
+            </Link>
+            <Link
+              href="/portfolio/capacity"
+              className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
+            >
+              PI &amp; capacity
+            </Link>
+          </div>
+        }
       />
 
       <div className="mb-6 space-y-4">

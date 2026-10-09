@@ -119,10 +119,10 @@ export default async function HomePage() {
 
   return (
     <div>
-      <Breadcrumbs items={[{ label: "Overview" }]} />
+      <Breadcrumbs items={[{ label: "Home" }]} />
       <PageHeader
-        title="Overview"
-        description="Management attention across organization setup, initiative lifecycle, governance, pilots, projects, and PI planning."
+        title="Home"
+        description="Attention signals and workflow entry points across initiatives, governance, delivery, and PI planning."
       />
 
       {authHint ? (
@@ -152,6 +152,68 @@ export default async function HomePage() {
         />
       ) : (
         <div className="space-y-6">
+          <Panel>
+            <h2 className="mb-2 text-sm font-medium tracking-wide text-[var(--muted)]">
+              Workflow destinations
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/portfolio"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                Portfolio
+              </Link>
+              <Link
+                href="/portfolio/explorer"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                Explorer
+              </Link>
+              <Link
+                href="/portfolio/health"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                Delivery health
+              </Link>
+              <Link
+                href="/portfolio/capacity"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                PI &amp; capacity
+              </Link>
+              <Link
+                href="/initiatives"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                Initiatives
+              </Link>
+              <Link
+                href="/approvals"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                Approvals
+              </Link>
+              <Link
+                href="/decisions"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                Decisions
+              </Link>
+              <Link
+                href="/pi"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                PI Planning
+              </Link>
+              <Link
+                href="/organization"
+                className="rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                Organization
+              </Link>
+            </div>
+          </Panel>
+
           <MetricSection title="Lifecycle">
             <MetricTile
               label="Active initiatives"
