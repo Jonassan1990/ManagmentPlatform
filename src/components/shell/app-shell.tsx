@@ -9,6 +9,7 @@ const navItems = [
   { href: "/", label: "Overview", available: true },
   { href: "/portfolio", label: "Portfolio", available: true },
   { href: "/portfolio/explorer", label: "Explorer", available: true },
+  { href: "/portfolio/capacity", label: "PI & Capacity", available: true },
   { href: "/organization", label: "Organization", available: true },
   { href: "/initiatives", label: "Initiatives", available: true },
   { href: "/approvals", label: "Approvals", available: true },
@@ -64,8 +65,9 @@ export function AppShell({
               item.href === "/"
                 ? pathname === "/"
                 : item.href === "/portfolio"
-                  ? pathname === "/portfolio"
-                  : pathname.startsWith(item.href);
+                  ? pathname === "/portfolio" || pathname === "/portfolio/"
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}

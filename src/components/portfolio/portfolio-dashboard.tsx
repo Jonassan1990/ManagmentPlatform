@@ -106,6 +106,12 @@ function ScopeBanner({
             Open explorer
           </Link>
           <Link
+            href={`/portfolio/capacity?organizationId=${snapshot.scope.organizationId}`}
+            className="rounded-md bg-[#087f78] px-3 py-1.5 text-sm font-medium text-white"
+          >
+            PI &amp; Capacity
+          </Link>
+          <Link
             href={`/organization/${snapshot.scope.organizationId}`}
             className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
           >
