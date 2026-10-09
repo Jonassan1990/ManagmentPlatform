@@ -10,6 +10,7 @@ type Caps = Partial<PrincipalCapabilities>;
 
 export function BacklogPanel({
   piId,
+  revisionId,
   items,
   iterations,
   teams,
@@ -18,6 +19,7 @@ export function BacklogPanel({
   filters,
 }: {
   piId: string;
+  revisionId?: string;
   items: BacklogItemData[];
   iterations: { id: string; name: string; sequence: number }[];
   teams: {
@@ -91,6 +93,7 @@ export function BacklogPanel({
                 <div className="mt-2 rounded-md border border-[var(--line)] p-2">
                   <AllocateWorkForm
                     piId={piId}
+                    revisionId={revisionId}
                     workItemId={item.id}
                     iterations={iterations}
                     teams={teams}

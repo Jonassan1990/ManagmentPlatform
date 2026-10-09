@@ -123,6 +123,8 @@ export class PiService {
               key: "CURRENT",
               label: "Current plan",
               isCurrent: true,
+              status: "ACTIVE_PLAN",
+              createdByPrincipalId: principal.id,
             },
           },
         },
@@ -444,6 +446,49 @@ export class PiService {
       );
     }
     return revision;
+  }
+
+  /**
+   * Resolve a revision on the given PI. When revisionId is omitted, returns CURRENT.
+   */
+  async requireRevision(piId: string, revisionId?: string | null) {
+    if (!revisionId) {
+      return this.requireCurrentRevision(piId);
+    }
+    const revision = await this.db.planningRevision.findFirst({
+      where: { id: revisionId, piId },
+    });
+    if (!revision) {
+      throw new AppError("NOT_FOUND", "Planning revision not found on this PI.");
+    }
+    return revision;
+  }
+
+  /**
+   * Revisions that may receive allocation mutations.
+   * CURRENT (ACTIVE_PLAN) always; non-current DRAFT scenarios only.
+   */
+  assertRevisionEditableForAllocations(revision: {
+    isCurrent: boolean;
+    status: string;
+    archivedAt: Date | null;
+    key: string;
+  }) {
+    if (revision.archivedAt != null || revision.status === "ARCHIVED") {
+      throw new AppError(
+        "VALIDATION",
+        "Archived scenarios cannot be edited.",
+      );
+    }
+    if (revision.isCurrent || revision.key === "CURRENT") {
+      return;
+    }
+    if (revision.status !== "DRAFT") {
+      throw new AppError(
+        "VALIDATION",
+        "Only DRAFT scenarios can be edited. Reopen the scenario to DRAFT first.",
+      );
+    }
   }
 
   private assertDatesWithinPi(

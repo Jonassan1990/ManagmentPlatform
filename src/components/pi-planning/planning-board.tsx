@@ -50,16 +50,22 @@ type BoardDepartment = {
 
 export function PlanningBoard({
   piId,
+  revisionId,
   departments,
   iterations,
   backlog,
   capabilities,
+  readOnlyScenario,
 }: {
   piId: string;
+  /** Active revision (CURRENT or scenario). Passed to allocate mutations. */
+  revisionId?: string;
   departments: BoardDepartment[];
   iterations: Iteration[];
   backlog: BacklogItemData[];
   capabilities?: Caps;
+  /** When true, scenario is not DRAFT — block allocate UI. */
+  readOnlyScenario?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -78,7 +84,8 @@ export function PlanningBoard({
     departments[0]?.teams[0]?.teamId ?? "",
   );
 
-  const canAllocate = capabilities?.canAllocatePi !== false;
+  const canAllocate =
+    capabilities?.canAllocatePi !== false && !readOnlyScenario;
 
   const allTeams = departments.flatMap((d) =>
     d.teams.map((t) => ({
@@ -218,6 +225,7 @@ export function PlanningBoard({
           workItemId,
           iterationId,
           teamId,
+          ...(revisionId ? { revisionId } : {}),
         });
         if (!result.ok) {
           setError(result.error.message);
@@ -422,6 +430,7 @@ export function PlanningBoard({
         </div>
         <BacklogPanel
           piId={piId}
+          revisionId={revisionId}
           items={backlog}
           iterations={iterations}
           teams={allTeams}

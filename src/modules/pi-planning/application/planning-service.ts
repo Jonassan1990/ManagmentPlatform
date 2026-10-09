@@ -15,6 +15,7 @@ import { CapacityService } from "./capacity-service";
 import { deriveConflicts, type DerivedConflict } from "./conflict-engine";
 import { DependencyService } from "./dependency-service";
 import { PiService } from "./pi-service";
+import { ScenarioService } from "./scenario-service";
 
 export class PlanningService {
   readonly pi: PiService;
@@ -22,6 +23,7 @@ export class PlanningService {
   readonly capacity: CapacityService;
   readonly dependencies: DependencyService;
   readonly baselines: BaselineService;
+  readonly scenarios: ScenarioService;
 
   constructor(
     private readonly db: PrismaClient,
@@ -33,6 +35,7 @@ export class PlanningService {
     this.capacity = new CapacityService(db, authz, audit, this.pi);
     this.dependencies = new DependencyService(db, authz, audit);
     this.baselines = new BaselineService(db, authz, audit, this.pi);
+    this.scenarios = new ScenarioService(db, authz, audit, this.pi);
   }
 
   // ---- Convenience delegates ----
@@ -86,18 +89,40 @@ export class PlanningService {
   getChangesSince = (...args: Parameters<BaselineService["getChangesSince"]>) =>
     this.baselines.getChangesSince(...args);
 
+  listScenarios = (...args: Parameters<ScenarioService["listScenarios"]>) =>
+    this.scenarios.listScenarios(...args);
+  createScenarioFromCurrent = (
+    ...args: Parameters<ScenarioService["createScenarioFromCurrent"]>
+  ) => this.scenarios.createScenarioFromCurrent(...args);
+  cloneScenario = (...args: Parameters<ScenarioService["cloneScenario"]>) =>
+    this.scenarios.cloneScenario(...args);
+  renameScenario = (...args: Parameters<ScenarioService["renameScenario"]>) =>
+    this.scenarios.renameScenario(...args);
+  archiveScenario = (...args: Parameters<ScenarioService["archiveScenario"]>) =>
+    this.scenarios.archiveScenario(...args);
+  markScenarioReady = (
+    ...args: Parameters<ScenarioService["markScenarioReady"]>
+  ) => this.scenarios.markScenarioReady(...args);
+  reopenScenario = (...args: Parameters<ScenarioService["reopenScenario"]>) =>
+    this.scenarios.reopenScenario(...args);
+
   /**
    * Planning board: departments → teams → iterations → cards + capacity/utilization.
    * Conflicts derived on read (no cache).
+   * Optional revisionId selects a scenario; default is CURRENT.
    */
-  async getPlanningBoard(principal: Principal, piId: string) {
+  async getPlanningBoard(
+    principal: Principal,
+    piId: string,
+    revisionId?: string | null,
+  ) {
     const pi = await this.pi.getProgramIncrement(principal, piId);
-    const revision = await this.pi.requireCurrentRevision(piId);
+    const revision = await this.pi.requireRevision(piId, revisionId);
     const [allocations, capacityViews, conflicts, backlog] = await Promise.all([
       this.allocations.listAllocationsForRevision(revision.id),
-      this.capacity.computeCapacityViews(piId),
-      this.deriveConflictsForPi(piId),
-      this.allocations.getBacklog(principal, piId),
+      this.capacity.computeCapacityViews(piId, revision.id),
+      this.deriveConflictsForPi(piId, revision.id),
+      this.allocations.getBacklog(principal, piId, revision.id),
     ]);
 
     const capacityByTeamIteration = new Map(
@@ -228,17 +253,20 @@ export class PlanningService {
     };
   }
 
-  async deriveConflictsForPi(piId: string): Promise<DerivedConflict[]> {
+  async deriveConflictsForPi(
+    piId: string,
+    revisionId?: string | null,
+  ): Promise<DerivedConflict[]> {
     const pi = await this.db.programIncrement.findUniqueOrThrow({
       where: { id: piId },
       include: {
         iterations: { orderBy: { sequence: "asc" } },
       },
     });
-    const revision = await this.pi.requireCurrentRevision(piId);
+    const revision = await this.pi.requireRevision(piId, revisionId);
     const [allocations, capacityViews, dependencies] = await Promise.all([
       this.allocations.listAllocationsForRevision(revision.id),
-      this.capacity.computeCapacityViews(piId),
+      this.capacity.computeCapacityViews(piId, revision.id),
       this.db.planningDependency.findMany({
         where: {
           organizationId: pi.organizationId,

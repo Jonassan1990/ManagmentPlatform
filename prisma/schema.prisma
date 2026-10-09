@@ -1526,6 +1526,16 @@ enum PiStatus {
   CLOSED
 }
 
+/// PlanningRevision lifecycle (M3B). CURRENT uses ACTIVE_PLAN; scenarios use DRAFT+.
+enum PlanningRevisionStatus {
+  ACTIVE_PLAN
+  DRAFT
+  READY_FOR_REVIEW
+  SELECTED
+  ARCHIVED
+  PROMOTED
+}
+
 enum DependencyType {
   BLOCKS
   DEPENDS_ON
@@ -1659,23 +1669,33 @@ model PiParticipatingTeam {
   @@map("pi_participating_teams")
 }
 
-/// Scenario foundation: MVP uses key='CURRENT' with isCurrent=true.
-/// Future Scenario A/B rows share the same shape; allocations belong to a revision.
+/// Scenario foundation: CURRENT = ACTIVE_PLAN + isCurrent; what-if rows are DRAFT/etc.
+/// Allocations belong to a revision (M3B). Partial unique: one isCurrent per PI (SQL).
 model PlanningRevision {
-  id        String   @id @default(uuid()) @db.Uuid
-  piId      String   @db.Uuid
-  key       String   @db.VarChar(40)
-  label     String?  @db.VarChar(200)
-  isCurrent Boolean  @default(false)
-  version   Int      @default(1)
-  createdAt DateTime @default(now())
+  id                     String                  @id @default(uuid()) @db.Uuid
+  piId                   String                  @db.Uuid
+  key                    String                  @db.VarChar(40)
+  label                  String?                 @db.VarChar(200)
+  isCurrent              Boolean                 @default(false)
+  status                 PlanningRevisionStatus  @default(DRAFT)
+  version                Int                     @default(1)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  archivedAt             DateTime?
+  clonedFromRevisionId   String?                 @db.Uuid
+  createdByPrincipalId   String?                 @db.Uuid
+  selectedAt             DateTime?
+  selectedByPrincipalId  String?                 @db.Uuid
 
-  pi          ProgramIncrement @relation(fields: [piId], references: [id], onDelete: Cascade)
+  pi          ProgramIncrement  @relation(fields: [piId], references: [id], onDelete: Cascade)
+  clonedFrom  PlanningRevision? @relation("RevisionClone", fields: [clonedFromRevisionId], references: [id], onDelete: SetNull)
+  clones      PlanningRevision[] @relation("RevisionClone")
   allocations WorkAllocation[]
   baselines   PiBaseline[]
 
   @@unique([piId, key])
   @@index([piId, isCurrent])
+  @@index([piId, status])
   @@map("planning_revisions")
 }
 

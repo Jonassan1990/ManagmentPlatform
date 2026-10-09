@@ -164,17 +164,24 @@ export class CapacityService {
     return created;
   }
 
-  async getCapacityViews(principal: Principal, piId: string) {
+  async getCapacityViews(
+    principal: Principal,
+    piId: string,
+    revisionId?: string | null,
+  ) {
     const pi = await this.piService.requirePi(piId);
     await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, piAuthScope(pi.organizationId, pi.sectionId));
-    return this.computeCapacityViews(piId);
+    return this.computeCapacityViews(piId, revisionId);
   }
 
-  async computeCapacityViews(piId: string): Promise<{
+  async computeCapacityViews(
+    piId: string,
+    revisionId?: string | null,
+  ): Promise<{
     teams: TeamIterationCapacityView[];
     resources: ResourceIterationCapacityView[];
   }> {
-    const revision = await this.piService.requireCurrentRevision(piId);
+    const revision = await this.piService.requireRevision(piId, revisionId);
     const iterations = await this.db.piIteration.findMany({
       where: { piId },
       orderBy: { sequence: "asc" },
