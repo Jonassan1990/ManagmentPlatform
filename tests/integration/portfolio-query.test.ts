@@ -1,0 +1,575 @@
+/**
+ * M2A Portfolio Query Service — persistence-backed aggregation + Phase 0C isolation.
+ */
+import { randomUUID } from "crypto";
+import { PrismaClient, ScopeType } from "@prisma/client";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { AuditService } from "@/modules/audit/application/audit-service";
+import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
+import type { Principal } from "@/modules/identity-access/domain/types";
+import { OrganizationService } from "@/modules/organization/application/organization-service";
+import { PortfolioQueryService } from "@/modules/portfolio/application/portfolio-query-service";
+import { ROLE_KEYS } from "@/modules/shared/permissions";
+import { AppError } from "@/modules/shared/errors";
+import { resetEnvCacheForTests } from "@/server/env";
+
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL ??
+  "postgresql://mgmt:mgmt_dev_only@localhost:5432/management_platform?schema=public";
+process.env.DIRECT_URL = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+process.env.ALLOW_DEV_AUTH = "false";
+resetEnvCacheForTests();
+
+const db = new PrismaClient();
+const authz = new AuthorizationService(db);
+const audit = new AuditService(db);
+const organization = new OrganizationService(db, authz, audit);
+const portfolio = new PortfolioQueryService(db, authz, audit);
+
+function principal(id = randomUUID()): Principal {
+  return { id, displayName: "Portfolio Tester", source: "test" };
+}
+
+async function resetDb() {
+  await db.auditEvent.deleteMany();
+  await db.workAllocation.deleteMany();
+  await db.resourceAvailability.deleteMany();
+  await db.planningDependency.deleteMany();
+  await db.piBaseline.deleteMany();
+  await db.planningRevision.deleteMany();
+  await db.piParticipatingTeam.deleteMany();
+  await db.piParticipatingDepartment.deleteMany();
+  await db.piIteration.deleteMany();
+  await db.programIncrement.deleteMany();
+  await db.piReferenceCounter.deleteMany();
+  await db.pilotFeedback.deleteMany();
+  await db.pilotCriterion.deleteMany();
+  await db.pilotExtension.deleteMany();
+  await db.pilot.deleteMany();
+  await db.projectWorkItem.deleteMany();
+  await db.projectMilestone.deleteMany();
+  await db.projectParticipatingDepartment.deleteMany();
+  await db.projectIssue.deleteMany();
+  await db.projectClosure.deleteMany();
+  await db.project.deleteMany();
+  await db.projectReferenceCounter.deleteMany();
+  await db.approvalRecord.deleteMany();
+  await db.approvalRequest.deleteMany();
+  await db.evidenceEntry.deleteMany();
+  await db.decisionCondition.deleteMany();
+  await db.decisionRecord.deleteMany();
+  await db.evidencePackage.deleteMany();
+  await db.decisionPackage.deleteMany();
+  await db.governanceSubmission.deleteMany();
+  await db.reviewSnapshot.deleteMany();
+  await db.governanceGate.deleteMany();
+  await db.approvalRequirementTemplate.deleteMany();
+  await db.poCSuccessCriterion.deleteMany();
+  await db.poC.deleteMany();
+  await db.requirementReferenceCounter.deleteMany();
+  await db.riskReferenceCounter.deleteMany();
+  await db.documentVersion.deleteMany();
+  await db.managedDocument.deleteMany();
+  await db.requirementRelation.deleteMany();
+  await db.acceptanceCriterion.deleteMany();
+  await db.requirement.deleteMany();
+  await db.solutionAlternative.deleteMany();
+  await db.preStudyAssessment.deleteMany();
+  await db.preStudy.deleteMany();
+  await db.risk.deleteMany();
+  await db.lifecycleTransition.deleteMany();
+  await db.demand.deleteMany();
+  await db.initiative.deleteMany();
+  await db.initiativeReferenceCounter.deleteMany();
+  await db.resourceMembership.deleteMany();
+  await db.resource.deleteMany();
+  await db.team.deleteMany();
+  await db.department.deleteMany();
+  await db.section.deleteMany();
+  await db.roleBinding.deleteMany();
+  await db.bootstrapConsumption.deleteMany();
+  await db.externalIdentity.deleteMany();
+  await db.organization.deleteMany();
+  await db.principal.deleteMany();
+}
+
+async function seedOrg(actor: Principal) {
+  await db.principal.create({
+    data: { id: actor.id, displayName: actor.displayName },
+  });
+  await authz.ensureBootstrapBinding(actor.id);
+  const org = await organization.createOrganization(actor, { name: "Portfolio Org" });
+  const section = await organization.createSection(actor, {
+    organizationId: org.id,
+    name: "Section A",
+  });
+  const deptA = await organization.createDepartment(actor, {
+    sectionId: section.id,
+    name: "Dept A",
+  });
+  const deptB = await organization.createDepartment(actor, {
+    sectionId: section.id,
+    name: "Dept B",
+  });
+  return { org, section, deptA, deptB };
+}
+
+async function bindRole(
+  actor: Principal,
+  targetId: string,
+  roleKey: string,
+  scope: {
+    scopeType: ScopeType;
+    organizationId?: string | null;
+    scopeId?: string | null;
+  },
+) {
+  await authz.ensureSystemRoles();
+  const role = await db.roleDefinition.findUniqueOrThrow({
+    where: { key: roleKey },
+  });
+  return authz.assignRoleBinding(actor, {
+    principalId: targetId,
+    roleDefinitionId: role.id,
+    scopeType: scope.scopeType,
+    organizationId: scope.organizationId ?? null,
+    scopeId: scope.scopeId ?? null,
+  });
+}
+
+async function createInitiative(opts: {
+  organizationId: string;
+  departmentId: string;
+  stage?: "DEMAND" | "REQUIREMENTS" | "PRE_STUDY" | "POC" | "PILOT" | "PROJECT";
+  status?: "ACTIVE" | "ON_HOLD" | "CANCELLED";
+  referenceKey: string;
+  businessOwnerResourceId?: string;
+}) {
+  return db.initiative.create({
+    data: {
+      organizationId: opts.organizationId,
+      departmentId: opts.departmentId,
+      referenceKey: opts.referenceKey,
+      title: opts.referenceKey,
+      requesterName: "R",
+      businessOwnerName: "O",
+      currentStage: opts.stage ?? "DEMAND",
+      status: opts.status ?? "ACTIVE",
+      businessOwnerResourceId: opts.businessOwnerResourceId,
+    },
+  });
+}
+
+beforeAll(async () => {
+  await db.$connect();
+});
+
+beforeEach(async () => {
+  await resetDb();
+  await authz.ensureSystemRoles();
+});
+
+afterAll(async () => {
+  await resetDb();
+  await db.$disconnect();
+});
+
+describe("M2A Portfolio Query — empty and multi-org", () => {
+  it("empty organization returns available zeros", async () => {
+    const admin = principal();
+    const { org } = await seedOrg(admin);
+
+    const snap = await portfolio.getPortfolioSnapshot(admin, {
+      organizationId: org.id,
+    });
+
+    expect(snap.scope.mode).toBe("organization");
+    expect(snap.initiatives.available).toBe(true);
+    if (snap.initiatives.available) {
+      expect(snap.initiatives.value.total).toBe(0);
+    }
+    expect(snap.projects.available && snap.projects.value.active).toBe(0);
+    expect(snap.issues.available && snap.issues.value.openIssues).toBe(0);
+    expect(snap.governance.available && snap.governance.value.waitingForDecision).toBe(
+      0,
+    );
+    expect(snap.piCapacity.available).toBe(false);
+  });
+
+  it("denies cross-organization access", async () => {
+    const admin = principal();
+    const { org: orgA } = await seedOrg(admin);
+    const outsider = principal();
+    await db.principal.create({
+      data: { id: outsider.id, displayName: "Outsider" },
+    });
+    // Outsider gets org admin on a different org only
+    const orgB = await organization.createOrganization(admin, { name: "Other Org" });
+    await bindRole(admin, outsider.id, ROLE_KEYS.VIEWER, {
+      scopeType: ScopeType.ORGANIZATION,
+      organizationId: orgB.id,
+      scopeId: orgB.id,
+    });
+
+    await expect(
+      portfolio.getPortfolioSnapshot(outsider, { organizationId: orgA.id }),
+    ).rejects.toBeInstanceOf(AppError);
+
+    await expect(
+      portfolio.getPortfolioSnapshot(outsider, { organizationId: orgA.id }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("M2A Portfolio Query — department isolation", () => {
+  it("department manager sees only their department aggregates", async () => {
+    const admin = principal();
+    const { org, deptA, deptB } = await seedOrg(admin);
+
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-A1",
+      stage: "DEMAND",
+    });
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-A2",
+      stage: "PROJECT",
+    });
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptB.id,
+      referenceKey: "INIT-B1",
+      stage: "POC",
+    });
+
+    const initA = await db.initiative.findFirstOrThrow({
+      where: { referenceKey: "INIT-A2" },
+    });
+    const initB = await db.initiative.findFirstOrThrow({
+      where: { referenceKey: "INIT-B1" },
+    });
+
+    await db.project.create({
+      data: {
+        initiativeId: initA.id,
+        organizationId: org.id,
+        departmentId: deptA.id,
+        referenceKey: "PRJ-A",
+        name: "Project A",
+        status: "ACTIVE",
+      },
+    });
+    await db.project.create({
+      data: {
+        initiativeId: initB.id,
+        organizationId: org.id,
+        departmentId: deptB.id,
+        referenceKey: "PRJ-B",
+        name: "Project B",
+        status: "COMPLETED",
+      },
+    });
+
+    const mgr = principal();
+    await db.principal.create({ data: { id: mgr.id, displayName: "Dept Mgr" } });
+    await bindRole(admin, mgr.id, ROLE_KEYS.DEPARTMENT_MANAGER, {
+      scopeType: ScopeType.DEPARTMENT,
+      organizationId: org.id,
+      scopeId: deptA.id,
+    });
+
+    const snap = await portfolio.getPortfolioSnapshot(mgr, {
+      organizationId: org.id,
+    });
+
+    expect(snap.scope).toEqual({
+      mode: "departments",
+      organizationId: org.id,
+      departmentIds: [deptA.id],
+    });
+    expect(snap.initiatives.available && snap.initiatives.value.total).toBe(2);
+    expect(
+      snap.initiatives.available && snap.initiatives.value.byStage.DEMAND,
+    ).toBe(1);
+    expect(
+      snap.initiatives.available && snap.initiatives.value.byStage.PROJECT,
+    ).toBe(1);
+    expect(snap.projects.available && snap.projects.value.active).toBe(1);
+    expect(snap.projects.available && snap.projects.value.completed).toBe(0);
+
+    // Explicit other department denied
+    await expect(
+      portfolio.getPortfolioSnapshot(mgr, {
+        organizationId: org.id,
+        departmentId: deptB.id,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("viewer with org scope can read org-wide but cannot escalate via ownership", async () => {
+    const admin = principal();
+    const { org, deptA, deptB } = await seedOrg(admin);
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-V1",
+    });
+    await createInitiative({
+      organizationId: org.id,
+      departmentId: deptB.id,
+      referenceKey: "INIT-V2",
+    });
+
+    const viewer = principal();
+    await db.principal.create({ data: { id: viewer.id, displayName: "Viewer" } });
+    await bindRole(admin, viewer.id, ROLE_KEYS.VIEWER, {
+      scopeType: ScopeType.ORGANIZATION,
+      organizationId: org.id,
+      scopeId: org.id,
+    });
+
+    const snap = await portfolio.getPortfolioSnapshot(viewer, {
+      organizationId: org.id,
+    });
+    expect(snap.scope.mode).toBe("organization");
+    expect(snap.initiatives.available && snap.initiatives.value.total).toBe(2);
+  });
+});
+
+describe("M2A Portfolio Query — metrics", () => {
+  it("counts lifecycle, projects, issues, blockers, delayed, governance, experiments", async () => {
+    const admin = principal();
+    const { org, deptA } = await seedOrg(admin);
+
+    const resource = await db.resource.create({
+      data: {
+        organizationId: org.id,
+        name: "Owner Res",
+        type: "PERSON",
+        referenceCode: "R-1",
+      },
+    });
+
+    const initDemand = await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-D",
+      stage: "DEMAND",
+      businessOwnerResourceId: resource.id,
+    });
+    const initProj = await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-P",
+      stage: "PROJECT",
+    });
+    const initPoc = await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-POC",
+      stage: "POC",
+    });
+    const initPilot = await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-PIL",
+      stage: "PILOT",
+    });
+
+    const past = new Date("2020-01-01T00:00:00.000Z");
+    const projectActive = await db.project.create({
+      data: {
+        initiativeId: initProj.id,
+        organizationId: org.id,
+        departmentId: deptA.id,
+        referenceKey: "PRJ-1",
+        name: "Active delayed",
+        status: "ACTIVE",
+        plannedEnd: past,
+        ownerResourceId: resource.id,
+      },
+    });
+    await db.projectMilestone.create({
+      data: {
+        projectId: projectActive.id,
+        referenceKey: "MS-1",
+        title: "Missed MS",
+        status: "MISSED",
+      },
+    });
+
+    // Second initiative needs its own project — convert path: create for initDemand as completed
+    // initDemand is DEMAND stage; still can attach project row for count tests via second initiative.
+    // Use initPoc's sibling: create completed project on a dedicated initiative
+    const initDone = await createInitiative({
+      organizationId: org.id,
+      departmentId: deptA.id,
+      referenceKey: "INIT-DONE",
+      stage: "PROJECT",
+    });
+    await db.project.create({
+      data: {
+        initiativeId: initDone.id,
+        organizationId: org.id,
+        departmentId: deptA.id,
+        referenceKey: "PRJ-DONE",
+        name: "Done",
+        status: "COMPLETED",
+      },
+    });
+
+    await db.projectIssue.create({
+      data: {
+        projectId: projectActive.id,
+        organizationId: org.id,
+        referenceKey: "ISS-1",
+        title: "Open critical blocker",
+        severity: "CRITICAL",
+        status: "OPEN",
+        isBlocker: true,
+      },
+    });
+    await db.projectIssue.create({
+      data: {
+        projectId: projectActive.id,
+        organizationId: org.id,
+        referenceKey: "ISS-2",
+        title: "Resolved",
+        severity: "LOW",
+        status: "RESOLVED",
+        isBlocker: true,
+      },
+    });
+
+    await db.poC.create({
+      data: {
+        initiativeId: initPoc.id,
+        title: "PoC",
+        objective: "o",
+        hypothesis: "h",
+        scope: "s",
+        status: "IN_PROGRESS",
+        ownerResourceId: resource.id,
+      },
+    });
+    await db.pilot.create({
+      data: {
+        initiativeId: initPilot.id,
+        objective: "o",
+        scope: "s",
+        status: "EVALUATION",
+        ownerResourceId: resource.id,
+      },
+    });
+
+    const gate = await db.governanceGate.create({
+      data: {
+        initiativeId: initDemand.id,
+        gateType: "PRE_STUDY_GATE",
+        stage: "PRE_STUDY",
+      },
+    });
+    const snapshot1 = await db.reviewSnapshot.create({
+      data: {
+        initiativeId: initDemand.id,
+        gateType: "PRE_STUDY_GATE",
+        revision: 1,
+        payload: {},
+      },
+    });
+    const snapshot2 = await db.reviewSnapshot.create({
+      data: {
+        initiativeId: initDemand.id,
+        gateType: "PRE_STUDY_GATE",
+        revision: 2,
+        payload: {},
+      },
+    });
+    const submission = await db.governanceSubmission.create({
+      data: {
+        initiativeId: initDemand.id,
+        gateId: gate.id,
+        status: "APPROVALS_COMPLETE",
+        revision: 1,
+        submittedByPrincipalId: admin.id,
+        reviewSnapshotId: snapshot1.id,
+      },
+    });
+    await db.approvalRequest.create({
+      data: {
+        submissionId: submission.id,
+        status: "PENDING",
+        authorityKey: "approver",
+        requiredPermission: "approval.review",
+        label: "Approver",
+        reviewSnapshotId: snapshot1.id,
+      },
+    });
+    await db.governanceSubmission.create({
+      data: {
+        initiativeId: initDemand.id,
+        gateId: gate.id,
+        status: "IN_REVIEW",
+        revision: 2,
+        submittedByPrincipalId: admin.id,
+        reviewSnapshotId: snapshot2.id,
+      },
+    });
+
+    await db.planningDependency.create({
+      data: {
+        organizationId: org.id,
+        type: "BLOCKS",
+        status: "OPEN",
+        criticality: "CRITICAL",
+        sourceType: "PROJECT",
+        sourceId: projectActive.id,
+        targetType: "PROJECT",
+        targetId: projectActive.id,
+      },
+    });
+
+    const snap = await portfolio.getPortfolioSnapshot(admin, {
+      organizationId: org.id,
+      asOf: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    expect(snap.initiatives.available && snap.initiatives.value.total).toBe(5);
+    expect(snap.initiatives.available && snap.initiatives.value.byStage.DEMAND).toBe(
+      1,
+    );
+    expect(snap.projects.available && snap.projects.value.active).toBe(1);
+    expect(snap.projects.available && snap.projects.value.completed).toBe(1);
+    expect(snap.delayedProjects.available && snap.delayedProjects.value.delayedProjects).toBe(
+      1,
+    );
+    expect(snap.issues.available && snap.issues.value.openIssues).toBe(1);
+    expect(snap.issues.available && snap.issues.value.criticalOpenIssues).toBe(1);
+    expect(snap.issues.available && snap.issues.value.activeBlockers).toBe(1);
+    expect(
+      snap.experimentation.available && snap.experimentation.value.activePocs,
+    ).toBe(1);
+    expect(
+      snap.experimentation.available && snap.experimentation.value.activePilots,
+    ).toBe(1);
+    expect(
+      snap.governance.available && snap.governance.value.waitingForDecision,
+    ).toBe(1);
+    expect(
+      snap.governance.available && snap.governance.value.waitingForApproval,
+    ).toBe(1);
+    expect(
+      snap.governance.available && snap.governance.value.pendingApprovalRequests,
+    ).toBe(1);
+    expect(
+      snap.dependencies.available && snap.dependencies.value.openDependencies,
+    ).toBe(1);
+    expect(
+      snap.ownership.available &&
+        snap.ownership.value.some((o) => o.resourceId === resource.id),
+    ).toBe(true);
+  });
+});
