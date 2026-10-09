@@ -92,6 +92,12 @@ function ScopeBanner({
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
+            href={`/portfolio/explorer?organizationId=${snapshot.scope.organizationId}`}
+            className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white"
+          >
+            Open explorer
+          </Link>
+          <Link
             href={`/organization/${snapshot.scope.organizationId}`}
             className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
           >

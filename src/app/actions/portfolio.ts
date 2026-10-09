@@ -2,7 +2,10 @@
 
 import { z } from "zod";
 import { AppError, toErrorPayload } from "@/modules/shared/errors";
-import type { PortfolioSnapshot } from "@/modules/portfolio/domain/types";
+import type {
+  PortfolioExplorerResult,
+  PortfolioSnapshot,
+} from "@/modules/portfolio/domain/types";
 import { createServices } from "@/server/container";
 
 export type ActionResult<T = unknown> =
@@ -58,5 +61,75 @@ export async function listPortfolioDepartmentOptionsAction(
     const { authz, portfolio } = createServices();
     const principal = await authz.requirePrincipal();
     return portfolio.listDepartmentOptions(principal, parsed.organizationId);
+  });
+}
+
+export async function listPortfolioSectionOptionsAction(
+  input: unknown,
+): Promise<ActionResult<Array<{ id: string; name: string }>>> {
+  return run(async () => {
+    const parsed = departmentOptionsSchema.parse(input);
+    const { authz, portfolio } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolio.listSectionOptions(principal, parsed.organizationId);
+  });
+}
+
+export async function listPortfolioOwnerOptionsAction(
+  input: unknown,
+): Promise<ActionResult<Array<{ id: string; name: string }>>> {
+  return run(async () => {
+    const parsed = departmentOptionsSchema.parse(input);
+    const { authz, portfolio } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolio.listOwnerOptions(principal, parsed.organizationId);
+  });
+}
+
+const explorerInputSchema = z.object({
+  organizationId: z.string().uuid(),
+  departmentId: z.string().uuid().optional(),
+  sectionId: z.string().uuid().optional(),
+  q: z.string().max(200).optional(),
+  entityKinds: z
+    .array(z.enum(["INITIATIVE", "PROJECT"]))
+    .min(1)
+    .max(2)
+    .optional(),
+  initiativeStage: z
+    .enum([
+      "DEMAND",
+      "REQUIREMENTS",
+      "PRE_STUDY",
+      "POC",
+      "PILOT",
+      "PROJECT",
+    ])
+    .optional(),
+  projectStatus: z
+    .enum(["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"])
+    .optional(),
+  ownerResourceId: z.string().uuid().optional(),
+  delivery: z
+    .enum(["DELAYED", "ACTIVE_BLOCKER", "CRITICAL_ISSUE"])
+    .optional(),
+  sortBy: z.enum(["name", "updatedAt", "status", "targetDate"]).optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  asOf: z.coerce.date().optional(),
+});
+
+/**
+ * M2C — authorization-aware paginated portfolio explorer.
+ */
+export async function explorePortfolioAction(
+  input: unknown,
+): Promise<ActionResult<PortfolioExplorerResult>> {
+  return run(async () => {
+    const parsed = explorerInputSchema.parse(input);
+    const { authz, portfolio } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolio.explorePortfolio(principal, parsed);
   });
 }

@@ -8,6 +8,7 @@ import { SignOutButton } from "./sign-out-button";
 const navItems = [
   { href: "/", label: "Overview", available: true },
   { href: "/portfolio", label: "Portfolio", available: true },
+  { href: "/portfolio/explorer", label: "Explorer", available: true },
   { href: "/organization", label: "Organization", available: true },
   { href: "/initiatives", label: "Initiatives", available: true },
   { href: "/approvals", label: "Approvals", available: true },
@@ -62,7 +63,9 @@ export function AppShell({
             const active =
               item.href === "/"
                 ? pathname === "/"
-                : pathname.startsWith(item.href);
+                : item.href === "/portfolio"
+                  ? pathname === "/portfolio"
+                  : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}

@@ -57,6 +57,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [PRODUCTION-AUTH-RUNBOOK.md](./PRODUCTION-AUTH-RUNBOOK.md) | Operator guide: OIDC env, bootstrap token procedure |
 | [PORTFOLIO-QUERY-CONTRACT.md](./PORTFOLIO-QUERY-CONTRACT.md) | M2A portfolio query metrics, scope rules, limitations |
 | [PORTFOLIO-DASHBOARD.md](./PORTFOLIO-DASHBOARD.md) | M2B executive portfolio dashboard route and UI↔M2A mapping |
+| [PORTFOLIO-EXPLORER.md](./PORTFOLIO-EXPLORER.md) | M2C portfolio explorer query contract, filters, delivery signals |
 | [UX-ACCEPTANCE-REPORT.md](./UX-ACCEPTANCE-REPORT.md) | Phase 5.5 UX inventory, route audit, P0–P3 findings, fixes applied |
 | [DEPLOYMENT-ACCEPTANCE.md](./DEPLOYMENT-ACCEPTANCE.md) | Deploy readiness; Phase 6 auth ready; deploy blocked on credentials |
 | [PHASE-6-BACKLOG.md](./PHASE-6-BACKLOG.md) | Must / Should / Could from acceptance findings (OIDC Must Fix done) |
