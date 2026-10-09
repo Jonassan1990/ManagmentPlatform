@@ -7,6 +7,7 @@ import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { toHoursNumber } from "./capacity-policy";
 import type { PiService } from "./pi-service";
+import { invalidateValidPlanApprovals } from "./plan-approval-invalidation";
 import {
   allocateWorkInputSchema,
   moveAllocationInputSchema,
@@ -152,6 +153,12 @@ export class AllocationService {
             version: { increment: 1 },
           },
         });
+        await this.afterAllocationMutation(principal, {
+          revisionId: revision.id,
+          isCurrent: revision.isCurrent,
+          piId: pi.id,
+          organizationId: pi.organizationId,
+        });
         await this.audit.record({
           actorPrincipalId: principal.id,
           actionType: "pi.allocation.updated",
@@ -184,6 +191,12 @@ export class AllocationService {
         plannedHours,
         notes: input.notes ?? null,
       },
+    });
+    await this.afterAllocationMutation(principal, {
+      revisionId: revision.id,
+      isCurrent: revision.isCurrent,
+      piId: pi.id,
+      organizationId: pi.organizationId,
     });
     await this.audit.record({
       actorPrincipalId: principal.id,
@@ -251,6 +264,12 @@ export class AllocationService {
           version: { increment: 1 },
         },
       });
+      await this.afterAllocationMutation(principal, {
+        revisionId: allocation.revisionId,
+        isCurrent: allocation.revision.isCurrent,
+        piId: pi.id,
+        organizationId: pi.organizationId,
+      });
       await this.audit.record({
         actorPrincipalId: principal.id,
         actionType: "pi.allocation.moved",
@@ -288,6 +307,12 @@ export class AllocationService {
       await this.db.workAllocation.delete({
         where: { id: allocation.id, version: input.expectedVersion },
       });
+      await this.afterAllocationMutation(principal, {
+        revisionId: allocation.revisionId,
+        isCurrent: allocation.revision.isCurrent,
+        piId: pi.id,
+        organizationId: pi.organizationId,
+      });
       await this.audit.record({
         actorPrincipalId: principal.id,
         actionType: "pi.allocation.removed",
@@ -304,6 +329,42 @@ export class AllocationService {
       return { id: allocation.id };
     } catch (error) {
       this.rethrowStale(error, "allocation");
+    }
+  }
+
+  /**
+   * M3D-C: when CURRENT allocations change, bump CURRENT revision version and
+   * invalidate VALID plan approvals. Scenario revisions keep prior versioning.
+   */
+  private async afterAllocationMutation(
+    principal: Principal,
+    args: {
+      revisionId: string;
+      isCurrent: boolean;
+      piId: string;
+      organizationId: string;
+    },
+  ) {
+    if (!args.isCurrent) return;
+    await this.db.planningRevision.update({
+      where: { id: args.revisionId },
+      data: { version: { increment: 1 } },
+    });
+    const invalidated = await invalidateValidPlanApprovals(
+      this.db,
+      args.piId,
+      "CURRENT_EDITED",
+    );
+    for (const approvalId of invalidated) {
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: "pi.plan.approval_invalidated",
+        subjectType: "PiPlanApproval",
+        subjectId: approvalId,
+        organizationId: args.organizationId,
+        payload: { piId: args.piId, reason: "CURRENT_EDITED" },
+        result: "success",
+      });
     }
   }
 

@@ -44,6 +44,7 @@ async function resetDb() {
   await db.resourceAvailability.deleteMany();
   await db.planningDependency.deleteMany();
   await db.piBaseline.deleteMany();
+  await db.piPlanApproval.deleteMany();
   await db.planningRevision.deleteMany();
   await db.piParticipatingTeam.deleteMany();
   await db.piParticipatingDepartment.deleteMany();
@@ -362,13 +363,38 @@ describe("M3D-B successful promotion + isolation", () => {
       toStatus: "REVIEW",
       expectedVersion: piRow.version,
     });
-    const baseline = await planning.createBaseline(actor, {
+    const { promoteApproveAndBaseline } = await import(
+      "./helpers/m3d-approve-baseline"
+    );
+    // Capture a baseline of the pre-promote CURRENT (8h) for immutability evidence.
+    // Helper promotes a clone of CURRENT first — restore CURRENT to 8h-only afterward
+    // is unnecessary: we snapshot baseline payload then continue with Scenario B promote.
+    const { baseline } = await promoteApproveAndBaseline(planning, db, actor, {
       piId: pi.id,
       label: "pre-promote",
     });
     const baselineHash = createHash("sha256")
       .update(JSON.stringify(baseline.payload))
       .digest("hex");
+
+    // Reset CURRENT back to the original 8h allocation (helper promote cloned CURRENT).
+    const currentAfterHelper = await planning.pi.requireCurrentRevision(pi.id);
+    const helperAllocs = await db.workAllocation.findMany({
+      where: { revisionId: currentAfterHelper.id },
+    });
+    for (const a of helperAllocs) {
+      await planning.removeAllocation(actor, {
+        allocationId: a.id,
+        expectedVersion: a.version,
+      });
+    }
+    await planning.allocateWork(actor, {
+      piId: pi.id,
+      workItemId: workItems[0]!.id,
+      iterationId: it1.id,
+      teamId: ctx.teamA.id,
+      plannedHours: "8",
+    });
 
     const portfolioBefore = await piCapacity.getPiCapacityOverview(actor, {
       organizationId: ctx.org.id,
@@ -389,6 +415,9 @@ describe("M3D-B successful promotion + isolation", () => {
     expect(preview.selectedRevision?.id).toBe(scenarioB.id);
     expect(preview.selectedAllocations.allocationCount).toBe(2);
 
+    const currentBeforeBPromote = await planning.pi.requireCurrentRevision(
+      pi.id,
+    );
     const result = await planning.promoteSelectedScenario(
       actor,
       await promoteArgs(actor, pi.id),
@@ -397,6 +426,7 @@ describe("M3D-B successful promotion + isolation", () => {
     expect(result.currentRevisionId).toBe(current.id);
     expect(result.allocationCount).toBe(2);
     expect(result.totalCommittedHours).toBe(24);
+    expect(result.previousCurrentVersion).toBe(currentBeforeBPromote.version);
 
     const currentAfter = await planning.pi.requireCurrentRevision(pi.id);
     expect(currentAfter.id).toBe(current.id);
@@ -457,12 +487,21 @@ describe("M3D-B successful promotion + isolation", () => {
 
     const audits = await db.auditEvent.findMany({
       where: { actionType: "pi.scenario.promoted", subjectId: pi.id },
+      orderBy: { occurredAt: "asc" },
     });
-    expect(audits).toHaveLength(1);
-    const payload = audits[0]!.payload as Record<string, unknown>;
+    // Helper may have promoted a clone earlier; assert the Scenario B promote exists.
+    expect(audits.length).toBeGreaterThanOrEqual(1);
+    const bPromote = audits.find((a) => {
+      const p = a.payload as Record<string, unknown>;
+      return p.sourceRevisionId === scenarioB.id;
+    });
+    expect(bPromote).toBeTruthy();
+    const payload = bPromote!.payload as Record<string, unknown>;
     expect(payload.sourceRevisionId).toBe(scenarioB.id);
     expect(payload.allocationCount).toBe(2);
-    expect(payload.previousCurrentVersion).toBe(current.version);
+    expect(payload.previousCurrentVersion).toBe(
+      currentBeforeBPromote.version,
+    );
     expect(payload.newCurrentVersion).toBe(result.currentRevisionVersion);
   });
 

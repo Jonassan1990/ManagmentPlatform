@@ -34,6 +34,7 @@ async function resetDb() {
   await db.resourceAvailability.deleteMany();
   await db.planningDependency.deleteMany();
   await db.piBaseline.deleteMany();
+  await db.piPlanApproval.deleteMany();
   await db.planningRevision.deleteMany();
   await db.piParticipatingTeam.deleteMany();
   await db.piParticipatingDepartment.deleteMany();
@@ -721,6 +722,9 @@ describe("Dependencies", () => {
 
 describe("Baseline", () => {
   it("create, unauthorized, immutable, second version, changes since, historical payload", async () => {
+    const { promoteApproveAndBaseline, reapproveAndBaseline } = await import(
+      "./helpers/m3d-approve-baseline"
+    );
     const actor = principal();
     const ctx = await seedPlanningOrg(actor);
     const { pi, it1, it2 } = await createPiWithTwoIters(actor, ctx);
@@ -730,7 +734,7 @@ describe("Baseline", () => {
       { name: "Base proj", workTitles: ["W1"] },
     );
 
-    const alloc = await planning.allocateWork(actor, {
+    await planning.allocateWork(actor, {
       piId: pi.id,
       workItemId: workItems[0]!.id,
       iterationId: it1.id,
@@ -757,10 +761,16 @@ describe("Baseline", () => {
       data: { id: stranger.id, displayName: "Stranger" },
     });
     await expect(
-      planning.createBaseline(stranger, { piId: pi.id, label: "Nope" }),
+      planning.createBaseline(stranger, {
+        piId: pi.id,
+        label: "Nope",
+        expectedApprovalId: randomUUID(),
+        expectedPiVersion: 1,
+        expectedCurrentRevisionVersion: 1,
+      }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
-    const baseline = await planning.createBaseline(actor, {
+    const { baseline } = await promoteApproveAndBaseline(planning, db, actor, {
       piId: pi.id,
       label: "v1",
     });
@@ -772,12 +782,16 @@ describe("Baseline", () => {
 
     const frozenPayload = JSON.stringify(baseline.payload);
 
-    // Mutate live plan
+    // Mutate live CURRENT (invalidates approval). Allocation ids change on promote.
+    const currentRev = await planning.pi.requireCurrentRevision(pi.id);
+    const currentAlloc = await db.workAllocation.findFirstOrThrow({
+      where: { revisionId: currentRev.id, workItemId: workItems[0]!.id },
+    });
     await planning.moveAllocation(actor, {
-      allocationId: alloc.id,
+      allocationId: currentAlloc.id,
       iterationId: it2.id,
       teamId: ctx.teamA.id,
-      expectedVersion: alloc.version,
+      expectedVersion: currentAlloc.version,
     });
 
     const reloaded = await planning.baselines.getBaseline(actor, baseline.id);
@@ -788,8 +802,8 @@ describe("Baseline", () => {
       true,
     );
 
-    // Rebaseline → version 2; historical v1 unchanged
-    const v2 = await planning.createBaseline(actor, {
+    // Rebaseline → version 2; historical v1 unchanged (requires re-approval)
+    const { baseline: v2 } = await reapproveAndBaseline(planning, db, actor, {
       piId: pi.id,
       label: "v2",
     });

@@ -20,11 +20,13 @@ export default async function PiBaselinePage({
   let pi;
   let baselines;
   let changesResult;
+  let approvalPreview;
   try {
     pi = await planning.getProgramIncrement(principal, piId);
-    [baselines, changesResult] = await Promise.all([
+    [baselines, changesResult, approvalPreview] = await Promise.all([
       planning.listBaselines(principal, piId),
       planning.getChangesSince(principal, piId),
+      planning.getPlanApprovalPreview(principal, piId),
     ]);
   } catch {
     notFound();
@@ -50,7 +52,7 @@ export default async function PiBaselinePage({
       />
       <PageHeader
         title="Baseline"
-        description={`${pi.name} · ${piStatusLabel(pi.status)} — freeze the plan and track drift.`}
+        description={`${pi.name} · ${piStatusLabel(pi.status)} — freeze the approved CURRENT plan and track drift.`}
       />
       <PiTabs piId={piId} active="baseline" />
       <BaselinePanels
@@ -63,6 +65,7 @@ export default async function PiBaselinePage({
             ? `v${latest.versionNumber}${latest.label ? ` (${latest.label})` : ""}`
             : null
         }
+        approvalPreview={approvalPreview}
         capabilities={capabilities}
       />
     </div>

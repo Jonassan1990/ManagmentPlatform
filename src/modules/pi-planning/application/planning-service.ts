@@ -15,6 +15,7 @@ import { CapacityService } from "./capacity-service";
 import { deriveConflicts, type DerivedConflict } from "./conflict-engine";
 import { DependencyService } from "./dependency-service";
 import { PiService } from "./pi-service";
+import { PlanApprovalService } from "./plan-approval-service";
 import { ScenarioComparisonService } from "./scenario-comparison-service";
 import { ScenarioPromotionService } from "./scenario-promotion-service";
 import { ScenarioSelectionService } from "./scenario-selection-service";
@@ -30,6 +31,7 @@ export class PlanningService {
   readonly scenarioComparison: ScenarioComparisonService;
   readonly scenarioSelection: ScenarioSelectionService;
   readonly scenarioPromotion: ScenarioPromotionService;
+  readonly planApprovals: PlanApprovalService;
 
   constructor(
     private readonly db: PrismaClient,
@@ -40,7 +42,6 @@ export class PlanningService {
     this.allocations = new AllocationService(db, authz, audit, this.pi);
     this.capacity = new CapacityService(db, authz, audit, this.pi);
     this.dependencies = new DependencyService(db, authz, audit);
-    this.baselines = new BaselineService(db, authz, audit, this.pi);
     this.scenarios = new ScenarioService(db, authz, audit, this.pi);
     this.scenarioComparison = new ScenarioComparisonService(
       db,
@@ -63,6 +64,20 @@ export class PlanningService {
       audit,
       this.pi,
       this.scenarioSelection,
+    );
+    this.planApprovals = new PlanApprovalService(
+      db,
+      authz,
+      audit,
+      this.pi,
+      this.scenarioSelection,
+    );
+    this.baselines = new BaselineService(
+      db,
+      authz,
+      audit,
+      this.pi,
+      this.planApprovals,
     );
   }
 
@@ -160,6 +175,13 @@ export class PlanningService {
   promoteSelectedScenario = (
     ...args: Parameters<ScenarioPromotionService["promoteSelectedScenario"]>
   ) => this.scenarioPromotion.promoteSelectedScenario(...args);
+
+  getPlanApprovalPreview = (
+    ...args: Parameters<PlanApprovalService["getApprovalPreview"]>
+  ) => this.planApprovals.getApprovalPreview(...args);
+  approveCurrentPlan = (
+    ...args: Parameters<PlanApprovalService["approveCurrentPlan"]>
+  ) => this.planApprovals.approveCurrentPlan(...args);
 
   /**
    * Planning board: departments → teams → iterations → cards + capacity/utilization.

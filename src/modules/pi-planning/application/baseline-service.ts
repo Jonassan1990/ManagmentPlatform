@@ -11,6 +11,8 @@ import {
   type BaselinePayload,
 } from "./baseline-snapshot";
 import type { PiService } from "./pi-service";
+import type { PlanApprovalService } from "./plan-approval-service";
+import type { PlanBaselineFromApprovalResult } from "./plan-approval-types";
 import { createBaselineInputSchema } from "./schemas";
 import { piAuthScope } from "./pi-auth-scope";
 
@@ -32,6 +34,7 @@ function parse<T>(schema: { parse: (data: unknown) => T }, data: unknown): T {
 /**
  * Immutable PiBaseline rows. Never update payload — rebaseline = new versionNumber.
  *
+ * M3D-C: baseline requires a VALID PiPlanApproval matching exact CURRENT fingerprint.
  * First baseline: requires REVIEW → sets status BASELINED.
  * Rebaseline: from BASELINED or ACTIVE → version N+1, status unchanged.
  */
@@ -41,6 +44,7 @@ export class BaselineService {
     private readonly authz: AuthorizationService,
     private readonly audit: AuditService,
     private readonly piService: PiService,
+    private readonly planApprovals: PlanApprovalService,
   ) {}
 
   async listBaselines(principal: Principal, piId: string) {
@@ -62,13 +66,24 @@ export class BaselineService {
     return baseline;
   }
 
-  async createBaseline(principal: Principal, raw: unknown) {
+  async createBaseline(
+    principal: Principal,
+    raw: unknown,
+  ): Promise<PlanBaselineFromApprovalResult & { piId: string; versionNumber: number; payload: unknown; id: string; createdAt: Date; label: string | null; revisionIdCaptured: string | null; planApprovalId: string | null }> {
     const input = parse(createBaselineInputSchema, raw);
     const pi = await this.piService.requirePi(input.piId);
     await this.authz.assertCan(principal, PERMISSIONS.PI_BASELINE, {
       type: "ORGANIZATION",
       organizationId: pi.organizationId,
     });
+
+    if (pi.version !== input.expectedPiVersion) {
+      throw new AppError(
+        "CONFLICT",
+        "PI version is stale. Refresh and retry baseline creation.",
+        { details: { expected: input.expectedPiVersion, actual: pi.version } },
+      );
+    }
 
     const isFirst = pi.status === PiStatus.REVIEW;
     const isRebaseline =
@@ -80,54 +95,188 @@ export class BaselineService {
       );
     }
 
+    // Idempotent replay: approval already consumed into a baseline for this state.
+    const existingApproval = await this.db.piPlanApproval.findUnique({
+      where: { id: input.expectedApprovalId },
+      include: { baseline: true },
+    });
+    if (
+      existingApproval &&
+      existingApproval.piId === pi.id &&
+      existingApproval.status === "CONSUMED" &&
+      existingApproval.baseline
+    ) {
+      const match = await this.planApprovals.assertApprovalMatchesCurrent(
+        pi.id,
+        input.expectedApprovalId,
+        input.expectedCurrentRevisionVersion,
+      );
+      if (
+        match.approval.status === "CONSUMED" &&
+        match.fingerprint === existingApproval.allocationFingerprint
+      ) {
+        const b = existingApproval.baseline;
+        return {
+          ...b,
+          baselineId: b.id,
+          approvalId: existingApproval.id,
+          currentRevisionId: match.current.id,
+          currentRevisionVersion: match.current.version,
+          allocationFingerprint: match.fingerprint,
+          createdAt: b.createdAt,
+          idempotentReplay: true,
+          firstBaseline: b.versionNumber === 1,
+        } as never;
+      }
+    }
+
+    const match = await this.planApprovals.assertApprovalMatchesCurrent(
+      pi.id,
+      input.expectedApprovalId,
+      input.expectedCurrentRevisionVersion,
+    );
+    if (match.approval.status !== "VALID") {
+      throw new AppError(
+        "VALIDATION",
+        "A valid (unused) approval is required to create a baseline.",
+        { details: { status: match.approval.status } },
+      );
+    }
+
     const revision = await this.piService.requireCurrentRevision(pi.id);
     const snapshotInput = await this.buildCurrentSnapshotInput(pi.id, revision);
 
-    const created = await this.db.$transaction(async (tx) => {
-      const latest = await tx.piBaseline.findFirst({
-        where: { piId: pi.id },
-        orderBy: { versionNumber: "desc" },
-      });
-      const versionNumber = (latest?.versionNumber ?? 0) + 1;
-      const payload = buildBaselinePayload(snapshotInput);
-
-      const baseline = await tx.piBaseline.create({
-        data: {
-          piId: pi.id,
-          versionNumber,
-          createdByPrincipalId: principal.id,
-          label: input.label ?? null,
-          payload: payload as unknown as Prisma.InputJsonValue,
-          revisionIdCaptured: revision.id,
-        },
-      });
-
-      if (isFirst) {
-        await tx.programIncrement.update({
-          where: { id: pi.id },
+    try {
+      const created = await this.db.$transaction(async (tx) => {
+        const piLock = await tx.programIncrement.updateMany({
+          where: { id: pi.id, version: input.expectedPiVersion },
           data: {
-            status: PiStatus.BASELINED,
+            ...(isFirst ? { status: PiStatus.BASELINED } : {}),
             version: { increment: 1 },
           },
         });
+        if (piLock.count !== 1) {
+          throw new AppError(
+            "CONFLICT",
+            "Concurrent PI update — baseline aborted.",
+          );
+        }
+
+        const approvalLock = await tx.piPlanApproval.updateMany({
+          where: {
+            id: input.expectedApprovalId,
+            piId: pi.id,
+            status: "VALID",
+            currentRevisionVersion: input.expectedCurrentRevisionVersion,
+            allocationFingerprint: match.fingerprint,
+          },
+          data: { status: "CONSUMED" },
+        });
+        if (approvalLock.count !== 1) {
+          throw new AppError(
+            "CONFLICT",
+            "Approval is no longer valid for baseline creation. Refresh and retry.",
+          );
+        }
+
+        const lockedCurrent = await tx.planningRevision.findFirst({
+          where: { piId: pi.id, isCurrent: true, key: "CURRENT" },
+        });
+        if (
+          !lockedCurrent ||
+          lockedCurrent.version !== input.expectedCurrentRevisionVersion
+        ) {
+          throw new AppError(
+            "CONFLICT",
+            "CURRENT plan changed concurrently. Re-approve before baselining.",
+          );
+        }
+
+        const latest = await tx.piBaseline.findFirst({
+          where: { piId: pi.id },
+          orderBy: { versionNumber: "desc" },
+        });
+        const versionNumber = (latest?.versionNumber ?? 0) + 1;
+        const payload = buildBaselinePayload(snapshotInput);
+
+        const baseline = await tx.piBaseline.create({
+          data: {
+            piId: pi.id,
+            versionNumber,
+            createdByPrincipalId: principal.id,
+            label: input.label ?? null,
+            payload: payload as unknown as Prisma.InputJsonValue,
+            revisionIdCaptured: revision.id,
+            planApprovalId: input.expectedApprovalId,
+          },
+        });
+
+        return baseline;
+      });
+
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: isFirst ? "pi.baseline.created" : "pi.baseline.rebaselined",
+        subjectType: "PiBaseline",
+        subjectId: created.id,
+        organizationId: pi.organizationId,
+        payload: {
+          versionNumber: created.versionNumber,
+          revisionId: revision.id,
+          approvalId: input.expectedApprovalId,
+          allocationFingerprint: match.fingerprint,
+          currentRevisionVersion: revision.version,
+        },
+        result: "success",
+      });
+
+      await this.audit.record({
+        actorPrincipalId: principal.id,
+        actionType: "pi.plan.baselined",
+        subjectType: "PiBaseline",
+        subjectId: created.id,
+        organizationId: pi.organizationId,
+        payload: {
+          piId: pi.id,
+          baselineId: created.id,
+          approvalId: input.expectedApprovalId,
+          versionNumber: created.versionNumber,
+          currentRevisionId: revision.id,
+          currentRevisionVersion: revision.version,
+          allocationFingerprint: match.fingerprint,
+          createdAt: created.createdAt.toISOString(),
+        },
+        result: "success",
+      });
+
+      return {
+        ...created,
+        baselineId: created.id,
+        approvalId: input.expectedApprovalId,
+        currentRevisionId: revision.id,
+        currentRevisionVersion: revision.version,
+        allocationFingerprint: match.fingerprint,
+        createdAt: created.createdAt,
+        idempotentReplay: false,
+        firstBaseline: isFirst,
+      } as never;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === "P2002" || error.code === "P2025")
+      ) {
+        throw new AppError(
+          "CONFLICT",
+          "Baseline creation failed due to a concurrent update. Refresh and retry.",
+        );
       }
-
-      return baseline;
-    });
-
-    await this.audit.record({
-      actorPrincipalId: principal.id,
-      actionType: isFirst ? "pi.baseline.created" : "pi.baseline.rebaselined",
-      subjectType: "PiBaseline",
-      subjectId: created.id,
-      organizationId: pi.organizationId,
-      payload: {
-        versionNumber: created.versionNumber,
-        revisionId: revision.id,
-      },
-      result: "success",
-    });
-    return created;
+      throw new AppError(
+        "CONFLICT",
+        "Baseline creation failed due to a concurrent update. Refresh and retry.",
+        { cause: error },
+      );
+    }
   }
 
   async getChangesSince(

@@ -51,6 +51,7 @@ async function resetDb() {
   await db.resourceAvailability.deleteMany();
   await db.planningDependency.deleteMany();
   await db.piBaseline.deleteMany();
+  await db.piPlanApproval.deleteMany();
   await db.planningRevision.deleteMany();
   await db.piParticipatingTeam.deleteMany();
   await db.piParticipatingDepartment.deleteMany();
@@ -652,7 +653,10 @@ describe("M2E-A revision vs baseline", () => {
       expectedVersion: current.version,
     });
 
-    const baseline = await planning.createBaseline(admin, {
+    const { promoteApproveAndBaseline } = await import(
+      "./helpers/m3d-approve-baseline"
+    );
+    const { baseline } = await promoteApproveAndBaseline(planning, db, admin, {
       piId: pi.id,
       label: "v1",
     });

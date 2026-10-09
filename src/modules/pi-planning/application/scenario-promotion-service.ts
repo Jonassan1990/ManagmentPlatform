@@ -19,9 +19,11 @@ import { AuthorizationService } from "@/modules/identity-access/application/auth
 import type { Principal } from "@/modules/identity-access/domain/types";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
+import { computeAllocationFingerprint } from "./allocation-fingerprint";
 import { toHoursNumber } from "./capacity-policy";
 import { piAuthScope } from "./pi-auth-scope";
 import type { PiService } from "./pi-service";
+import { invalidateValidPlanApprovals } from "./plan-approval-invalidation";
 import { promoteSelectedScenarioInputSchema } from "./schemas";
 import type { ScenarioSelectionService } from "./scenario-selection-service";
 import type { ScenarioSelectionRef } from "./scenario-selection-types";
@@ -84,29 +86,6 @@ function summarizeAllocations(
     totalCommittedHours: Math.round(total * 100) / 100,
     workItemIds,
   };
-}
-
-function allocationFingerprint(
-  rows: Array<{
-    workItemId: string;
-    iterationId: string;
-    teamId: string;
-    resourceId: string | null;
-    plannedHours: Prisma.Decimal | unknown;
-    notes: string | null;
-  }>,
-): string {
-  const normalized = [...rows]
-    .map((a) => ({
-      workItemId: a.workItemId,
-      iterationId: a.iterationId,
-      teamId: a.teamId,
-      resourceId: a.resourceId,
-      plannedHours: String(a.plannedHours),
-      notes: a.notes ?? null,
-    }))
-    .sort((a, b) => a.workItemId.localeCompare(b.workItemId));
-  return JSON.stringify(normalized);
 }
 
 export class ScenarioPromotionService {
@@ -414,6 +393,12 @@ export class ScenarioPromotionService {
           },
         });
 
+        const invalidatedApprovalIds = await invalidateValidPlanApprovals(
+          tx,
+          pi.id,
+          "REPROMOTED",
+        );
+
         const updatedPi = await tx.programIncrement.update({
           where: { id: pi.id },
           data: {
@@ -430,8 +415,21 @@ export class ScenarioPromotionService {
           updatedCurrent,
           updatedSource,
           summary,
+          invalidatedApprovalIds,
         };
       });
+
+      for (const approvalId of result.invalidatedApprovalIds) {
+        await this.audit.record({
+          actorPrincipalId: principal.id,
+          actionType: "pi.plan.approval_invalidated",
+          subjectType: "PiPlanApproval",
+          subjectId: approvalId,
+          organizationId: pi.organizationId,
+          payload: { piId: pi.id, reason: "REPROMOTED" },
+          result: "success",
+        });
+      }
 
       await this.audit.record({
         actorPrincipalId: principal.id,
@@ -524,8 +522,8 @@ export class ScenarioPromotionService {
       this.db.workAllocation.findMany({ where: { revisionId: current.id } }),
     ]);
     if (
-      allocationFingerprint(sourceAllocs) !==
-      allocationFingerprint(currentAllocs)
+      computeAllocationFingerprint(sourceAllocs) !==
+      computeAllocationFingerprint(currentAllocs)
     ) {
       return null;
     }

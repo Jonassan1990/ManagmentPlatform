@@ -287,6 +287,17 @@ export async function createBaselineAction(input: unknown) {
     const principal = await authz.requirePrincipal();
     const result = await planning.createBaseline(principal, input);
     revalidatePi(result.piId);
+    revalidatePath("/portfolio");
+    return result;
+  });
+}
+
+export async function approveCurrentPlanAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.approveCurrentPlan(principal, input);
+    revalidatePi(result.piId);
     return result;
   });
 }
