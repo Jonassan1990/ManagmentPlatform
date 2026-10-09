@@ -26,6 +26,15 @@ import {
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import type {
+  DeliveryHealthAttentionInput,
+  DeliveryHealthAttentionResult,
+  DeliveryHealthAttentionRow,
+  DeliveryHealthAttentionSortBy,
+  DeliveryHealthClassification,
+  DeliveryHealthEvaluation,
+  DeliveryHealthProjectInput,
+  DeliveryHealthSummary,
+  DeliveryHealthSummaryInput,
   DependencyExposureCounts,
   ExperimentationCounts,
   GovernancePendingCounts,
@@ -41,9 +50,17 @@ import type {
   PortfolioExplorerRow,
   PortfolioExplorerSortBy,
   PortfolioQueryInput,
+  PortfolioQueryScopeApplied,
   PortfolioSnapshot,
   ProjectStatusCounts,
 } from "../domain/types";
+import {
+  ATTENTION_CLASSIFICATIONS,
+  classificationSortRank,
+  emptyHealthCounts,
+  evaluateDeliveryHealth,
+  type HealthProjectInput,
+} from "./delivery-health";
 import { resolvePortfolioVisibility } from "./portfolio-scope";
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -583,6 +600,297 @@ export class PortfolioQueryService {
   }
 
   /**
+   * M2D-A — delivery-health counts by classification + attention count.
+   * Derived at query time; no persisted health ledger.
+   */
+  async getDeliveryHealthSummary(
+    principal: Principal,
+    input: DeliveryHealthSummaryInput,
+  ): Promise<DeliveryHealthSummary> {
+    if (!input.organizationId?.trim()) {
+      throw new AppError("VALIDATION", "organizationId is required.");
+    }
+    const asOf = input.asOf ?? new Date();
+    const { visibility, deptIds, scope } = await this.resolveHealthScope(
+      principal,
+      input.organizationId,
+      input.departmentId,
+      input.sectionId,
+    );
+
+    const evaluated = await this.evaluateScopedProjects(
+      visibility.organizationId,
+      deptIds,
+      asOf,
+    );
+
+    const counts = emptyHealthCounts();
+    for (const row of evaluated) {
+      counts[row.evaluation.classification] += 1;
+    }
+    const attentionCount =
+      counts.BLOCKED + counts.AT_RISK;
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "portfolio.query.delivery_health_summary",
+      subjectType: "Organization",
+      subjectId: visibility.organizationId,
+      organizationId: visibility.organizationId,
+      payload: {
+        scopeMode: scope.mode,
+        asOf: asOf.toISOString(),
+        attentionCount,
+        totalProjects: evaluated.length,
+      },
+      result: "success",
+    });
+
+    return {
+      asOf: asOf.toISOString(),
+      scope,
+      counts,
+      attentionCount,
+      totalProjects: evaluated.length,
+    };
+  }
+
+  /**
+   * M2D-A — paginated Projects matching attention (or explicit) classifications.
+   */
+  async listDeliveryHealthAttention(
+    principal: Principal,
+    input: DeliveryHealthAttentionInput,
+  ): Promise<DeliveryHealthAttentionResult> {
+    if (!input.organizationId?.trim()) {
+      throw new AppError("VALIDATION", "organizationId is required.");
+    }
+    const asOf = input.asOf ?? new Date();
+    const page = Math.max(1, input.page ?? 1);
+    const pageSize = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, input.pageSize ?? DEFAULT_PAGE_SIZE),
+    );
+    const sortBy: DeliveryHealthAttentionSortBy =
+      input.sortBy ?? "classification";
+    const sortDir = input.sortDir === "asc" ? "asc" : "desc";
+    const classifications: DeliveryHealthClassification[] =
+      input.classifications && input.classifications.length > 0
+        ? input.classifications
+        : [...ATTENTION_CLASSIFICATIONS];
+
+    const { visibility, deptIds, scope } = await this.resolveHealthScope(
+      principal,
+      input.organizationId,
+      input.departmentId,
+      input.sectionId,
+    );
+
+    const evaluated = await this.evaluateScopedProjects(
+      visibility.organizationId,
+      deptIds,
+      asOf,
+    );
+
+    const attentionCount = evaluated.filter((r) =>
+      ATTENTION_CLASSIFICATIONS.includes(r.evaluation.classification),
+    ).length;
+
+    const matched = evaluated.filter((r) =>
+      classifications.includes(r.evaluation.classification),
+    );
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    matched.sort((a, b) => {
+      let cmp = 0;
+      switch (sortBy) {
+        case "name":
+          cmp = a.project.name.localeCompare(b.project.name);
+          break;
+        case "plannedEnd": {
+          const at = a.project.plannedEnd?.getTime() ?? null;
+          const bt = b.project.plannedEnd?.getTime() ?? null;
+          if (at == null && bt == null) cmp = 0;
+          else if (at == null) cmp = 1;
+          else if (bt == null) cmp = -1;
+          else cmp = at - bt;
+          break;
+        }
+        case "updatedAt":
+          cmp =
+            a.project.updatedAt.getTime() - b.project.updatedAt.getTime();
+          break;
+        case "classification":
+        default:
+          cmp =
+            classificationSortRank(a.evaluation.classification) -
+            classificationSortRank(b.evaluation.classification);
+          break;
+      }
+      if (cmp !== 0) return cmp * dir;
+      cmp = a.project.referenceKey.localeCompare(b.project.referenceKey);
+      if (cmp !== 0) return cmp;
+      return a.project.id.localeCompare(b.project.id);
+    });
+
+    const total = matched.length;
+    const start = (page - 1) * pageSize;
+    const pageRows = matched.slice(start, start + pageSize);
+
+    const rows: DeliveryHealthAttentionRow[] = pageRows.map((r) => ({
+      projectId: r.project.id,
+      initiativeId: r.project.initiativeId,
+      referenceKey: r.project.referenceKey,
+      name: r.project.name,
+      href: r.evaluation.href,
+      projectStatus: r.evaluation.projectStatus,
+      classification: r.evaluation.classification,
+      closureOutcome: r.evaluation.closureOutcome,
+      departmentId: r.project.departmentId,
+      departmentName: r.project.departmentName,
+      sectionId: r.project.sectionId,
+      sectionName: r.project.sectionName,
+      plannedEnd: r.project.plannedEnd
+        ? r.project.plannedEnd.toISOString()
+        : null,
+      updatedAt: r.project.updatedAt.toISOString(),
+      reasons: r.evaluation.reasons,
+    }));
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "portfolio.query.delivery_health_attention",
+      subjectType: "Organization",
+      subjectId: visibility.organizationId,
+      organizationId: visibility.organizationId,
+      payload: {
+        scopeMode: scope.mode,
+        page,
+        pageSize,
+        total,
+        classifications,
+        asOf: asOf.toISOString(),
+      },
+      result: "success",
+    });
+
+    return {
+      asOf: asOf.toISOString(),
+      scope,
+      page,
+      pageSize,
+      total,
+      sortBy,
+      sortDir,
+      classifications,
+      attentionCount,
+      rows,
+    };
+  }
+
+  /**
+   * M2D-A — single Project delivery-health evaluation (scoped).
+   */
+  async getProjectDeliveryHealth(
+    principal: Principal,
+    input: DeliveryHealthProjectInput,
+  ): Promise<DeliveryHealthEvaluation> {
+    if (!input.organizationId?.trim() || !input.projectId?.trim()) {
+      throw new AppError(
+        "VALIDATION",
+        "organizationId and projectId are required.",
+      );
+    }
+    const asOf = input.asOf ?? new Date();
+    const visibility = await resolvePortfolioVisibility(
+      this.db,
+      principal,
+      input.organizationId,
+    );
+
+    const project = await this.db.project.findFirst({
+      where: {
+        id: input.projectId,
+        organizationId: visibility.organizationId,
+        status: { not: "ARCHIVED" },
+        ...(visibility.departmentIds
+          ? { departmentId: { in: visibility.departmentIds } }
+          : {}),
+      },
+      select: {
+        id: true,
+        initiativeId: true,
+        status: true,
+        plannedEnd: true,
+        plannedStart: true,
+        closure: { select: { outcome: true } },
+        issues: {
+          select: {
+            id: true,
+            status: true,
+            severity: true,
+            isBlocker: true,
+          },
+        },
+        milestones: {
+          select: {
+            id: true,
+            status: true,
+            criticality: true,
+            plannedDate: true,
+          },
+        },
+        workItems: { select: { id: true } },
+      },
+    });
+
+    if (!project) {
+      throw new AppError("NOT_FOUND", "Project not found in portfolio scope.", {
+        details: { projectId: input.projectId },
+      });
+    }
+
+    const depsByProject = await this.loadCriticalOpenDependenciesByProject(
+      visibility.organizationId,
+      [
+        {
+          id: project.id,
+          workItemIds: project.workItems.map((w) => w.id),
+        },
+      ],
+    );
+
+    const healthInput: HealthProjectInput = {
+      id: project.id,
+      initiativeId: project.initiativeId,
+      status: project.status,
+      plannedEnd: project.plannedEnd,
+      plannedStart: project.plannedStart,
+      closureOutcome: project.closure?.outcome ?? null,
+      issues: project.issues,
+      milestones: project.milestones,
+      criticalOpenDependencies: depsByProject.get(project.id) ?? [],
+    };
+
+    const evaluation = evaluateDeliveryHealth(healthInput, asOf);
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "portfolio.query.delivery_health_project",
+      subjectType: "Project",
+      subjectId: project.id,
+      organizationId: visibility.organizationId,
+      payload: {
+        classification: evaluation.classification,
+        asOf: asOf.toISOString(),
+      },
+      result: "success",
+    });
+
+    return evaluation;
+  }
+
+  /**
    * Organization-scoped portfolio snapshot.
    * Enforces Phase 0C visibility before any aggregation.
    */
@@ -689,6 +997,235 @@ export class PortfolioQueryService {
       dependencies: { available: true, value: openDependencies },
       piCapacity,
     };
+  }
+
+  private async resolveHealthScope(
+    principal: Principal,
+    organizationId: string,
+    departmentId?: string,
+    sectionId?: string,
+  ): Promise<{
+    visibility: Awaited<ReturnType<typeof resolvePortfolioVisibility>>;
+    deptIds: string[] | null;
+    scope: PortfolioQueryScopeApplied;
+  }> {
+    const visibility = await resolvePortfolioVisibility(
+      this.db,
+      principal,
+      organizationId,
+      departmentId,
+    );
+
+    let deptIds = visibility.departmentIds;
+    if (sectionId) {
+      const section = await this.db.section.findUnique({
+        where: { id: sectionId },
+        select: {
+          id: true,
+          status: true,
+          organizationId: true,
+          departments: {
+            where: { status: "ACTIVE" },
+            select: { id: true },
+          },
+        },
+      });
+      if (
+        !section ||
+        section.status !== "ACTIVE" ||
+        section.organizationId !== visibility.organizationId
+      ) {
+        throw new AppError("NOT_FOUND", "Section not found in organization.");
+      }
+      const sectionDeptIds = section.departments.map((d) => d.id);
+      const allowed =
+        deptIds === null
+          ? sectionDeptIds
+          : sectionDeptIds.filter((id) => deptIds!.includes(id));
+      if (allowed.length === 0) {
+        throw new AppError(
+          "FORBIDDEN",
+          "No department in this section is visible for delivery health.",
+        );
+      }
+      deptIds = allowed;
+    }
+
+    const scope: PortfolioQueryScopeApplied =
+      deptIds === null
+        ? { mode: "organization", organizationId: visibility.organizationId }
+        : {
+            mode: "departments",
+            organizationId: visibility.organizationId,
+            departmentIds: deptIds,
+          };
+
+    return { visibility, deptIds, scope };
+  }
+
+  private async evaluateScopedProjects(
+    organizationId: string,
+    deptIds: string[] | null,
+    asOf: Date,
+  ): Promise<
+    Array<{
+      project: {
+        id: string;
+        initiativeId: string;
+        referenceKey: string;
+        name: string;
+        departmentId: string;
+        departmentName: string;
+        sectionId: string;
+        sectionName: string;
+        plannedEnd: Date | null;
+        updatedAt: Date;
+      };
+      evaluation: DeliveryHealthEvaluation;
+    }>
+  > {
+    const projects = await this.db.project.findMany({
+      where: {
+        organizationId,
+        status: { not: "ARCHIVED" },
+        ...(deptIds ? { departmentId: { in: deptIds } } : {}),
+      },
+      select: {
+        id: true,
+        initiativeId: true,
+        referenceKey: true,
+        name: true,
+        status: true,
+        plannedEnd: true,
+        plannedStart: true,
+        updatedAt: true,
+        departmentId: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+            section: { select: { id: true, name: true } },
+          },
+        },
+        closure: { select: { outcome: true } },
+        issues: {
+          select: {
+            id: true,
+            status: true,
+            severity: true,
+            isBlocker: true,
+          },
+        },
+        milestones: {
+          select: {
+            id: true,
+            status: true,
+            criticality: true,
+            plannedDate: true,
+          },
+        },
+        workItems: { select: { id: true } },
+      },
+    });
+
+    const depsByProject = await this.loadCriticalOpenDependenciesByProject(
+      organizationId,
+      projects.map((p) => ({
+        id: p.id,
+        workItemIds: p.workItems.map((w) => w.id),
+      })),
+    );
+
+    return projects.map((p) => {
+      const healthInput: HealthProjectInput = {
+        id: p.id,
+        initiativeId: p.initiativeId,
+        status: p.status,
+        plannedEnd: p.plannedEnd,
+        plannedStart: p.plannedStart,
+        closureOutcome: p.closure?.outcome ?? null,
+        issues: p.issues,
+        milestones: p.milestones,
+        criticalOpenDependencies: depsByProject.get(p.id) ?? [],
+      };
+      return {
+        project: {
+          id: p.id,
+          initiativeId: p.initiativeId,
+          referenceKey: p.referenceKey,
+          name: p.name,
+          departmentId: p.department.id,
+          departmentName: p.department.name,
+          sectionId: p.department.section.id,
+          sectionName: p.department.section.name,
+          plannedEnd: p.plannedEnd,
+          updatedAt: p.updatedAt,
+        },
+        evaluation: evaluateDeliveryHealth(healthInput, asOf),
+      };
+    });
+  }
+
+  /**
+   * Batch-load critical OPEN PlanningDependencies attributable to projects.
+   * Attribution: PROJECT endpoint is the project, or WORK_ITEM belongs to it.
+   */
+  private async loadCriticalOpenDependenciesByProject(
+    organizationId: string,
+    projects: Array<{ id: string; workItemIds: string[] }>,
+  ): Promise<Map<string, Array<{ id: string; status: string; criticality: string }>>> {
+    const result = new Map<
+      string,
+      Array<{ id: string; status: string; criticality: string }>
+    >();
+    for (const p of projects) result.set(p.id, []);
+    if (projects.length === 0) return result;
+
+    const projectIds = new Set(projects.map((p) => p.id));
+    const workItemToProject = new Map<string, string>();
+    for (const p of projects) {
+      for (const wid of p.workItemIds) workItemToProject.set(wid, p.id);
+    }
+
+    const openCritical = await this.db.planningDependency.findMany({
+      where: {
+        organizationId,
+        status: "OPEN",
+        criticality: "CRITICAL",
+      },
+      select: {
+        id: true,
+        status: true,
+        criticality: true,
+        sourceType: true,
+        sourceId: true,
+        targetType: true,
+        targetId: true,
+      },
+    });
+
+    const attribute = (type: string, id: string): string | null => {
+      if (type === "PROJECT" && projectIds.has(id)) return id;
+      if (type === "WORK_ITEM") return workItemToProject.get(id) ?? null;
+      return null;
+    };
+
+    for (const dep of openCritical) {
+      const attributed = new Set<string>();
+      const sourceProject = attribute(dep.sourceType, dep.sourceId);
+      const targetProject = attribute(dep.targetType, dep.targetId);
+      if (sourceProject) attributed.add(sourceProject);
+      if (targetProject) attributed.add(targetProject);
+      for (const pid of attributed) {
+        result.get(pid)!.push({
+          id: dep.id,
+          status: dep.status,
+          criticality: dep.criticality,
+        });
+      }
+    }
+
+    return result;
   }
 
   private summarizeInitiatives(
