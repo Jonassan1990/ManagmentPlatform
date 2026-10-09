@@ -343,7 +343,7 @@ No **P0** (unsafe/inaccessible critical path) confirmed for Org Admin browser pa
 
 ---
 
-## 12. Prosrioritized Backlog
+## 12. Prioritized Backlog
 
 Priority ≈ User impact × Frequency × Severity × (1/Effort).
 
