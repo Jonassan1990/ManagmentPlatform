@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central Maintenance | Resource Overview</title>
+<style>
+  :root{
+    --navy:#102a43;--ink:#29404f;--muted:#74848e;--bg:#f3f6f7;
+    --line:#e2e8eb;--teal:#087f78;--blue:#5b8def;--purple:#9272c7;
+    --amber:#e3a640;--red:#d65d57;--green:#418a67;--pale:#eef2f3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,"Segoe UI",Arial,sans-serif}
+  button,input{font:inherit}
+  button{cursor:pointer}
+  header{height:66px;background:var(--navy);color:white;display:flex;align-items:center;gap:15px;padding:0 25px;position:sticky;top:0;z-index:4}
+  .hamb{border:0;background:transparent;color:white;font-size:22px;border-radius:7px;width:36px;height:36px}
+  .hamb:hover{background:#ffffff20}
+  .mark{width:33px;height:33px;border:2px solid #70d1c7;border-radius:9px;display:grid;place-items:center;color:#70d1c7;font-weight:800}
+  .brand{font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+  .brand small{display:block;color:#afc1cc;font-size:9px;letter-spacing:.15em;font-weight:500}
+  .spacer{flex:1}
+  .period{border:1px solid #ffffff35;background:#ffffff12;color:white;padding:8px 10px;border-radius:7px}
+  .period option{color:#243746}
+  .avatar{width:33px;height:33px;background:#d5eee9;color:var(--navy);border-radius:50%;display:grid;place-items:center;font-weight:750}
+  .layout{display:flex;min-height:calc(100vh - 66px)}
+  aside{width:220px;flex-shrink:0;background:white;border-right:1px solid var(--line);padding:20px 12px;transition:width .2s,padding .2s;overflow:hidden}
+  aside.closed{width:0;padding-left:0;padding-right:0;border:0}
+  .nav-label{padding:11px 12px 7px;color:#98a5ad;text-transform:uppercase;font-size:9px;letter-spacing:.14em}
+  .nav-item{width:100%;padding:10px 12px;border:0;border-radius:8px;background:transparent;text-align:left;color:#526572;margin:2px 0}
+  .nav-item.active{background:#e7f4f2;color:#08756e;font-weight:700}
+  .nav-item:hover{background:#f2f7f7}
+  .nav-item span{display:inline-block;width:24px}
+  main{width:100%;max-width:1500px;margin:0 auto;padding:26px 30px 42px;min-width:0}
+  .topline{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:19px}
+  .eyebrow{color:var(--teal);font-size:10px;font-weight:750;letter-spacing:.12em;text-transform:uppercase}
+  h1{margin:5px 0;color:var(--navy);font-size:25px;letter-spacing:-.03em}
+  .subtitle{margin:0;color:var(--muted)}
+  .btn{background:white;border:1px solid var(--line);border-radius:7px;padding:9px 12px;color:#425968;font-weight:650}
+  .btn:hover{border-color:#91b8b3}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:white}
+  .actions{display:flex;gap:8px}
+  .card{background:white;border:1px solid var(--line);border-radius:11px;box-shadow:0 7px 22px #1b33440a}
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:16px}
+  .kpi{padding:14px 17px;position:relative;overflow:hidden}
+  .kpi:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--teal)}
+  .kpi.warn:before{background:var(--amber)}.kpi.critical:before{background:var(--red)}.kpi.blue:before{background:var(--blue)}
+  .kpi-label{font-size:11px;color:var(--muted)}
+  .kpi-value{font-size:27px;color:var(--navy);font-weight:800;letter-spacing:-.04em;margin:3px 0}
+  .kpi-note{font-size:10px;color:#829099}
+  .barline{height:5px;background:var(--pale);border-radius:5px;margin-top:8px;overflow:hidden}
+  .barline i{height:100%;display:block;background:var(--teal);border-radius:5px}
+  .section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:20px 0 11px}
+  .section-head h2{font-size:16px;color:var(--navy);margin:0}
+  .section-head p{margin:3px 0 0;color:var(--muted);font-size:11px}
+  .search{width:210px;padding:8px 10px;border:1px solid var(--line);border-radius:7px}
+  .dept-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+  .dept-card{overflow:hidden}
+  .dept-top{padding:15px 17px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .dept-name{font-size:14px;font-weight:750;color:var(--navy)}
+  .dept-sub{font-size:10px;color:var(--muted);margin-top:3px}
+  .dept-metrics{display:flex;gap:15px;text-align:right}
+  .metric strong{display:block;font-size:17px;color:var(--navy)}
+  .metric span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .metric strong.over{color:var(--red)}
+  .dept-util{padding:0 17px 13px;display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center}
+  .util-track{height:7px;background:var(--pale);border-radius:8px;overflow:hidden}
+  .util-track i{height:100%;display:block;background:var(--teal);border-radius:8px}
+  .util-track i.high{background:var(--amber)}.util-track i.over{background:var(--red)}
+  .util-label{font-size:10px;font-weight:750;color:#526572}
+  .dept-toggle{width:100%;border:0;border-top:1px solid var(--line);background:#fbfcfc;padding:10px 16px;color:var(--teal);font-size:11px;font-weight:750;text-align:left;display:flex;justify-content:space-between;align-items:center}
+  .dept-toggle:hover{background:#f0f7f6}
+  .arrow{transition:transform .18s}
+  .dept-card.open .arrow{transform:rotate(180deg)}
+  .dept-resources{display:none;border-top:1px solid var(--line);padding:5px 16px 10px}
+  .dept-card.open .dept-resources{display:block}
+  .resource-head,.resource-row{display:grid;grid-template-columns:145px minmax(120px,1fr) 48px 93px;gap:10px;align-items:center}
+  .resource-head{font-size:9px;color:#98a5ad;text-transform:uppercase;letter-spacing:.08em;padding:8px 0 6px}
+  .resource-row{padding:9px 0;border-top:1px solid #edf1f2}
+  .person{display:flex;gap:8px;align-items:center;min-width:0}
+  .initials{width:27px;height:27px;border-radius:50%;background:#e8f0f4;color:#31556c;display:grid;place-items:center;font-size:9px;font-weight:800;flex-shrink:0}
+  .person-name{font-size:10px;font-weight:700;color:#344b59;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .person-role{font-size:9px;color:#89969e}
+  .stack{height:18px;background:#f0f3f4;border-radius:4px;overflow:hidden;display:flex}
+  .seg{height:100%;min-width:2px}
+  .programme{background:#087f78}.asset{background:#5b8def}.backup{background:#9272c7}.change{background:#e3a640}.it{background:#a6bdc1}
+  .load{text-align:right;font-size:10px;font-weight:800}
+  .load.over{color:var(--red)}.load.high{color:#af7418}.load.ok{color:var(--green)}
+  .capacity{font-size:9px;font-weight:700;text-align:center;border-radius:20px;padding:4px 6px;white-space:nowrap}
+  .capacity.over{color:#b94d47;background:#fcebea}.capacity.high{color:#a86a0d;background:#fff4df}.capacity.ok{color:#367652;background:#e8f5ed}
+  .legend{display:flex;gap:13px;flex-wrap:wrap;padding:11px 2px 3px;color:#73828b;font-size:9px}
+  .legend span{display:flex;gap:5px;align-items:center}.dot{width:8px;height:8px;border-radius:2px}
+  .bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:16px}
+  .panel-head{padding:14px 16px;border-bottom:1px solid var(--line)}
+  .panel-head h3{margin:0;color:var(--navy);font-size:14px}
+  .panel-head p{margin:3px 0 0;color:var(--muted);font-size:10px}
+  .panel-body{padding:13px 16px}
+  .dep-row{display:grid;grid-template-columns:30px 1fr auto;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid #edf1f2}
+  .dep-row:last-child{border:0}
+  .dep-icon{width:28px;height:28px;display:grid;place-items:center;background:#edf4f5;border-radius:7px;color:#426c79}
+  .dep-name{font-size:10px;font-weight:750;color:#344c5a}
+  .dep-meta{font-size:9px;color:#89969e;margin-top:2px}
+  .dep-count{font-size:10px;font-weight:750;color:var(--navy);text-align:right}
+  .dep-count small{display:block;color:var(--muted);font-size:8px;font-weight:400}
+  .action-row{display:grid;grid-template-columns:1.5fr 1fr .8fr auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #edf1f2;font-size:9px;color:#526572}
+  .action-row:last-child{border:0}
+  .action-title{font-weight:700;color:#394f5c}
+  .badge{padding:4px 7px;border-radius:20px;background:#eef4f6;color:#54717e;font-size:8px;font-weight:750;white-space:nowrap}
+  .badge.risk{background:#fff3e0;color:#9b6b19}
+  .badge.active{background:#e7f4f2;color:#08756e}
+  .toast{position:fixed;right:20px;bottom:18px;display:none;background:var(--navy);color:white;padding:11px 15px;border-radius:8px;z-index:9;font-size:11px}
+  @media(max-width:950px){main{padding:22px 18px}.dept-grid{grid-template-columns:1fr}.bottom-grid{grid-template-columns:1fr}}
+  @media(max-width:650px){
+    header{padding:0 12px}.period{display:none}aside{position:fixed;top:66px;bottom:0;z-index:3;box-shadow:0 8px 20px #102a4320}
+    aside.closed{display:block;width:0}.topline{display:block}.actions{margin-top:12px}
+    main{padding:18px 12px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .kpi{padding:12px}.kpi-value{font-size:23px}.section-head{align-items:flex-start;flex-direction:column}
+    .search{width:100%}.resource-head,.resource-row{grid-template-columns:105px minmax(70px,1fr) 38px}
+    .resource-head .cap-col,.capacity{display:none}.dept-top{padding:13px}.dept-metrics{gap:9px}
+    .dept-util{padding:0 13px 12px}.resource-head,.resource-row{gap:6px}
+    .action-row{grid-template-columns:1.3fr 1fr auto}.action-row span:nth-child(3){display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <button class="hamb" id="menuToggle" aria-label="Toggle menu">☰</button>
+  <div class="mark">M</div>
+  <div class="brand">Central Maintenance<small>RESOURCE MANAGEMENT</small></div>
+  <div class="spacer"></div>
+  <select class="period" id="period">
+    <option>October 2026 · Current month</option>
+    <option>November 2026 · Next month</option>
+    <option>Q4 2026 · Quarter view</option>
+  </select>
+  <div class="avatar">MA</div>
+</header>
+<div class="layout">
+  <aside id="sidebar">
+    <div class="nav-label">Workspace</div>
+    <button class="nav-item active"><span>▦</span>Resource overview</button>
+    <button class="nav-item"><span>◫</span>Allocation plan</button>
+    <button class="nav-item"><span>⇄</span>Cross-functional work</button>
+    <button class="nav-item"><span>⌘</span>Department dependencies</button>
+    <div class="nav-label" style="margin-top:14px">Management</div>
+    <button class="nav-item"><span>▤</span>Capacity &amp; demand</button>
+    <button class="nav-item"><span>↗</span>Reports</button>
+  </aside>
+
+  <main>
+    <div class="topline">
+      <div>
+        <div class="eyebrow">Manager dashboard · Central Maintenance</div>
+        <h1>Resource allocation overview</h1>
+        <p class="subtitle">Select a department to see its people, workstream allocation and capacity.</p>
+      </div>
+      <div class="actions">
+        <button class="btn" id="exportBtn">↧ &nbsp;Export view</button>
+        <button class="btn primary" id="planBtn">＋ &nbsp;Plan allocation</button>
+      </div>
+    </div>
+
+    <section class="kpis">
+      <div class="card kpi">
+        <div class="kpi-label">Capacity allocated</div><div class="kpi-value">82%</div>
+        <div class="kpi-note">31.2 of 38.0 FTE planned</div><div class="barline"><i style="width:82%"></i></div>
+      </div>
+      <div class="card kpi critical">
+        <div class="kpi-label">Overloaded resources</div><div class="kpi-value">3</div>
+        <div class="kpi-note">Planned above 100% capacity</div>
+      </div>
+      <div class="card kpi blue">
+        <div class="kpi-label">Cross-functional assignments</div><div class="kpi-value">6</div>
+        <div class="kpi-note">4 people shared across workstreams</div>
+      </div>
+      <div class="card kpi warn">
+        <div class="kpi-label">External dependencies</div><div class="kpi-value">4</div>
+        <div class="kpi-note">2 partner-team actions need attention</div>
+      </div>
+    </section>
+
+    <div class="section-head">
+      <div><h2>Department allocation</h2><p>Departments are grouped below. Expand any department to inspect individual resource allocation.</p></div>
+      <input class="search" id="search" placeholder="⌕  Search departments or people" aria-label="Search departments or people">
+    </div>
+
+    <section class="dept-grid" id="departmentGrid"></section>
+    <div class="legend">
+      <span><i class="dot programme"></i>Programme</span>
+      <span><i class="dot asset"></i>Asset management</span>
+      <span><i class="dot backup"></i>Backup</span>
+      <span><i class="dot change"></i>Change management</span>
+      <span><i class="dot it"></i>IT support</span>
+      <span>Bars show each workstream share of planned time; load shows total planned capacity.</span>
+    </div>
+
+    <div class="bottom-grid">
+      <section class="card">
+        <div class="panel-head"><h3>Dependencies on other departments</h3><p>Support Central Maintenance needs from partner teams</p></div>
+        <div class="panel-body">
+          <div class="dep-row"><div class="dep-icon">⌘</div><div><div class="dep-name">IT Infrastructure</div><div class="dep-meta">Access, hosting &amp; environments</div></div><div class="dep-count">3<small>activities</small></div></div>
+          <div class="dep-row"><div class="dep-icon">⌁</div><div><div class="dep-name">Network &amp; Security</div><div class="dep-meta">Connectivity, firewall &amp; approvals</div></div><div class="dep-count">2<small>activities</small></div></div>
+          <div class="dep-row"><div class="dep-icon">◉</div><div><div class="dep-name">Production / PRU</div><div class="dep-meta">Site access &amp; operational windows</div></div><div class="dep-count">4<small>activities</small></div></div>
+          <div class="dep-row"><div class="dep-icon">▣</div><div><div class="dep-name">Procurement</div><div class="dep-meta">Supplier and purchase-order steps</div></div><div class="dep-count">1<small>activity</small></div></div>
+        </div>
+      </section>
+      <section class="card">
+        <div class="panel-head"><h3>Dependency actions to watch</h3><p>Partner actions affecting Central Maintenance plans</p></div>
+        <div class="panel-body">
+          <div class="action-row"><span class="action-title">Firewall rule approval</span><span>Network &amp; Security</span><span>14 Oct</span><span class="badge risk">At risk</span></div>
+          <div class="action-row"><span class="action-title">Test environment access</span><span>IT Infrastructure</span><span>16 Oct</span><span class="badge active">In progress</span></div>
+          <div class="action-row"><span class="action-title">PRU maintenance window</span><span>Production / PRU</span><span>20 Oct</span><span class="badge">Planned</span></div>
+          <div class="action-row"><span class="action-title">Supplier PO confirmation</span><span>Procurement</span><span>22 Oct</span><span class="badge">Planned</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const departments=[
+  {name:"Asset Management",desc:"Inventory, classification & OT discovery",resources:[
+    {name:"Lina Andersson",role:"OT Security Specialist",load:110,segments:{asset:42,backup:28,change:20,programme:20}},
+    {name:"Anna Nilsson",role:"Asset Coordinator",load:90,segments:{asset:50,programme:25,change:15}},
+    {name:"Erik Johansson",role:"Maintenance Engineer",load:105,segments:{asset:35,backup:25,programme:30,it:15}}
+  ]},
+  {name:"Maintenance Systems",desc:"Systems, backup & technical enablement",resources:[
+    {name:"Mikael Berg",role:"Systems Engineer",load:95,segments:{backup:35,asset:25,programme:25,change:10}},
+    {name:"Oskar Lund",role:"IT / OT Coordinator",load:65,segments:{it:25,backup:20,programme:20}}
+  ]},
+  {name:"Reliability",desc:"Operational reliability & change coordination",resources:[
+    {name:"Sofia Lindberg",role:"Reliability Engineer",load:100,segments:{asset:45,change:30,programme:25}},
+    {name:"Johan Ek",role:"Change Coordinator",load:85,segments:{change:40,asset:25,backup:20}}
+  ]},
+  {name:"Leadership",desc:"Priorities, governance & decision support",resources:[
+    {name:"Karin Svensson",role:"Maintenance Manager",load:75,segments:{programme:40,asset:20,change:15}}
+  ]}
+];
+const colors={programme:"programme",asset:"asset",backup:"backup",change:"change",it:"it"};
+const labels={programme:"Programme",asset:"Asset management",backup:"Backup",change:"Change management",it:"IT support"};
+const grid=document.getElementById("departmentGrid");
+const search=document.getElementById("search");
+
+function initials(name){return name.split(" ").map(x=>x[0]).slice(0,2).join("")}
+function render(){
+  const q=search.value.trim().toLowerCase();
+  const filtered=departments.map((d,index)=>({
+    ...d,index,
+    resources:d.resources.filter(r=>!q||r.name.toLowerCase().includes(q)||r.role.toLowerCase().includes(q)||d.name.toLowerCase().includes(q))
+  })).filter(d=>d.resources.length);
+  grid.innerHTML=filtered.map(d=>{
+    const avg=Math.round(d.resources.reduce((n,r)=>n+r.load,0)/d.resources.length);
+    const overloaded=d.resources.filter(r=>r.load>100).length;
+    const capClass=avg>100?"over":avg>=95?"high":"ok";
+    const open=document.querySelector(`[data-dept="${d.index}"]`)?.classList.contains("open");
+    return `<article class="card dept-card ${open?"open":""}" data-dept="${d.index}">
+      <div class="dept-top">
+        <div><div class="dept-name">${d.name}</div><div class="dept-sub">${d.desc}</div></div>
+        <div class="dept-metrics">
+          <div class="metric"><strong>${d.resources.length}</strong><span>Resources</span></div>
+          <div class="metric"><strong class="${overloaded?"over":""}">${overloaded}</strong><span>Overloaded</span></div>
+        </div>
+      </div>
+      <div class="dept-util">
+        <div class="util-track"><i class="${capClass}" style="width:${Math.min(avg,120)/120*100}%"></i></div>
+        <div class="util-label">${avg}% avg. load</div>
+      </div>
+      <button class="dept-toggle" aria-expanded="${open?"true":"false"}">
+        <span>${open?"Hide":"View"} ${d.resources.length} resource${d.resources.length===1?"":"s"} &amp; allocation</span><span class="arrow">⌄</span>
+      </button>
+      <div class="dept-resources">
+        <div class="resource-head"><div>Resource</div><div>Workstream allocation</div><div style="text-align:right">Load</div><div class="cap-col">Capacity status</div></div>
+        ${d.resources.map(r=>{
+          const cls=r.load>100?"over":r.load>=95?"high":"ok";
+          const status=r.load>100?"Over capacity":r.load>=95?"Near limit":"Available";
+          const segs=Object.entries(r.segments).map(([key,value])=>`<i class="seg ${colors[key]}" style="width:${value/120*100}%" title="${labels[key]} · ${value}%"></i>`).join("");
+          return `<div class="resource-row">
+            <div class="person"><div class="initials">${initials(r.name)}</div><div style="min-width:0"><div class="person-name">${r.name}</div><div class="person-role">${r.role}</div></div></div>
+            <div class="stack" title="Planned allocation: ${r.load}%">${segs}</div>
+            <div class="load ${cls}">${r.load}%</div>
+            <div class="capacity ${cls}">${status}</div>
+          </div>`;
+        }).join("")}
+      </div>
+    </article>`;
+  }).join("");
+  grid.querySelectorAll(".dept-toggle").forEach(btn=>btn.addEventListener("click",()=>{
+    const card=btn.closest(".dept-card");
+    card.classList.toggle("open");
+    btn.setAttribute("aria-expanded",card.classList.contains("open"));
+    btn.querySelector("span").textContent=(card.classList.contains("open")?"Hide ":"View ")+card.querySelectorAll(".resource-row").length+" resources & allocation";
+  }));
+}
+function showToast(message){
+  const toast=document.getElementById("toast");
+  toast.textContent=message;toast.style.display="block";
+  clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>toast.style.display="none",2200);
+}
+search.addEventListener("input",render);
+render();
+document.getElementById("menuToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("closed"));
+document.getElementById("exportBtn").addEventListener("click",()=>showToast("Overview ready to export."));
+document.getElementById("planBtn").addEventListener("click",()=>showToast("Allocation planning selected."));
+document.getElementById("period").addEventListener("change",e=>showToast("View updated: "+e.target.value));
+document.querySelectorAll(".nav-item").forEach(button=>button.addEventListener("click",()=>{
+  document.querySelectorAll(".nav-item").forEach(item=>item.classList.remove("active"));
+  button.classList.add("active");
+}));
+</script>
+</body>
+</html>
