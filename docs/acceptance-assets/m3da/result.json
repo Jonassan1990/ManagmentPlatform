@@ -1,0 +1,55 @@
+{
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "open-pi-planning",
+      "status": "PASS"
+    },
+    {
+      "step": "inspect-readiness",
+      "status": "PASS"
+    },
+    {
+      "step": "select-scenario-a",
+      "status": "PASS"
+    },
+    {
+      "step": "switch-to-b",
+      "status": "PASS"
+    },
+    {
+      "step": "clear-selection",
+      "status": "PASS"
+    },
+    {
+      "step": "current-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "portfolio-capacity",
+      "status": "PASS"
+    },
+    {
+      "step": "mobile-layout",
+      "status": "PASS"
+    }
+  ],
+  "base": "http://localhost:43149",
+  "piId": "f7f01434-9b93-40a1-bda5-dd799bd51d59",
+  "seed": {
+    "organizationId": "f022db83-1bd5-4d35-9338-17689b4f3d14",
+    "piId": "f7f01434-9b93-40a1-bda5-dd799bd51d59",
+    "currentRevisionId": "030c815d-3018-457d-9123-a802dfc04bd8",
+    "scenarioAId": "4ae6d3ef-e454-4c5d-b8ce-a26aa29ce076",
+    "scenarioBId": "3a3e7068-c3dd-4dda-9bab-ad8bf681625b",
+    "archivedScenarioId": "88ee080d-6346-4278-929b-f7b0293530ec"
+  },
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "allPassed": true
+  }
+}
