@@ -117,11 +117,11 @@ Viewer / Department Manager destructive fixtures: covered by unit empty/unavaila
 | Gate | Result |
 |---|---|
 | typecheck | PASS |
-| lint | PASS |
-| unit | PASS (incl. capacity dashboard UX + shared-resource display) |
-| integration | PASS |
+| lint | PASS (0 errors; 2 pre-existing warnings) |
+| unit | PASS — **39** files / **259** tests |
+| integration | PASS — **20** files / **190** tests |
 | build | PASS |
-| browser QA | PASS |
+| browser QA | PASS — `scripts/m4eb-browser-qa.mjs` (11/11) |
 
 ---
 

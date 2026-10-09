@@ -6,7 +6,7 @@ import { chromium } from "playwright";
 import fs from "fs";
 import path from "node:path";
 
-const base = process.env.QA_BASE_URL ?? "http://127.0.0.1:43148";
+const base = process.env.QA_BASE_URL ?? "http://localhost:43148";
 const pass = fs
   .readFileSync(process.env.QA_PASS_FILE ?? "/tmp/m3dd-qa-pass.txt", "utf8")
   .trim();
@@ -77,34 +77,36 @@ try {
   await login(page);
   step("1-org-admin-login", true);
 
-  await page.goto(`${base}/portfolio/capacity`, {
+  const seededCapacityUrl =
+    process.env.QA_CAPACITY_URL ??
+    "/portfolio/capacity?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&piId=c9cf896f-8a37-43de-aefe-c3af32bcfc78";
+
+  await page.goto(`${base}${seededCapacityUrl}`, {
     waitUntil: "networkidle",
     timeout: 60000,
   });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1200);
 
-  // Ensure a PI is selected when chips exist
-  const chips = page.getByTestId("capacity-pi-chips");
-  if ((await chips.count()) > 0) {
-    await chips.getByRole("button").first().click();
-    await page.waitForTimeout(1200);
-  }
-
-  // Prefer M2E Capacity Org if present in the org select
-  const orgSelect = page.locator('select[name="organizationId"]');
-  if ((await orgSelect.count()) > 0) {
-    const options = await orgSelect.locator("option").allTextContents();
-    const m2e = options.findIndex((t) => /M2E Capacity/i.test(t));
-    if (m2e >= 0) {
-      const value = await orgSelect.locator("option").nth(m2e).getAttribute("value");
-      await orgSelect.selectOption(value);
-      await page.getByRole("button", { name: /^Apply$/i }).click();
-      await page.waitForTimeout(1200);
-      const chipsAfter = page.getByTestId("capacity-pi-chips");
-      if ((await chipsAfter.count()) > 0) {
-        await chipsAfter.getByRole("button").first().click();
-        await page.waitForTimeout(1200);
+  // Fallback: select M2E Capacity Org + first PI chip if summary not ready
+  if ((await page.getByTestId("capacity-summary").count()) === 0) {
+    const orgSelect = page.locator('select[name="organizationId"]');
+    if ((await orgSelect.count()) > 0) {
+      const options = await orgSelect.locator("option").allTextContents();
+      const m2e = options.findIndex((t) => /M2E Capacity/i.test(t));
+      if (m2e >= 0) {
+        const value = await orgSelect
+          .locator("option")
+          .nth(m2e)
+          .getAttribute("value");
+        await orgSelect.selectOption(value);
+        await page.getByRole("button", { name: /^Apply$/i }).click();
+        await page.waitForTimeout(1000);
       }
+    }
+    const chips = page.getByTestId("capacity-pi-chips");
+    if ((await chips.count()) > 0) {
+      await chips.getByRole("button").first().click();
+      await page.waitForTimeout(1200);
     }
   }
 
@@ -121,7 +123,7 @@ try {
   const levelD = (await page.getByText("D · Management attention").count()) > 0;
   step(
     "2-abcd-sections",
-    ctx && (summary || !hierarchy) && levelA,
+    ctx && summary && hierarchy && attention && levelA && levelB && levelC && levelD,
     {
       detail: { ctx, summary, hierarchy, attention, levelA, levelB, levelC, levelD },
     },
@@ -131,7 +133,7 @@ try {
   const baseline =
     (await page.getByText(/Baseline comparison|Approved baseline|Unavailable/i).count()) >
     0;
-  step("3-current-baseline-labels", currentLive || !summary, {
+  step("3-current-baseline-labels", currentLive && baseline, {
     detail: { currentLive, baseline },
   });
 
@@ -144,7 +146,7 @@ try {
     await page.waitForTimeout(500);
     await shot(page, "02-inspect-overloaded");
   } else if (summary) {
-    const overloadedOnly = page.getByLabelText(/Overloaded only/i);
+    const overloadedOnly = page.getByLabel(/Overloaded only/i);
     if ((await overloadedOnly.count()) > 0) {
       stepsToOverloaded = 2;
       await overloadedOnly.check();
@@ -154,7 +156,9 @@ try {
     stepsToOverloaded = 0; // no ready capacity — skip metric
   }
   result.measurements.after.stepsToOverloadedTeam = stepsToOverloaded || "n/a";
-  step("4-overloaded-path", true, { detail: { stepsToOverloaded } });
+  step("4-overloaded-path", stepsToOverloaded > 0 || summary, {
+    detail: { stepsToOverloaded },
+  });
 
   // Resource allocation via expand
   let stepsToResource = 0;
@@ -171,7 +175,9 @@ try {
     (await page.getByText(/membership/i).count()) > 0 ||
     (await page.getByText(/Shared resource policy/i).count()) > 0;
   result.measurements.after.stepsToResourceAllocation = stepsToResource || "n/a";
-  step("5-resource-hierarchy", true, { detail: { stepsToResource, membership } });
+  step("5-resource-hierarchy", hierarchy && membership, {
+    detail: { stepsToResource, membership },
+  });
   await shot(page, "03-hierarchy-expanded");
 
   const controls = page.getByTestId("capacity-hierarchy-controls");
@@ -180,14 +186,14 @@ try {
       ? (await controls.locator("select, input").count())
       : 0;
   result.measurements.after.hierarchyControls = controlCount || 3;
-  step("6-hierarchy-controls", controlCount === 0 || controlCount >= 3, {
+  step("6-hierarchy-controls", controlCount >= 3, {
     detail: { controlCount },
   });
 
   const sharedPolicy =
     (await page.getByText(/must not have full capacity counted independently/i).count()) >
     0;
-  step("7-shared-resource-copy", sharedPolicy || !hierarchy, {
+  step("7-shared-resource-copy", sharedPolicy, {
     detail: { sharedPolicy },
   });
 
@@ -195,7 +201,7 @@ try {
   const projects =
     (await page.getByRole("heading", { name: /Project commitments/i }).count()) >
     0;
-  step("8-project-commitments", projects || !hierarchy, { detail: { projects } });
+  step("8-project-commitments", projects, { detail: { projects } });
 
   // Tablet
   await page.setViewportSize({ width: 900, height: 900 });
