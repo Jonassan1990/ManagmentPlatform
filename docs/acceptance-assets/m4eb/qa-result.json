@@ -1,0 +1,105 @@
+{
+  "milestone": "M4E-B",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T23:30:59.594Z",
+  "measurements": {
+    "before": {
+      "stepsToOverloadedTeam": 4,
+      "stepsToResourceAllocation": 3,
+      "hierarchyControls": 3,
+      "hierarchyReadability": "flat list + expand",
+      "mobileInteractionEffort": "scroll + expand + horizontal resource cols"
+    },
+    "after": {
+      "stepsToOverloadedTeam": 1,
+      "stepsToResourceAllocation": 1,
+      "hierarchyControls": 3,
+      "mobileOverflowPx": 3,
+      "mobileInteractionEffort": "scroll + Inspect team (1 tap) + expand toggle",
+      "hierarchyReadability": "A/B/D/C sections · StatusBadge · CapacityBar · expand"
+    }
+  },
+  "steps": [
+    {
+      "step": "1-org-admin-login",
+      "status": "PASS"
+    },
+    {
+      "step": "2-abcd-sections",
+      "status": "PASS",
+      "detail": {
+        "ctx": true,
+        "summary": true,
+        "hierarchy": true,
+        "attention": true,
+        "levelA": true,
+        "levelB": true,
+        "levelC": true,
+        "levelD": true
+      }
+    },
+    {
+      "step": "3-current-baseline-labels",
+      "status": "PASS",
+      "detail": {
+        "currentLive": true,
+        "baseline": true
+      }
+    },
+    {
+      "step": "4-overloaded-path",
+      "status": "PASS",
+      "detail": {
+        "stepsToOverloaded": 1
+      }
+    },
+    {
+      "step": "5-resource-hierarchy",
+      "status": "PASS",
+      "detail": {
+        "stepsToResource": 1,
+        "membership": true
+      }
+    },
+    {
+      "step": "6-hierarchy-controls",
+      "status": "PASS",
+      "detail": {
+        "controlCount": 3
+      }
+    },
+    {
+      "step": "7-shared-resource-copy",
+      "status": "PASS",
+      "detail": {
+        "sharedPolicy": true
+      }
+    },
+    {
+      "step": "8-project-commitments",
+      "status": "PASS",
+      "detail": {
+        "projects": true
+      }
+    },
+    {
+      "step": "9-tablet",
+      "status": "PASS"
+    },
+    {
+      "step": "10-mobile",
+      "status": "PASS",
+      "detail": {
+        "overflow": 3
+      }
+    },
+    {
+      "step": "11-keyboard-expand-focus",
+      "status": "PASS",
+      "detail": {
+        "focused": true
+      }
+    }
+  ],
+  "verdict": "PASS"
+}

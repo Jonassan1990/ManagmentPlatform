@@ -176,4 +176,64 @@ describe("portfolio capacity display helpers", () => {
   it("builds initials for avatars", () => {
     expect(initials("Lina Andersson")).toBe("LA");
   });
+
+  it("keeps shared-resource membership rows separate per team (no double full capacity)", () => {
+    const teams: PortfolioPiTeamCapacityRow[] = [
+      {
+        teamId: "t1",
+        teamName: "Team A",
+        departmentId: "d1",
+        iterationId: "i1",
+        iterationName: "It1",
+        ...hours(40, 30),
+      },
+      {
+        teamId: "t2",
+        teamName: "Team B",
+        departmentId: "d1",
+        iterationId: "i1",
+        iterationName: "It1",
+        ...hours(40, 20),
+      },
+    ];
+    const resources: PortfolioPiResourceCapacityRow[] = [
+      {
+        resourceId: "shared",
+        resourceName: "Shared Dev",
+        teamId: "t1",
+        iterationId: "i1",
+        membershipAllocationPercent: 50,
+        ...hours(40, 30),
+      },
+      {
+        resourceId: "shared",
+        resourceName: "Shared Dev",
+        teamId: "t2",
+        iterationId: "i1",
+        membershipAllocationPercent: 50,
+        ...hours(40, 20),
+      },
+    ];
+    const departments: PortfolioPiDepartmentCapacityRow[] = [
+      {
+        departmentId: "d1",
+        departmentName: "Dept",
+        ...hours(80, 50),
+      },
+    ];
+
+    const aggregated = aggregateResourcesByTeam(resources, teams);
+    expect(aggregated).toHaveLength(2);
+    expect(aggregated.every((r) => r.membershipAllocationPercent === 50)).toBe(
+      true,
+    );
+    // Display sums returned hours only — does not invent 100% per team.
+    expect(aggregated.reduce((n, r) => n + r.availableHours, 0)).toBe(80);
+
+    const cards = buildDepartmentCards(departments, teams, resources);
+    expect(cards[0]!.resourceCount).toBe(2);
+    expect(
+      cards[0]!.teams.flatMap((t) => t.resources).map((r) => r.teamId).sort(),
+    ).toEqual(["t1", "t2"]);
+  });
 });

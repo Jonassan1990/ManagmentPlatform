@@ -4,12 +4,16 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CAPACITY_BAND_LABELS } from "@/components/portfolio/metric";
+import { Alert } from "@/components/ui/alert";
 import { CapacityBar } from "@/components/ui/capacity-bar";
+import { StatusBadge } from "@/components/ui/status-badge";
+import type { StatusBadgeVariant } from "@/components/ui/status-badge";
 import {
   appendReturnContext,
   capacityReturnInput,
 } from "@/modules/navigation/return-context";
 import type {
+  PortfolioCapacityHours,
   PortfolioPiCapacityResult,
   PortfolioPiListItem,
 } from "@/modules/portfolio/domain/types";
@@ -24,6 +28,75 @@ import {
   formatUtilizationPct,
   initials,
 } from "./portfolio-capacity-model";
+
+function bandToStatus(
+  band: PortfolioCapacityHours["band"],
+): StatusBadgeVariant {
+  switch (band) {
+    case "overload":
+      return "blocked";
+    case "near":
+      return "at-risk";
+    case "ok":
+    case "under":
+      return "completed";
+    default:
+      return "unavailable";
+  }
+}
+
+function piLifecycleToStatus(
+  lifecycle: PortfolioPiListItem["lifecycle"] | undefined,
+  status: string | undefined,
+): StatusBadgeVariant {
+  if (lifecycle === "ACTIVE") return "in-progress";
+  if (lifecycle === "UPCOMING") return "pending";
+  if (lifecycle === "COMPLETED") return "completed";
+  if (status === "CANCELLED" || status === "ARCHIVED") return "cancelled";
+  return "draft";
+}
+
+function formatPlanningPeriod(startDate: string, endDate: string): string {
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const opts: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    };
+    return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`;
+  } catch {
+    return `${startDate} – ${endDate}`;
+  }
+}
+
+function SectionHeading({
+  id,
+  level,
+  title,
+  description,
+}: {
+  id: string;
+  level: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mb-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+        {level}
+      </p>
+      <h2
+        id={id}
+        className="font-[family-name:var(--font-display)] text-xl text-[#102a43]"
+      >
+        {title}
+      </h2>
+      <p className="mt-1 max-w-3xl text-sm text-[#74848e]">{description}</p>
+    </div>
+  );
+}
 
 export type CapacityOrgOption = { id: string; name: string };
 export type CapacityDeptOption = { id: string; name: string };
@@ -214,13 +287,18 @@ function DepartmentCard({
       </div>
       <button
         type="button"
-        className="flex w-full items-center justify-between border-t border-[#e2e8eb] bg-[#fbfcfc] px-4 py-[10px] text-left text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6]"
+        className="flex min-h-11 w-full items-center justify-between border-t border-[#e2e8eb] bg-[#fbfcfc] px-4 py-[10px] text-left text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
         aria-expanded={open}
+        aria-controls={`dept-panel-${card.departmentId}`}
+        id={`dept-toggle-${card.departmentId}`}
         onClick={onToggle}
       >
         <span>
           {open ? "Hide" : "View"} {card.teamCount} team
           {card.teamCount === 1 ? "" : "s"} &amp; resource allocation
+          {card.overloadCount > 0
+            ? ` · ${card.overloadCount} overloaded`
+            : ""}
         </span>
         <span
           className={`transition-transform ${open ? "rotate-180" : ""}`}
@@ -230,23 +308,41 @@ function DepartmentCard({
         </span>
       </button>
       {open ? (
-        <div className="border-t border-[#e2e8eb] px-4 pb-[10px] pt-1">
+        <div
+          className="border-t border-[#e2e8eb] px-4 pb-[10px] pt-1"
+          id={`dept-panel-${card.departmentId}`}
+          role="region"
+          aria-labelledby={`dept-toggle-${card.departmentId}`}
+        >
           {card.teams.map((team) => (
-            <div key={team.teamId} className="mt-3">
-              <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-xs font-bold text-[#102a43]">
+            <div
+              key={team.teamId}
+              className="mt-3"
+              data-team-id={team.teamId}
+              id={`team-${team.teamId}`}
+            >
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <p className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#102a43]">
                   {team.teamName}
-                  {team.band === "overload" ? (
-                    <span className="ml-2 rounded-full bg-[#fcebea] px-2 py-0.5 text-[9px] font-bold text-[#b94d47]">
-                      Overloaded
-                    </span>
-                  ) : null}
+                  <StatusBadge
+                    status={bandToStatus(team.band)}
+                    label={capacityStatusLabel(team.band)}
+                    size="compact"
+                  />
                 </p>
                 <p className="text-[10px] text-[#74848e]">
                   {formatCapacityHours(team.committedHours)}h /{" "}
                   {formatCapacityHours(team.availableHours)}h ·{" "}
                   {formatUtilizationPct(team.utilization)}
                 </p>
+              </div>
+              <div className="mb-2">
+                <CapacityBar
+                  available={team.availableHours}
+                  committed={team.committedHours}
+                  unavailable={team.band === "none"}
+                  showPercent
+                />
               </div>
               <div className="hidden grid-cols-[145px_minmax(120px,1fr)_48px_93px] gap-2.5 px-0 py-2 text-[9px] uppercase tracking-wide text-[#98a5ad] sm:grid">
                 <div>Resource</div>
@@ -329,16 +425,12 @@ function DepartmentCard({
                       >
                         {formatUtilizationPct(r.utilization)}
                       </div>
-                      <div
-                        className={`hidden text-center text-[9px] font-bold sm:block rounded-full px-1.5 py-1 ${
-                          rTone === "over"
-                            ? "bg-[#fcebea] text-[#b94d47]"
-                            : rTone === "high"
-                              ? "bg-[#fff4df] text-[#a86a0d]"
-                              : "bg-[#e8f5ed] text-[#367652]"
-                        }`}
-                      >
-                        {capacityStatusLabel(r.band)}
+                      <div className="hidden sm:block">
+                        <StatusBadge
+                          status={bandToStatus(r.band)}
+                          label={capacityStatusLabel(r.band)}
+                          size="compact"
+                        />
                       </div>
                     </div>
                   );
@@ -347,9 +439,11 @@ function DepartmentCard({
             </div>
           ))}
           <p className="mt-3 text-[9px] text-[#73828b]">
-            Bars show committed load against available hours from capacity-policy
-            (CURRENT revision). Per-project stacked shares per resource are not
-            in the M2E-A contract — see Project commitments below.
+            Bars show committed load against available hours from
+            capacity-policy on the CURRENT revision. Shared Resources use
+            membership % from the canonical policy — full capacity is not
+            counted independently per team. Per-project stacked segments per
+            resource are not in the M2E-A contract — see Project commitments.
           </p>
         </div>
       ) : null}
@@ -436,8 +530,66 @@ export function PortfolioCapacityDashboard({
     [cards, search, teamId, overloadedOnly],
   );
 
+  const uniqueOverloadedTeams = useMemo(() => {
+    if (!ready) return [];
+    const seen = new Set<string>();
+    const rows: Array<{
+      teamId: string;
+      teamName: string;
+      departmentId: string;
+      availableHours: number;
+      committedHours: number;
+      remainingHours: number;
+      utilization: number | null;
+      band: PortfolioCapacityHours["band"];
+    }> = [];
+    for (const t of ready.overloadedTeams) {
+      if (seen.has(t.teamId)) continue;
+      seen.add(t.teamId);
+      rows.push({
+        teamId: t.teamId,
+        teamName: t.teamName,
+        departmentId: t.departmentId,
+        availableHours: t.availableHours,
+        committedHours: t.committedHours,
+        remainingHours: t.remainingHours,
+        utilization: t.utilization,
+        band: t.band,
+      });
+    }
+    return rows;
+  }, [ready]);
+
+  const shortageTeams = useMemo(() => {
+    if (!ready) return [];
+    return ready.teams.filter(
+      (t) => t.remainingHours < 0 || t.band === "near" || t.band === "overload",
+    );
+  }, [ready]);
+
+  function expandDepartment(departmentId: string, teamIdFocus?: string) {
+    setOpenDepts((prev) => new Set(prev).add(departmentId));
+    if (teamIdFocus) {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById(`team-${teamIdFocus}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
+  }
+
+  function expandMatchingDepartments(nextCards: typeof cards) {
+    setOpenDepts((prev) => {
+      const next = new Set(prev);
+      for (const card of nextCards) next.add(card.departmentId);
+      return next;
+    });
+  }
+
+  const controlCount = 3; /* team filter + overloaded checkbox + search */
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6" data-testid="portfolio-capacity-dashboard">
       <ScopeForm
         organizations={organizations}
         departments={departments}
@@ -448,14 +600,14 @@ export function PortfolioCapacityDashboard({
       />
 
       {listError ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <Alert tone="error" live="assertive">
           {listError}
-        </p>
+        </Alert>
       ) : null}
       {capacityError ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <Alert tone="error" live="assertive">
           {capacityError}
-        </p>
+        </Alert>
       ) : null}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -463,182 +615,450 @@ export function PortfolioCapacityDashboard({
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#087f78]">
             Manager dashboard · {organizationName}
           </p>
-          <h2 className="mt-1 text-[25px] font-bold tracking-[-0.03em] text-[#102a43]">
+          <h1 className="mt-1 font-[family-name:var(--font-display)] text-[25px] font-bold tracking-[-0.03em] text-[#102a43]">
             PI &amp; Resource Capacity
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-[#74848e]">
-            Live capacity from the CURRENT planning revision. Hours only —
-            membership % is not project commitment.
+            Live capacity from the CURRENT planning revision. Hours come from
+            capacity-policy — membership % is not project commitment. Draft
+            scenarios are not shown as authoritative load.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/portfolio"
-            className="rounded-md border border-[#e2e8eb] bg-white px-3 py-2 text-sm font-semibold text-[#425968]"
+            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-white px-3 py-2 text-sm font-semibold text-[#425968] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
           >
             Portfolio
           </Link>
           <Link
             href={openPiHref}
-            className="rounded-md bg-[#087f78] px-3 py-2 text-sm font-semibold text-white"
+            className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-3 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
           >
             {openPiTarget === "/pi" ? "PI Planning" : "Open PI Planning"}
           </Link>
         </div>
       </div>
 
-      {/* Context strip */}
-      <div className="rounded-[11px] border border-[#e2e8eb] bg-white p-4 text-sm shadow-[0_7px_22px_#1b33440a]">
-        {!piId ? (
-          <p className="text-[#74848e]">No PI selected — choose a Program Increment to load capacity.</p>
-        ) : !capacity ? (
-          <p role="status" className="text-[#74848e]">
-            {capacityError
-              ? "Capacity could not be loaded for the selected Program Increment."
-              : "Capacity data was not returned for the selected Program Increment."}
-          </p>
-        ) : capacity.capacity.state === "no_pi_selected" ? (
-          <p role="status" className="text-[#74848e]">
-            {capacity.capacity.reason}
-          </p>
-        ) : capacity.capacity.state === "unavailable" ? (
-          <p role="status" className="rounded-md border border-[#e2e8eb] bg-[#f3f6f7] px-3 py-2 text-[#526572]">
-            Unavailable — {capacity.capacity.reason}
-          </p>
-        ) : ready ? (
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <div>
-              <span className="text-[#74848e]">Selected PI </span>
-              <Link
-                href={selectedPiMetaHref}
-                className="font-semibold text-[#087f78] underline-offset-2 hover:underline"
-              >
-                {ready.meta.referenceKey} · {ready.meta.name}
-              </Link>
-              <span className="ml-2 text-[11px] text-[#74848e]">
-                {ready.meta.status}
-              </span>
-            </div>
-            <div>
-              <span className="text-[#74848e]">Planning revision </span>
-              <strong className="text-[#102a43]">
-                {ready.meta.revision.key} v{ready.meta.revision.version}{" "}
-                (CURRENT)
-              </strong>
-            </div>
-            <div>
-              <span className="text-[#74848e]">Baseline </span>
-              {ready.baselineComparison.available ? (
-                <strong className="text-[#102a43]">
-                  v{ready.baselineComparison.versionNumber} · Δ{" "}
-                  {formatCapacityHours(ready.baselineComparison.deltaHours)}h
-                  vs live
-                </strong>
-              ) : (
-                <span className="text-[#74848e]">
-                  Unavailable — {ready.baselineComparison.reason}
-                </span>
-              )}
-            </div>
-            <div className="text-[11px] text-[#74848e]">
-              As of {new Date(capacity.asOf).toLocaleString()}
-            </div>
-          </div>
-        ) : null}
-      </div>
+      {/* ——— A. Planning Context ——— */}
+      <section
+        aria-labelledby="capacity-planning-context"
+        data-testid="capacity-planning-context"
+      >
+        <SectionHeading
+          id="capacity-planning-context"
+          level="A · Planning context"
+          title="Planning context"
+          description="Selected PI, planning period, CURRENT revision, and baseline comparison — never draft scenarios."
+        />
+        <div className="rounded-[11px] border border-[#e2e8eb] bg-white p-4 text-sm shadow-[0_7px_22px_#1b33440a]">
+          {!piId ? (
+            <p role="status" className="text-[#74848e]">
+              No PI selected — choose a Program Increment to load capacity. An
+              explicit selection is never overridden.
+            </p>
+          ) : !capacity ? (
+            <p role="status" className="text-[#74848e]">
+              {capacityError
+                ? "Capacity could not be loaded for the selected Program Increment."
+                : "Capacity data was not returned for the selected Program Increment."}
+            </p>
+          ) : capacity.capacity.state === "no_pi_selected" ? (
+            <p role="status" className="text-[#74848e]">
+              {capacity.capacity.reason}
+            </p>
+          ) : capacity.capacity.state === "unavailable" ? (
+            <Alert tone="warning" live="polite" title="Capacity unavailable">
+              {capacity.capacity.reason}
+            </Alert>
+          ) : ready ? (
+            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-[#74848e]">
+                  Selected PI
+                </dt>
+                <dd className="mt-1 flex flex-wrap items-center gap-2">
+                  <Link
+                    href={selectedPiMetaHref}
+                    className="font-semibold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                  >
+                    {ready.meta.referenceKey} · {ready.meta.name}
+                  </Link>
+                  <StatusBadge
+                    status={piLifecycleToStatus(
+                      selectedPi?.lifecycle,
+                      ready.meta.status,
+                    )}
+                    label={selectedPi?.lifecycle ?? ready.meta.status}
+                    size="compact"
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-[#74848e]">
+                  Planning period
+                </dt>
+                <dd className="mt-1 font-semibold text-[#102a43]">
+                  {formatPlanningPeriod(
+                    ready.meta.startDate,
+                    ready.meta.endDate,
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-[#74848e]">
+                  CURRENT revision
+                </dt>
+                <dd className="mt-1">
+                  <strong className="text-[#102a43]">
+                    {ready.meta.revision.key} v{ready.meta.revision.version}
+                  </strong>
+                  <StatusBadge
+                    status="in-progress"
+                    label="CURRENT live"
+                    size="compact"
+                    className="ml-2"
+                  />
+                  <p className="mt-0.5 text-[10px] text-[#74848e]">
+                    Authoritative commitments — not draft scenarios
+                  </p>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-[#74848e]">
+                  Baseline comparison
+                </dt>
+                <dd className="mt-1">
+                  {ready.baselineComparison.available ? (
+                    <>
+                      <strong className="text-[#102a43]">
+                        Approved baseline v
+                        {ready.baselineComparison.versionNumber}
+                      </strong>
+                      <p className="mt-0.5 text-[10px] text-[#74848e]">
+                        Live{" "}
+                        {formatCapacityHours(
+                          ready.baselineComparison.liveCommittedHours,
+                        )}
+                        h vs baseline{" "}
+                        {formatCapacityHours(
+                          ready.baselineComparison.baselineCommittedHours,
+                        )}
+                        h · Δ{" "}
+                        {formatCapacityHours(
+                          ready.baselineComparison.deltaHours,
+                        )}
+                        h
+                      </p>
+                    </>
+                  ) : (
+                    <span className="text-[#74848e]">
+                      Unavailable — {ready.baselineComparison.reason}
+                    </span>
+                  )}
+                </dd>
+              </div>
+              <div className="text-[11px] text-[#74848e] sm:col-span-2 xl:col-span-4">
+                As of {new Date(capacity.asOf).toLocaleString()} · Source{" "}
+                {ready.meta.source.replace(/_/g, " ")}
+              </div>
+            </dl>
+          ) : null}
+        </div>
+      </section>
 
-      {/* KPIs */}
+      {/* ——— B. Capacity Summary ——— */}
       {ready ? (
         <section
-          className="grid grid-cols-2 gap-2 sm:gap-[13px] lg:grid-cols-3 xl:grid-cols-6"
-          aria-label="Capacity KPIs"
+          aria-labelledby="capacity-summary"
+          data-testid="capacity-summary"
         >
-          <KpiCard
-            label="Available hours"
-            value={`${formatCapacityHours(ready.totals.availableHours)}h`}
-            note="Effective capacity (policy)"
+          <SectionHeading
+            id="capacity-summary"
+            level="B · Capacity summary"
+            title="Capacity summary"
+            description="Available, committed, remaining, utilization, overloaded teams, and planning conflicts from the M2E query — no browser recalculation."
           />
-          <KpiCard
-            label="Committed hours"
-            value={`${formatCapacityHours(ready.totals.committedHours)}h`}
-            note={
-              ready.totals.committedHours === 0
-                ? "Zero committed — valid empty load"
-                : "WorkAllocation planned hours"
-            }
-          />
-          <KpiCard
-            label="Remaining hours"
-            value={`${formatCapacityHours(ready.totals.remainingHours)}h`}
-            note="Available − committed"
-            tone={ready.totals.remainingHours < 0 ? "critical" : "default"}
-          />
-          <KpiCard
-            label="Utilization"
-            value={formatUtilizationPct(ready.totals.utilization)}
-            note={CAPACITY_BAND_LABELS[ready.totals.band] ?? ready.totals.band}
-            tone={
-              ready.totals.band === "overload"
-                ? "critical"
-                : ready.totals.band === "near"
-                  ? "warn"
-                  : "default"
-            }
-          />
-          <KpiCard
-            label="Overloaded teams"
-            value={String(
-              new Set(ready.overloadedTeams.map((t) => t.teamId)).size,
-            )}
-            note="Team-iterations with overload band"
-            tone={
-              ready.overloadedTeams.length > 0 ? "critical" : "default"
-            }
-          />
-          <KpiCard
-            label="Planning conflicts"
-            value={String(ready.conflicts.length)}
-            note={
-              ready.conflicts.length === 0
-                ? "No conflicts"
-                : "From conflict engine"
-            }
-            tone={ready.conflicts.length > 0 ? "warn" : "blue"}
-          />
+          <div
+            className="grid grid-cols-2 gap-2 sm:gap-[13px] lg:grid-cols-3 xl:grid-cols-6"
+            aria-label="Capacity KPIs"
+            data-testid="capacity-kpis"
+          >
+            <KpiCard
+              label="Available hours"
+              value={`${formatCapacityHours(ready.totals.availableHours)}h`}
+              note="Effective capacity (policy)"
+            />
+            <KpiCard
+              label="Committed hours"
+              value={`${formatCapacityHours(ready.totals.committedHours)}h`}
+              note={
+                ready.totals.committedHours === 0
+                  ? "Zero committed — valid empty load"
+                  : "WorkAllocation planned hours (CURRENT)"
+              }
+            />
+            <KpiCard
+              label="Remaining hours"
+              value={`${formatCapacityHours(ready.totals.remainingHours)}h`}
+              note="From service totals"
+              tone={ready.totals.remainingHours < 0 ? "critical" : "default"}
+            />
+            <KpiCard
+              label="Utilization"
+              value={formatUtilizationPct(ready.totals.utilization)}
+              note={CAPACITY_BAND_LABELS[ready.totals.band] ?? ready.totals.band}
+              tone={
+                ready.totals.band === "overload"
+                  ? "critical"
+                  : ready.totals.band === "near"
+                    ? "warn"
+                    : "default"
+              }
+            />
+            <KpiCard
+              label="Overloaded teams"
+              value={String(uniqueOverloadedTeams.length)}
+              note="Distinct teams with overload band"
+              tone={
+                uniqueOverloadedTeams.length > 0 ? "critical" : "default"
+              }
+            />
+            <KpiCard
+              label="Planning conflicts"
+              value={String(ready.conflicts.length)}
+              note={
+                ready.conflicts.length === 0
+                  ? "No conflicts"
+                  : "From conflict engine"
+              }
+              tone={ready.conflicts.length > 0 ? "warn" : "blue"}
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <StatusBadge
+              status={bandToStatus(ready.totals.band)}
+              label={`Portfolio ${capacityStatusLabel(ready.totals.band)}`}
+            />
+            <p className="text-[11px] text-[#74848e]">
+              Hierarchy controls: {controlCount} (team, overloaded-only, search)
+            </p>
+          </div>
         </section>
       ) : null}
 
-      {ready?.dataQuality.missingCapacityInputs ? (
-        <p
-          role="status"
-          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+      {/* ——— D. Management Attention (elevated before hierarchy for scan speed) ——— */}
+      {ready ? (
+        <section
+          aria-labelledby="capacity-management-attention"
+          data-testid="capacity-management-attention"
         >
-          Missing capacity inputs —{" "}
-          {ready.dataQuality.notes[0] ??
-            "Some resources lack capacityHoursPerWeek; treated as 0 hours, not unavailable."}
-        </p>
+          <SectionHeading
+            id="capacity-management-attention"
+            level="D · Management attention"
+            title="Management attention"
+            description="Overloaded teams, capacity shortages, planning conflicts, and missing capacity data that need action."
+          />
+          <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
+            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
+              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[#102a43]">
+                  Overloaded teams
+                </h3>
+                <p className="mt-1 text-[10px] text-[#74848e]">
+                  Jump into the department hierarchy without leaving this page
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                {uniqueOverloadedTeams.length === 0 ? (
+                  <p role="status" className="text-[11px] text-[#74848e]">
+                    No overloaded teams in this scope.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {uniqueOverloadedTeams.map((t) => (
+                      <li
+                        key={t.teamId}
+                        className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf1f2] py-2 last:border-0"
+                      >
+                        <div>
+                          <p className="text-[11px] font-bold text-[#102a43]">
+                            {t.teamName}
+                          </p>
+                          <p className="text-[9px] text-[#89969e]">
+                            {formatCapacityHours(t.committedHours)}h /{" "}
+                            {formatCapacityHours(t.availableHours)}h ·{" "}
+                            {formatUtilizationPct(t.utilization)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge
+                            status="blocked"
+                            label="Over capacity"
+                            size="compact"
+                          />
+                          <button
+                            type="button"
+                            className="min-h-11 rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            onClick={() => {
+                              setOverloadedOnly(true);
+                              expandDepartment(t.departmentId, t.teamId);
+                            }}
+                          >
+                            Inspect team
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
+              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[#102a43]">
+                  Shortages &amp; data gaps
+                </h3>
+                <p className="mt-1 text-[10px] text-[#74848e]">
+                  Near-limit / negative remaining · missing capacity inputs
+                </p>
+              </div>
+              <div className="space-y-3 px-4 py-3">
+                {ready.dataQuality.missingCapacityInputs ? (
+                  <Alert
+                    tone="warning"
+                    live="polite"
+                    title="Missing capacity data"
+                  >
+                    {ready.dataQuality.notes[0] ??
+                      "Some resources lack capacityHoursPerWeek; treated as 0 hours, not unavailable."}
+                  </Alert>
+                ) : (
+                  <p role="status" className="text-[11px] text-[#74848e]">
+                    No missing capacity inputs reported.
+                  </p>
+                )}
+                {shortageTeams.length === 0 ? (
+                  <p role="status" className="text-[11px] text-[#74848e]">
+                    No capacity shortages (near or overload) in returned teams.
+                  </p>
+                ) : (
+                  <ul className="max-h-48 space-y-1 overflow-y-auto">
+                    {shortageTeams.slice(0, 8).map((t) => (
+                      <li
+                        key={`${t.teamId}-${t.iterationId}`}
+                        className="flex items-center justify-between gap-2 text-[10px]"
+                      >
+                        <button
+                          type="button"
+                          className="min-h-11 text-left font-semibold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                          onClick={() =>
+                            expandDepartment(t.departmentId, t.teamId)
+                          }
+                        >
+                          {t.teamName}
+                          <span className="ml-1 font-normal text-[#89969e]">
+                            · {t.iterationName}
+                          </span>
+                        </button>
+                        <StatusBadge
+                          status={bandToStatus(t.band)}
+                          label={capacityStatusLabel(t.band)}
+                          size="compact"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a] lg:col-span-2">
+              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[#102a43]">
+                  Planning conflicts
+                </h3>
+                <p className="mt-1 text-[10px] text-[#74848e]">
+                  Derived from the existing conflict engine — not invented here
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                {ready.conflicts.length === 0 ? (
+                  <p role="status" className="text-[11px] text-[#74848e]">
+                    No conflicts.
+                  </p>
+                ) : (
+                  ready.conflicts.map((c, idx) => (
+                    <div
+                      key={`${c.type}-${c.subjectId}-${idx}`}
+                      className="grid grid-cols-1 gap-2 border-b border-[#edf1f2] py-2 text-[9px] text-[#526572] last:border-0 sm:grid-cols-[1.5fr_1fr_auto] sm:items-center"
+                    >
+                      <span className="font-bold text-[#394f5c]">
+                        {c.message}
+                      </span>
+                      <span>
+                        {conflictSubjectLabel(
+                          c,
+                          ready.teams,
+                          ready.resources.rows,
+                        )}
+                      </span>
+                      <StatusBadge
+                        status={
+                          c.severity === "BLOCKER"
+                            ? "blocked"
+                            : c.severity === "WARNING"
+                              ? "at-risk"
+                              : "pending"
+                        }
+                        label={c.severity}
+                        size="compact"
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            </article>
+          </div>
+        </section>
       ) : null}
 
-      {/* Filters */}
+      {/* ——— C. Department / Team / Resource Breakdown ——— */}
       {ready ? (
-        <>
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h3 className="text-base font-bold text-[#102a43]">
-                Department allocation
-              </h3>
-              <p className="mt-1 text-[11px] text-[#74848e]">
-                Expand a department to inspect teams and resources in your
-                authorized scope.
-              </p>
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+        <section
+          aria-labelledby="capacity-hierarchy"
+          data-testid="capacity-hierarchy"
+        >
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <SectionHeading
+              id="capacity-hierarchy"
+              level="C · Hierarchy"
+              title="Department, team &amp; resource breakdown"
+              description="Expand a department to inspect teams and resources in your authorized scope. Shared Resources use membership % from capacity-policy — full capacity is not counted independently per team."
+            />
+            <div
+              className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
+              data-testid="capacity-hierarchy-controls"
+            >
               <label className="text-sm">
                 <span className="sr-only">Team filter</span>
                 <select
                   value={teamId}
-                  onChange={(e) => setTeamId(e.target.value)}
-                  className="w-full rounded-md border border-[#e2e8eb] px-3 py-2 sm:w-[12rem]"
+                  onChange={(e) => {
+                    const nextTeam = e.target.value;
+                    setTeamId(nextTeam);
+                    if (nextTeam) {
+                      expandMatchingDepartments(
+                        filterDepartmentCards(cards, {
+                          search,
+                          teamId: nextTeam,
+                          overloadedOnly,
+                        }),
+                      );
+                    }
+                  }}
+                  className="min-h-11 w-full rounded-md border border-[#e2e8eb] px-3 py-2 sm:w-[12rem]"
                   aria-label="Filter by team"
                 >
                   <option value="">All teams</option>
@@ -649,16 +1069,29 @@ export function PortfolioCapacityDashboard({
                   ))}
                 </select>
               </label>
-              <label className="flex items-center gap-2 text-sm text-[#526572]">
+              <label className="flex min-h-11 items-center gap-2 text-sm text-[#526572]">
                 <input
                   type="checkbox"
                   checked={overloadedOnly}
-                  onChange={(e) => setOverloadedOnly(e.target.checked)}
+                  onChange={(e) => {
+                    const on = e.target.checked;
+                    setOverloadedOnly(on);
+                    if (on) {
+                      expandMatchingDepartments(
+                        filterDepartmentCards(cards, {
+                          search,
+                          teamId: teamId || undefined,
+                          overloadedOnly: true,
+                        }),
+                      );
+                    }
+                  }}
+                  className="h-4 w-4"
                 />
                 Overloaded only
               </label>
               <input
-                className="w-full rounded-md border border-[#e2e8eb] px-3 py-2 sm:w-[210px]"
+                className="min-h-11 w-full rounded-md border border-[#e2e8eb] px-3 py-2 sm:w-[210px]"
                 placeholder="Search departments or people"
                 aria-label="Search departments or people"
                 value={search}
@@ -667,7 +1100,15 @@ export function PortfolioCapacityDashboard({
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {cards.length === 0 ? (
+            <p
+              role="status"
+              className="rounded-[11px] border border-[#e2e8eb] bg-white p-6 text-sm text-[#74848e]"
+            >
+              No participating departments returned for this PI in your
+              authorized scope.
+            </p>
+          ) : filtered.length === 0 ? (
             <p
               role="status"
               className="rounded-[11px] border border-[#e2e8eb] bg-white p-6 text-sm text-[#74848e]"
@@ -675,7 +1116,7 @@ export function PortfolioCapacityDashboard({
               No departments match the current filters.
             </p>
           ) : (
-            <section className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
               {filtered.map((card) => (
                 <DepartmentCard
                   key={card.departmentId}
@@ -694,18 +1135,18 @@ export function PortfolioCapacityDashboard({
                   }}
                 />
               ))}
-            </section>
+            </div>
           )}
 
-          {/* Bottom panels */}
-          <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <section className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
+          <div className="mt-4 grid grid-cols-1 gap-[13px] lg:grid-cols-2">
+            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
               <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[#102a43]">
                   Project commitments
                 </h3>
                 <p className="mt-1 text-[10px] text-[#74848e]">
-                  Hours from WorkAllocations on the CURRENT revision
+                  Hours from WorkAllocations on the CURRENT revision — not draft
+                  scenarios
                 </p>
               </div>
               <div className="px-4 py-3">
@@ -723,7 +1164,7 @@ export function PortfolioCapacityDashboard({
                       <div>
                         <Link
                           href={p.href}
-                          className="text-[10px] font-bold text-[#087f78] hover:underline"
+                          className="text-[10px] font-bold text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
                         >
                           {p.referenceKey} · {p.name}
                         </Link>
@@ -744,77 +1185,51 @@ export function PortfolioCapacityDashboard({
                   ))
                 )}
               </div>
-            </section>
+            </article>
 
-            <section className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
-              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
-                <h3 className="text-sm font-bold text-[#102a43]">
-                  Planning conflicts
-                </h3>
-                <p className="mt-1 text-[10px] text-[#74848e]">
-                  Derived from the existing conflict engine
+            <article className="rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]">
+              <h3 className="text-sm font-bold text-[#102a43]">
+                Shared resource policy
+              </h3>
+              <p className="mt-2 text-[11px] leading-relaxed text-[#74848e]">
+                A Resource participating in multiple teams must not have full
+                capacity counted independently in each team. Available hours
+                already reflect membership allocation percent from the canonical
+                capacity-policy. This UI sums returned hours only — it does not
+                invent another aggregation formula. Per-project stacked segments
+                per resource are not in the M2E-A contract; use Project
+                commitments for CURRENT revision project load.
+              </p>
+              {ready.resources.total > ready.resources.rows.length ? (
+                <p className="mt-3 text-[11px] text-[#74848e]">
+                  Showing {ready.resources.rows.length} of{" "}
+                  {ready.resources.total} resource-iteration rows (bounded page
+                  from M2E-A).
                 </p>
-              </div>
-              <div className="px-4 py-3">
-                {ready.conflicts.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[#74848e]">
-                    No conflicts.
-                  </p>
-                ) : (
-                  ready.conflicts.map((c, idx) => (
-                    <div
-                      key={`${c.type}-${c.subjectId}-${idx}`}
-                      className="grid grid-cols-[1.5fr_1fr_auto] gap-2 border-b border-[#edf1f2] py-2 text-[9px] text-[#526572] last:border-0"
-                    >
-                      <span className="font-bold text-[#394f5c]">
-                        {c.message}
-                      </span>
-                      <span>
-                        {conflictSubjectLabel(
-                          c,
-                          ready.teams,
-                          ready.resources.rows,
-                        )}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-1 text-[8px] font-bold ${
-                          c.severity === "BLOCKER"
-                            ? "bg-[#fcebea] text-[#b94d47]"
-                            : c.severity === "WARNING"
-                              ? "bg-[#fff3e0] text-[#9b6b19]"
-                              : "bg-[#eef4f6] text-[#54717e]"
-                        }`}
-                      >
-                        {c.severity}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
+              ) : null}
+            </article>
           </div>
-
-          {ready.resources.total > ready.resources.rows.length ? (
-            <p className="text-[11px] text-[#74848e]">
-              Showing {ready.resources.rows.length} of {ready.resources.total}{" "}
-              resource-iteration rows (bounded page from M2E-A).
-            </p>
-          ) : null}
-        </>
+        </section>
       ) : null}
 
-      {/* Quick PI chips when none selected */}
       {!piId && pis.length > 0 ? (
-        <div className="rounded-[11px] border border-[#e2e8eb] bg-white p-4">
+        <div
+          className="rounded-[11px] border border-[#e2e8eb] bg-white p-4"
+          data-testid="capacity-pi-chips"
+        >
           <p className="mb-2 text-sm font-semibold text-[#102a43]">
             Available Program Increments
+          </p>
+          <p className="mb-3 text-[11px] text-[#74848e]">
+            Active, upcoming, and completed PIs you are authorized to see.
+            Selecting one never overrides a later explicit choice.
           </p>
           <ul className="flex flex-wrap gap-2">
             {pis.slice(0, 12).map((p) => (
               <li key={p.piId}>
                 <button
                   type="button"
-                  className="rounded-md border border-[#e2e8eb] bg-[#f3f6f7] px-3 py-1.5 text-xs font-semibold text-[#087f78] hover:border-[#087f78]"
+                  className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#f3f6f7] px-3 py-1.5 text-xs font-semibold text-[#087f78] hover:border-[#087f78] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
                   onClick={() =>
                     router.push(
                       capacityHref({
@@ -832,7 +1247,6 @@ export function PortfolioCapacityDashboard({
           </ul>
         </div>
       ) : null}
-
     </div>
   );
 }
