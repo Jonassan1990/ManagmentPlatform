@@ -1,0 +1,64 @@
+{
+  "steps": [
+    {
+      "name": "open-showcase",
+      "status": "PASS"
+    },
+    {
+      "name": "buttons",
+      "status": "PASS"
+    },
+    {
+      "name": "dialog-escape-restore",
+      "status": "PASS",
+      "closed": true,
+      "focusBack": true,
+      "focusInDialog": true
+    },
+    {
+      "name": "confirm-error",
+      "status": "PASS"
+    },
+    {
+      "name": "status-badges",
+      "status": "PASS",
+      "badges": 21
+    },
+    {
+      "name": "table-states",
+      "status": "PASS"
+    },
+    {
+      "name": "capacity-bars",
+      "status": "PASS",
+      "overload": 1,
+      "unavailable": 2
+    },
+    {
+      "name": "alerts",
+      "status": "PASS",
+      "alerts": 3,
+      "statuses": 2
+    },
+    {
+      "name": "mobile",
+      "status": "PASS",
+      "overflowX": false
+    }
+  ],
+  "focusTrap": {
+    "focusInDialog": true
+  },
+  "escape": {
+    "closed": true,
+    "focusBack": true
+  },
+  "confirmError": {
+    "errorText": "Demonstration failure: the action was rejected. Dialog stays open.",
+    "stillOpen": 1
+  },
+  "mobile": {
+    "overflowX": false
+  },
+  "verdict": "PASS"
+}

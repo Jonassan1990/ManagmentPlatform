@@ -198,10 +198,10 @@ export function UiShowcaseClient() {
         <div className="mb-3 flex flex-wrap gap-2">
           {(
             [
-              ["data", "With rows"],
-              ["empty", "Empty"],
-              ["loading", "Loading"],
-              ["error", "Error"],
+              ["data", "Table: rows"],
+              ["empty", "Table: empty"],
+              ["loading", "Table: loading"],
+              ["error", "Table: error"],
             ] as const
           ).map(([mode, label]) => (
             <Button
