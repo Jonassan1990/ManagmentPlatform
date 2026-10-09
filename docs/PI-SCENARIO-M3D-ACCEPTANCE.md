@@ -3,6 +3,7 @@
 **STATUS:** PASS (functional)  
 **Date:** 2026-10-09  
 **Starting main SHA:** `99ef57cb5c5f47ecc9f3a9ad345ce6e0d5ed4b26`  
+**Final main SHA:** `11abed0e69aecd9ef8f1b698bbfe73bf9ecbf552`  
 **Scope:** Verification only — M3B + M3C + M3D-A + M3D-B + M3D-C. **No M3E. No feature work.**
 
 Related contracts:
