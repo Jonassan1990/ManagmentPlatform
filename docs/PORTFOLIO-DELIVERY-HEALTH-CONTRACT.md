@@ -103,7 +103,7 @@ Returns `counts` for all six classifications, `attentionCount`, `totalProjects`,
 
 ### `listDeliveryHealthAttention`
 
-Paginated Project rows with structured `reasons`, safe `href` (`/initiatives/{initiativeId}/project`), department/section labels, stable sort:
+Paginated Project rows with structured `reasons`, safe `href` (`/initiatives/{initiativeId}/project`), department/section labels, project `owner` reference (Resource FK or legacy name), stable sort:
 
 - Primary: `classification` | `name` | `updatedAt` | `plannedEnd`
 - Tie-breakers: `referenceKey`, then `id`
@@ -113,6 +113,10 @@ Filters: `organizationId`, optional `departmentId`, optional `sectionId` (never 
 ### `getProjectDeliveryHealth`
 
 Single Project evaluation; 404 if outside scoped visibility.
+
+### Explorer `deliveryHealth` (M2D-B)
+
+`explorePortfolio` accepts optional `deliveryHealth` matching a classification. Filtering uses the same classifier as summary/attention (server-side). Initiatives are excluded when the filter is set.
 
 ---
 

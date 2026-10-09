@@ -116,6 +116,16 @@ const explorerInputSchema = z.object({
   delivery: z
     .enum(["DELAYED", "ACTIVE_BLOCKER", "CRITICAL_ISSUE"])
     .optional(),
+  deliveryHealth: z
+    .enum([
+      "BLOCKED",
+      "AT_RISK",
+      "ON_TRACK",
+      "COMPLETED",
+      "CANCELLED",
+      "UNKNOWN",
+    ])
+    .optional(),
   sortBy: z.enum(["name", "updatedAt", "status", "targetDate"]).optional(),
   sortDir: z.enum(["asc", "desc"]).optional(),
   page: z.coerce.number().int().min(1).optional(),

@@ -59,6 +59,7 @@ Phase 1 (implementation scaffolding and domain foundations) must not begin until
 | [PORTFOLIO-DASHBOARD.md](./PORTFOLIO-DASHBOARD.md) | M2B executive portfolio dashboard route and UI↔M2A mapping |
 | [PORTFOLIO-EXPLORER.md](./PORTFOLIO-EXPLORER.md) | M2C portfolio explorer query contract, filters, delivery signals |
 | [PORTFOLIO-DELIVERY-HEALTH-CONTRACT.md](./PORTFOLIO-DELIVERY-HEALTH-CONTRACT.md) | M2D-A delivery-health classifications, precedence, reasons, scope |
+| [PORTFOLIO-DELIVERY-HEALTH-UI.md](./PORTFOLIO-DELIVERY-HEALTH-UI.md) | M2D-B dashboard, attention list, explanation, explorer filter |
 | [M2D-A-SIGNAL-EVIDENCE.md](./M2D-A-SIGNAL-EVIDENCE.md) | Pre-implementation signal inventory for M2D-A |
 | [UX-ACCEPTANCE-REPORT.md](./UX-ACCEPTANCE-REPORT.md) | Phase 5.5 UX inventory, route audit, P0–P3 findings, fixes applied |
 | [DEPLOYMENT-ACCEPTANCE.md](./DEPLOYMENT-ACCEPTANCE.md) | Deploy readiness; Phase 6 auth ready; deploy blocked on credentials |

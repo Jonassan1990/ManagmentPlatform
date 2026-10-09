@@ -312,7 +312,10 @@ export class PortfolioQueryService {
 
     const q = input.q?.trim();
     const includeInitiatives =
-      kinds.includes("INITIATIVE") && !input.delivery && !input.projectStatus;
+      kinds.includes("INITIATIVE") &&
+      !input.delivery &&
+      !input.deliveryHealth &&
+      !input.projectStatus;
     const includeProjects = kinds.includes("PROJECT") && !input.initiativeStage;
 
     type Candidate = {
@@ -333,6 +336,7 @@ export class PortfolioQueryService {
       delayed: boolean | null;
       activeBlocker: boolean | null;
       criticalOpenIssue: boolean | null;
+      deliveryHealth: DeliveryHealthClassification | null;
     };
 
     const candidates: Candidate[] = [];
@@ -401,6 +405,7 @@ export class PortfolioQueryService {
           delayed: null,
           activeBlocker: null,
           criticalOpenIssue: null,
+          deliveryHealth: null,
         });
       }
     }
@@ -434,6 +439,7 @@ export class PortfolioQueryService {
           status: true,
           updatedAt: true,
           plannedEnd: true,
+          plannedStart: true,
           departmentId: true,
           ownerName: true,
           ownerResourceId: true,
@@ -445,12 +451,34 @@ export class PortfolioQueryService {
               section: { select: { id: true, name: true } },
             },
           },
-          milestones: { select: { status: true } },
-          issues: {
-            select: { status: true, severity: true, isBlocker: true },
+          closure: { select: { outcome: true } },
+          milestones: {
+            select: {
+              id: true,
+              status: true,
+              criticality: true,
+              plannedDate: true,
+            },
           },
+          issues: {
+            select: {
+              id: true,
+              status: true,
+              severity: true,
+              isBlocker: true,
+            },
+          },
+          workItems: { select: { id: true } },
         },
       });
+
+      const depsByProject = await this.loadCriticalOpenDependenciesByProject(
+        visibility.organizationId,
+        projects.map((p) => ({
+          id: p.id,
+          workItemIds: p.workItems.map((w) => w.id),
+        })),
+      );
 
       for (const row of projects) {
         const delayed =
@@ -477,6 +505,28 @@ export class PortfolioQueryService {
         if (input.delivery === "ACTIVE_BLOCKER" && !activeBlocker) continue;
         if (input.delivery === "CRITICAL_ISSUE" && !criticalOpenIssue) continue;
 
+        const healthEval = evaluateDeliveryHealth(
+          {
+            id: row.id,
+            initiativeId: row.initiativeId,
+            status: row.status,
+            plannedEnd: row.plannedEnd,
+            plannedStart: row.plannedStart,
+            closureOutcome: row.closure?.outcome ?? null,
+            issues: row.issues,
+            milestones: row.milestones,
+            criticalOpenDependencies: depsByProject.get(row.id) ?? [],
+          },
+          asOf,
+        );
+
+        if (
+          input.deliveryHealth &&
+          healthEval.classification !== input.deliveryHealth
+        ) {
+          continue;
+        }
+
         candidates.push({
           kind: "PROJECT",
           id: row.id,
@@ -495,6 +545,7 @@ export class PortfolioQueryService {
           delayed,
           activeBlocker,
           criticalOpenIssue,
+          deliveryHealth: healthEval.classification,
         });
       }
     }
@@ -558,6 +609,7 @@ export class PortfolioQueryService {
         delayed: c.delayed,
         activeBlocker: c.activeBlocker,
         criticalOpenIssue: c.criticalOpenIssue,
+        health: c.deliveryHealth,
       },
     }));
 
@@ -576,6 +628,7 @@ export class PortfolioQueryService {
         sortDir,
         q: q ?? null,
         delivery: input.delivery ?? null,
+        deliveryHealth: input.deliveryHealth ?? null,
       },
       result: "success",
     });
@@ -750,6 +803,7 @@ export class PortfolioQueryService {
       departmentName: r.project.departmentName,
       sectionId: r.project.sectionId,
       sectionName: r.project.sectionName,
+      owner: r.project.owner,
       plannedEnd: r.project.plannedEnd
         ? r.project.plannedEnd.toISOString()
         : null,
@@ -1078,6 +1132,7 @@ export class PortfolioQueryService {
         departmentName: string;
         sectionId: string;
         sectionName: string;
+        owner: PortfolioExplorerOwner;
         plannedEnd: Date | null;
         updatedAt: Date;
       };
@@ -1100,6 +1155,8 @@ export class PortfolioQueryService {
         plannedStart: true,
         updatedAt: true,
         departmentId: true,
+        ownerName: true,
+        ownerResource: { select: { id: true, name: true } },
         department: {
           select: {
             id: true,
@@ -1158,6 +1215,7 @@ export class PortfolioQueryService {
           departmentName: p.department.name,
           sectionId: p.department.section.id,
           sectionName: p.department.section.name,
+          owner: ownerFrom(p.ownerResource, p.ownerName),
           plannedEnd: p.plannedEnd,
           updatedAt: p.updatedAt,
         },

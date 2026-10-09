@@ -16,6 +16,7 @@ export type ExplorerFilterState = {
   projectStatus?: string;
   ownerResourceId?: string;
   delivery?: string;
+  deliveryHealth?: string;
   sortBy?: string;
   sortDir?: string;
   page?: string;
@@ -37,6 +38,7 @@ function buildExplorerHref(
     "projectStatus",
     "ownerResourceId",
     "delivery",
+    "deliveryHealth",
     "sortBy",
     "sortDir",
     "page",
@@ -55,21 +57,43 @@ function DeliveryCell({ row }: { row: PortfolioExplorerRow }) {
       </span>
     );
   }
+  const healthLabel =
+    row.delivery.health === "BLOCKED"
+      ? "Blocked"
+      : row.delivery.health === "AT_RISK"
+        ? "At risk"
+        : row.delivery.health === "ON_TRACK"
+          ? "On track"
+          : row.delivery.health === "UNKNOWN"
+            ? "Unknown"
+            : row.delivery.health === "COMPLETED"
+              ? "Completed"
+              : row.delivery.health === "CANCELLED"
+                ? "Cancelled"
+                : null;
   const parts: string[] = [];
   if (row.delivery.delayed) parts.push("Delayed");
   if (row.delivery.activeBlocker) parts.push("Active blocker");
   if (row.delivery.criticalOpenIssue) parts.push("Critical issue");
-  if (parts.length === 0) {
-    return <span className="text-[var(--muted)]">No signals</span>;
-  }
   return (
-    <ul className="space-y-0.5 text-xs">
-      {parts.map((p) => (
-        <li key={p}>
-          <span className="font-medium text-[var(--warning)]">{p}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-0.5 text-xs">
+      {healthLabel ? (
+        <p className="font-medium">{healthLabel}</p>
+      ) : null}
+      {parts.length === 0 ? (
+        <span className="text-[var(--muted)]">
+          {healthLabel ? "No legacy signals" : "No signals"}
+        </span>
+      ) : (
+        <ul className="space-y-0.5">
+          {parts.map((p) => (
+            <li key={p}>
+              <span className="font-medium text-[var(--warning)]">{p}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -226,6 +250,22 @@ export function PortfolioExplorerFilters({
             <option value="DELAYED">Delayed projects</option>
             <option value="ACTIVE_BLOCKER">Active blocker</option>
             <option value="CRITICAL_ISSUE">Critical open issue</option>
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="text-[var(--muted)]">Delivery health</span>
+          <select
+            name="deliveryHealth"
+            defaultValue={filters.deliveryHealth ?? ""}
+            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+          >
+            <option value="">Any classification</option>
+            <option value="BLOCKED">Blocked</option>
+            <option value="AT_RISK">At risk</option>
+            <option value="ON_TRACK">On track</option>
+            <option value="UNKNOWN">Unknown / insufficient data</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
           </select>
         </label>
         <label className="block text-sm">

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  getDeliveryHealthSummaryAction,
   getPortfolioSnapshotAction,
+  listDeliveryHealthAttentionAction,
   listPortfolioDepartmentOptionsAction,
 } from "@/app/actions/portfolio";
 import {
@@ -15,14 +17,32 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
+import type { DeliveryHealthClassification } from "@/modules/portfolio/domain/types";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const HEALTH_FOCUS_VALUES = new Set([
+  "BLOCKED",
+  "AT_RISK",
+  "ON_TRACK",
+  "COMPLETED",
+  "CANCELLED",
+  "UNKNOWN",
+  "ATTENTION",
+]);
+
 export default async function PortfolioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ organizationId?: string; departmentId?: string }>;
+  searchParams: Promise<{
+    organizationId?: string;
+    departmentId?: string;
+    healthFocus?: string;
+  }>;
 }) {
   const params = await searchParams;
   const { authz, organization } = createServices();
@@ -54,7 +74,7 @@ export default async function PortfolioPage({
         />
         <PageHeader
           title="Portfolio"
-          description="Executive view of initiatives, delivery, governance attention, and PI capacity."
+          description="Executive view of initiatives, delivery health, governance attention, and PI capacity."
         />
         {orgListError ? (
           <Alert tone="danger">{orgListError}</Alert>
@@ -84,25 +104,55 @@ export default async function PortfolioPage({
     orgs.find((o) => o.id === organizationId)?.name ?? "Organization";
 
   const departmentId =
-    params.departmentId &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      params.departmentId,
-    )
+    params.departmentId && UUID_RE.test(params.departmentId)
       ? params.departmentId
       : undefined;
 
-  const [snapshotResult, deptResult] = await Promise.all([
-    getPortfolioSnapshotAction({
-      organizationId,
-      ...(departmentId ? { departmentId } : {}),
-    }),
-    listPortfolioDepartmentOptionsAction({ organizationId }),
-  ]);
+  const healthFocus =
+    params.healthFocus && HEALTH_FOCUS_VALUES.has(params.healthFocus)
+      ? params.healthFocus
+      : null;
+
+  const attentionClassifications: DeliveryHealthClassification[] | undefined =
+    healthFocus && healthFocus !== "ATTENTION"
+      ? [healthFocus as DeliveryHealthClassification]
+      : undefined;
+
+  const [snapshotResult, deptResult, healthSummaryResult, healthAttentionResult] =
+    await Promise.all([
+      getPortfolioSnapshotAction({
+        organizationId,
+        ...(departmentId ? { departmentId } : {}),
+      }),
+      listPortfolioDepartmentOptionsAction({ organizationId }),
+      getDeliveryHealthSummaryAction({
+        organizationId,
+        ...(departmentId ? { departmentId } : {}),
+      }),
+      listDeliveryHealthAttentionAction({
+        organizationId,
+        ...(departmentId ? { departmentId } : {}),
+        ...(attentionClassifications
+          ? { classifications: attentionClassifications }
+          : {}),
+        sortBy: "classification",
+        sortDir: "asc",
+        page: 1,
+        pageSize: 25,
+      }),
+    ]);
 
   const departments = deptResult.ok ? deptResult.data : [];
   const departmentName = departmentId
     ? (departments.find((d) => d.id === departmentId)?.name ?? null)
     : null;
+
+  const healthError =
+    !healthSummaryResult.ok
+      ? healthSummaryResult.error.message
+      : !healthAttentionResult.ok
+        ? healthAttentionResult.error.message
+        : null;
 
   return (
     <div>
@@ -114,7 +164,7 @@ export default async function PortfolioPage({
       />
       <PageHeader
         title="Portfolio"
-        description="Authorization-aware executive dashboard for lifecycle, delivery risk, governance attention, experimentation, and PI capacity."
+        description="Authorization-aware executive dashboard for lifecycle, delivery health, governance attention, experimentation, and PI capacity."
       />
 
       <div className="mb-6 space-y-4">
@@ -154,6 +204,15 @@ export default async function PortfolioPage({
           snapshot={snapshotResult.data}
           organizationName={organizationName}
           departmentName={departmentName}
+          departmentId={departmentId}
+          healthSummary={
+            healthSummaryResult.ok ? healthSummaryResult.data : null
+          }
+          healthAttention={
+            healthAttentionResult.ok ? healthAttentionResult.data : null
+          }
+          healthFocus={healthFocus}
+          healthError={healthError}
         />
       )}
     </div>
