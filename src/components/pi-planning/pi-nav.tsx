@@ -13,6 +13,7 @@ export const PI_STATUS_ORDER = [
 export type PiTabKey =
   | "overview"
   | "board"
+  | "compare"
   | "capacity"
   | "dependencies"
   | "review"
@@ -22,6 +23,11 @@ export type PiTabKey =
 const TABS: { key: PiTabKey; label: string; href: (id: string) => string }[] = [
   { key: "overview", label: "Overview", href: (id) => `/pi/${id}` },
   { key: "board", label: "Planning board", href: (id) => `/pi/${id}/board` },
+  {
+    key: "compare",
+    label: "Compare",
+    href: (id) => `/pi/${id}/compare`,
+  },
   { key: "capacity", label: "Capacity", href: (id) => `/pi/${id}/capacity` },
   {
     key: "dependencies",
