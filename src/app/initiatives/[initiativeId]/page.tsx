@@ -17,7 +17,10 @@ import {
 } from "@/components/pilot/pilot-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
 import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
-import { parseReturnContext } from "@/modules/navigation/return-context";
+import {
+  appendPreservedQuery,
+  parseReturnContext,
+} from "@/modules/navigation/return-context";
 import { stageLabel } from "@/modules/initiative/application/attention";
 import { createServices } from "@/server/container";
 
@@ -130,6 +133,7 @@ export default async function InitiativeOverviewPage({
         hasPoC={Boolean(gateItem.poc)}
         hasPilot={Boolean(gateItem.pilot)}
         hasProject={Boolean(gateItem.project)}
+        preserveQuery={query}
       />
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
@@ -457,7 +461,10 @@ export default async function InitiativeOverviewPage({
                   Manage work, milestones, and budget in the Project workspace.
                 </p>
                 <Link
-                  href={`/initiatives/${item.id}/project`}
+                  href={appendPreservedQuery(
+                    `/initiatives/${item.id}/project`,
+                    query,
+                  )}
                   className="text-sm text-[var(--accent)] underline"
                 >
                   Open Project workspace

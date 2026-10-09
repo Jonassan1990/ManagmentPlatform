@@ -189,6 +189,7 @@ export default async function ProjectPage({
         hasPoC={Boolean(item.poc)}
         hasPilot={Boolean(item.pilot)}
         hasProject={Boolean(project)}
+        preserveQuery={query}
       />
 
       {!project ? (

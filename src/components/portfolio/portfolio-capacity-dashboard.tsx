@@ -394,12 +394,18 @@ export function PortfolioCapacityDashboard({
     departmentId,
     piId,
   });
-  const openPiHref = selectedPi
-    ? appendReturnContext(selectedPi.href, returnInput)
-    : "/pi";
+  const openPiTarget =
+    selectedPi?.href ??
+    (piId ? `/pi/${piId}` : null) ??
+    (ready?.meta.piId ? `/pi/${ready.meta.piId}` : null) ??
+    "/pi";
+  const openPiHref =
+    openPiTarget === "/pi"
+      ? "/pi"
+      : appendReturnContext(openPiTarget, returnInput);
   const selectedPiMetaHref = ready?.meta.piId
     ? appendReturnContext(`/pi/${ready.meta.piId}`, returnInput)
-    : "/pi";
+    : openPiHref;
 
   const cards = useMemo(() => {
     if (!ready) return [];
@@ -476,7 +482,7 @@ export function PortfolioCapacityDashboard({
             href={openPiHref}
             className="rounded-md bg-[#087f78] px-3 py-2 text-sm font-semibold text-white"
           >
-            {selectedPi ? "Open PI Planning" : "PI Planning"}
+            {openPiTarget === "/pi" ? "PI Planning" : "Open PI Planning"}
           </Link>
         </div>
       </div>
