@@ -1,0 +1,140 @@
+{
+  "matrix": [
+    {
+      "scenario": "Create Scenario A from CURRENT",
+      "expected": "Independent DRAFT",
+      "result": "PASS",
+      "detail": "status=DRAFT"
+    },
+    {
+      "scenario": "Clone Scenario B from A",
+      "expected": "Independent allocations",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Edit B",
+      "expected": "A and CURRENT unchanged",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Compare CURRENT/A/B",
+      "expected": "Accurate deltas",
+      "result": "PASS",
+      "detail": "revisions=3 diffs=2"
+    },
+    {
+      "scenario": "Select B",
+      "expected": "Selected for review, not approved",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Clear selection",
+      "expected": "No CURRENT mutation",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Select B again",
+      "expected": "Exactly one selected scenario",
+      "result": "PASS",
+      "detail": "selectedCount=1"
+    },
+    {
+      "scenario": "Readiness with blockers",
+      "expected": "Promotion denied",
+      "result": "PASS",
+      "detail": "classification=NOT_READY"
+    },
+    {
+      "scenario": "Readiness with warnings",
+      "expected": "Explicit acknowledgement required",
+      "result": "PASS",
+      "detail": "Scenario classified READY — ack path N/A; covered by M3D-B suite"
+    },
+    {
+      "scenario": "Promote B",
+      "expected": "CURRENT allocations match B",
+      "result": "PASS",
+      "detail": "currentId=77e46916-46d5-4e8d-960f-cc94609e1e35"
+    },
+    {
+      "scenario": "Promotion retry",
+      "expected": "Documented idempotent/conflict behavior",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Portfolio after promotion",
+      "expected": "Shows new CURRENT values",
+      "result": "PASS",
+      "detail": "before=8 after=24"
+    },
+    {
+      "scenario": "Approve CURRENT",
+      "expected": "Approval bound to exact version",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Baseline approved CURRENT",
+      "expected": "Immutable baseline created",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Edit CURRENT after approval",
+      "expected": "Old approval no longer valid for new baseline",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Historical baseline",
+      "expected": "Unchanged",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Second promotion",
+      "expected": "Earlier approval cannot authorize new state",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Unauthorized approval",
+      "expected": "Denied",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Unauthorized baseline",
+      "expected": "Denied",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Cross-org attempt",
+      "expected": "Denied",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Concurrent promotion",
+      "expected": "One winner; no partial state",
+      "result": "PASS",
+      "detail": "wins=1 losses=1"
+    },
+    {
+      "scenario": "Concurrent approval",
+      "expected": "No conflicting approvals",
+      "result": "PASS",
+      "detail": "apWins=1 valid=1"
+    },
+    {
+      "scenario": "Concurrent baseline",
+      "expected": "No duplicate commitment",
+      "result": "PASS",
+      "detail": "blWins=1 delta=1"
+    },
+    {
+      "scenario": "Transaction failure",
+      "expected": "Full rollback",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Pre-M3D baseline bypass",
+      "expected": "Denied without expectedApprovalId",
+      "result": "PASS"
+    }
+  ],
+  "generatedAt": "2026-10-09T19:44:57.850Z"
+}

@@ -1,0 +1,121 @@
+{
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "open-pi-planning",
+      "status": "PASS"
+    },
+    {
+      "step": "create-scenario-a",
+      "status": "PASS",
+      "scenarioAId": "2ca7efaa-8fdf-4493-87d3-250045f325e6"
+    },
+    {
+      "step": "clone-scenario-b",
+      "status": "PASS",
+      "scenarioBId": "e524151c-4449-487f-be54-fde433dcd321"
+    },
+    {
+      "step": "edit-b-a-and-current-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "compare-current-a-b",
+      "status": "PASS"
+    },
+    {
+      "step": "select-scenario-b",
+      "status": "PASS"
+    },
+    {
+      "step": "inspect-readiness",
+      "status": "PASS"
+    },
+    {
+      "step": "promote-b",
+      "status": "PASS"
+    },
+    {
+      "step": "scenario-a-unchanged-after-promote",
+      "status": "PASS"
+    },
+    {
+      "step": "scenario-b-unchanged-after-promote",
+      "status": "PASS"
+    },
+    {
+      "step": "approve-enabled",
+      "status": "PASS"
+    },
+    {
+      "step": "approve-current",
+      "status": "PASS"
+    },
+    {
+      "step": "approval-bound-to-version",
+      "status": "PASS",
+      "approvalId": "aaa5ef48-6f30-4412-aa71-df13b924a681",
+      "version": 2
+    },
+    {
+      "step": "baseline-enabled",
+      "status": "PASS"
+    },
+    {
+      "step": "create-baseline",
+      "status": "PASS"
+    },
+    {
+      "step": "baseline-history",
+      "status": "PASS"
+    },
+    {
+      "step": "current-edited-after-baseline",
+      "status": "PASS"
+    },
+    {
+      "step": "approval-stale-visible",
+      "status": "PASS"
+    },
+    {
+      "step": "stale-approval-blocks-baseline",
+      "status": "PASS"
+    },
+    {
+      "step": "historical-baseline-unchanged",
+      "status": "PASS"
+    },
+    {
+      "step": "portfolio-current-visible",
+      "status": "PASS"
+    },
+    {
+      "step": "portfolio-no-draft-leak",
+      "status": "PASS"
+    },
+    {
+      "step": "viewer-denied-integration-covered",
+      "status": "PASS",
+      "note": "Viewer FORBIDDEN covered in pi-plan-approval-m3d.test.ts + pi-m3d-acceptance.test.ts"
+    },
+    {
+      "step": "mobile-layout",
+      "status": "PASS"
+    }
+  ],
+  "base": "http://localhost:43148",
+  "piId": "960860ac-c3e0-46b2-84a5-5cde50647584",
+  "seed": {
+    "organizationId": "4cbdcdc6-e91f-4114-a9dd-971719348dc9",
+    "piId": "960860ac-c3e0-46b2-84a5-5cde50647584",
+    "currentRevisionId": "0e7b71df-3176-44c0-bb61-80464abfd248",
+    "workItemIdA": "7a124da5-8ddf-4b4f-88b1-e169ef5c237b",
+    "workItemIdB": "403fa60b-73f7-4643-a6d9-702095d2b74c",
+    "iterationId": "7757937b-2833-45c4-809c-b2f5e6e5da9f",
+    "teamId": "a83c0597-2758-49a6-8ad0-17a12a2e5501",
+    "boardPath": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board"
+  }
+}
