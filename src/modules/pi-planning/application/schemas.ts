@@ -173,6 +173,25 @@ export const markScenarioReadyInputSchema = z.object({
   expectedVersion: z.number().int().positive(),
 });
 
+/** M3D-A — select a DRAFT / READY_FOR_REVIEW scenario for review (not approval). */
+export const selectScenarioInputSchema = z.object({
+  piId: uuidSchema,
+  revisionId: uuidSchema,
+  expectedPiVersion: z.number().int().positive(),
+  expectedRevisionVersion: z.number().int().positive(),
+});
+
+export const clearScenarioSelectionInputSchema = z.object({
+  piId: uuidSchema,
+  expectedPiVersion: z.number().int().positive(),
+});
+
+export const evaluateScenarioReadinessInputSchema = z.object({
+  piId: uuidSchema,
+  /** Defaults to the PI's currently selected revision when omitted. */
+  revisionId: uuidSchema.optional(),
+});
+
 export const setResourceAvailabilityInputSchema = z.object({
   resourceId: uuidSchema,
   iterationId: uuidSchema,

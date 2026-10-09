@@ -1590,6 +1590,8 @@ model ProgramIncrement {
   status            PiStatus  @default(DRAFT)
   /// Free-text planning owner — not a Principal FK.
   planningOwnerName String?   @db.VarChar(200)
+  /// M3D-A — at most one selected scenario for review (not approval). Null = none selected.
+  selectedRevisionId String?  @unique @db.Uuid
   version           Int       @default(1)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -1600,6 +1602,7 @@ model ProgramIncrement {
   participatingDepartments  PiParticipatingDepartment[]
   participatingTeams        PiParticipatingTeam[]
   revisions                 PlanningRevision[]
+  selectedRevision          PlanningRevision?          @relation("PiSelectedScenario", fields: [selectedRevisionId], references: [id], onDelete: SetNull)
   baselines                 PiBaseline[]
 
   @@unique([organizationId, referenceKey])
@@ -1686,12 +1689,15 @@ model PlanningRevision {
   createdByPrincipalId   String?                 @db.Uuid
   selectedAt             DateTime?
   selectedByPrincipalId  String?                 @db.Uuid
+  /// Status restored when selection is cleared (DRAFT or READY_FOR_REVIEW).
+  statusBeforeSelection  PlanningRevisionStatus?
 
-  pi          ProgramIncrement  @relation(fields: [piId], references: [id], onDelete: Cascade)
-  clonedFrom  PlanningRevision? @relation("RevisionClone", fields: [clonedFromRevisionId], references: [id], onDelete: SetNull)
-  clones      PlanningRevision[] @relation("RevisionClone")
-  allocations WorkAllocation[]
-  baselines   PiBaseline[]
+  pi             ProgramIncrement   @relation(fields: [piId], references: [id], onDelete: Cascade)
+  selectedByPi   ProgramIncrement?  @relation("PiSelectedScenario")
+  clonedFrom     PlanningRevision?  @relation("RevisionClone", fields: [clonedFromRevisionId], references: [id], onDelete: SetNull)
+  clones         PlanningRevision[] @relation("RevisionClone")
+  allocations    WorkAllocation[]
+  baselines      PiBaseline[]
 
   @@unique([piId, key])
   @@index([piId, isCurrent])
