@@ -1,0 +1,164 @@
+/**
+ * M4B-A — Enterprise design tokens (foundations).
+ * Semantic presentation tokens only — no domain/status enum changes.
+ *
+ * Existing component CSS variables (--bg, --ink, --accent, …) remain the
+ * compatibility surface. New semantic names alias those values so Tailwind
+ * theme keys and future primitives share one source of truth.
+ */
+
+:root {
+  /* ── Brand / chrome (preserved identity) ───────────────────────── */
+  --sidebar: #102a43;
+  --sidebar-ink: #d9e2ec;
+  --sidebar-active: #243b53;
+  --accent: #0f4c5c;
+  --accent-soft: #e6f1f3;
+
+  /* ── Surfaces ──────────────────────────────────────────────────── */
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --line: #d7dee7;
+
+  /* ── Text ──────────────────────────────────────────────────────── */
+  --ink: #15202b;
+  --muted: #5b6b7c;
+
+  /* ── Feedback (existing names preserved) ───────────────────────── */
+  --ok: #166534;
+  --warning: #9a3412;
+  --danger: #9b2226;
+
+  /* ── Semantic color aliases ────────────────────────────────────── */
+  --color-primary: var(--accent);
+  --color-primary-soft: var(--accent-soft);
+  --color-secondary: var(--sidebar);
+  --color-accent: #087f78;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--line);
+  --color-text: var(--ink);
+  --color-text-secondary: var(--muted);
+  --color-success: var(--ok);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: #1d4ed8;
+  --color-disabled: #94a3b8;
+  --color-disabled-bg: #e8eef3;
+  --color-focus: #0f4c5c;
+  --color-focus-ring: #0f4c5c;
+
+  /* Soft feedback surfaces (alerts / banners) */
+  --color-success-soft: #e8f5ed;
+  --color-warning-soft: #fff4df;
+  --color-error-soft: #fcebea;
+  --color-info-soft: #e8f0fe;
+
+  /* ── Semantic status (presentation only) ───────────────────────── */
+  --status-draft-fg: #475569;
+  --status-draft-bg: #f1f5f9;
+  --status-draft-border: #cbd5e1;
+
+  --status-in-progress-fg: #1d4ed8;
+  --status-in-progress-bg: #e8f0fe;
+  --status-in-progress-border: #93c5fd;
+
+  --status-pending-fg: #9a3412;
+  --status-pending-bg: #fff4df;
+  --status-pending-border: #f6c453;
+
+  --status-approved-fg: #0f4c5c;
+  --status-approved-bg: #e6f1f3;
+  --status-approved-border: #7eb6c0;
+
+  --status-completed-fg: #166534;
+  --status-completed-bg: #e8f5ed;
+  --status-completed-border: #86efac;
+
+  --status-cancelled-fg: #57534e;
+  --status-cancelled-bg: #f5f5f4;
+  --status-cancelled-border: #d6d3d1;
+
+  --status-blocked-fg: #9b2226;
+  --status-blocked-bg: #fcebea;
+  --status-blocked-border: #f5a8a4;
+
+  --status-at-risk-fg: #9a3412;
+  --status-at-risk-bg: #fff4df;
+  --status-at-risk-border: #f0b429;
+
+  --status-unavailable-fg: #64748b;
+  --status-unavailable-bg: #f8fafc;
+  --status-unavailable-border: #cbd5e1;
+
+  --status-archived-fg: #57534e;
+  --status-archived-bg: #f5f5f4;
+  --status-archived-border: #d6d3d1;
+
+  /* ── Typography ────────────────────────────────────────────────── */
+  --font-family-sans: var(--font-source-sans), "Source Sans 3", "Segoe UI",
+    sans-serif;
+  --font-family-display: var(--font-source-serif), "Source Serif 4", Georgia,
+    serif;
+  --font-family-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem; /* 12px — captions */
+  --text-sm: 0.875rem; /* 14px — body / labels */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem; /* page titles */
+  --text-kpi: 1.75rem; /* numeric KPI emphasis */
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ── Spacing ───────────────────────────────────────────────────── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+
+  --page-padding-x: 1rem;
+  --page-padding-x-md: 1.5rem;
+  --page-padding-x-lg: 2rem;
+  --page-padding-y: 1.5rem;
+  --section-gap: 1.25rem;
+  --card-padding: 1.25rem;
+  --form-gap: 0.75rem;
+  --table-cell-y: 0.5rem;
+  --table-cell-x: 0.75rem;
+
+  /* ── Shape & effects ───────────────────────────────────────────── */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px rgb(27 51 68 / 0.06);
+  --shadow-md: 0 7px 22px rgb(27 51 68 / 0.04);
+  --shadow-none: none;
+
+  --border-width: 1px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  --transition-fast: 120ms ease;
+  --transition-normal: 180ms ease;
+
+  /* Breakpoint documentation tokens (CSS media queries still use px) */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+}

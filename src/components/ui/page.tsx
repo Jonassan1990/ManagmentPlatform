@@ -85,15 +85,18 @@ export function Alert({
   tone = "danger",
   children,
 }: {
-  tone?: "danger" | "warning" | "ok";
+  /** Semantic feedback tone — maps to design-system color tokens. */
+  tone?: "danger" | "warning" | "ok" | "info";
   children: React.ReactNode;
 }) {
   const color =
     tone === "ok"
-      ? "var(--ok)"
+      ? "var(--color-success)"
       : tone === "warning"
-        ? "var(--warning)"
-        : "var(--danger)";
+        ? "var(--color-warning)"
+        : tone === "info"
+          ? "var(--color-info)"
+          : "var(--color-error)";
   return (
     <div
       role="alert"
