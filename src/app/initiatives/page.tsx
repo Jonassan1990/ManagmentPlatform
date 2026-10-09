@@ -6,7 +6,8 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
-import { stageLabel } from "@/modules/initiative/application/attention";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { mapInitiativeStageBadge } from "@/components/ui/status-adapters";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -143,7 +144,12 @@ export default async function InitiativesPage({
                     <td className="py-3 pr-3 text-[var(--muted)]">
                       {item.department.name}
                     </td>
-                    <td className="py-3 pr-3">{stageLabel(item.currentStage)}</td>
+                    <td className="py-3 pr-3">
+                      <StatusBadge
+                        {...mapInitiativeStageBadge(item.currentStage)}
+                        size="compact"
+                      />
+                    </td>
                     <td className="py-3 pr-3 text-[var(--muted)]">
                       {item.businessOwnerName}
                     </td>

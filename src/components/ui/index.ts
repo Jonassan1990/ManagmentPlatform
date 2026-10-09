@@ -33,3 +33,13 @@ export type {
   StatusBadgeProps,
   StatusBadgeVariant,
 } from "@/components/ui/status-badge";
+export {
+  mapApprovalStateBadge,
+  mapDeliveryHealthBadge,
+  mapExplorerStatusBadge,
+  mapInitiativeStageBadge,
+  mapPiStatusBadge,
+  mapProjectStatusBadge,
+  mapScenarioStatusBadge,
+} from "@/components/ui/status-adapters";
+export type { StatusBadgeMapping } from "@/components/ui/status-adapters";

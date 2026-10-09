@@ -8,9 +8,10 @@ import {
   permissionTitle,
   useActionForm,
 } from "@/components/ui/forms";
+import { CapacityBar } from "@/components/ui/capacity-bar";
 import { Panel } from "@/components/ui/page";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
-import { formatHours, utilizationBarClass } from "./pi-nav";
+import { formatHours } from "./pi-nav";
 
 type Caps = Partial<PrincipalCapabilities>;
 
@@ -92,10 +93,11 @@ export function CapacityPanels({
                     <td className="py-3 pr-3">
                       {formatHours(row.plannedLoadHours)}
                     </td>
-                    <td className="py-3">
-                      <UtilizationBar
-                        utilization={row.utilization}
-                        band={row.band}
+                    <td className="py-3 min-w-[12rem]">
+                      <CapacityBar
+                        available={row.effectiveCapacityHours}
+                        committed={row.plannedLoadHours}
+                        unavailable={row.band === "none"}
                       />
                     </td>
                   </tr>
@@ -140,10 +142,11 @@ export function CapacityPanels({
                     <td className="py-3 pr-3">
                       {formatHours(row.plannedLoadHours)}
                     </td>
-                    <td className="py-3">
-                      <UtilizationBar
-                        utilization={row.utilization}
-                        band={row.band}
+                    <td className="py-3 min-w-[12rem]">
+                      <CapacityBar
+                        available={row.effectiveCapacityHours}
+                        committed={row.plannedLoadHours}
+                        unavailable={row.band === "none"}
                       />
                     </td>
                   </tr>
@@ -169,37 +172,6 @@ export function CapacityPanels({
           />
         </div>
       </Panel>
-    </div>
-  );
-}
-
-function UtilizationBar({
-  utilization,
-  band,
-}: {
-  utilization: number | null;
-  band: string;
-}) {
-  const pct = utilization == null ? 0 : Math.round(utilization * 100);
-  return (
-    <div className="flex min-w-[8rem] items-center gap-2">
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--line)]">
-        <div
-          className={`h-full ${utilizationBarClass(band)}`}
-          style={{ width: `${Math.min(100, pct)}%` }}
-        />
-      </div>
-      <span
-        className={`text-xs ${
-          band === "overload"
-            ? "text-[var(--danger)]"
-            : band === "near"
-              ? "text-[var(--warning)]"
-              : "text-[var(--muted)]"
-        }`}
-      >
-        {utilization == null ? "—" : `${pct}%`}
-      </span>
     </div>
   );
 }

@@ -3,12 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { promoteSelectedScenarioAction } from "@/app/actions/pi-planning";
-import { Alert } from "@/components/ui/page";
-import {
-  PrimaryButton,
-  SecondaryButton,
-  permissionTitle,
-} from "@/components/ui/forms";
+import { Alert } from "@/components/ui/alert";
+import { ConfirmDialog } from "@/components/ui/dialog";
+import { PrimaryButton, permissionTitle } from "@/components/ui/forms";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { mapScenarioStatusBadge } from "@/components/ui/status-adapters";
 import { formatHours } from "@/components/pi-planning/pi-nav";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
 import type { ScenarioPromotionPreview } from "@/modules/pi-planning/application/scenario-promotion-types";
@@ -51,8 +50,8 @@ export function ScenarioPromotionPanel({
         acknowledgeWarnings: ackWarnings,
       });
       if (!result.ok) {
+        // Keep dialog open — do not hide failed operations.
         setError(result.error?.message ?? "Promotion failed.");
-        setConfirmOpen(false);
         return;
       }
       setConfirmOpen(false);
@@ -62,6 +61,10 @@ export function ScenarioPromotionPanel({
       router.refresh();
     });
   }
+
+  const scenarioBadge = selected
+    ? mapScenarioStatusBadge(selected.status)
+    : null;
 
   return (
     <section className="mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]">
@@ -76,17 +79,12 @@ export function ScenarioPromotionPanel({
         </p>
       </div>
 
-      <div
-        className="rounded-md border border-[#e3a640]/40 bg-[#e3a640]/10 px-3 py-2 text-sm text-[#102a43]"
-        role="status"
-      >
-        <strong>
-          Changes the authoritative plan — does not create an approved baseline
-        </strong>
-      </div>
+      <Alert tone="warning" title="Authoritative change">
+        Changes the authoritative plan — does not create an approved baseline.
+      </Alert>
 
-      {error ? <Alert tone="danger">{error}</Alert> : null}
-      {success ? <Alert tone="ok">{success}</Alert> : null}
+      {error && !confirmOpen ? <Alert tone="error">{error}</Alert> : null}
+      {success ? <Alert tone="success">{success}</Alert> : null}
 
       {!selected ? (
         <p className="text-sm text-[#74848e]">
@@ -94,12 +92,18 @@ export function ScenarioPromotionPanel({
         </p>
       ) : (
         <div className="space-y-3 text-sm">
-          <p>
-            Selected scenario:{" "}
-            <strong>
-              {selected.label ?? selected.key}
-            </strong>{" "}
-            ({selected.status})
+          <p className="flex flex-wrap items-center gap-2">
+            <span>
+              Selected scenario:{" "}
+              <strong>{selected.label ?? selected.key}</strong>
+            </span>
+            {scenarioBadge ? (
+              <StatusBadge
+                status={scenarioBadge.status}
+                label={scenarioBadge.label}
+                size="compact"
+              />
+            ) : null}
           </p>
           {preview.readiness ? (
             <p>
@@ -163,51 +167,37 @@ export function ScenarioPromotionPanel({
           ) : null}
 
           {preview.disabledReasons.length > 0 ? (
-            <Alert tone="warning">
-              {preview.disabledReasons.join(" ")}
-            </Alert>
+            <Alert tone="warning">{preview.disabledReasons.join(" ")}</Alert>
           ) : null}
 
-          {!confirmOpen ? (
-            <PrimaryButton
-              type="button"
-              disabled={blockedByAuthOrReadiness || pending}
-              title={permissionTitle(canReview)}
-              onClick={() => {
-                setError(null);
-                setConfirmOpen(true);
-              }}
-            >
-              Promote selected scenario to CURRENT
-            </PrimaryButton>
-          ) : (
-            <div className="space-y-3 rounded-md border border-[#d65d57]/40 bg-[#d65d57]/5 p-3">
-              <p className="text-sm font-medium text-[#102a43]">
-                Confirm promotion of{" "}
-                <strong>{selected.label ?? selected.key}</strong> into CURRENT?
-              </p>
-              <p className="text-xs text-[#74848e]">
-                CURRENT allocations will be replaced. The source scenario and
-                other scenarios stay unchanged. No baseline is created.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <PrimaryButton
-                  type="button"
-                  disabled={blockedByAuthOrReadiness || pending}
-                  onClick={promote}
-                >
-                  {pending ? "Promoting…" : "Confirm promote to CURRENT"}
-                </PrimaryButton>
-                <SecondaryButton
-                  type="button"
-                  disabled={pending}
-                  onClick={() => setConfirmOpen(false)}
-                >
-                  Cancel
-                </SecondaryButton>
-              </div>
-            </div>
-          )}
+          <PrimaryButton
+            type="button"
+            disabled={blockedByAuthOrReadiness || pending}
+            title={permissionTitle(canReview)}
+            onClick={() => {
+              setError(null);
+              setConfirmOpen(true);
+            }}
+          >
+            Promote selected scenario to CURRENT
+          </PrimaryButton>
+
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={(open) => {
+              if (pending && !open) return;
+              setConfirmOpen(open);
+              if (!open) setError(null);
+            }}
+            title="Promote scenario to CURRENT?"
+            description={`Replace CURRENT allocations with “${selected.label ?? selected.key}”. The source scenario stays unchanged. No baseline is created.`}
+            confirmLabel="Confirm promote to CURRENT"
+            cancelLabel="Cancel"
+            variant="destructive"
+            pending={pending}
+            error={error}
+            onConfirm={promote}
+          />
 
           {!canReview ? (
             <p className="text-xs text-[#74848e]">
