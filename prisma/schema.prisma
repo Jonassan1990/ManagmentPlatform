@@ -1592,6 +1592,10 @@ model ProgramIncrement {
   planningOwnerName String?   @db.VarChar(200)
   /// M3D-A — at most one selected scenario for review (not approval). Null = none selected.
   selectedRevisionId String?  @unique @db.Uuid
+  /// M3D-B — provenance of last successful promote into CURRENT (not approval/baseline).
+  lastPromotedFromRevisionId String? @db.Uuid
+  lastPromotedAt             DateTime?
+  lastPromotedByPrincipalId  String?  @db.Uuid
   version           Int       @default(1)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -1603,6 +1607,7 @@ model ProgramIncrement {
   participatingTeams        PiParticipatingTeam[]
   revisions                 PlanningRevision[]
   selectedRevision          PlanningRevision?          @relation("PiSelectedScenario", fields: [selectedRevisionId], references: [id], onDelete: SetNull)
+  lastPromotedFromRevision  PlanningRevision?          @relation("PiLastPromotedFrom", fields: [lastPromotedFromRevisionId], references: [id], onDelete: SetNull)
   baselines                 PiBaseline[]
 
   @@unique([organizationId, referenceKey])
@@ -1694,6 +1699,7 @@ model PlanningRevision {
 
   pi             ProgramIncrement   @relation(fields: [piId], references: [id], onDelete: Cascade)
   selectedByPi   ProgramIncrement?  @relation("PiSelectedScenario")
+  lastPromotedByPis ProgramIncrement[] @relation("PiLastPromotedFrom")
   clonedFrom     PlanningRevision?  @relation("RevisionClone", fields: [clonedFromRevisionId], references: [id], onDelete: SetNull)
   clones         PlanningRevision[] @relation("RevisionClone")
   allocations    WorkAllocation[]

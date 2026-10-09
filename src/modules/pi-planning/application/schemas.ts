@@ -192,6 +192,16 @@ export const evaluateScenarioReadinessInputSchema = z.object({
   revisionId: uuidSchema.optional(),
 });
 
+/** M3D-B — promote selected scenario allocations into CURRENT (not approval/baseline). */
+export const promoteSelectedScenarioInputSchema = z.object({
+  piId: uuidSchema,
+  expectedPiVersion: z.number().int().positive(),
+  expectedSelectedRevisionId: uuidSchema,
+  expectedSelectedRevisionVersion: z.number().int().positive(),
+  expectedCurrentRevisionVersion: z.number().int().positive(),
+  acknowledgeWarnings: z.boolean().default(false),
+});
+
 export const setResourceAvailabilityInputSchema = z.object({
   resourceId: uuidSchema,
   iterationId: uuidSchema,

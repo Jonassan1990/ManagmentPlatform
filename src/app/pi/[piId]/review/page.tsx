@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { humanize } from "@/components/governance/governance-panels";
 import { TransitionPiButtons } from "@/components/pi-planning/pi-forms";
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
+import { ScenarioPromotionPanel } from "@/components/pi-planning/scenario-promotion-panel";
 import { ScenarioSelectionPanel } from "@/components/pi-planning/scenario-selection-panel";
 import {
   Breadcrumbs,
@@ -29,6 +30,7 @@ export default async function PiReviewPage({
   let scenarios;
   let history;
   let readiness = null;
+  let promotionPreview;
   try {
     overview = await planning.getPiOverview(principal, piId);
     selection = await planning.getScenarioSelection(principal, piId);
@@ -36,6 +38,10 @@ export default async function PiReviewPage({
       includeArchived: true,
     });
     history = await planning.listScenarioSelectionHistory(principal, piId);
+    promotionPreview = await planning.getScenarioPromotionPreview(
+      principal,
+      piId,
+    );
     const readinessTarget =
       selection.selectedRevision?.id ??
       scenarios.find((s) => !s.isCurrent && s.status !== "ARCHIVED")?.id;
@@ -135,6 +141,11 @@ export default async function PiReviewPage({
           version: s.version,
           archivedAt: s.archivedAt,
         }))}
+        capabilities={capabilities}
+      />
+
+      <ScenarioPromotionPanel
+        preview={promotionPreview}
         capabilities={capabilities}
       />
 
