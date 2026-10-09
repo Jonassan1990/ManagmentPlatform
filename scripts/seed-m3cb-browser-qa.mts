@@ -25,6 +25,15 @@ function principal(): Principal {
 
 async function main() {
   const actor = principal();
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  await prisma.principal.upsert({
+    where: { id: actor.id },
+    create: { id: actor.id, displayName: actor.displayName },
+    update: { displayName: actor.displayName },
+  });
+  await prisma.$disconnect();
+
   const { identity, organization, planning } = createServices();
 
   const consumed = await identity.isBootstrapConsumed();
@@ -125,9 +134,10 @@ async function main() {
       piId: pi.id,
       teams: [{ teamId: team.id, departmentId: dept.id }],
     });
-    await planning.transitionStatus(actor, {
+    pi = await planning.transitionStatus(actor, {
       piId: pi.id,
-      targetStatus: "PLANNING",
+      toStatus: "PLANNING",
+      expectedVersion: pi.version,
     });
   }
 
@@ -153,12 +163,25 @@ async function main() {
     });
   }
 
+  let archived = scenarios.find((s) => s.label === "Scenario Archived");
+  if (!archived) {
+    archived = await planning.createScenarioFromCurrent(actor, {
+      piId: pi.id,
+      label: "Scenario Archived",
+    });
+    archived = await planning.archiveScenario(actor, {
+      revisionId: archived.id,
+      expectedVersion: archived.version,
+    });
+  }
+
   const seed = {
     organizationId: org.id,
     piId: pi.id,
     currentRevisionId: current.id,
     scenarioAId: scenarioA.id,
     scenarioBId: scenarioB.id,
+    archivedScenarioId: archived.id,
   };
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify(seed, null, 2));
