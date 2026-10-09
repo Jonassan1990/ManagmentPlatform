@@ -91,11 +91,11 @@ Evidence: `docs/acceptance-assets/m4ec/`
 | Gate | Result |
 |---|---|
 | typecheck | PASS |
-| lint | PASS |
-| unit | PASS |
-| integration | PASS |
+| lint | PASS (0 errors; 2 pre-existing warnings) |
+| unit | PASS — **40** files / **271** tests |
+| integration | PASS — **20** files / **190** tests |
 | build | PASS |
-| browser QA | PASS |
+| browser QA | PASS — `scripts/m4ec-browser-qa.mjs` (11/11) |
 
 ---
 

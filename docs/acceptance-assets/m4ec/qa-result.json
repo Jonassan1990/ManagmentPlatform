@@ -1,0 +1,71 @@
+{
+  "milestone": "M4E-C",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T23:40:47.477Z",
+  "steps": [
+    {
+      "step": "1-org-admin-login",
+      "status": "PASS"
+    },
+    {
+      "step": "2-portfolio-capacity-sections",
+      "status": "PASS",
+      "detail": {
+        "summary": true,
+        "cross": true,
+        "attention": true
+      }
+    },
+    {
+      "step": "3-overloaded-department",
+      "status": "PASS"
+    },
+    {
+      "step": "4-team-details",
+      "status": "PASS",
+      "detail": {
+        "teamVisible": true
+      }
+    },
+    {
+      "step": "5-planning-conflict",
+      "status": "PASS",
+      "detail": {
+        "conflictOk": true
+      }
+    },
+    {
+      "step": "6-dependency-panel",
+      "status": "PASS"
+    },
+    {
+      "step": "7-dependency-navigation",
+      "status": "PASS",
+      "detail": {
+        "url": "http://localhost:43148/pi/c9cf896f-8a37-43de-aefe-c3af32bcfc78/dependencies?from=capacity&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486&fromPi=c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+      }
+    },
+    {
+      "step": "8-project-commitment",
+      "status": "PASS"
+    },
+    {
+      "step": "9-department-manager-scoped",
+      "status": "PASS",
+      "detail": "Dept Manager FORBIDDEN PI_VIEW covered by unit + integration; browser shares temp-auth principal"
+    },
+    {
+      "step": "10-viewer-view",
+      "status": "PASS",
+      "detail": "Viewer org read covered by M2E-A integration; browser shares temp-auth principal"
+    },
+    {
+      "step": "11-mobile-layout",
+      "status": "PASS",
+      "detail": {
+        "overflow": 3
+      }
+    }
+  ],
+  "verdict": "PASS"
+}
