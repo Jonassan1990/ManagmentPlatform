@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-09  
 **Scope:** Controlled promote of the selected scenario’s allocations into CURRENT  
-**Out of scope:** Approval / immutable baseline (M3D-C)
+**Related:** Approval / immutable baseline — see `PI-SCENARIO-APPROVAL-BASELINE-CONTRACT.md` (M3D-C)
 
 ## 1. Architecture
 
@@ -19,11 +19,12 @@
 |---|---|---|---|
 | Select | `PI_REVIEW` | No | No |
 | Promote | `PI_REVIEW` | Yes | No |
+| Approve | `PI_REVIEW` | No | No |
 | Baseline | `PI_BASELINE` @ ORGANIZATION | No (snapshots CURRENT) | Yes |
 
-Selection is not approval. Promotion does not mark the PI or scenario APPROVED/BASELINED. First/rebaseline remains `BaselineService.createBaseline`.
+Selection is not approval. Promotion does not mark the PI or scenario APPROVED/BASELINED. Approval is a separate M3D-C step (`PiPlanApproval`) required before baseline.
 
-Ordering is unambiguous: **promote → (optional) createBaseline**. No governance weakening.
+Ordering is unambiguous: **promote → approve → createBaseline**. No governance weakening.
 
 ## 3. Prerequisites
 

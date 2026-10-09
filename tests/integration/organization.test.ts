@@ -33,6 +33,7 @@ async function resetDb() {
   await db.resourceAvailability.deleteMany();
   await db.planningDependency.deleteMany();
   await db.piBaseline.deleteMany();
+  await db.piPlanApproval.deleteMany();
   await db.planningRevision.deleteMany();
   await db.piParticipatingTeam.deleteMany();
   await db.piParticipatingDepartment.deleteMany();

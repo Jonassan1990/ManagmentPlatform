@@ -243,9 +243,20 @@ export const updateDependencyInputSchema = z.object({
   expectedVersion: z.number().int().positive(),
 });
 
+export const approveCurrentPlanInputSchema = z.object({
+  piId: uuidSchema,
+  expectedPiVersion: z.number().int().positive(),
+  expectedCurrentRevisionVersion: z.number().int().positive(),
+  acknowledgeWarnings: z.boolean().default(false),
+});
+
 export const createBaselineInputSchema = z.object({
   piId: uuidSchema,
   label: z.string().trim().max(200).optional().nullable(),
+  /** M3D-C — VALID approval that binds baseline to exact CURRENT fingerprint. */
+  expectedApprovalId: uuidSchema,
+  expectedPiVersion: z.number().int().positive(),
+  expectedCurrentRevisionVersion: z.number().int().positive(),
 });
 
 export const compareScenariosInputSchema = z

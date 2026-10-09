@@ -44,6 +44,7 @@ async function resetDb() {
   await db.resourceAvailability.deleteMany();
   await db.planningDependency.deleteMany();
   await db.piBaseline.deleteMany();
+  await db.piPlanApproval.deleteMany();
   await db.planningRevision.deleteMany();
   await db.piParticipatingTeam.deleteMany();
   await db.piParticipatingDepartment.deleteMany();
@@ -561,7 +562,10 @@ describe("M3D-A readiness / audit / isolation / Portfolio", () => {
       toStatus: "REVIEW",
       expectedVersion: piRow.version,
     });
-    const baseline = await planning.createBaseline(actor, {
+    const { promoteApproveAndBaseline } = await import(
+      "./helpers/m3d-approve-baseline"
+    );
+    const { baseline } = await promoteApproveAndBaseline(planning, db, actor, {
       piId: pi.id,
       label: "pre-select",
     });
@@ -571,14 +575,18 @@ describe("M3D-A readiness / audit / isolation / Portfolio", () => {
 
     const before = await fingerprintPlanning();
 
+    // Helper clears selection; re-select Scenario A for the readiness path under test.
+    const scenarioAFresh = await db.planningRevision.findUniqueOrThrow({
+      where: { id: scenarioA.id },
+    });
     piRow = await db.programIncrement.findUniqueOrThrow({
       where: { id: pi.id },
     });
     await planning.selectScenario(actor, {
       piId: pi.id,
-      revisionId: scenarioA.id,
+      revisionId: scenarioAFresh.id,
       expectedPiVersion: piRow.version,
-      expectedRevisionVersion: scenarioA.version,
+      expectedRevisionVersion: scenarioAFresh.version,
     });
 
     const readyA = await planning.evaluateScenarioReadiness(actor, {

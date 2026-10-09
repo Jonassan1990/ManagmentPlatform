@@ -43,6 +43,7 @@ async function resetDb() {
   await db.resourceAvailability.deleteMany();
   await db.planningDependency.deleteMany();
   await db.piBaseline.deleteMany();
+  await db.piPlanApproval.deleteMany();
   await db.planningRevision.deleteMany();
   await db.piParticipatingTeam.deleteMany();
   await db.piParticipatingDepartment.deleteMany();
@@ -429,7 +430,10 @@ describe("M3B isolation CURRENT / Scenario A / Scenario B / Baseline", () => {
       toStatus: "REVIEW",
       expectedVersion: piRow.version,
     });
-    const baseline = await planning.createBaseline(actor, {
+    const { promoteApproveAndBaseline } = await import(
+      "./helpers/m3d-approve-baseline"
+    );
+    const { baseline } = await promoteApproveAndBaseline(planning, db, actor, {
       piId: pi.id,
       label: "pre-scenario",
     });

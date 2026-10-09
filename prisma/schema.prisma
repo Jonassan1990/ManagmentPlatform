@@ -1609,6 +1609,8 @@ model ProgramIncrement {
   selectedRevision          PlanningRevision?          @relation("PiSelectedScenario", fields: [selectedRevisionId], references: [id], onDelete: SetNull)
   lastPromotedFromRevision  PlanningRevision?          @relation("PiLastPromotedFrom", fields: [lastPromotedFromRevisionId], references: [id], onDelete: SetNull)
   baselines                 PiBaseline[]
+  /// M3D-C — historical plan approvals (VALID ≤ 1 per PI via partial unique index).
+  planApprovals             PiPlanApproval[]
 
   @@unique([organizationId, referenceKey])
   @@index([organizationId, status])
@@ -1704,6 +1706,8 @@ model PlanningRevision {
   clones         PlanningRevision[] @relation("RevisionClone")
   allocations    WorkAllocation[]
   baselines      PiBaseline[]
+  planApprovalsAsCurrent PiPlanApproval[] @relation("ApprovalCurrentRevision")
+  planApprovalsPromotedFrom PiPlanApproval[] @relation("ApprovalPromotedFrom")
 
   @@unique([piId, key])
   @@index([piId, isCurrent])
@@ -1800,11 +1804,51 @@ model PiBaseline {
   label                String?  @db.VarChar(200)
   payload              Json
   revisionIdCaptured   String?  @db.Uuid
+  /// M3D-C — approval that authorized this baseline (exact CURRENT fingerprint).
+  planApprovalId       String?  @unique @db.Uuid
 
-  pi       ProgramIncrement  @relation(fields: [piId], references: [id], onDelete: Cascade)
-  revision PlanningRevision? @relation(fields: [revisionIdCaptured], references: [id], onDelete: SetNull)
+  pi           ProgramIncrement  @relation(fields: [piId], references: [id], onDelete: Cascade)
+  revision     PlanningRevision? @relation(fields: [revisionIdCaptured], references: [id], onDelete: SetNull)
+  planApproval PiPlanApproval?   @relation(fields: [planApprovalId], references: [id], onDelete: Restrict)
 
   @@unique([piId, versionNumber])
   @@index([piId, createdAt])
   @@map("pi_baselines")
+}
+
+/// M3D-C — explicit approval of a specific CURRENT plan state (not a baseline).
+/// Lifecycle evidence: SELECTED → PROMOTED → APPROVED → BASELINED.
+/// Historical rows remain; VALID approvals are invalidated when CURRENT changes.
+enum PiPlanApprovalStatus {
+  VALID
+  INVALIDATED
+  CONSUMED
+}
+
+model PiPlanApproval {
+  id                       String               @id @default(uuid()) @db.Uuid
+  piId                     String               @db.Uuid
+  currentRevisionId        String               @db.Uuid
+  currentRevisionVersion   Int
+  /// SHA-256 hex of normalized CURRENT allocations (see allocation-fingerprint.ts).
+  allocationFingerprint    String               @db.VarChar(64)
+  promotedFromRevisionId   String?              @db.Uuid
+  approvedByPrincipalId    String               @db.Uuid
+  approvedAt               DateTime             @default(now())
+  readinessClassification  String               @db.VarChar(40)
+  readinessEvidence        Json
+  acknowledgeWarnings      Boolean              @default(false)
+  status                   PiPlanApprovalStatus @default(VALID)
+  invalidatedAt            DateTime?
+  invalidatedReason        String?              @db.VarChar(80)
+  createdAt                DateTime             @default(now())
+
+  pi                   ProgramIncrement  @relation(fields: [piId], references: [id], onDelete: Cascade)
+  currentRevision      PlanningRevision  @relation("ApprovalCurrentRevision", fields: [currentRevisionId], references: [id], onDelete: Restrict)
+  promotedFromRevision PlanningRevision? @relation("ApprovalPromotedFrom", fields: [promotedFromRevisionId], references: [id], onDelete: SetNull)
+  baseline             PiBaseline?
+
+  @@index([piId, status])
+  @@index([piId, approvedAt])
+  @@map("pi_plan_approvals")
 }
