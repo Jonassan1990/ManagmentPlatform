@@ -247,7 +247,9 @@ export function buildDepartmentCards(
         band: d.band,
         teamCount: deptTeams.length,
         resourceCount: deptResources.length,
-        overloadCount: deptTeams.filter((t) => t.band === "overload").length,
+        // Match reference: count overloaded resources (not only aggregated teams).
+        overloadCount: deptResources.filter((r) => r.band === "overload")
+          .length,
         teams: teamsWithResources,
       };
     })
@@ -302,12 +304,16 @@ export function filterDepartmentCards(
         return null;
       }
       const resourceCount = teams.reduce((n, t) => n + t.resources.length, 0);
+      const overloadCount = teams.reduce(
+        (n, t) => n + t.resources.filter((r) => r.band === "overload").length,
+        0,
+      );
       return {
         ...card,
         teams,
         teamCount: teams.length,
         resourceCount,
-        overloadCount: teams.filter((t) => t.band === "overload").length,
+        overloadCount,
       };
     })
     .filter((c): c is DepartmentCardModel => c != null);
