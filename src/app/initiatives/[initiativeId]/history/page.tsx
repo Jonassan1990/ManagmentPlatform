@@ -4,6 +4,8 @@ import {
   LifecycleRail,
 } from "@/components/initiative/workspace";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { stageLabel } from "@/modules/initiative/application/attention";
 import { createServices } from "@/server/container";
 
@@ -18,6 +20,7 @@ export default async function HistoryPage({
 }) {
   const { initiativeId } = await params;
   const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, initiative } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -32,12 +35,13 @@ export default async function HistoryPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives", href: "/initiatives" },
-          { label: item.referenceKey, href: `/initiatives/${item.id}` },
-          { label: "History" },
-        ]}
+        items={buildInitiativeTrail({
+          initiativeId: item.id,
+          referenceKey: item.referenceKey,
+          title: item.title,
+          leaf: "History",
+          returnContext,
+        })}
       />
       <PageHeader
         title={item.title}

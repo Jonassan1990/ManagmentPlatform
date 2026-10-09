@@ -21,6 +21,8 @@ import {
   UpdatePilotForm,
 } from "@/components/pilot/pilot-forms";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import {
   evaluatePilotStartReadiness,
   PILOT_STATUS_ORDER,
@@ -38,6 +40,7 @@ export default async function PilotPage({
 }) {
   const { initiativeId } = await params;
   const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -118,12 +121,13 @@ export default async function PilotPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives", href: "/initiatives" },
-          { label: item.referenceKey, href: `/initiatives/${item.id}` },
-          { label: "Pilot" },
-        ]}
+        items={buildInitiativeTrail({
+          initiativeId: item.id,
+          referenceKey: item.referenceKey,
+          title: item.title,
+          leaf: "Pilot",
+          returnContext,
+        })}
       />
       <PageHeader
         title={item.title}

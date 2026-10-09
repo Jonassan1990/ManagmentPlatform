@@ -7,6 +7,7 @@ import type {
   DeliveryHealthAttentionResult,
   DeliveryHealthSummary,
 } from "@/modules/portfolio/domain/types";
+import { appendReturnContext } from "@/modules/navigation/return-context";
 
 /**
  * Compact Home attention strip — reuses portfolio delivery-health query results.
@@ -32,6 +33,9 @@ export function HomeAttentionPanel({
   const deliveryAttention = summary?.attentionCount ?? 0;
   const rows = attention?.rows.slice(0, 5) ?? [];
 
+  const healthHref = `/portfolio/health?organizationId=${organizationId}`;
+  const portfolioAttentionHref = `/portfolio?organizationId=${organizationId}&healthFocus=ATTENTION`;
+
   return (
     <Panel className="border-[var(--color-warning)]/30">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -45,8 +49,8 @@ export function HomeAttentionPanel({
           </p>
         </div>
         <Link
-          href={`/portfolio/health?organizationId=${organizationId}`}
-          className="text-sm font-medium text-[var(--color-primary)] underline-offset-2 hover:underline"
+          href={healthHref}
+          className="min-h-9 text-sm font-medium text-[var(--color-primary)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
         >
           Open delivery health
         </Link>
@@ -56,7 +60,7 @@ export function HomeAttentionPanel({
         <AttentionStat
           label="Delivery (blocked + at risk)"
           value={deliveryAttention}
-          href={`/portfolio?organizationId=${organizationId}&healthFocus=ATTENTION`}
+          href={portfolioAttentionHref}
           tone={deliveryAttention > 0 ? "warning" : "ok"}
         />
         <AttentionStat
@@ -68,13 +72,19 @@ export function HomeAttentionPanel({
         <AttentionStat
           label="Waiting for approval"
           value={waitingApproval}
-          href="/approvals"
+          href={appendReturnContext("/approvals", {
+            from: "home",
+            organizationId,
+          })}
           tone={waitingApproval > 0 ? "warning" : "ok"}
         />
         <AttentionStat
           label="PIs needing attention"
           value={piNeedsAttention}
-          href="/pi"
+          href={appendReturnContext("/pi", {
+            from: "home",
+            organizationId,
+          })}
           tone={piNeedsAttention > 0 ? "warning" : "ok"}
         />
       </div>
@@ -101,8 +111,11 @@ export function HomeAttentionPanel({
               >
                 <div className="min-w-0">
                   <Link
-                    href={row.href}
-                    className="font-medium text-[var(--color-primary)] hover:underline"
+                    href={appendReturnContext(row.href, {
+                      from: "home",
+                      organizationId,
+                    })}
+                    className="font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
                   >
                     {row.referenceKey} · {row.name}
                   </Link>
@@ -118,7 +131,7 @@ export function HomeAttentionPanel({
             <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
               Showing {rows.length} of {attention!.total}.{" "}
               <Link
-                href={`/portfolio/health?organizationId=${organizationId}`}
+                href={healthHref}
                 className="text-[var(--color-primary)] hover:underline"
               >
                 View all
@@ -128,7 +141,11 @@ export function HomeAttentionPanel({
         </div>
       ) : !error && deliveryAttention === 0 ? (
         <p className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-          <StatusBadge status="completed" label="No delivery blockers" size="compact" />
+          <StatusBadge
+            status="completed"
+            label="No delivery blockers"
+            size="compact"
+          />
           Blocked and at-risk project queues are empty in this organization.
         </p>
       ) : null}
@@ -150,7 +167,7 @@ function AttentionStat({
   return (
     <Link
       href={href}
-      className={`rounded-[var(--radius-md)] border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] ${
+      className={`min-h-11 rounded-[var(--radius-md)] border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] ${
         tone === "warning"
           ? "border-[var(--color-warning)]/40 bg-[var(--color-warning-soft)]"
           : "border-[var(--color-border)] bg-[var(--color-bg)]"

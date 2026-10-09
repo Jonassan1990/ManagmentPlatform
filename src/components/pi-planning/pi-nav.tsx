@@ -70,9 +70,9 @@ export function PiTabs({
             key={tab.key}
             href={href}
             aria-current={isActive ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 text-sm ${
+            className={`min-h-9 rounded-md px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
               isActive
-                ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
             }`}
           >

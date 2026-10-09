@@ -191,6 +191,8 @@ function maybeInsertReturn(
   if (!ctx) return;
   const href = resolveReturnHref(ctx);
   if (!href) return;
+  // Home is already the trail root — do not duplicate it as a return crumb.
+  if (ctx.from === "home" || href === "/") return;
   // Insert after Home (index 1) so: Home → Explorer → Initiatives → …
   crumbs.splice(1, 0, {
     label: returnCrumbLabel(ctx.from),

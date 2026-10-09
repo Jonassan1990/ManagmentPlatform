@@ -19,6 +19,8 @@ import {
   LifecycleRail,
 } from "@/components/initiative/workspace";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { POC_STATUS_ORDER } from "@/modules/governance/application/poc-readiness-policy";
 import { createServices } from "@/server/container";
 
@@ -33,6 +35,7 @@ export default async function PoCPage({
 }) {
   const { initiativeId } = await params;
   const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -82,12 +85,13 @@ export default async function PoCPage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives", href: "/initiatives" },
-          { label: item.referenceKey, href: `/initiatives/${item.id}` },
-          { label: "PoC" },
-        ]}
+        items={buildInitiativeTrail({
+          initiativeId: item.id,
+          referenceKey: item.referenceKey,
+          title: item.title,
+          leaf: "PoC",
+          returnContext,
+        })}
       />
       <PageHeader
         title={item.title}

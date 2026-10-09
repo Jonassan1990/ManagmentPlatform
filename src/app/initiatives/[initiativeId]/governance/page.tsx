@@ -19,6 +19,8 @@ import {
   LifecycleRail,
 } from "@/components/initiative/workspace";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
+import { parseReturnContext } from "@/modules/navigation/return-context";
 import { evaluatePreStudyReadiness } from "@/modules/initiative/application/readiness-policy";
 import { createServices } from "@/server/container";
 
@@ -33,6 +35,7 @@ export default async function GovernancePage({
 }) {
   const { initiativeId } = await params;
   const query = await searchParams;
+  const returnContext = parseReturnContext(query);
   const { authz, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -98,12 +101,13 @@ export default async function GovernancePage({
   return (
     <div>
       <Breadcrumbs
-        items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives", href: "/initiatives" },
-          { label: item.referenceKey, href: `/initiatives/${item.id}` },
-          { label: "Governance" },
-        ]}
+        items={buildInitiativeTrail({
+          initiativeId: item.id,
+          referenceKey: item.referenceKey,
+          title: item.title,
+          leaf: "Governance",
+          returnContext,
+        })}
       />
       <PageHeader
         title={item.title}

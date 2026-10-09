@@ -1,0 +1,57 @@
+{
+  "milestone": "M4D-D",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T22:45:30.811Z",
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "1-home-attention",
+      "status": "PASS"
+    },
+    {
+      "step": "1b-home-pi-link",
+      "status": "PASS",
+      "detail": "/pi?from=home&fromOrg=4b712b88-5e13-4493-997b-392e369e44b2"
+    },
+    {
+      "step": "2-explorer-initiative",
+      "status": "PASS",
+      "detail": {
+        "href": "/initiatives/50ca27ba-a91c-4927-a521-478ce6d21cb3/project?from=explorer&fromOrg=4b712b88-5e13-4493-997b-392e369e44b2&fx_page=1",
+        "hasExplorerCrumb": true
+      }
+    },
+    {
+      "step": "3-breadcrumb-home",
+      "status": "PASS",
+      "detail": {
+        "homeCrumb": true,
+        "overviewLegacy": false
+      }
+    },
+    {
+      "step": "4-pi-board-a11y-archive",
+      "status": "PASS",
+      "detail": {
+        "focusClassOk": true,
+        "archiveConfirm": true
+      }
+    },
+    {
+      "step": "5-board-compare-review",
+      "status": "PASS",
+      "detail": {
+        "ch": "/pi/cc07145d-ba1f-4ffd-9f8c-defd422fc6f4/compare",
+        "rh": "/pi/cc07145d-ba1f-4ffd-9f8c-defd422fc6f4/review"
+      }
+    },
+    {
+      "step": "6-mobile-home",
+      "status": "PASS"
+    }
+  ],
+  "verdict": "PASS"
+}

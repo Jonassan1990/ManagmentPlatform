@@ -280,4 +280,32 @@ describe("M4C-B deep-link and isolation edges", () => {
     const href = resolveReturnHref(parsed!);
     expect(href).not.toContain("organizationId=org-from-other-tenant");
   });
+
+  it("M4D-D: home return token resolves and appears on initiative trails", () => {
+    const href = appendReturnContext(`/initiatives/${ORG}/project`, {
+      from: "home",
+      organizationId: ORG,
+    });
+    expect(href).toContain("from=home");
+    const parsed = parseReturnContext(
+      Object.fromEntries(new URL(href, "http://x").searchParams),
+    );
+    expect(parsed?.from).toBe("home");
+    expect(resolveReturnHref(parsed!)).toBe("/");
+
+    const crumbs = buildInitiativeTrail({
+      initiativeId: ORG,
+      referenceKey: "INIT-1",
+      leaf: "Project",
+      returnContext: parsed,
+    });
+    // Home is the trail root; from=home must not duplicate a second Home crumb.
+    expect(crumbs.filter((c) => c.label === "Home")).toHaveLength(1);
+    expect(crumbs.map((c) => c.label)).toEqual([
+      "Home",
+      "Initiatives",
+      "INIT-1",
+      "Project",
+    ]);
+  });
 });

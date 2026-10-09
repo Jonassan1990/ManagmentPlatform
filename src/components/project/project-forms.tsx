@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState } from "react";
 import {
   changeIssueStatusAction,
   closeProjectAction,
@@ -14,6 +14,7 @@ import {
   updateProjectAction,
   updateWorkItemAction,
 } from "@/app/actions/project";
+import { Alert } from "@/components/ui/alert";
 import {
   FormField,
   PrimaryButton,
@@ -1138,6 +1139,7 @@ export function CloseProjectPanel({
   capabilities?: Caps;
 }) {
   const form = useActionForm(closeProjectAction);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const allowed = capabilities?.canCloseProject === true;
   const closed =
     project.status === "COMPLETED" || project.status === "CANCELLED";
@@ -1160,17 +1162,17 @@ export function CloseProjectPanel({
         <p className="font-medium">Closure readiness</p>
         {readiness.hardBlockers.length === 0 &&
         readiness.warnings.length === 0 ? (
-          <p className="text-emerald-700">✓ Ready to close</p>
+          <Alert tone="success">Ready to close</Alert>
         ) : null}
         {readiness.hardBlockers.map((b) => (
-          <p key={b.code} className="text-red-700">
-            ✕ {b.message}
-          </p>
+          <Alert key={b.code} tone="error">
+            {b.message}
+          </Alert>
         ))}
         {readiness.warnings.map((w) => (
-          <p key={w.code} className="text-amber-700">
-            ⚠ {w.message}
-          </p>
+          <Alert key={w.code} tone="warning">
+            {w.message}
+          </Alert>
         ))}
       </div>
 
@@ -1178,12 +1180,25 @@ export function CloseProjectPanel({
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!allowed || !readiness.canClose) return;
+          setConfirmError(null);
+          if (!allowed) {
+            setConfirmError(
+              permissionTitle(false) ??
+                "You do not have permission to close this project.",
+            );
+            return;
+          }
+          if (!readiness.canClose) {
+            setConfirmError("Resolve hard blockers before closing.");
+            return;
+          }
           const fd = new FormData(e.currentTarget);
           const outcome = String(fd.get("outcome") ?? "DELIVERED");
           const confirmed = fd.get("confirmClose") === "on";
           if (!confirmed) {
-            window.alert("Confirm closure before submitting.");
+            setConfirmError(
+              "Check “Confirm close” before submitting. Closure is final for this phase.",
+            );
             return;
           }
           form.submit({
@@ -1199,6 +1214,7 @@ export function CloseProjectPanel({
         }}
       >
         {form.ErrorAlert}
+        {confirmError ? <Alert tone="error">{confirmError}</Alert> : null}
         <FormField label="Outcome" htmlFor="close-outcome">
           <select
             id="close-outcome"
@@ -1311,44 +1327,36 @@ export function ClosedProjectBanner({
     "Unknown principal";
 
   return (
-    <PanelLike>
+    <div className="space-y-3 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
       <p className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
         Closed · read-only
       </p>
-      <p className={`mt-1 text-lg font-semibold ${statusToneSafe(projectStatus)}`}>
+      <p className="text-lg font-semibold text-[var(--ink)]">
         {humanizeSafe(projectStatus)}
         {closure ? ` · ${humanizeSafe(closure.outcome)}` : ""}
       </p>
-      <p className="mt-2 text-sm text-[var(--warning)]" role="status">
+      <Alert tone="warning">
         Delivery mutations are disabled. Work items, issues, milestones, and
         closure forms stay visible for history but cannot change this project.
-      </p>
+      </Alert>
       {closedAt ? (
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="text-sm text-[var(--muted)]">
           Closed {closedAt.toISOString().slice(0, 10)} by {closedBy}
         </p>
       ) : null}
       {closure?.summary ? (
-        <p className="mt-3 text-sm whitespace-pre-wrap">{closure.summary}</p>
+        <p className="text-sm whitespace-pre-wrap">{closure.summary}</p>
       ) : null}
       {closure?.finalDeliveryNote ? (
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="text-sm text-[var(--muted)]">
           Delivery note: {closure.finalDeliveryNote}
         </p>
       ) : null}
       {closure?.lessonsLearned ? (
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="text-sm text-[var(--muted)]">
           Lessons: {closure.lessonsLearned}
         </p>
       ) : null}
-    </PanelLike>
-  );
-}
-
-function PanelLike({ children }: { children: ReactNode }) {
-  return (
-    <div className="space-y-1 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
-      {children}
     </div>
   );
 }
@@ -1359,10 +1367,4 @@ function humanizeSafe(value: string): string {
     .split("_")
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(" ");
-}
-
-function statusToneSafe(status: string): string {
-  if (status === "COMPLETED") return "text-emerald-700";
-  if (status === "CANCELLED") return "text-red-700";
-  return "";
 }
