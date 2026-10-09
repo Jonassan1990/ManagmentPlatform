@@ -134,7 +134,7 @@ Overloaded = utilization band `overload` from existing thresholds.
 
 ## Non-goals (M2A)
 
-- Portfolio UI / dashboards (M2B)
+- Portfolio UI / dashboards → delivered in M2B (`docs/PORTFOLIO-DASHBOARD.md`, route `/portfolio`)
 - Portfolio tables or cached KPIs
 - REST endpoints
 - Weakening Phase 0C

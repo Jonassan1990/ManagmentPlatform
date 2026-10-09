@@ -41,3 +41,22 @@ export async function getPortfolioSnapshotAction(
     return portfolio.getPortfolioSnapshot(principal, parsed);
   });
 }
+
+const departmentOptionsSchema = z.object({
+  organizationId: z.string().uuid(),
+});
+
+/**
+ * M2B — department options for portfolio scope controls.
+ * Labels only; visibility is identical to snapshot scoping.
+ */
+export async function listPortfolioDepartmentOptionsAction(
+  input: unknown,
+): Promise<ActionResult<Array<{ id: string; name: string }>>> {
+  return run(async () => {
+    const parsed = departmentOptionsSchema.parse(input);
+    const { authz, portfolio } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolio.listDepartmentOptions(principal, parsed.organizationId);
+  });
+}
