@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-10-09T19:54:13.077Z",
+  "fixture": {
+    "pis": 3,
+    "scenariosPerPi": 4,
+    "workItems": 200,
+    "departments": 3,
+    "teamsPerDept": 2,
+    "resources": 12,
+    "iterations": 4,
+    "allocationsPerScenario": 80
+  },
+  "observed": {
+    "workAllocations": 400,
+    "planningRevisions": 7,
+    "programIncrements": 3
+  },
+  "timings": [
+    {
+      "label": "scenario.createFromCurrent",
+      "ms": 24
+    },
+    {
+      "label": "scenario.clone",
+      "ms": 31
+    },
+    {
+      "label": "scenario.clone.extra.0",
+      "ms": 31
+    },
+    {
+      "label": "scenario.clone.extra.1",
+      "ms": 29
+    },
+    {
+      "label": "scenario.edit.20allocs",
+      "ms": 447
+    },
+    {
+      "label": "scenario.compare.3way",
+      "ms": 78
+    },
+    {
+      "label": "scenario.select",
+      "ms": 31
+    },
+    {
+      "label": "scenario.readiness",
+      "ms": 35
+    },
+    {
+      "label": "scenario.promote",
+      "ms": 72
+    },
+    {
+      "label": "plan.approve",
+      "ms": 73
+    },
+    {
+      "label": "plan.baseline",
+      "ms": 45
+    },
+    {
+      "label": "portfolio.piCapacity",
+      "ms": 49
+    }
+  ],
+  "disclaimer": "Representative fixture only — not production-scale or million-row evidence."
+}
