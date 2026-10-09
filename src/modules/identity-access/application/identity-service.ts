@@ -172,13 +172,39 @@ export class IdentityService {
         (ei) => ei.subject !== subject,
       );
       if (otherTemp) {
-        console.error(
-          "[temp-auth] identity conflict: Principal already has a different temp-auth subject",
-        );
-        throw new AppError(
-          "CONFLICT",
-          "Temporary authentication is misconfigured.",
-        );
+        // Controlled operator rename of TEMP_AUTH_USERNAME for the *same*
+        // configured principal (keeps RoleBindings). Never retarget another Principal.
+        if (principalRow.externalIdentities.length !== 1) {
+          console.error(
+            "[temp-auth] identity conflict: Principal has multiple temp-auth subjects",
+          );
+          throw new AppError(
+            "CONFLICT",
+            "Temporary authentication is misconfigured.",
+          );
+        }
+        await this.db.externalIdentity.update({
+          where: { id: otherTemp.id },
+          data: {
+            subject,
+            lastLoginAt: new Date(),
+            displayNameSnapshot:
+              input.displayName ?? otherTemp.displayNameSnapshot,
+          },
+        });
+        if (input.displayName) {
+          await this.db.principal.update({
+            where: { id: principalId },
+            data: { displayName: input.displayName },
+          });
+        }
+        return {
+          id: principalId,
+          displayName:
+            input.displayName ?? principalRow.displayName ?? subject,
+          email: principalRow.email ?? undefined,
+          source: "temp",
+        };
       }
     }
 
