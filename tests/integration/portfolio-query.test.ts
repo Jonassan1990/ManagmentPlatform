@@ -573,3 +573,32 @@ describe("M2A Portfolio Query — metrics", () => {
     ).toBe(true);
   });
 });
+
+describe("M2B Portfolio Dashboard — scope options", () => {
+  it("department options never expand beyond Phase 0C visibility", async () => {
+    const admin = principal();
+    const { org, deptA, deptB } = await seedOrg(admin);
+
+    const mgr = principal();
+    await db.principal.create({ data: { id: mgr.id, displayName: "Dept Mgr" } });
+    await bindRole(admin, mgr.id, ROLE_KEYS.DEPARTMENT_MANAGER, {
+      scopeType: ScopeType.DEPARTMENT,
+      organizationId: org.id,
+      scopeId: deptA.id,
+    });
+
+    const options = await portfolio.listDepartmentOptions(mgr, org.id);
+    expect(options.map((d) => d.id)).toEqual([deptA.id]);
+    expect(options.map((d) => d.id)).not.toContain(deptB.id);
+
+    const viewer = principal();
+    await db.principal.create({ data: { id: viewer.id, displayName: "Viewer" } });
+    await bindRole(admin, viewer.id, ROLE_KEYS.VIEWER, {
+      scopeType: ScopeType.ORGANIZATION,
+      organizationId: org.id,
+      scopeId: org.id,
+    });
+    const all = await portfolio.listDepartmentOptions(viewer, org.id);
+    expect(all.map((d) => d.id).sort()).toEqual([deptA.id, deptB.id].sort());
+  });
+});

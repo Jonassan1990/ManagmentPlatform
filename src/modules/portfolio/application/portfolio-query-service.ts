@@ -84,6 +84,33 @@ export class PortfolioQueryService {
   ) {}
 
   /**
+   * Department labels for portfolio scope controls.
+   * Returns only departments already visible under Phase 0C (never expands access).
+   */
+  async listDepartmentOptions(
+    principal: Principal,
+    organizationId: string,
+  ): Promise<Array<{ id: string; name: string }>> {
+    const visibility = await resolvePortfolioVisibility(
+      this.db,
+      principal,
+      organizationId,
+    );
+    const where: Prisma.DepartmentWhereInput = {
+      status: "ACTIVE",
+      section: { organizationId: visibility.organizationId },
+      ...(visibility.departmentIds
+        ? { id: { in: visibility.departmentIds } }
+        : {}),
+    };
+    return this.db.department.findMany({
+      where,
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+  }
+
+  /**
    * Organization-scoped portfolio snapshot.
    * Enforces Phase 0C visibility before any aggregation.
    */
