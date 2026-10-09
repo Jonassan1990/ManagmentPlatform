@@ -215,7 +215,14 @@ async function main() {
     });
     if (!it) {
       it = await db.piIteration.create({
-        data: { piId: pi.id, name, sequence, startDate, endDate },
+        data: {
+          piId: pi.id,
+          referenceKey: `IT-${sequence}`,
+          name,
+          sequence,
+          startDate,
+          endDate,
+        },
       });
     }
     return it;
