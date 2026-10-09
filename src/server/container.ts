@@ -5,6 +5,7 @@ import { GovernanceService } from "@/modules/governance/application/governance-s
 import { InitiativeService } from "@/modules/initiative/application/initiative-service";
 import { OrganizationService } from "@/modules/organization/application/organization-service";
 import { PlanningService } from "@/modules/pi-planning/application/planning-service";
+import { PortfolioPiCapacityQueryService } from "@/modules/portfolio/application/portfolio-pi-capacity-query-service";
 import { PortfolioQueryService } from "@/modules/portfolio/application/portfolio-query-service";
 import { ProjectIssueService } from "@/modules/project/application/project-issue-service";
 import { ProjectService } from "@/modules/project/application/project-service";
@@ -19,6 +20,12 @@ export function createServices() {
   const projectIssues = new ProjectIssueService(prisma, authz, audit);
   const planning = new PlanningService(prisma, authz, audit);
   const portfolio = new PortfolioQueryService(prisma, authz, audit);
+  const portfolioPiCapacity = new PortfolioPiCapacityQueryService(
+    prisma,
+    authz,
+    audit,
+    planning,
+  );
   return {
     authz,
     audit,
@@ -30,6 +37,7 @@ export function createServices() {
     projectIssues,
     planning,
     portfolio,
+    portfolioPiCapacity,
   };
 }
 

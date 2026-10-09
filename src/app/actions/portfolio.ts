@@ -7,6 +7,8 @@ import type {
   DeliveryHealthEvaluation,
   DeliveryHealthSummary,
   PortfolioExplorerResult,
+  PortfolioPiCapacityResult,
+  PortfolioPiListResult,
   PortfolioSnapshot,
 } from "@/modules/portfolio/domain/types";
 import { createServices } from "@/server/container";
@@ -226,5 +228,59 @@ export async function getProjectDeliveryHealthAction(
     const { authz, portfolio } = createServices();
     const principal = await authz.requirePrincipal();
     return portfolio.getProjectDeliveryHealth(principal, parsed);
+  });
+}
+
+const piLifecycleSchema = z.enum(["ACTIVE", "UPCOMING", "COMPLETED", "OTHER"]);
+
+const piListInputSchema = z.object({
+  organizationId: z.string().uuid(),
+  departmentId: z.string().uuid().optional(),
+  sectionId: z.string().uuid().optional(),
+  piId: z.string().uuid().optional(),
+  lifecycle: z.array(piLifecycleSchema).min(1).max(4).optional(),
+  asOf: z.coerce.date().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+const piCapacityInputSchema = z.object({
+  organizationId: z.string().uuid(),
+  piId: z.string().uuid().optional(),
+  departmentId: z.string().uuid().optional(),
+  sectionId: z.string().uuid().optional(),
+  asOf: z.coerce.date().optional(),
+  includeResources: z.boolean().optional(),
+  includeProjectCommitments: z.boolean().optional(),
+  includeConflicts: z.boolean().optional(),
+  resourcePage: z.coerce.number().int().min(1).optional(),
+  resourcePageSize: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+/**
+ * M2E-A — list Program Increments with lifecycle buckets (read-only).
+ */
+export async function listPortfolioProgramIncrementsAction(
+  input: unknown,
+): Promise<ActionResult<PortfolioPiListResult>> {
+  return run(async () => {
+    const parsed = piListInputSchema.parse(input);
+    const { authz, portfolioPiCapacity } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolioPiCapacity.listProgramIncrements(principal, parsed);
+  });
+}
+
+/**
+ * M2E-A — PI capacity overview (live CURRENT revision; baseline comparison separate).
+ */
+export async function getPortfolioPiCapacityAction(
+  input: unknown,
+): Promise<ActionResult<PortfolioPiCapacityResult>> {
+  return run(async () => {
+    const parsed = piCapacityInputSchema.parse(input);
+    const { authz, portfolioPiCapacity } = createServices();
+    const principal = await authz.requirePrincipal();
+    return portfolioPiCapacity.getPiCapacityOverview(principal, parsed);
   });
 }
