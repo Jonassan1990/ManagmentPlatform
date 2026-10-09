@@ -1,0 +1,131 @@
+{
+  "milestone": "M4D-FINAL",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T22:56:24.529Z",
+  "principal": "owner (Org Admin temp-auth)",
+  "journeys": {
+    "C": {
+      "status": "PASS",
+      "needsAttention": true,
+      "groups": true,
+      "lifecycle": true,
+      "healthOk": true,
+      "initiativePath": "/initiatives/50ca27ba-a91c-4927-a521-478ce6d21cb3/project?from=explorer&fromOrg=4b712b88-5e13-4493-997b-392e369e44b2&fx_page=1"
+    },
+    "A": {
+      "status": "PASS",
+      "discovery": true,
+      "nextAction": true,
+      "govOk": true,
+      "projectOk": true,
+      "tabCount": 12
+    },
+    "E": {
+      "status": "PASS",
+      "approvalsOk": true,
+      "decisionsOk": true
+    },
+    "B": {
+      "status": "PASS",
+      "contextStrip": true,
+      "manage": true,
+      "workflowBar": true,
+      "nextCard": true,
+      "boardMs": 1010,
+      "compareMs": 930,
+      "reviewMs": 1115
+    },
+    "D": {
+      "status": "PASS",
+      "capacityPage": true,
+      "openPi": true,
+      "capacityToPi": true,
+      "note": "Progressive PI default still M4E (UX-006)"
+    }
+  },
+  "performance": {
+    "homeMs": 1574,
+    "portfolioMs": 1014,
+    "boardMs": 1010,
+    "compareMs": 930,
+    "reviewMs": 1115
+  },
+  "a11y": {
+    "keyboardFocusTag": "A",
+    "mobileHome": true
+  },
+  "metrics": {
+    "initiativeTabLinksVisible": 12,
+    "initiativeGroupedNav": true,
+    "scenarioAdminCollapsedDefault": true
+  },
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "journey-C",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "needsAttention": true,
+        "groups": true,
+        "lifecycle": true,
+        "healthOk": true,
+        "initiativePath": "/initiatives/50ca27ba-a91c-4927-a521-478ce6d21cb3/project?from=explorer&fromOrg=4b712b88-5e13-4493-997b-392e369e44b2&fx_page=1"
+      }
+    },
+    {
+      "step": "journey-A",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "discovery": true,
+        "nextAction": true,
+        "govOk": true,
+        "projectOk": true,
+        "tabCount": 12
+      }
+    },
+    {
+      "step": "journey-E",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "approvalsOk": true,
+        "decisionsOk": true
+      }
+    },
+    {
+      "step": "journey-B",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "contextStrip": true,
+        "manage": true,
+        "workflowBar": true,
+        "nextCard": true,
+        "boardMs": 1010,
+        "compareMs": 930,
+        "reviewMs": 1115
+      }
+    },
+    {
+      "step": "journey-D",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "capacityPage": true,
+        "openPi": true,
+        "capacityToPi": true,
+        "note": "Progressive PI default still M4E (UX-006)"
+      }
+    },
+    {
+      "step": "mobile-smoke",
+      "status": "PASS"
+    }
+  ],
+  "verdict": "PASS"
+}
