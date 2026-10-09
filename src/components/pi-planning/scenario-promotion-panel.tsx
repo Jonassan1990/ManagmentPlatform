@@ -17,9 +17,11 @@ type Caps = Partial<PrincipalCapabilities>;
 export function ScenarioPromotionPanel({
   preview,
   capabilities,
+  embedded = false,
 }: {
   preview: ScenarioPromotionPreview;
   capabilities?: Caps;
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -66,8 +68,13 @@ export function ScenarioPromotionPanel({
     ? mapScenarioStatusBadge(selected.status)
     : null;
 
+  const shellClass = embedded
+    ? "space-y-4 p-3 sm:p-4"
+    : "mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]";
+
   return (
-    <section className="mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]">
+    <section className={shellClass} aria-label="Scenario promotion">
+      {embedded ? null : (
       <div>
         <h2 className="text-sm font-semibold text-[#102a43]">
           Promote selected scenario to CURRENT
@@ -78,6 +85,7 @@ export function ScenarioPromotionPanel({
           baseline.
         </p>
       </div>
+      )}
 
       <Alert tone="warning" title="Authoritative change">
         Changes the authoritative plan — does not create an approved baseline.
@@ -190,7 +198,7 @@ export function ScenarioPromotionPanel({
               if (!open) setError(null);
             }}
             title="Promote scenario to CURRENT?"
-            description={`Replace CURRENT allocations with “${selected.label ?? selected.key}”. The source scenario stays unchanged. No baseline is created.`}
+            description={`Changes: CURRENT allocations become a copy of “${selected.label ?? selected.key}”. Unchanged: the source scenario, approvals, and baselines. Reversible: only by promoting another scenario later — not undone automatically. Approval/baseline: not created.`}
             confirmLabel="Confirm promote to CURRENT"
             cancelLabel="Cancel"
             variant="destructive"

@@ -62,6 +62,8 @@ export function ScenarioSelectionPanel({
   history,
   scenarios,
   capabilities,
+  embedded = false,
+  compareHref,
 }: {
   piId: string;
   piVersion: number;
@@ -70,6 +72,9 @@ export function ScenarioSelectionPanel({
   history: ScenarioSelectionHistoryEntry[];
   scenarios: SelectableScenario[];
   capabilities?: Caps;
+  /** When true, omit outer card chrome (used inside ReviewStageSection). */
+  embedded?: boolean;
+  compareHref?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -107,10 +112,16 @@ export function ScenarioSelectionPanel({
 
   const selected = selection.selectedRevision;
 
+  const shellClass = embedded
+    ? "space-y-4 p-3 sm:p-4"
+    : "mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]";
+
   return (
-    <section className="mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]">
+    <section className={shellClass} aria-label="Scenario selection">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
+          {embedded ? null : (
+            <>
           <h2 className="text-sm font-semibold text-[#102a43]">
             Scenario selection
           </h2>
@@ -118,9 +129,11 @@ export function ScenarioSelectionPanel({
             Choose one preferred draft for review. This is not approval and does
             not change CURRENT allocations.
           </p>
+            </>
+          )}
         </div>
         <Link
-          href={`/pi/${piId}/compare`}
+          href={compareHref ?? `/pi/${piId}/compare`}
           className="text-xs text-[#087f78] hover:underline"
         >
           Compare scenarios

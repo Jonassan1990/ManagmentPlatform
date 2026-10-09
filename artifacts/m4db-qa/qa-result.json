@@ -1,0 +1,82 @@
+{
+  "milestone": "M4D-B",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T22:23:59.430Z",
+  "seed": {
+    "organizationId": "4cbdcdc6-e91f-4114-a9dd-971719348dc9",
+    "piId": "960860ac-c3e0-46b2-84a5-5cde50647584",
+    "currentRevisionId": "0e7b71df-3176-44c0-bb61-80464abfd248",
+    "workItemIdA": "7a124da5-8ddf-4b4f-88b1-e169ef5c237b",
+    "workItemIdB": "403fa60b-73f7-4643-a6d9-702095d2b74c",
+    "iterationId": "7757937b-2833-45c4-809c-b2f5e6e5da9f",
+    "teamId": "a83c0597-2758-49a6-8ad0-17a12a2e5501",
+    "boardPath": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board"
+  },
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "1-open-review-workflow",
+      "status": "PASS",
+      "detail": {
+        "workflowNav": true,
+        "summary": true,
+        "nextAction": true,
+        "lifecycle": true
+      }
+    },
+    {
+      "step": "2-supporting-collapsed",
+      "status": "PASS"
+    },
+    {
+      "step": "3-journey-nav",
+      "status": "PASS",
+      "detail": {
+        "onBoard": true,
+        "onCompare": true,
+        "backReview": true
+      }
+    },
+    {
+      "step": "4-select-semantics",
+      "status": "PASS"
+    },
+    {
+      "step": "5-promote-confirm-or-blocked",
+      "status": "PASS"
+    },
+    {
+      "step": "6-approve-confirm-or-state",
+      "status": "PASS"
+    },
+    {
+      "step": "7-baseline-clarity",
+      "status": "PASS"
+    },
+    {
+      "step": "8-supporting-expand",
+      "status": "PASS"
+    },
+    {
+      "step": "9-mobile",
+      "status": "PASS",
+      "detail": {
+        "mobileWorkflow": true,
+        "mobileJourney": true
+      }
+    }
+  ],
+  "measurements": {
+    "visibleStageHeaders": 6,
+    "stepsBoardCompareReview": 3,
+    "beforeAfter": {
+      "before": "All Select/Promote/Approve/Baseline panels always open (~4 dense sections + checklist)",
+      "after": "Workflow bar + summary + next action; stage sections progressive; supporting collapsed",
+      "visibleStageHeaders": 6
+    }
+  },
+  "verdict": "PASS"
+}

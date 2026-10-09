@@ -20,9 +20,14 @@ type Caps = Partial<PrincipalCapabilities>;
 export function PlanApprovalPanel({
   preview,
   capabilities,
+  embedded = false,
+  focus = "full",
 }: {
   preview: PlanApprovalPreview;
   capabilities?: Caps;
+  embedded?: boolean;
+  /** Presentation filter — same actions, optional focus for progressive disclosure. */
+  focus?: "full" | "approve" | "baseline";
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -114,8 +119,15 @@ export function PlanApprovalPanel({
       ? error
       : null;
 
+  const shellClass = embedded
+    ? "space-y-4 p-3 sm:p-4"
+    : "mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]";
+  const showApprove = focus === "full" || focus === "approve";
+  const showBaseline = focus === "full" || focus === "baseline";
+
   return (
-    <section className="mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]">
+    <section className={shellClass} aria-label="Plan approval and baseline">
+      {embedded ? null : (
       <div>
         <h2 className="text-sm font-semibold text-[#102a43]">
           Approve CURRENT plan & create baseline
@@ -125,6 +137,7 @@ export function PlanApprovalPanel({
           Baseline creation is a separate action and does not rewrite history.
         </p>
       </div>
+      )}
 
       <div
         className="rounded-md border border-[#e3a640]/40 bg-[#e3a640]/10 px-3 py-2 text-sm text-[#102a43]"
@@ -231,114 +244,140 @@ export function PlanApprovalPanel({
         </div>
       ) : null}
 
-      {preview.requiresWarningAcknowledgement ? (
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={ackWarnings}
-            onChange={(e) => setAckWarnings(e.target.checked)}
+      {showApprove ? (
+        <>
+          {preview.requiresWarningAcknowledgement ? (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={ackWarnings}
+                onChange={(e) => setAckWarnings(e.target.checked)}
+              />
+              <span>
+                I acknowledge the readiness warnings and still want to approve
+                this CURRENT plan.
+              </span>
+            </label>
+          ) : null}
+
+          {preview.approveDisabledReasons.length > 0 ? (
+            <Alert tone="warning">
+              {preview.approveDisabledReasons.join(" ")}
+            </Alert>
+          ) : null}
+
+          {!canReview ? (
+            <Alert tone="info" title="Permission">
+              Approving requires PI review permission. You can still inspect
+              readiness and CURRENT version details.
+            </Alert>
+          ) : null}
+
+          <PrimaryButton
+            disabled={pending || approveBlocked}
+            title={permissionTitle(canReview && preview.canApprove)}
+            onClick={() => {
+              setError(null);
+              setActiveDialog("approve");
+              setConfirmApprove(true);
+            }}
+          >
+            Approve CURRENT plan
+          </PrimaryButton>
+
+          <ConfirmDialog
+            open={confirmApprove}
+            onOpenChange={(open) => {
+              if (pending && !open) return;
+              setConfirmApprove(open);
+              if (!open) {
+                setError(null);
+                setActiveDialog(null);
+              }
+            }}
+            title="Approve CURRENT plan?"
+            description={`Changes: records approval for CURRENT version ${preview.currentRevision?.version ?? "—"} at the current allocation fingerprint. Unchanged: allocations, scenarios, and existing baselines. Reversible: approval can be invalidated by a later promotion; it is not a baseline. Approval/baseline: approval only — no immutable baseline is created.`}
+            confirmLabel="Confirm approval"
+            cancelLabel="Cancel"
+            pending={pending && activeDialog === "approve"}
+            error={confirmApprove ? dialogError : null}
+            onConfirm={approve}
           />
-          <span>
-            I acknowledge the readiness warnings and still want to approve this
-            CURRENT plan.
-          </span>
-        </label>
+        </>
       ) : null}
 
-      {preview.approveDisabledReasons.length > 0 ? (
-        <Alert tone="warning">
-          {preview.approveDisabledReasons.join(" ")}
-        </Alert>
+      {showApprove && showBaseline ? (
+        <hr className="border-[#e2e8eb]" />
       ) : null}
 
-      <PrimaryButton
-        disabled={pending || approveBlocked}
-        title={permissionTitle(canReview && preview.canApprove)}
-        onClick={() => {
-          setError(null);
-          setActiveDialog("approve");
-          setConfirmApprove(true);
-        }}
-      >
-        Approve CURRENT plan
-      </PrimaryButton>
+      {showBaseline ? (
+        <>
+          <div>
+            <h3 className="text-sm font-semibold text-[#102a43]">
+              Create immutable baseline
+            </h3>
+            <p className="mt-1 text-xs text-[#74848e]">
+              {preview.disclaimerBaseline}
+            </p>
+          </div>
 
-      <ConfirmDialog
-        open={confirmApprove}
-        onOpenChange={(open) => {
-          if (pending && !open) return;
-          setConfirmApprove(open);
-          if (!open) {
-            setError(null);
-            setActiveDialog(null);
-          }
-        }}
-        title="Approve CURRENT plan?"
-        description={`Confirm approval of CURRENT version ${preview.currentRevision?.version ?? "—"}. This does not create an immutable baseline.`}
-        confirmLabel="Confirm approval"
-        cancelLabel="Cancel"
-        pending={pending && activeDialog === "approve"}
-        error={confirmApprove ? dialogError : null}
-        onConfirm={approve}
-      />
+          {!canBaselinePerm ? (
+            <Alert tone="warning" title="Baseline unavailable">
+              Creating a baseline requires PI baseline permission (PI_BASELINE).
+              Approval alone does not grant baseline creation.
+            </Alert>
+          ) : null}
 
-      <hr className="border-[#e2e8eb]" />
+          {preview.baselineDisabledReasons.length > 0 ? (
+            <Alert tone="info">
+              {preview.baselineDisabledReasons.join(" ")}
+            </Alert>
+          ) : null}
 
-      <div>
-        <h3 className="text-sm font-semibold text-[#102a43]">
-          Create immutable baseline
-        </h3>
-        <p className="mt-1 text-xs text-[#74848e]">
-          {preview.disclaimerBaseline}
-        </p>
-      </div>
+          <label className="block text-sm">
+            <span className="text-xs text-[#74848e]">Label (optional)</span>
+            <input
+              className="mt-1 w-full rounded-md border border-[#e2e8eb] px-3 py-2"
+              value={baselineLabel}
+              onChange={(e) => setBaselineLabel(e.target.value)}
+              placeholder="e.g. Management freeze"
+            />
+          </label>
 
-      {preview.baselineDisabledReasons.length > 0 ? (
-        <Alert tone="info">{preview.baselineDisabledReasons.join(" ")}</Alert>
+          <PrimaryButton
+            disabled={pending || baselineBlocked}
+            title={permissionTitle(canBaselinePerm && preview.canBaseline)}
+            onClick={() => {
+              setError(null);
+              setActiveDialog("baseline");
+              setConfirmBaseline(true);
+            }}
+          >
+            Create immutable baseline
+          </PrimaryButton>
+
+          <ConfirmDialog
+            open={confirmBaseline}
+            onOpenChange={(open) => {
+              if (pending && !open) return;
+              setConfirmBaseline(open);
+              if (!open) {
+                setError(null);
+                setActiveDialog(null);
+              }
+            }}
+            title="Create immutable baseline?"
+            description={`Changes: creates a new immutable baseline snapshot from approved CURRENT version ${preview.currentRevision?.version ?? "—"}. Unchanged: live allocations and prior baselines (history is append-only). Reversible: no — baselines are not rewritten. Approval/baseline: baseline is created from the exact approved CURRENT state.`}
+            confirmLabel="Confirm baseline"
+            cancelLabel="Cancel"
+            variant="destructive"
+            pending={pending && activeDialog === "baseline"}
+            error={confirmBaseline ? dialogError : null}
+            onConfirm={baseline}
+          />
+        </>
       ) : null}
-
-      <label className="block text-sm">
-        <span className="text-xs text-[#74848e]">Label (optional)</span>
-        <input
-          className="mt-1 w-full rounded-md border border-[#e2e8eb] px-3 py-2"
-          value={baselineLabel}
-          onChange={(e) => setBaselineLabel(e.target.value)}
-          placeholder="e.g. Management freeze"
-        />
-      </label>
-
-      <PrimaryButton
-        disabled={pending || baselineBlocked}
-        title={permissionTitle(canBaselinePerm && preview.canBaseline)}
-        onClick={() => {
-          setError(null);
-          setActiveDialog("baseline");
-          setConfirmBaseline(true);
-        }}
-      >
-        Create immutable baseline
-      </PrimaryButton>
-
-      <ConfirmDialog
-        open={confirmBaseline}
-        onOpenChange={(open) => {
-          if (pending && !open) return;
-          setConfirmBaseline(open);
-          if (!open) {
-            setError(null);
-            setActiveDialog(null);
-          }
-        }}
-        title="Create immutable baseline?"
-        description={`Confirm immutable baseline from approved CURRENT version ${preview.currentRevision?.version ?? "—"}. Historical baselines will not be modified.`}
-        confirmLabel="Confirm baseline"
-        cancelLabel="Cancel"
-        variant="destructive"
-        pending={pending && activeDialog === "baseline"}
-        error={confirmBaseline ? dialogError : null}
-        onConfirm={baseline}
-      />
     </section>
   );
 }
