@@ -15,13 +15,15 @@ import {
   ConvertToProjectForm,
   CreatePilotForm,
 } from "@/components/pilot/pilot-forms";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { mapInitiativeStageBadge } from "@/components/ui/status-adapters";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { describeInitiativeNextAction } from "@/modules/initiative/application/initiative-journey";
 import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
 import {
   appendPreservedQuery,
   parseReturnContext,
 } from "@/modules/navigation/return-context";
-import { stageLabel } from "@/modules/initiative/application/attention";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -101,6 +103,21 @@ export default async function InitiativeOverviewPage({
     Boolean(readiness?.ready) &&
     !activeSubmission;
 
+  const nextAction = describeInitiativeNextAction({
+    currentStage: item.currentStage,
+    canSubmitPreStudy,
+    hasActiveSubmission: Boolean(activeSubmission),
+    submissionStatus: activeSubmission?.status ?? null,
+    canCreatePoC,
+    canCreatePilot,
+    canConvertProject,
+    openBlockingConditions: openBlocking.length,
+    preStudyReady: readiness?.ready ?? null,
+    pocReady: pocReadiness?.ready ?? null,
+    pilotReady: pilotReadiness?.ready ?? null,
+  });
+  const stageBadge = mapInitiativeStageBadge(item.currentStage);
+
   return (
     <div>
       <Breadcrumbs
@@ -115,14 +132,20 @@ export default async function InitiativeOverviewPage({
         title={item.title}
         description={`${item.referenceKey} · ${item.department.name} · Owner: ${item.businessOwnerName}`}
         actions={
-          <span className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm">
-            {stageLabel(item.currentStage)}
-          </span>
+          <StatusBadge
+            status={stageBadge.status}
+            label={stageBadge.label}
+          />
         }
       />
 
       <div className="mb-5">
-        <LifecycleRail current={item.currentStage} />
+        <LifecycleRail
+          current={item.currentStage}
+          ownerName={item.businessOwnerName}
+          nextActionLabel={nextAction.label}
+          blockedReason={nextAction.blocked ? nextAction.detail : null}
+        />
       </div>
 
       <InitiativeTabs

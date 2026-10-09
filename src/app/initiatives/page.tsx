@@ -49,7 +49,10 @@ export default async function InitiativesPage({
   const stageFilter =
     params.stage === "DEMAND" ||
     params.stage === "REQUIREMENTS" ||
-    params.stage === "PRE_STUDY"
+    params.stage === "PRE_STUDY" ||
+    params.stage === "POC" ||
+    params.stage === "PILOT" ||
+    params.stage === "PROJECT"
       ? params.stage
       : undefined;
 
@@ -64,7 +67,7 @@ export default async function InitiativesPage({
       />
       <PageHeader
         title="Initiatives"
-        description="Capture demand, structure requirements, and prepare pre-study readiness."
+        description="One initiative journey: Discovery → Governance → Validation → Delivery."
         actions={
           <Link
             href="/initiatives/new"
@@ -91,6 +94,21 @@ export default async function InitiativesPage({
           href="/initiatives?stage=PRE_STUDY"
           active={stageFilter === "PRE_STUDY"}
           label="Pre-study"
+        />
+        <FilterChip
+          href="/initiatives?stage=POC"
+          active={stageFilter === "POC"}
+          label="PoC"
+        />
+        <FilterChip
+          href="/initiatives?stage=PILOT"
+          active={stageFilter === "PILOT"}
+          label="Pilot"
+        />
+        <FilterChip
+          href="/initiatives?stage=PROJECT"
+          active={stageFilter === "PROJECT"}
+          label="Project"
         />
       </div>
 

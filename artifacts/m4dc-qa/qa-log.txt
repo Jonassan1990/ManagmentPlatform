@@ -1,0 +1,14 @@
+PASS login 
+PASS 1-hub-filters { hasPocFilter: true, hasPilotFilter: true, hasProjectFilter: true }
+PASS 2-grouped-workspace {
+  discoveryLabel: true,
+  historyLabel: true,
+  hasCurrentBadge: true,
+  initiativePath: '/initiatives/1b0f65b3-3356-4bcf-8175-e74d31cce606'
+}
+PASS 3-discovery-nav http://localhost:43148/initiatives/1b0f65b3-3356-4bcf-8175-e74d31cce606/demand
+PASS 4-governance-copy SKIP — governance not yet visible at this stage
+PASS 5-poc-distinct SKIP — PoC tab not visible
+PASS 6-project-sections SKIP — Project tab not visible
+PASS 7-mobile 
+VERDICT PASS

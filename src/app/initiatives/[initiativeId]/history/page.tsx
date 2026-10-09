@@ -11,10 +11,13 @@ export const dynamic = "force-dynamic";
 
 export default async function HistoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ initiativeId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { initiativeId } = await params;
+  const query = await searchParams;
   const { authz, initiative } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -49,6 +52,9 @@ export default async function HistoryPage({
         currentStage={item.currentStage}
         hasGovernance={item.governanceGates.length > 0}
         hasPoC={Boolean(item.poc)}
+        hasPilot={Boolean(item.pilot)}
+        hasProject={Boolean(item.project)}
+        preserveQuery={query}
       />
       <Panel>
         <h2 className="mb-3 font-medium">Lifecycle transitions</h2>

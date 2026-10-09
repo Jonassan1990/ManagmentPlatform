@@ -1313,11 +1313,15 @@ export function ClosedProjectBanner({
   return (
     <PanelLike>
       <p className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
-        Closed
+        Closed · read-only
       </p>
       <p className={`mt-1 text-lg font-semibold ${statusToneSafe(projectStatus)}`}>
         {humanizeSafe(projectStatus)}
         {closure ? ` · ${humanizeSafe(closure.outcome)}` : ""}
+      </p>
+      <p className="mt-2 text-sm text-[var(--warning)]" role="status">
+        Delivery mutations are disabled. Work items, issues, milestones, and
+        closure forms stay visible for history but cannot change this project.
       </p>
       {closedAt ? (
         <p className="mt-2 text-sm text-[var(--muted)]">

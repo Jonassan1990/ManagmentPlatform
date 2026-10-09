@@ -1,0 +1,67 @@
+{
+  "milestone": "M4D-C",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T22:34:42.947Z",
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "1-hub-filters",
+      "status": "PASS",
+      "detail": {
+        "hasPocFilter": true,
+        "hasPilotFilter": true,
+        "hasProjectFilter": true
+      }
+    },
+    {
+      "step": "2-grouped-workspace",
+      "status": "PASS",
+      "detail": {
+        "discoveryLabel": true,
+        "historyLabel": true,
+        "hasCurrentBadge": true,
+        "initiativePath": "/initiatives/1b0f65b3-3356-4bcf-8175-e74d31cce606"
+      }
+    },
+    {
+      "step": "3-discovery-nav",
+      "status": "PASS",
+      "detail": "http://localhost:43148/initiatives/1b0f65b3-3356-4bcf-8175-e74d31cce606/demand"
+    },
+    {
+      "step": "4-governance-copy",
+      "status": "PASS",
+      "detail": "SKIP — governance not yet visible at this stage"
+    },
+    {
+      "step": "5-poc-distinct",
+      "status": "PASS",
+      "detail": "SKIP — PoC tab not visible"
+    },
+    {
+      "step": "6-project-sections",
+      "status": "PASS",
+      "detail": "SKIP — Project tab not visible"
+    },
+    {
+      "step": "7-mobile",
+      "status": "PASS"
+    }
+  ],
+  "measurements": {
+    "groupedNav": true,
+    "clicksToCurrentStage": 0,
+    "tabGroupLabels": [
+      "Overview",
+      "Discovery",
+      "Governance",
+      "Validation",
+      "Delivery",
+      "History"
+    ]
+  },
+  "verdict": "PASS"
+}

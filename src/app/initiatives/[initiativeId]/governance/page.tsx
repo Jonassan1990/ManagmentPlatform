@@ -26,10 +26,13 @@ export const dynamic = "force-dynamic";
 
 export default async function GovernancePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ initiativeId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { initiativeId } = await params;
+  const query = await searchParams;
   const { authz, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -104,7 +107,7 @@ export default async function GovernancePage({
       />
       <PageHeader
         title={item.title}
-        description={`${item.referenceKey} · Governance gate workspace`}
+        description={`${item.referenceKey} · Governance — evidence, pending approvals, and decision status. GO does not auto-create PoC/Pilot/Project.`}
       />
       <div className="mb-5">
         <LifecycleRail current={item.currentStage} />
@@ -117,6 +120,7 @@ export default async function GovernancePage({
         hasPoC={Boolean(item.poc)}
         hasPilot={Boolean(item.pilot)}
         hasProject={Boolean(item.project)}
+        preserveQuery={query}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
