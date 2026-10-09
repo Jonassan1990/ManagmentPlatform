@@ -157,24 +157,24 @@ export default async function PortfolioPage({
       />
       <PageHeader
         title="Portfolio"
-        description="Executive overview of lifecycle, delivery health, governance attention, and PI capacity."
+        description="Executive summary, management attention, and portfolio insights — authorized scope only."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/portfolio/explorer"
-              className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
+              href={`/portfolio/explorer?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`}
+              className="min-h-10 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               Explorer
             </Link>
             <Link
-              href="/portfolio/health"
-              className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
+              href={`/portfolio/health?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`}
+              className="min-h-10 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               Delivery health
             </Link>
             <Link
-              href="/portfolio/capacity"
-              className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
+              href={`/portfolio/capacity?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`}
+              className="min-h-10 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               PI &amp; capacity
             </Link>
@@ -188,6 +188,7 @@ export default async function PortfolioPage({
           departments={departments}
           organizationId={organizationId}
           departmentId={departmentId}
+          healthFocus={healthFocus}
         />
         {!deptResult.ok ? (
           <Alert tone="warning">

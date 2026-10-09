@@ -1,0 +1,35 @@
+PASS 1-org-admin-login 
+PASS 2-three-level-hierarchy {
+  level1: true,
+  level2: true,
+  level3: true,
+  exec: true,
+  attention: true,
+  insights: true
+}
+PASS 3-executive-kpis { kpiLinks: 6 }
+PASS 4-blocked-projects {
+  stepsToBlocked: 1,
+  url: 'http://localhost:43148/portfolio?organizationId=4b712b88-5e13-4493-997b-392e369e44b2&healthFocus=BLOCKED'
+}
+PASS 5-pending-governance {
+  stepsGov: 1,
+  hasReturn: true,
+  url: 'http://localhost:43148/approvals?from=portfolio&fromOrg=4b712b88-5e13-4493-997b-392e369e44b2'
+}
+PASS 6-drilldown-and-return SKIP — no project attention rows in fixture
+PASS 7-capacity-status 
+PASS 8-progressive-ownership 
+PASS 9-tablet 
+PASS 10-mobile { overflowX: false }
+VERDICT PASS
+MEASUREMENTS {
+  "executiveKpiCards": 6,
+  "executiveKpiLinks": 6,
+  "stepsToFindBlocked": 1,
+  "stepsToPendingGovernance": 1,
+  "governanceReturnContext": true,
+  "stepsToOpenDelayedOrAttentionProject": "UNKNOWN",
+  "mobileHorizontalOverflow": false,
+  "scopeBannerPrimaryLinks": 0
+}

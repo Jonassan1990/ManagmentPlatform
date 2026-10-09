@@ -1,0 +1,82 @@
+{
+  "milestone": "M4E-A",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T23:13:29.785Z",
+  "measurements": {
+    "executiveKpiCards": 6,
+    "executiveKpiLinks": 6,
+    "stepsToFindBlocked": 1,
+    "stepsToPendingGovernance": 1,
+    "governanceReturnContext": true,
+    "stepsToOpenDelayedOrAttentionProject": "UNKNOWN",
+    "mobileHorizontalOverflow": false,
+    "scopeBannerPrimaryLinks": 0
+  },
+  "steps": [
+    {
+      "step": "1-org-admin-login",
+      "status": "PASS"
+    },
+    {
+      "step": "2-three-level-hierarchy",
+      "status": "PASS",
+      "detail": {
+        "level1": true,
+        "level2": true,
+        "level3": true,
+        "exec": true,
+        "attention": true,
+        "insights": true
+      }
+    },
+    {
+      "step": "3-executive-kpis",
+      "status": "PASS",
+      "detail": {
+        "kpiLinks": 6
+      }
+    },
+    {
+      "step": "4-blocked-projects",
+      "status": "PASS",
+      "detail": {
+        "stepsToBlocked": 1,
+        "url": "http://localhost:43148/portfolio?organizationId=4b712b88-5e13-4493-997b-392e369e44b2&healthFocus=BLOCKED"
+      }
+    },
+    {
+      "step": "5-pending-governance",
+      "status": "PASS",
+      "detail": {
+        "stepsGov": 1,
+        "hasReturn": true,
+        "url": "http://localhost:43148/approvals?from=portfolio&fromOrg=4b712b88-5e13-4493-997b-392e369e44b2"
+      }
+    },
+    {
+      "step": "6-drilldown-and-return",
+      "status": "PASS",
+      "detail": "SKIP — no project attention rows in fixture"
+    },
+    {
+      "step": "7-capacity-status",
+      "status": "PASS"
+    },
+    {
+      "step": "8-progressive-ownership",
+      "status": "PASS"
+    },
+    {
+      "step": "9-tablet",
+      "status": "PASS"
+    },
+    {
+      "step": "10-mobile",
+      "status": "PASS",
+      "detail": {
+        "overflowX": false
+      }
+    }
+  ],
+  "verdict": "PASS"
+}
