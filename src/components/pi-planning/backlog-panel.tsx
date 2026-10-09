@@ -97,6 +97,11 @@ export function BacklogPanel({
                     workItemId={item.id}
                     iterations={iterations}
                     teams={teams}
+                    estimateHours={
+                      item.estimateHours != null
+                        ? String(item.estimateHours)
+                        : null
+                    }
                     capabilities={capabilities}
                     onDone={() => setOpenId(null)}
                   />

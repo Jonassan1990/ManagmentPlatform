@@ -1,10 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { PlanningBoard } from "@/components/pi-planning/planning-board";
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
-import {
-  ScenarioModeBanner,
-  ScenarioPanel,
-} from "@/components/pi-planning/scenario-panel";
+import { ScenarioPanel } from "@/components/pi-planning/scenario-panel";
 import { Breadcrumbs, PageHeader } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
 import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
@@ -69,6 +66,24 @@ export default async function PiBoardPage({
   const readOnlyScenario =
     !board.revision.isCurrent && board.revision.status !== "DRAFT";
 
+  const teamSlots = board.capacityViews.teams;
+  const availableHours = teamSlots.reduce(
+    (sum, t) => sum + t.effectiveCapacityHours,
+    0,
+  );
+  const committedHours = teamSlots.reduce(
+    (sum, t) => sum + t.plannedLoadHours,
+    0,
+  );
+  const capacitySummary = {
+    availableHours: teamSlots.length === 0 ? null : availableHours,
+    committedHours,
+    overloadSlots: teamSlots.filter((t) => t.band === "overload").length,
+    blockerConflictCount: board.conflicts.filter((c) => c.severity === "BLOCKER")
+      .length,
+    teamSlotCount: teamSlots.length,
+  };
+
   return (
     <div>
       <Breadcrumbs
@@ -82,12 +97,21 @@ export default async function PiBoardPage({
       />
       <PageHeader
         title="Planning board"
-        description={`${board.pi.name} · ${piStatusLabel(board.pi.status)} — drag work onto team × iteration cells, or use Move / Allocate forms.`}
+        description={`${board.pi.name} · ${piStatusLabel(board.pi.status)} — allocate work across teams and iterations. Drag cards or use Allocate / Move forms.`}
       />
       <PiTabs piId={piId} active="board" preserveQuery={query} />
-      <ScenarioModeBanner revision={board.revision} />
+
+      {/* A + C: context + compact scenario management (workspace follows) */}
       <ScenarioPanel
         piId={piId}
+        piStatus={board.pi.status}
+        activeRevision={{
+          id: board.revision.id,
+          key: board.revision.key,
+          label: board.revision.label,
+          isCurrent: board.revision.isCurrent,
+          status: board.revision.status,
+        }}
         activeRevisionId={board.revision.id}
         scenarios={scenarios.map((s) => ({
           id: s.id,
@@ -99,23 +123,28 @@ export default async function PiBoardPage({
           kind: s.kind,
           archivedAt: s.archivedAt,
         }))}
+        capacitySummary={capacitySummary}
         capabilities={capabilities}
         preserveQuery={query}
       />
-      <PlanningBoard
-        piId={piId}
-        revisionId={board.revision.id}
-        departments={board.departments}
-        iterations={board.pi.iterations.map((it) => ({
-          id: it.id,
-          name: it.name,
-          sequence: it.sequence,
-          referenceKey: it.referenceKey,
-        }))}
-        backlog={backlog}
-        capabilities={capabilities}
-        readOnlyScenario={readOnlyScenario}
-      />
+
+      {/* B: Planning workspace */}
+      <section aria-label="Planning workspace">
+        <PlanningBoard
+          piId={piId}
+          revisionId={board.revision.id}
+          departments={board.departments}
+          iterations={board.pi.iterations.map((it) => ({
+            id: it.id,
+            name: it.name,
+            sequence: it.sequence,
+            referenceKey: it.referenceKey,
+          }))}
+          backlog={backlog}
+          capabilities={capabilities}
+          readOnlyScenario={readOnlyScenario}
+        />
+      </section>
     </div>
   );
 }

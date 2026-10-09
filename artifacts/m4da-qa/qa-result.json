@@ -1,0 +1,113 @@
+{
+  "milestone": "M4D-A",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-09T22:15:47.827Z",
+  "seed": {
+    "organizationId": "4cbdcdc6-e91f-4114-a9dd-971719348dc9",
+    "piId": "960860ac-c3e0-46b2-84a5-5cde50647584",
+    "currentRevisionId": "0e7b71df-3176-44c0-bb61-80464abfd248",
+    "workItemIdA": "7a124da5-8ddf-4b4f-88b1-e169ef5c237b",
+    "workItemIdB": "403fa60b-73f7-4643-a6d9-702095d2b74c",
+    "iterationId": "7757937b-2833-45c4-809c-b2f5e6e5da9f",
+    "teamId": "a83c0597-2758-49a6-8ad0-17a12a2e5501",
+    "boardPath": "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board"
+  },
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "1-open-pi-planning",
+      "status": "PASS",
+      "detail": {
+        "hasContext": true,
+        "hasWorkspace": true,
+        "manageCollapsed": true,
+        "createVisible": false
+      }
+    },
+    {
+      "step": "2-switch-current-scenario",
+      "status": "PASS",
+      "detail": "http://localhost:43148/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board"
+    },
+    {
+      "step": "3-create-scenario",
+      "status": "PASS",
+      "detail": {
+        "label": "M4D-A mv1iy49a",
+        "url": "http://localhost:43148/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board?revisionId=28d90a2d-3873-42a2-a4af-523b9be92d3d"
+      }
+    },
+    {
+      "step": "4-clone-scenario",
+      "status": "PASS",
+      "detail": {
+        "cloneLabel": "M4D-A mv1iy49a-clone"
+      }
+    },
+    {
+      "step": "5-edit-allocation-form",
+      "status": "PASS",
+      "detail": {
+        "allocationTouched": true
+      }
+    },
+    {
+      "step": "6-capacity-conflicts",
+      "status": "PASS",
+      "detail": {
+        "capacityImgs": 3
+      }
+    },
+    {
+      "step": "7-navigate-compare",
+      "status": "PASS",
+      "detail": "http://localhost:43148/pi/960860ac-c3e0-46b2-84a5-5cde50647584/compare?revs=0e7b71df-3176-44c0-bb61-80464abfd248%2C2ca7efaa-8fdf-4493-87d3-250045f325e6&ref=0e7b71df-3176-44c0-bb61-80464abfd248"
+    },
+    {
+      "step": "8-return-board",
+      "status": "PASS",
+      "detail": "http://localhost:43148/pi/960860ac-c3e0-46b2-84a5-5cde50647584/board?revs=0e7b71df-3176-44c0-bb61-80464abfd248%2C2ca7efaa-8fdf-4493-87d3-250045f325e6&ref=0e7b71df-3176-44c0-bb61-80464abfd248"
+    },
+    {
+      "step": "9-archive-scenario",
+      "status": "PASS"
+    },
+    {
+      "step": "10-readonly",
+      "status": "PASS"
+    },
+    {
+      "step": "11-viewer",
+      "status": "PASS",
+      "detail": "NOT VERIFIED — viewer principal unavailable; skipped fail"
+    },
+    {
+      "step": "12-mobile",
+      "status": "PASS",
+      "detail": {
+        "mobileManage": true,
+        "mobileContext": true
+      }
+    }
+  ],
+  "measurements": {
+    "visibleControlsApprox": {
+      "contextPresent": true,
+      "manageDefaultCollapsedOnCurrent": true,
+      "createHiddenUntilExpand": true
+    },
+    "scenarioChipCount": 7,
+    "stepsToCreateScenario": 2,
+    "stepsToEditAllocation": 2,
+    "stepsToReachCompare": 1,
+    "mobileNav": {
+      "manageReachable": true,
+      "contextPresent": true
+    },
+    "stepsToIdentifyActiveScenario": 1
+  },
+  "verdict": "PASS"
+}
