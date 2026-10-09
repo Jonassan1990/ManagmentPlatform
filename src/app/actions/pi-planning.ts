@@ -289,3 +289,63 @@ export async function createBaselineAction(input: unknown) {
     return result;
   });
 }
+
+export async function createScenarioFromCurrentAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.createScenarioFromCurrent(principal, input);
+    revalidatePi(result.piId);
+    return result;
+  });
+}
+
+export async function cloneScenarioAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.cloneScenario(principal, input);
+    revalidatePi(result.piId);
+    return result;
+  });
+}
+
+export async function renameScenarioAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.renameScenario(principal, input);
+    revalidatePi(result.piId);
+    return result;
+  });
+}
+
+export async function archiveScenarioAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.archiveScenario(principal, input);
+    revalidatePi(result.piId);
+    return result;
+  });
+}
+
+export async function markScenarioReadyAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.markScenarioReady(principal, input);
+    revalidatePi(result.piId);
+    return result;
+  });
+}
+
+export async function reopenScenarioAction(input: unknown) {
+  return run(async () => {
+    const { authz, planning } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await planning.reopenScenario(principal, input);
+    revalidatePi(result.piId);
+    return result;
+  });
+}

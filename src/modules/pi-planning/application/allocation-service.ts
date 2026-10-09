@@ -54,7 +54,11 @@ export class AllocationService {
       throw new AppError("VALIDATION", "Cannot allocate on a closed PI.");
     }
 
-    const revision = await this.piService.requireCurrentRevision(pi.id);
+    const revision = await this.piService.requireRevision(
+      pi.id,
+      input.revisionId,
+    );
+    this.piService.assertRevisionEditableForAllocations(revision);
     const iteration = await this.db.piIteration.findUnique({
       where: { id: input.iterationId },
     });
@@ -156,6 +160,8 @@ export class AllocationService {
           organizationId: pi.organizationId,
           payload: {
             workItemId: workItem.id,
+            revisionId: revision.id,
+            revisionKey: revision.key,
             iterationId: updated.iterationId,
             teamId: updated.teamId,
             plannedHours: updated.plannedHours.toString(),
@@ -187,6 +193,8 @@ export class AllocationService {
       organizationId: pi.organizationId,
       payload: {
         workItemId: workItem.id,
+        revisionId: revision.id,
+        revisionKey: revision.key,
         iterationId: created.iterationId,
         teamId: created.teamId,
         plannedHours: created.plannedHours.toString(),
@@ -208,6 +216,7 @@ export class AllocationService {
     if (!allocation) throw new AppError("NOT_FOUND", "Allocation not found.");
     const pi = allocation.revision.pi;
     await this.authz.assertCan(principal, PERMISSIONS.PI_ALLOCATE, piAuthScope(pi.organizationId, pi.sectionId));
+    this.piService.assertRevisionEditableForAllocations(allocation.revision);
     this.assertVersion(allocation.version, input.expectedVersion, "allocation");
 
     const iteration = await this.db.piIteration.findUnique({
@@ -249,6 +258,8 @@ export class AllocationService {
         subjectId: updated.id,
         organizationId: pi.organizationId,
         payload: {
+          revisionId: allocation.revisionId,
+          revisionKey: allocation.revision.key,
           iterationId: updated.iterationId,
           teamId: updated.teamId,
           version: updated.version,
@@ -270,6 +281,7 @@ export class AllocationService {
     if (!allocation) throw new AppError("NOT_FOUND", "Allocation not found.");
     const pi = allocation.revision.pi;
     await this.authz.assertCan(principal, PERMISSIONS.PI_ALLOCATE, piAuthScope(pi.organizationId, pi.sectionId));
+    this.piService.assertRevisionEditableForAllocations(allocation.revision);
     this.assertVersion(allocation.version, input.expectedVersion, "allocation");
 
     try {
@@ -282,7 +294,11 @@ export class AllocationService {
         subjectType: "WorkAllocation",
         subjectId: allocation.id,
         organizationId: pi.organizationId,
-        payload: { workItemId: allocation.workItemId },
+        payload: {
+          workItemId: allocation.workItemId,
+          revisionId: allocation.revisionId,
+          revisionKey: allocation.revision.key,
+        },
         result: "success",
       });
       return { id: allocation.id };
@@ -292,10 +308,14 @@ export class AllocationService {
   }
 
   /** Unallocated work items from projects overlapping participating departments. */
-  async getBacklog(principal: Principal, piId: string) {
+  async getBacklog(
+    principal: Principal,
+    piId: string,
+    revisionId?: string | null,
+  ) {
     const pi = await this.piService.requirePi(piId);
     await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, piAuthScope(pi.organizationId, pi.sectionId));
-    const revision = await this.piService.requireCurrentRevision(piId);
+    const revision = await this.piService.requireRevision(piId, revisionId);
     const deptIds = (
       await this.db.piParticipatingDepartment.findMany({
         where: { piId },

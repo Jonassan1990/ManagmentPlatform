@@ -111,6 +111,7 @@ export function MoveWorkForm({
 
 export function AllocateWorkForm({
   piId,
+  revisionId,
   workItemId,
   iterations,
   teams,
@@ -118,6 +119,7 @@ export function AllocateWorkForm({
   onDone,
 }: {
   piId: string;
+  revisionId?: string;
   workItemId: string;
   iterations: IterationOption[];
   teams: TeamOption[];
@@ -152,6 +154,7 @@ export function AllocateWorkForm({
           iterationId: String(fd.get("iterationId") ?? ""),
           teamId: String(fd.get("teamId") ?? ""),
           plannedHours: optionalHours(fd.get("plannedHours")),
+          ...(revisionId ? { revisionId } : {}),
         });
       }}
     >

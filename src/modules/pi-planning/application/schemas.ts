@@ -123,6 +123,8 @@ export const allocateWorkInputSchema = z.object({
   notes: z.string().trim().max(4000).optional().nullable(),
   /** Optimistic concurrency on existing WorkAllocation when updating. */
   expectedVersion: z.number().int().positive().optional(),
+  /** When omitted, mutates CURRENT. Scenario edits must pass a non-CURRENT revisionId. */
+  revisionId: uuidSchema.optional(),
 });
 
 export const moveAllocationInputSchema = z.object({
@@ -136,6 +138,38 @@ export const moveAllocationInputSchema = z.object({
 
 export const removeAllocationInputSchema = z.object({
   allocationId: uuidSchema,
+  expectedVersion: z.number().int().positive(),
+});
+
+export const createScenarioFromCurrentInputSchema = z.object({
+  piId: uuidSchema,
+  label: z.string().trim().min(1).max(200),
+});
+
+export const cloneScenarioInputSchema = z.object({
+  revisionId: uuidSchema,
+  label: z.string().trim().min(1).max(200),
+  expectedVersion: z.number().int().positive().optional(),
+});
+
+export const renameScenarioInputSchema = z.object({
+  revisionId: uuidSchema,
+  label: z.string().trim().min(1).max(200),
+  expectedVersion: z.number().int().positive(),
+});
+
+export const archiveScenarioInputSchema = z.object({
+  revisionId: uuidSchema,
+  expectedVersion: z.number().int().positive(),
+});
+
+export const reopenScenarioInputSchema = z.object({
+  revisionId: uuidSchema,
+  expectedVersion: z.number().int().positive(),
+});
+
+export const markScenarioReadyInputSchema = z.object({
+  revisionId: uuidSchema,
   expectedVersion: z.number().int().positive(),
 });
 

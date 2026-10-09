@@ -1,6 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { PlanningBoard } from "@/components/pi-planning/planning-board";
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
+import {
+  ScenarioModeBanner,
+  ScenarioPanel,
+} from "@/components/pi-planning/scenario-panel";
 import { Breadcrumbs, PageHeader } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
 import { createServices } from "@/server/container";
@@ -9,17 +13,33 @@ export const dynamic = "force-dynamic";
 
 export default async function PiBoardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ piId: string }>;
+  searchParams: Promise<{ revisionId?: string }>;
 }) {
   const { piId } = await params;
+  const { revisionId: revisionIdParam } = await searchParams;
   const { authz, planning } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
 
   let board;
+  let scenarios;
   try {
-    board = await planning.getPlanningBoard(principal, piId);
+    scenarios = await planning.listScenarios(principal, piId, {
+      includeArchived: false,
+    });
+    const resolvedRevisionId =
+      revisionIdParam &&
+      scenarios.some((s) => s.id === revisionIdParam)
+        ? revisionIdParam
+        : undefined;
+    board = await planning.getPlanningBoard(
+      principal,
+      piId,
+      resolvedRevisionId,
+    );
   } catch {
     notFound();
   }
@@ -41,6 +61,9 @@ export default async function PiBoardPage({
     project: item.project,
   }));
 
+  const readOnlyScenario =
+    !board.revision.isCurrent && board.revision.status !== "DRAFT";
+
   return (
     <div>
       <Breadcrumbs
@@ -56,8 +79,25 @@ export default async function PiBoardPage({
         description={`${board.pi.name} · ${piStatusLabel(board.pi.status)} — drag work onto team × iteration cells, or use Move / Allocate forms.`}
       />
       <PiTabs piId={piId} active="board" />
+      <ScenarioModeBanner revision={board.revision} />
+      <ScenarioPanel
+        piId={piId}
+        activeRevisionId={board.revision.id}
+        scenarios={scenarios.map((s) => ({
+          id: s.id,
+          key: s.key,
+          label: s.label,
+          isCurrent: s.isCurrent,
+          status: s.status,
+          version: s.version,
+          kind: s.kind,
+          archivedAt: s.archivedAt,
+        }))}
+        capabilities={capabilities}
+      />
       <PlanningBoard
         piId={piId}
+        revisionId={board.revision.id}
         departments={board.departments}
         iterations={board.pi.iterations.map((it) => ({
           id: it.id,
@@ -67,6 +107,7 @@ export default async function PiBoardPage({
         }))}
         backlog={backlog}
         capabilities={capabilities}
+        readOnlyScenario={readOnlyScenario}
       />
     </div>
   );
