@@ -148,16 +148,9 @@ export class IdentityService {
       include: { principal: true },
     });
 
-    if (existingLink && existingLink.principalId !== principalId) {
-      console.error(
-        "[temp-auth] identity conflict: ExternalIdentity subject bound to a different Principal",
-      );
-      throw new AppError(
-        "CONFLICT",
-        "Temporary authentication is misconfigured.",
-      );
-    }
-
+    // Single-owner temp auth: TEMP_AUTH_PRINCIPAL_ID is authoritative.
+    // Reclaim/rename ExternalIdentity onto that Principal so operator username
+    // changes keep existing RoleBindings (never merge unrelated OIDC identities).
     const principalRow = await this.db.principal.findUnique({
       where: { id: principalId },
       include: {
@@ -167,13 +160,55 @@ export class IdentityService {
       },
     });
 
+    if (existingLink && existingLink.principalId !== principalId) {
+      await this.db.$transaction(async (tx) => {
+        if (!principalRow) {
+          await tx.principal.create({
+            data: {
+              id: principalId,
+              displayName: input.displayName ?? subject,
+            },
+          });
+        } else if (input.displayName) {
+          await tx.principal.update({
+            where: { id: principalId },
+            data: { displayName: input.displayName },
+          });
+        }
+        // Drop any other temp-auth subject already on the configured principal.
+        for (const ei of principalRow?.externalIdentities ?? []) {
+          if (ei.id !== existingLink.id) {
+            await tx.externalIdentity.delete({ where: { id: ei.id } });
+          }
+        }
+        await tx.externalIdentity.update({
+          where: { id: existingLink.id },
+          data: {
+            principalId,
+            lastLoginAt: new Date(),
+            displayNameSnapshot:
+              input.displayName ?? existingLink.displayNameSnapshot,
+          },
+        });
+      });
+      const refreshed = await this.db.principal.findUniqueOrThrow({
+        where: { id: principalId },
+      });
+      return {
+        id: principalId,
+        displayName: refreshed.displayName ?? subject,
+        email: refreshed.email ?? undefined,
+        source: "temp",
+      };
+    }
+
     if (principalRow) {
       const otherTemp = principalRow.externalIdentities.find(
         (ei) => ei.subject !== subject,
       );
       if (otherTemp) {
         // Controlled operator rename of TEMP_AUTH_USERNAME for the *same*
-        // configured principal (keeps RoleBindings). Never retarget another Principal.
+        // configured principal (keeps RoleBindings).
         if (principalRow.externalIdentities.length !== 1) {
           console.error(
             "[temp-auth] identity conflict: Principal has multiple temp-auth subjects",
