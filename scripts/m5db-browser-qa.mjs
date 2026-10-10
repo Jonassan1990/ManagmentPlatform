@@ -335,22 +335,56 @@ try {
   await shot(page, "08-baseline-page");
   journey("baseline-page", baselinePageOk);
 
-  // 7. Context preservation — Board → Compare → Review
-  await goto(page, `${seed.reviewPath}?returnTo=%2Fportfolio`);
-  const boardLink = page.getByRole("link", { name: /← Board|Board/i }).first();
-  await boardLink.click();
-  await page.waitForTimeout(600);
-  const onBoard = page.url().includes("/board");
+  // 7. Context preservation — Board ↔ Compare ↔ Review via journey/tabs
   await goto(page, seed.reviewPath);
-  await page.getByRole("link", { name: /^Compare$/i }).first().click();
-  await page.waitForTimeout(600);
-  const onCompare = page.url().includes("/compare");
-  await page.getByRole("link", { name: /Review/i }).first().click();
-  await page.waitForTimeout(600);
-  const backReview = page.url().includes("/review");
-  journey("context-preservation", onBoard && onCompare && backReview, {
-    detail: { onBoard, onCompare, backReview },
+  const journeyNav = page.getByRole("navigation", { name: "Planning journey" });
+  const boardHref = await journeyNav
+    .getByRole("link", { name: "← Board" })
+    .getAttribute("href");
+  const compareHref = await journeyNav
+    .getByRole("link", { name: "Compare" })
+    .getAttribute("href");
+  await page.goto(`${base}${boardHref}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
   });
+  await page.waitForTimeout(500);
+  const onBoard = page.url().includes("/board");
+  await page.goto(`${base}${compareHref}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
+  });
+  await page.waitForTimeout(500);
+  const onCompare = page.url().includes("/compare");
+  const reviewTabHref = await page
+    .locator('nav[aria-label="PI sections"] a[href*="/review"]')
+    .first()
+    .getAttribute("href");
+  await page.goto(`${base}${reviewTabHref}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
+  });
+  await page.waitForTimeout(500);
+  const backReview = page.url().includes("/review");
+  const hrefsPreservePi =
+    Boolean(boardHref?.includes(`/pi/${seed.piId}/`)) &&
+    Boolean(compareHref?.includes(`/pi/${seed.piId}/`)) &&
+    Boolean(reviewTabHref?.includes(`/pi/${seed.piId}/`));
+  journey(
+    "context-preservation",
+    onBoard && onCompare && backReview && hrefsPreservePi,
+    {
+      detail: {
+        onBoard,
+        onCompare,
+        backReview,
+        hrefsPreservePi,
+        boardHref,
+        compareHref,
+        reviewTabHref,
+      },
+    },
+  );
   await shot(page, "09-context-journey");
 
   // 8. Viewer — permission restrictions

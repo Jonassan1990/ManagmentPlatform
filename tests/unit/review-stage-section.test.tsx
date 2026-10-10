@@ -72,11 +72,15 @@ describe("M4D-B Review stage disclosure", () => {
     expect(
       screen.getByRole("navigation", { name: "PI planning workflow" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Selected ≠ Promoted/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Selected ≠ Applied to current plan/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: "Next planning action" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Promote selected scenario/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Apply selected scenario to current plan/i),
+    ).toBeInTheDocument();
   });
 
   it("preserves journey nav links with context hrefs", () => {
