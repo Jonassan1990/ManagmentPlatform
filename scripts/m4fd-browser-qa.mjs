@@ -218,9 +218,15 @@ try {
     result.viewports.push(vpResult);
   }
 
-  // Skip link + main landmark
+  // Skip link + main landmark — first Tab from a clean document focus.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base}/`, { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    const main = document.getElementById("main-content");
+    if (main instanceof HTMLElement) main.blur();
+    document.body.tabIndex = -1;
+    document.body.focus();
+  });
   await page.keyboard.press("Tab");
   const skip = await page.evaluate(() => {
     const el = document.activeElement;

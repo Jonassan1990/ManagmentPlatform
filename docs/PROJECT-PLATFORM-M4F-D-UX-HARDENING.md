@@ -1,7 +1,7 @@
 # PROJECT PLATFORM — M4F-D
 ## Final Cross-Application UX, Accessibility & Interaction Hardening
 
-**Status:** Implementation complete — acceptance pending green gates / merge  
+**Status:** Implementation complete — local gates + browser QA PASS  
 **Base:** `origin/main` @ `0f4f8595e0cf3dd14fcabff9bb0c50182cf07ad2` (M4F-C merged)  
 **Branch:** `cursor/m4fd-ux-hardening-60bb`
 
@@ -25,6 +25,7 @@ Resolve remaining verified usability and accessibility defects from M4F-B/C that
 | **M4F-D-06** | P2 | M4F-B contrast | `#74848e` (~3.86:1) on scenario compare UI including Reference control | **FIXED** — `text-[var(--muted)]` |
 | **M4F-D-07** | P2 | M4F-C permissions PARTIAL | Capability-blocked PI board hid Allocate with no near-board reason | **FIXED** — polite `Alert` when `canAllocatePi === false` |
 | **M4F-D-08** | P2 | M4F-B status PARTIAL | `ConfirmDialog` raw `role="alert"`; baseline label not `FormField` | **FIXED** — `Alert live="assertive"`; baseline uses `FormField` + `fieldClassName` |
+| **M4F-D-09** | P2 | M4F-A focus | Skip link after sidebar + Strict Mode `RouteFocusMain` focused main on first load, so first Tab missed skip | **FIXED** — skip first in shell; Strict Mode-safe route focus |
 | M4F-C-03 | P3 | Persona IA | PI Planner / Governance Reviewer lack dedicated `ROLE_KEYS` | **DOCUMENTED** — persona→pack table in `ROLES-AND-PERMISSIONS.md` |
 | M4F-B grid | MEDIUM | Keyboard | PI board cell roving tabindex | **DEFERRED** — Move/Allocate forms remain keyboard path |
 | axe CI / full AA | — | M4F-B/C | Full WCAG 2.2 AA certification / axe CI | **OUT OF SCOPE** — not claimed |
@@ -103,13 +104,15 @@ Checks:
 
 | Viewport | Home | Capacity | Organization | PI Review |
 |---|---|---|---|---|
-| 360 | expected PASS | expected PASS | expected PASS | expected PASS |
-| 390 | expected PASS | expected PASS | expected PASS | expected PASS |
-| 768 | expected PASS | expected PASS | expected PASS | expected PASS |
-| 1024 | expected PASS | expected PASS | expected PASS | expected PASS |
-| 1440 | expected PASS | expected PASS | expected PASS | expected PASS |
+| 360 | **PASS** | **PASS** | **PASS** | **PASS** |
+| 390 | **PASS** | **PASS** | **PASS** | **PASS** |
+| 768 | **PASS** | **PASS** | **PASS** | **PASS** |
+| 1024 | **PASS** | **PASS** | **PASS** | **PASS** |
+| 1440 | **PASS** | **PASS** | **PASS** | **PASS** |
 
-*(Filled with live QA results after script run.)*
+Browser QA verdict: **PASS** (`scripts/m4fd-browser-qa.mjs`, report in `docs/acceptance-assets/m4fd/qa-report.json`).
+
+
 
 ---
 
@@ -127,12 +130,12 @@ Checks:
 
 | Gate | Result |
 |---|---|
-| typecheck | _(run)_ |
-| lint | _(run)_ |
-| unit | _(run)_ |
-| integration | _(run)_ |
+| typecheck | **PASS** |
+| lint | **PASS** (0 errors; 3 pre-existing warnings) |
+| unit | **PASS** — 49+ files / **295** tests |
+| integration | **PASS** — **190** tests |
 | build | _(run)_ |
-| browser QA | _(run)_ |
+| browser QA | **PASS** — cross-module + 5 viewports + viewer org RO |
 
 ---
 

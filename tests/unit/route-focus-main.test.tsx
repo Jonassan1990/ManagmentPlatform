@@ -1,27 +1,33 @@
 /** @vitest-environment jsdom */
 import { render } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RouteFocusMain } from "@/components/shell/route-focus-main";
 
-let pathname = "/portfolio";
+const pathRef = { current: "/" };
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => pathname,
+  usePathname: () => pathRef.current,
 }));
 
-describe("RouteFocusMain", () => {
-  it("focuses main content when pathname changes after first render", () => {
-    pathname = "/portfolio";
-    document.body.innerHTML =
-      '<main id="main-content" tabindex="-1"></main>';
+describe("RouteFocusMain (M4F-D)", () => {
+  afterEach(() => {
+    pathRef.current = "/";
+    document.body.innerHTML = "";
+    vi.restoreAllMocks();
+  });
+
+  it("does not focus main on the initial path (keeps skip link first-Tab reachable)", () => {
+    document.body.innerHTML = `<main id="main-content">Home</main>`;
     const main = document.getElementById("main-content")!;
-    const focusSpy = vi.spyOn(main, "focus");
+    const focus = vi.spyOn(main, "focus");
 
     const { rerender } = render(<RouteFocusMain />);
-    expect(focusSpy).not.toHaveBeenCalled();
-
-    pathname = "/portfolio/explorer";
+    // Simulate Strict Mode re-running the effect for the same path.
     rerender(<RouteFocusMain />);
-    expect(focusSpy).toHaveBeenCalled();
+    expect(focus).not.toHaveBeenCalled();
+
+    pathRef.current = "/initiatives";
+    rerender(<RouteFocusMain />);
+    expect(focus).toHaveBeenCalledTimes(1);
   });
 });
