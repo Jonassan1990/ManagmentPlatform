@@ -42,7 +42,7 @@ export function DisclosureSection({
       className="group rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] open:shadow-sm"
       open={defaultOpen || undefined}
     >
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] [&::-webkit-details-marker]:hidden">
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="font-[family-name:var(--font-display)] text-base text-[var(--ink)]">
             {title}
@@ -55,13 +55,13 @@ export function DisclosureSection({
           {badge}
           <span
             aria-hidden
-            className="text-xs font-medium uppercase tracking-wide text-[#087f78] group-open:hidden"
+            className="text-xs font-medium uppercase tracking-wide text-[var(--color-accent)] group-open:hidden"
           >
             Show
           </span>
           <span
             aria-hidden
-            className="hidden text-xs font-medium uppercase tracking-wide text-[#087f78] group-open:inline"
+            className="hidden text-xs font-medium uppercase tracking-wide text-[var(--color-accent)] group-open:inline"
           >
             Hide
           </span>
@@ -87,7 +87,7 @@ export function DecisionContextPanel({
       aria-labelledby="governance-decision-context"
       className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-4 py-4 sm:px-5"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+      <p className="ds-eyebrow text-[10px]">
         Decision context
       </p>
       <h2
@@ -493,7 +493,7 @@ export function DecisionOutcomeSummary({
       {historyHref ? (
         <Link
           href={historyHref}
-          className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           Open decision workspace / immutable history
         </Link>
@@ -538,19 +538,19 @@ export function RecommendationVsDecisionCallout({
       </h2>
       <ul className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
         <li className="rounded-md border border-[var(--line)] px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#087f78]">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
             Operational evaluation
           </p>
           <p className="mt-1 text-[var(--muted)]">{copy.evaluation}</p>
         </li>
         <li className="rounded-md border border-[var(--line)] px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#087f78]">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
             Recommendation
           </p>
           <p className="mt-1 text-[var(--muted)]">{copy.recommendation}</p>
         </li>
         <li className="rounded-md border border-[var(--line)] px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#087f78]">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
             Formal decision
           </p>
           <p className="mt-1 text-[var(--muted)]">{copy.decision}</p>
@@ -607,7 +607,7 @@ export function LifecycleClarityPanel({
       {hasProject && projectHref ? (
         <Link
           href={projectHref}
-          className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] underline"
+          className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] underline"
         >
           Open Project workspace
         </Link>
@@ -637,7 +637,7 @@ export function ApprovalTaskCardHeader({
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+        <p className="ds-eyebrow text-[10px]">
           Approval task · {referenceKey}
         </p>
         <h2 className="mt-1 font-[family-name:var(--font-display)] text-xl text-[var(--ink)]">
@@ -661,7 +661,7 @@ export function ApprovalTaskCardHeader({
       <div className="flex flex-col items-end gap-2">
         <Link
           href={`/initiatives/${initiativeId}/governance`}
-          className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           Open gate workspace
         </Link>

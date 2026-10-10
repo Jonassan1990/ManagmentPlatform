@@ -171,13 +171,13 @@ export default async function PortfolioHealthPage({
             <div className="flex flex-wrap gap-2">
               <Link
                 href={hubHref}
-                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Health hub
               </Link>
               <Link
                 href={portfolioHref}
-                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Portfolio
               </Link>
@@ -197,7 +197,7 @@ export default async function PortfolioHealthPage({
             </Alert>
             <Link
               href={hubHref}
-              className="mt-3 inline-flex min-h-11 items-center text-sm text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="mt-3 inline-flex min-h-11 items-center text-sm text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Back to delivery health hub
             </Link>
@@ -262,13 +262,13 @@ export default async function PortfolioHealthPage({
           <div className="flex flex-wrap gap-2">
             <Link
               href={portfolioHref}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Portfolio
             </Link>
             <Link
               href={explorerHref}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Explorer
             </Link>
@@ -279,7 +279,7 @@ export default async function PortfolioHealthPage({
       <form
         method="get"
         action="/portfolio/health"
-        className="mb-6 flex flex-wrap items-end gap-3 rounded-[11px] border border-[var(--line)] bg-[var(--surface)] p-4"
+        className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4"
         data-testid="health-scope-form"
       >
         <label className="text-sm">

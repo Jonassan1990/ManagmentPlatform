@@ -115,14 +115,14 @@ export default async function PiCapacityPage({
       <div className="mb-4">
         <Link
           href={boardHref}
-          className="inline-flex min-h-11 items-center text-sm text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center text-sm text-[var(--color-accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           Open plan board
         </Link>
         <span className="mx-2 text-[var(--muted)]">·</span>
         <Link
           href={`/portfolio/capacity?organizationId=${pi.organizationId}&piId=${piId}`}
-          className="inline-flex min-h-11 items-center text-sm text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center text-sm text-[var(--color-accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           Portfolio Capacity
         </Link>

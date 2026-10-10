@@ -139,7 +139,7 @@ export default async function PilotPage({
         })}
       />
       <header className="mb-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+        <p className="ds-eyebrow text-[10px]">
           Pilot workspace · {item.referenceKey}
         </p>
         <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
@@ -540,13 +540,13 @@ export default async function PilotPage({
                 <div className="mt-3 flex flex-wrap gap-3 text-sm">
                   <Link
                     href={`/initiatives/${item.id}/governance`}
-                    className="text-[#087f78] underline"
+                    className="text-[var(--color-accent)] underline"
                   >
                     Open governance
                   </Link>
                   <Link
                     href={`/initiatives/${item.id}/decisions`}
-                    className="text-[#087f78] underline"
+                    className="text-[var(--color-accent)] underline"
                   >
                     Open decisions
                   </Link>

@@ -44,7 +44,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
               {item.href && !isCurrent ? (
                 <Link
                   href={item.href}
-                  className="truncate hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  className="truncate hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   title={item.label}
                 >
                   {item.label}
@@ -101,7 +101,7 @@ export function Panel({
 } & React.HTMLAttributes<HTMLElement>) {
   return (
     <section
-      className={`rounded-lg border border-[var(--line)] bg-[var(--surface)] p-5 ${className}`}
+      className={`rounded-lg border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)] ${className}`}
       {...rest}
     >
       {children}

@@ -183,6 +183,99 @@ textarea:disabled,
   margin-top: var(--space-1);
 }
 
+/* ── M5F-A — presentation polish utilities (tokens only) ─────────── */
+
+.ds-eyebrow {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  line-height: var(--leading-tight);
+}
+
+.ds-link {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast), text-decoration-color var(--transition-fast);
+}
+
+.ds-link:hover {
+  text-decoration: underline;
+}
+
+.ds-link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.ds-card-elevated {
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.ds-kpi-rail {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.ds-kpi-rail::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.25rem;
+  background: var(--color-accent);
+}
+
+.ds-interactive {
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    filter var(--transition-fast);
+}
+
+.ds-interactive:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+}
+
+.ds-interactive:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.ds-chart-track {
+  height: 0.375rem;
+  width: 100%;
+  max-width: 8rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+}
+
+.ds-chart-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  transition: width var(--transition-normal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-interactive,
+  .ds-link,
+  .ds-chart-fill {
+    transition: none;
+  }
+}
+
 /* M5E-B — print-friendly management reports */
 @media print {
   header,

@@ -163,7 +163,7 @@ export default async function GovernancePage({
       />
 
       <header className="mb-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+        <p className="ds-eyebrow text-[10px]">
           Governance workspace · {item.referenceKey}
         </p>
         <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
@@ -318,7 +318,7 @@ export default async function GovernancePage({
                 Reviewers act from{" "}
                 <Link
                   href="/approvals"
-                  className="text-[#087f78] underline"
+                  className="text-[var(--color-accent)] underline"
                 >
                   My Approvals
                 </Link>
@@ -390,7 +390,7 @@ export default async function GovernancePage({
               <li>
                 <Link
                   href={`/initiatives/${item.id}/poc`}
-                  className="text-[#087f78] underline"
+                  className="text-[var(--color-accent)] underline"
                 >
                   PoC workspace
                 </Link>
@@ -398,7 +398,7 @@ export default async function GovernancePage({
               <li>
                 <Link
                   href={`/initiatives/${item.id}/pilot`}
-                  className="text-[#087f78] underline"
+                  className="text-[var(--color-accent)] underline"
                 >
                   Pilot workspace
                 </Link>
@@ -406,13 +406,13 @@ export default async function GovernancePage({
               <li>
                 <Link
                   href={`/initiatives/${item.id}/decisions`}
-                  className="text-[#087f78] underline"
+                  className="text-[var(--color-accent)] underline"
                 >
                   Decision workspace
                 </Link>
               </li>
               <li>
-                <Link href="/approvals" className="text-[#087f78] underline">
+                <Link href="/approvals" className="text-[var(--color-accent)] underline">
                   My Approvals
                 </Link>
               </li>

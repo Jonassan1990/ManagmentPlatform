@@ -245,7 +245,7 @@ export default async function ProjectPage({
       {!project ? (
         <>
           <header className="mb-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+            <p className="ds-eyebrow text-[10px]">
               Project workspace · {item.referenceKey}
             </p>
             <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
@@ -618,7 +618,7 @@ export default async function ProjectPage({
                     </p>
                     <Link
                       href={`/initiatives/${item.id}/risks`}
-                      className="mt-2 inline-flex min-h-11 items-center text-sm text-[#087f78] underline"
+                      className="mt-2 inline-flex min-h-11 items-center text-sm text-[var(--color-accent)] underline"
                     >
                       Open risks
                     </Link>
@@ -658,7 +658,7 @@ export default async function ProjectPage({
                   )}
                   <Link
                     href="/portfolio/capacity"
-                    className="mt-3 inline-flex min-h-11 items-center text-sm text-[#087f78] underline"
+                    className="mt-3 inline-flex min-h-11 items-center text-sm text-[var(--color-accent)] underline"
                   >
                     Open portfolio capacity
                   </Link>
@@ -724,19 +724,19 @@ export default async function ProjectPage({
                   <div className="flex flex-col gap-2 text-sm">
                     <Link
                       href={`/initiatives/${item.id}/history`}
-                      className="text-[#087f78] underline"
+                      className="text-[var(--color-accent)] underline"
                     >
                       Open lifecycle history
                     </Link>
                     <Link
                       href={`/initiatives/${item.id}/decisions`}
-                      className="text-[#087f78] underline"
+                      className="text-[var(--color-accent)] underline"
                     >
                       Open decision log
                     </Link>
                     <Link
                       href={`/initiatives/${item.id}/documents`}
-                      className="text-[#087f78] underline"
+                      className="text-[var(--color-accent)] underline"
                     >
                       Open documents
                     </Link>

@@ -102,7 +102,7 @@ function WorkflowStageItem({
     </>
   );
 
-  const className = `block min-h-[4.5rem] rounded-[var(--radius-md)] border px-2 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${stageTone(stage.status)}`;
+  const className = `block min-h-[4.5rem] rounded-[var(--radius-md)] border px-2 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] ${stageTone(stage.status)}`;
 
   return (
     <li aria-current={isCurrent ? "step" : undefined}>
@@ -150,7 +150,7 @@ export function PiWorkflowPrimaryActionCard({
         {action.href ? (
           <Link
             href={action.href}
-            className={`inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+            className={`inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] ${
               action.blocked
                 ? "border border-[var(--line)] text-[var(--muted)]"
                 : "bg-[var(--accent)] text-white hover:brightness-110"

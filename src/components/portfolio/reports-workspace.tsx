@@ -100,7 +100,7 @@ export function ReportsWorkspace({
   return (
     <div className="space-y-6" data-testid="reports-workspace">
       <form
-        className="flex flex-wrap items-end gap-3 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]"
+        className="flex flex-wrap items-end gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]"
         onSubmit={(e) => {
           e.preventDefault();
           applyFilters(e.currentTarget);
@@ -112,7 +112,7 @@ export function ReportsWorkspace({
           <select
             name="organizationId"
             defaultValue={organizationId}
-            className="min-h-11 w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+            className="min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
           >
             {organizations.map((o) => (
               <option key={o.id} value={o.id}>
@@ -126,7 +126,7 @@ export function ReportsWorkspace({
           <select
             name="departmentId"
             defaultValue={departmentId ?? ""}
-            className="min-h-11 w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+            className="min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
           >
             <option value="">All visible</option>
             {departments.map((d) => (
@@ -141,7 +141,7 @@ export function ReportsWorkspace({
           <select
             name="piId"
             defaultValue={piId ?? ""}
-            className="min-h-11 w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+            className="min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
             aria-label="Program Increment for capacity reports"
           >
             <option value="">Not required</option>
@@ -157,7 +157,7 @@ export function ReportsWorkspace({
           <select
             name="reportType"
             defaultValue={reportType}
-            className="min-h-11 w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+            className="min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
             aria-label="Report type"
           >
             {MANAGEMENT_REPORT_TYPES.map((t) => (
@@ -196,19 +196,19 @@ export function ReportsWorkspace({
         >
           <div className="flex flex-wrap items-start justify-between gap-3 print:block">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#087f78]">
+              <p className="ds-eyebrow text-[10px]">
                 Management report
               </p>
               <h2
                 id="report-preview-title"
-                className="font-[family-name:var(--font-display)] text-xl text-[#102a43]"
+                className="font-[family-name:var(--font-display)] text-xl text-[var(--sidebar)]"
               >
                 {preview.title}
               </h2>
-              <p className="mt-1 max-w-3xl text-sm text-[#74848e]">
+              <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
                 {preview.description}
               </p>
-              <p className="mt-2 text-xs text-[#526572]" data-testid="report-as-of">
+              <p className="mt-2 text-xs text-[var(--muted)]" data-testid="report-as-of">
                 As of <time dateTime={preview.asOf}>{preview.asOf}</time>
                 {" · "}
                 Scope: {preview.scopeLabel}
@@ -244,14 +244,14 @@ export function ReportsWorkspace({
               {preview.kpis.map((k) => (
                 <article
                   key={k.key}
-                  className="relative overflow-hidden rounded-[11px] border border-[#e2e8eb] bg-white px-4 py-3 shadow-[0_7px_22px_#1b33440a] before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[#087f78]"
+                  className="ds-kpi-rail"
                 >
-                  <p className="text-[11px] text-[#74848e]">{k.label}</p>
-                  <p className="mt-1 text-2xl font-extrabold tracking-tight text-[#102a43] tabular-nums">
+                  <p className="text-[11px] text-[var(--muted)]">{k.label}</p>
+                  <p className="mt-1 text-2xl font-extrabold tracking-tight text-[var(--sidebar)] tabular-nums">
                     {k.value == null ? "—" : k.value}
                   </p>
                   {k.value == null && k.unavailableReason ? (
-                    <p className="mt-1 text-[10px] text-[#829099]">
+                    <p className="mt-1 text-[10px] text-[var(--muted)]">
                       UNAVAILABLE · {k.unavailableReason}
                     </p>
                   ) : null}
@@ -261,7 +261,7 @@ export function ReportsWorkspace({
           ) : null}
 
           {preview.limitations.length > 0 ? (
-            <ul className="list-disc space-y-1 pl-5 text-[11px] text-[#74848e]">
+            <ul className="list-disc space-y-1 pl-5 text-[11px] text-[var(--muted)]">
               {preview.limitations.map((l) => (
                 <li key={l}>{l}</li>
               ))}
@@ -292,9 +292,9 @@ export function ReportsWorkspace({
               }
             />
           ) : (
-            <div className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white">
+            <div className="overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)]">
               <table className="min-w-full text-left text-xs" data-testid="report-table">
-                <thead className="border-b border-[#e2e8eb] bg-[#fbfcfc] text-[10px] uppercase tracking-wide text-[#98a5ad]">
+                <thead className="border-b border-[var(--line)] bg-[var(--bg)] text-[10px] uppercase tracking-wide text-[var(--muted)]">
                   <tr>
                     {preview.columns.map((c) => (
                       <th key={c.key} className="px-3 py-2 font-semibold">
@@ -307,18 +307,18 @@ export function ReportsWorkspace({
                   {preview.rows.map((row, idx) => (
                     <tr
                       key={idx}
-                      className="border-b border-[#edf1f2] last:border-0"
+                      className="border-b border-[var(--bg)] last:border-0"
                     >
                       {preview.columns.map((c) => {
                         const v = row[c.key];
                         return (
                           <td
                             key={c.key}
-                            className="max-w-[16rem] truncate px-3 py-2 text-[#344b59]"
+                            className="max-w-[16rem] truncate px-3 py-2 text-[var(--ink)]"
                             title={v == null ? "UNAVAILABLE" : String(v)}
                           >
                             {v == null ? (
-                              <span className="text-[#829099]">UNAVAILABLE</span>
+                              <span className="text-[var(--muted)]">UNAVAILABLE</span>
                             ) : (
                               String(v)
                             )}
@@ -330,7 +330,7 @@ export function ReportsWorkspace({
                 </tbody>
               </table>
               {preview.truncated ? (
-                <p className="border-t border-[#e2e8eb] px-3 py-2 text-[11px] text-[#74848e]">
+                <p className="border-t border-[var(--line)] px-3 py-2 text-[11px] text-[var(--muted)]">
                   Showing first {preview.rows.length} of {preview.totalRows}{" "}
                   rows (export bound).
                 </p>

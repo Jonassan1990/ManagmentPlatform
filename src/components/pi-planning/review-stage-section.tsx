@@ -43,7 +43,7 @@ export function ReviewStageSection({
     >
       <button
         type="button"
-        className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left sm:px-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left sm:px-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
@@ -103,7 +103,7 @@ export function ReviewJourneyNav({
           key={link.href + link.label}
           href={link.href}
           aria-current={link.current ? "page" : undefined}
-          className={`rounded-[var(--radius-md)] border px-2.5 py-1.5 text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+          className={`rounded-[var(--radius-md)] border px-2.5 py-1.5 text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] ${
             link.current
               ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
               : "border-[var(--line)] text-[var(--ink)] hover:bg-[var(--surface)]"

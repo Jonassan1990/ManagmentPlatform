@@ -55,7 +55,7 @@ function KpiCard({
       : tone === "attention"
         ? "bg-[var(--color-warning)]"
         : tone === "teal"
-          ? "bg-[#087f78]"
+          ? "bg-[var(--color-accent)]"
           : "bg-[var(--color-primary)]";
 
   const body = (
@@ -121,7 +121,7 @@ function SectionHeading({
   return (
     <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+        <p className="ds-eyebrow text-[10px]">
           {level}
         </p>
         <h2
@@ -181,7 +181,7 @@ function ScopeBanner({
               `/portfolio/explorer?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               ret,
             )}
-            className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             Open explorer
           </Link>
@@ -190,7 +190,7 @@ function ScopeBanner({
               `/portfolio/capacity?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               ret,
             )}
-            className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+            className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             PI &amp; Capacity
           </Link>
@@ -199,7 +199,7 @@ function ScopeBanner({
               `/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               ret,
             )}
-            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             Delivery health
           </Link>
@@ -671,7 +671,7 @@ export function PortfolioDashboardView({
             </div>
             <Link
               href={healthHubHref}
-              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Open delivery health
             </Link>
@@ -712,7 +712,7 @@ export function PortfolioDashboardView({
                 >
                   <Link
                     href={appendReturnContext(row.href, ret)}
-                    className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   >
                     {row.referenceKey} · {row.name}
                   </Link>
@@ -730,7 +730,7 @@ export function PortfolioDashboardView({
                     />
                     <Link
                       href={`/portfolio/health?organizationId=${orgId}&projectId=${row.projectId}`}
-                      className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                      className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                     >
                       Explain
                     </Link>
@@ -889,7 +889,7 @@ export function PortfolioDashboardView({
                 </div>
                 <Link
                   href={initiativesHref}
-                  className="col-span-2 text-sm text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  className="col-span-2 text-sm text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                 >
                   Browse initiatives for PoC / Pilot workspaces
                 </Link>
@@ -979,7 +979,7 @@ export function PortfolioDashboardView({
                 ) : null}
                 <Link
                   href={capacityHref}
-                  className="inline-block text-sm font-medium text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  className="inline-block text-sm font-medium text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                 >
                   Open full PI &amp; Capacity workspace
                 </Link>
@@ -989,7 +989,7 @@ export function PortfolioDashboardView({
         </div>
 
         <details className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4">
-          <summary className="cursor-pointer font-medium text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+          <summary className="cursor-pointer font-medium text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]">
             Ownership references
             <span className="ml-2 text-sm font-normal text-[var(--muted)]">
               Progressive detail — resource owner counts
@@ -1111,7 +1111,7 @@ function AttentionActionCard({
       <p className="mt-1 text-xs text-[var(--muted)]">{detail}</p>
       <Link
         href={href}
-        className="mt-2 inline-flex min-h-9 items-center text-sm font-medium text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        className="mt-2 inline-flex min-h-9 items-center text-sm font-medium text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
       >
         {action}
       </Link>

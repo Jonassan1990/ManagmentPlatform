@@ -127,7 +127,7 @@ export function PlanApprovalPanel({
 
   const shellClass = embedded
     ? "space-y-4 p-3 sm:p-4"
-    : "mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]";
+    : "mb-6 space-y-4 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]";
   const showApprove = focus === "full" || focus === "approve";
   const showBaseline = focus === "full" || focus === "baseline";
 
@@ -135,10 +135,10 @@ export function PlanApprovalPanel({
     <section className={shellClass} aria-label="Plan approval and baseline">
       {embedded ? null : (
       <div>
-        <h2 className="text-sm font-semibold text-[#102a43]">
+        <h2 className="text-sm font-semibold text-[var(--sidebar)]">
           Approve current plan & create baseline
         </h2>
-        <p className="mt-1 text-xs text-[#74848e]">
+        <p className="mt-1 text-xs text-[var(--muted)]">
           Approval binds to an exact current plan version and allocation fingerprint.
           Baseline creation is a separate action and does not rewrite history.
         </p>
@@ -146,7 +146,7 @@ export function PlanApprovalPanel({
       )}
 
       <div
-        className="rounded-md border border-[#e3a640]/40 bg-[#e3a640]/10 px-3 py-2 text-sm text-[#102a43]"
+        className="rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-3 py-2 text-sm text-[var(--sidebar)]"
         role="status"
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -157,7 +157,7 @@ export function PlanApprovalPanel({
             size="compact"
           />
         </div>
-        <span className="mt-1 block text-xs text-[#74848e]">
+        <span className="mt-1 block text-xs text-[var(--muted)]">
           Lifecycle: Selected scenario → Applied to current plan — not approved →
           Approved current plan version → Approved baseline — immutable
         </span>
@@ -200,14 +200,14 @@ export function PlanApprovalPanel({
       </div>
 
       {preview.activeApproval ? (
-        <div className="rounded-md border border-[#e2e8eb] px-3 py-2 text-sm">
+        <div className="rounded-md border border-[var(--line)] px-3 py-2 text-sm">
           <p>
             Approver:{" "}
             <strong>
               {preview.activeApproval.approvedByPrincipalId.slice(0, 8)}…
             </strong>
           </p>
-          <p className="text-xs text-[#74848e]">
+          <p className="text-xs text-[var(--muted)]">
             Approved at{" "}
             {preview.activeApproval.approvedAt
               .replace("T", " ")
@@ -228,7 +228,7 @@ export function PlanApprovalPanel({
 
       {preview.readiness && preview.readiness.blockers.length > 0 ? (
         <div>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#d65d57]">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-error)]">
             Blocking conditions
           </h3>
           <ul className="list-disc space-y-1 pl-5 text-sm">
@@ -241,7 +241,7 @@ export function PlanApprovalPanel({
 
       {preview.readiness && preview.readiness.warnings.length > 0 ? (
         <div>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#e3a640]">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-warning)]">
             Warnings
           </h3>
           <ul className="list-disc space-y-1 pl-5 text-sm">
@@ -316,16 +316,16 @@ export function PlanApprovalPanel({
       ) : null}
 
       {showApprove && showBaseline ? (
-        <hr className="border-[#e2e8eb]" />
+        <hr className="border-[var(--line)]" />
       ) : null}
 
       {showBaseline ? (
         <>
           <div>
-            <h3 className="text-sm font-semibold text-[#102a43]">
+            <h3 className="text-sm font-semibold text-[var(--sidebar)]">
               Create immutable baseline
             </h3>
-            <p className="mt-1 text-xs text-[#74848e]">
+            <p className="mt-1 text-xs text-[var(--muted)]">
               {preview.disclaimerBaseline}
             </p>
           </div>

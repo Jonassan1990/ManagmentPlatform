@@ -142,7 +142,7 @@ export default async function InitiativeDecisionsPage({
         })}
       />
       <header className="mb-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+        <p className="ds-eyebrow text-[10px]">
           Decision workspace · {item.referenceKey}
         </p>
         <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
@@ -354,14 +354,14 @@ export default async function InitiativeDecisionsPage({
             <div className="mt-3 flex flex-wrap gap-3 text-sm">
               <Link
                 href={`/initiatives/${item.id}/governance`}
-                className="text-[#087f78] underline"
+                className="text-[var(--color-accent)] underline"
               >
                 Open governance
               </Link>
               {latestGateType === "POC_GATE" || item.poc ? (
                 <Link
                   href={`/initiatives/${item.id}/poc`}
-                  className="text-[#087f78] underline"
+                  className="text-[var(--color-accent)] underline"
                 >
                   Open PoC
                 </Link>
@@ -369,7 +369,7 @@ export default async function InitiativeDecisionsPage({
               {latestGateType === "PILOT_GATE" || item.pilot ? (
                 <Link
                   href={`/initiatives/${item.id}/pilot`}
-                  className="text-[#087f78] underline"
+                  className="text-[var(--color-accent)] underline"
                 >
                   Open Pilot
                 </Link>

@@ -68,7 +68,7 @@ export function PiPlanningContextHeader({
     <header className="mb-5 space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+          <p className="ds-eyebrow text-[10px]">
             PI Planning · {piReference}
           </p>
           <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
@@ -190,7 +190,7 @@ export function PiPlanningContextHeader({
             {capacityHref ? (
               <Link
                 href={capacityHref}
-                className="inline-flex min-h-11 items-center text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex min-h-11 items-center text-[var(--color-accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Open capacity detail
               </Link>
@@ -198,7 +198,7 @@ export function PiPlanningContextHeader({
             {compareHref ? (
               <Link
                 href={compareHref}
-                className="inline-flex min-h-11 items-center text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex min-h-11 items-center text-[var(--color-accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Compare scenarios
               </Link>
