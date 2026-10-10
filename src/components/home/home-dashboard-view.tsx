@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { CapacityBar } from "@/components/ui/capacity-bar";
 import { Alert } from "@/components/ui/alert";
-import { EmptyState, Panel } from "@/components/ui/page";
+import { Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { appendReturnContext } from "@/modules/navigation/return-context";
 import type {
