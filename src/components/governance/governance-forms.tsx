@@ -15,6 +15,7 @@ import {
   updatePoCResultsAction,
   upsertPoCCriterionAction,
 } from "@/app/actions/governance";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import {
   FormField,
   PrimaryButton,
@@ -23,36 +24,23 @@ import {
   permissionTitle,
   useActionForm,
 } from "@/components/ui/forms";
+import {
+  PRE_STUDY_POC_OUTCOMES,
+  PILOT_GATE_OUTCOMES,
+  outcomesForGateType,
+  type DecisionOutcomeOption,
+} from "@/modules/governance/application/governance-presentation";
 import { POC_STATUS_ORDER } from "@/modules/governance/application/poc-readiness-policy";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
 
 type Caps = Partial<PrincipalCapabilities>;
 
-export type DecisionOutcomeOption = {
-  value: string;
-  label: string;
+export type { DecisionOutcomeOption };
+export {
+  PRE_STUDY_POC_OUTCOMES,
+  PILOT_GATE_OUTCOMES,
+  outcomesForGateType,
 };
-
-export const PRE_STUDY_POC_OUTCOMES: DecisionOutcomeOption[] = [
-  { value: "GO", label: "Go" },
-  { value: "CONDITIONAL_GO", label: "Conditional go" },
-  { value: "NO_GO", label: "No-go" },
-  { value: "HOLD", label: "Hold" },
-];
-
-export const PILOT_GATE_OUTCOMES: DecisionOutcomeOption[] = [
-  { value: "SCALE", label: "Scale" },
-  { value: "EXTEND_PILOT", label: "Extend pilot" },
-  { value: "CONDITIONAL_SCALE", label: "Conditional scale" },
-  { value: "STOP", label: "Stop" },
-  { value: "HOLD", label: "Hold" },
-];
-
-export function outcomesForGateType(
-  gateType: string | null | undefined,
-): DecisionOutcomeOption[] {
-  return gateType === "PILOT_GATE" ? PILOT_GATE_OUTCOMES : PRE_STUDY_POC_OUTCOMES;
-}
 
 function optionalText(value: FormDataEntryValue | null): string | null {
   const text = String(value ?? "").trim();
@@ -190,74 +178,128 @@ export function ApprovalDecisionForm({
 }) {
   const form = useActionForm(recordApprovalAction);
   const allowed = capabilities?.canReviewApprovals !== false;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<{
+    outcome: string;
+    comment: string | null;
+    conditionsText: string | null;
+  } | null>(null);
+
+  const outcomeLabel =
+    pendingPayload?.outcome === "REJECTED"
+      ? "Reject"
+      : pendingPayload?.outcome === "CHANGES_REQUESTED"
+        ? "Request changes"
+        : "Approve";
+
   return (
-    <form
-      className="space-y-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!allowed) return;
-        const fd = new FormData(e.currentTarget);
-        form.submit({
-          approvalRequestId,
-          expectedVersion,
-          initiativeId,
-          outcome: String(fd.get("outcome") ?? "APPROVED"),
-          comment: optionalText(fd.get("comment")),
-          conditionsText: optionalText(fd.get("conditionsText")),
-        });
-      }}
-    >
-      <h3 className="font-medium">
-        {label ? `Review: ${label}` : "Record approval"}
-      </h3>
-      <p className="text-xs text-[var(--muted)]">
-        Your outcome is permanent for this request. Re-review requires a new
-        submission revision.
-      </p>
-      {form.ErrorAlert}
-      <FormField label="Outcome" htmlFor={`outcome-${approvalRequestId}`}>
-        <select
-          id={`outcome-${approvalRequestId}`}
-          name="outcome"
-          required
-          className={fieldClassName}
-          defaultValue="APPROVED"
-          disabled={!allowed}
+    <>
+      <form
+        className="space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!allowed) return;
+          const fd = new FormData(e.currentTarget);
+          setPendingPayload({
+            outcome: String(fd.get("outcome") ?? "APPROVED"),
+            comment: optionalText(fd.get("comment")),
+            conditionsText: optionalText(fd.get("conditionsText")),
+          });
+          form.setError(null);
+          setConfirmOpen(true);
+        }}
+      >
+        <h3 className="font-medium">
+          {label ? `Review: ${label}` : "Record approval"}
+        </h3>
+        <p className="text-xs text-[var(--muted)]">
+          Your outcome is permanent for this request. Re-review requires a new
+          submission revision.
+        </p>
+        {form.ErrorAlert}
+        {!allowed ? (
+          <p className="text-sm text-[var(--danger)]" role="status">
+            You do not have permission to record this approval.
+          </p>
+        ) : null}
+        <FormField label="Outcome" htmlFor={`outcome-${approvalRequestId}`}>
+          <select
+            id={`outcome-${approvalRequestId}`}
+            name="outcome"
+            required
+            className={fieldClassName}
+            defaultValue="APPROVED"
+            disabled={!allowed}
+          >
+            <option value="APPROVED">Approve</option>
+            <option value="REJECTED">Reject</option>
+            <option value="CHANGES_REQUESTED">Request changes</option>
+          </select>
+        </FormField>
+        <FormField label="Comment" htmlFor={`comment-${approvalRequestId}`}>
+          <textarea
+            id={`comment-${approvalRequestId}`}
+            name="comment"
+            rows={2}
+            className={fieldClassName}
+            placeholder="What did you review, and why this outcome?"
+            disabled={!allowed}
+          />
+        </FormField>
+        <FormField
+          label="Conditions / notes (optional)"
+          htmlFor={`conditions-${approvalRequestId}`}
         >
-          <option value="APPROVED">Approve</option>
-          <option value="REJECTED">Reject</option>
-          <option value="CHANGES_REQUESTED">Request changes</option>
-        </select>
-      </FormField>
-      <FormField label="Comment" htmlFor={`comment-${approvalRequestId}`}>
-        <textarea
-          id={`comment-${approvalRequestId}`}
-          name="comment"
-          rows={2}
-          className={fieldClassName}
-          placeholder="What did you review, and why this outcome?"
-          disabled={!allowed}
-        />
-      </FormField>
-      <FormField
-        label="Conditions / notes (optional)"
-        htmlFor={`conditions-${approvalRequestId}`}
-      >
-        <textarea
-          id={`conditions-${approvalRequestId}`}
-          name="conditionsText"
-          rows={2}
-          className={fieldClassName}
-          disabled={!allowed}
-        />
-      </FormField>
-      <PrimaryButton
-        disabled={!allowed || form.pending}
-        title={permissionTitle(allowed)}
-      >
-        {form.pending ? "Recording…" : "Record approval"}
-      </PrimaryButton>
-    </form>
+          <textarea
+            id={`conditions-${approvalRequestId}`}
+            name="conditionsText"
+            rows={2}
+            className={fieldClassName}
+            disabled={!allowed}
+          />
+        </FormField>
+        <PrimaryButton
+          disabled={!allowed || form.pending}
+          title={permissionTitle(allowed)}
+        >
+          {form.pending ? "Recording…" : "Review and confirm approval"}
+        </PrimaryButton>
+      </form>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (form.pending && !open) return;
+          setConfirmOpen(open);
+          if (!open) {
+            setPendingPayload(null);
+            form.setError(null);
+          }
+        }}
+        title={`${outcomeLabel} this approval?`}
+        description={`Changes: records an immutable ${outcomeLabel.toLowerCase()} outcome for “${label ?? "this authority review"}”. Unchanged: the submission evidence package and other reviewers. Reversible: no — a new submission revision is required to re-review.`}
+        confirmLabel={`Confirm ${outcomeLabel.toLowerCase()}`}
+        cancelLabel="Cancel"
+        variant={
+          pendingPayload?.outcome === "REJECTED" ||
+          pendingPayload?.outcome === "CHANGES_REQUESTED"
+            ? "destructive"
+            : "default"
+        }
+        pending={form.pending}
+        error={confirmOpen ? form.error : null}
+        onConfirm={() => {
+          if (!pendingPayload || !allowed) return;
+          form.submit({
+            approvalRequestId,
+            expectedVersion,
+            initiativeId,
+            outcome: pendingPayload.outcome,
+            comment: pendingPayload.comment,
+            conditionsText: pendingPayload.conditionsText,
+          });
+        }}
+      />
+    </>
   );
 }
 
@@ -292,21 +334,33 @@ export function RecordDecisionForm({
   const allowed = capabilities?.canMakeDecisions !== false;
   const [outcome, setOutcome] = useState(outcomes[0]?.value ?? "GO");
   const [conditions, setConditions] = useState<ConditionDraft[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDecision, setPendingDecision] = useState<{
+    rationale: string;
+    recommendationText: string | null;
+    conditions: {
+      description: string;
+      ownerName: string | null;
+      dueDate: Date | null;
+      requiredBeforeProgression: boolean;
+    }[];
+    extension?: { newPlannedEnd: Date; reason: string };
+  } | null>(null);
   const needsConditions =
     outcome === "CONDITIONAL_GO" || outcome === "CONDITIONAL_SCALE";
   const needsExtension = outcome === "EXTEND_PILOT";
+  const outcomeOptionLabel =
+    outcomes.find((o) => o.value === outcome)?.label ?? outcome;
 
   return (
+    <>
     <form
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
         if (!allowed) return;
         const fd = new FormData(e.currentTarget);
-        form.submit({
-          submissionId,
-          expectedPackageVersion,
-          outcome,
+        setPendingDecision({
           rationale: String(fd.get("rationale") ?? ""),
           recommendationText: optionalText(fd.get("recommendationText")),
           conditions: needsConditions
@@ -326,6 +380,8 @@ export function RecordDecisionForm({
               }
             : undefined,
         });
+        form.setError(null);
+        setConfirmOpen(true);
       }}
     >
       <h3 className="font-medium">Record decision</h3>
@@ -337,6 +393,11 @@ export function RecordDecisionForm({
         recorded decision.
       </p>
       {form.ErrorAlert}
+      {!allowed ? (
+        <p className="text-sm text-[var(--danger)]" role="status">
+          You do not have permission to record this decision.
+        </p>
+      ) : null}
       <FormField label="Outcome" htmlFor="decision-outcome">
         <select
           id="decision-outcome"
@@ -529,9 +590,42 @@ export function RecordDecisionForm({
         disabled={!allowed || form.pending}
         title={permissionTitle(allowed)}
       >
-        {form.pending ? "Recording…" : "Record decision"}
+        {form.pending ? "Recording…" : "Review and confirm decision"}
       </PrimaryButton>
     </form>
+    <ConfirmDialog
+      open={confirmOpen}
+      onOpenChange={(open) => {
+        if (form.pending && !open) return;
+        setConfirmOpen(open);
+        if (!open) {
+          setPendingDecision(null);
+          form.setError(null);
+        }
+      }}
+      title={`Record “${outcomeOptionLabel}” decision?`}
+      description={`Changes: records an immutable ${outcomeOptionLabel} governance decision for this submission. Unchanged: approval history and evidence snapshot. Reversible: no — decisions are append-only; progression depends on outcome and closed conditions. GO/SCALE do not auto-create PoC, Pilot, or Project.`}
+      confirmLabel="Confirm decision"
+      cancelLabel="Cancel"
+      variant={
+        outcome === "NO_GO" || outcome === "STOP" ? "destructive" : "default"
+      }
+      pending={form.pending}
+      error={confirmOpen ? form.error : null}
+      onConfirm={() => {
+        if (!pendingDecision || !allowed) return;
+        form.submit({
+          submissionId,
+          expectedPackageVersion,
+          outcome,
+          rationale: pendingDecision.rationale,
+          recommendationText: pendingDecision.recommendationText,
+          conditions: pendingDecision.conditions,
+          extension: pendingDecision.extension,
+        });
+      }}
+    />
+    </>
   );
 }
 
