@@ -6,6 +6,7 @@ import { InitiativeService } from "@/modules/initiative/application/initiative-s
 import { OrganizationService } from "@/modules/organization/application/organization-service";
 import { PlanningService } from "@/modules/pi-planning/application/planning-service";
 import { HomeDashboardQueryService } from "@/modules/portfolio/application/home-dashboard-query-service";
+import { ManagementReportService } from "@/modules/portfolio/application/management-report-service";
 import { PortfolioPiCapacityQueryService } from "@/modules/portfolio/application/portfolio-pi-capacity-query-service";
 import { PortfolioQueryService } from "@/modules/portfolio/application/portfolio-query-service";
 import { ProjectIssueService } from "@/modules/project/application/project-issue-service";
@@ -40,6 +41,13 @@ export function createServices() {
     portfolioPiCapacity,
     governance,
   );
+  const managementReports = new ManagementReportService(
+    prisma,
+    authz,
+    portfolio,
+    portfolioPiCapacity,
+    governance,
+  );
   return {
     authz,
     audit,
@@ -53,6 +61,7 @@ export function createServices() {
     portfolio,
     portfolioPiCapacity,
     homeDashboard,
+    managementReports,
   };
 }
 

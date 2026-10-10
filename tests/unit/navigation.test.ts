@@ -50,10 +50,12 @@ describe("M4C-A navigation matching", () => {
         "/portfolio/explorer",
         "/portfolio/health",
         "/portfolio/capacity",
+        "/portfolio/reports",
       ],
     };
     expect(matchNavPath("/portfolio", hub)).toBe(true);
     expect(matchNavPath("/portfolio/explorer", hub)).toBe(false);
+    expect(matchNavPath("/portfolio/reports", hub)).toBe(false);
     expect(
       matchNavPath("/portfolio/explorer", {
         type: "prefix",
