@@ -6,7 +6,7 @@ import { chromium } from "playwright";
 import fs from "fs";
 import path from "node:path";
 
-const base = process.env.QA_BASE_URL ?? "http://127.0.0.1:43148";
+const base = process.env.QA_BASE_URL ?? "http://localhost:43148";
 const pass = fs
   .readFileSync(process.env.QA_PASS_FILE ?? "/tmp/m3dd-qa-pass.txt", "utf8")
   .trim();
@@ -130,9 +130,14 @@ try {
     detail: { healthSummary, openHealthCta, noFullHealthTable },
   });
 
-  // Portfolio → Explorer
+  // Portfolio → Explorer (in-page KPI / header — not shell nav)
+  await page.goto(`${base}/portfolio?organizationId=${seededOrg}`, {
+    waitUntil: "networkidle",
+    timeout: 60000,
+  });
+  await page.waitForTimeout(600);
   const explorer = page
-    .getByRole("link", { name: /Explorer|Browse projects|Active projects/i })
+    .locator('main a[href*="/portfolio/explorer"][href*="organizationId="]')
     .first();
   if ((await explorer.count()) > 0) {
     await explorer.click();
@@ -203,9 +208,13 @@ try {
     (await page.getByTestId("capacity-summary").count()) > 0 &&
     (await page.getByTestId("capacity-hierarchy").count()) > 0;
   const portfolioBack =
-    (await page.getByRole("link", { name: /^Portfolio$/i }).count()) > 0;
+    (await page
+      .locator('main a[href*="/portfolio"][href*="organizationId="]')
+      .filter({ hasText: /^Portfolio$/i })
+      .count()) > 0;
   const piPlanning = page
-    .getByRole("link", { name: /Open PI Planning|PI Planning/i })
+    .locator('main a[href*="/pi/"]')
+    .filter({ hasText: /Open PI Planning|PI Planning/i })
     .first();
   step("7-capacity-workspace", capacitySections && portfolioBack, {
     detail: { capacitySections, portfolioBack },
@@ -214,44 +223,36 @@ try {
   if ((await piPlanning.count()) > 0) {
     await piPlanning.click();
     await page.waitForTimeout(1200);
-    const onPi = page.url().includes("/pi/");
+    const onPi =
+      page.url().includes(`/pi/${seededPi}`) ||
+      /\/pi\/[0-9a-f-]{36}/i.test(page.url());
     step("8-capacity-to-pi", onPi, { detail: { url: page.url() } });
     await shot(page, "08-capacity-to-pi");
-
-    // PI Capacity → Portfolio Capacity
-    const piCapTab = page
-      .getByRole("link", { name: /^Capacity$/i })
-      .first();
-    if ((await piCapTab.count()) > 0) {
-      await piCapTab.click();
-      await page.waitForTimeout(1000);
-    } else {
-      await page.goto(`${base}/pi/${seededPi}/capacity`, {
-        waitUntil: "networkidle",
-        timeout: 60000,
-      });
-    }
-    await shot(page, "09-pi-capacity");
-    const portfolioCap = page
-      .getByRole("link", { name: /Portfolio Capacity/i })
-      .first();
-    if ((await portfolioCap.count()) > 0) {
-      await portfolioCap.click();
-      await page.waitForTimeout(1000);
-      const back =
-        page.url().includes("/portfolio/capacity") &&
-        page.url().includes(`organizationId=`);
-      step("9-pi-to-portfolio-capacity", back, { detail: { url: page.url() } });
-      await shot(page, "10-pi-to-portfolio-capacity");
-    } else {
-      step("9-pi-to-portfolio-capacity", false, {
-        detail: "Portfolio Capacity CTA missing",
-      });
-    }
   } else {
     step("8-capacity-to-pi", false, { detail: "PI Planning link missing" });
+  }
+
+  // PI Capacity → Portfolio Capacity
+  await page.goto(`${base}/pi/${seededPi}/capacity`, {
+    waitUntil: "networkidle",
+    timeout: 60000,
+  });
+  await page.waitForTimeout(900);
+  await shot(page, "09-pi-capacity");
+  const portfolioCap = page
+    .getByRole("link", { name: /Portfolio Capacity/i })
+    .first();
+  if ((await portfolioCap.count()) > 0) {
+    await portfolioCap.click();
+    await page.waitForTimeout(1000);
+    const back =
+      page.url().includes("/portfolio/capacity") &&
+      page.url().includes(`organizationId=`);
+    step("9-pi-to-portfolio-capacity", back, { detail: { url: page.url() } });
+    await shot(page, "10-pi-to-portfolio-capacity");
+  } else {
     step("9-pi-to-portfolio-capacity", false, {
-      detail: "skipped — no PI Planning link",
+      detail: "Portfolio Capacity CTA missing",
     });
   }
 

@@ -1,0 +1,88 @@
+{
+  "milestone": "M4E-D",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-10T00:01:18.246Z",
+  "steps": [
+    {
+      "step": "1-org-admin-login",
+      "status": "PASS"
+    },
+    {
+      "step": "2-home-to-health",
+      "status": "PASS",
+      "detail": {
+        "url": "http://localhost:43148/portfolio/health?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&healthFocus=ATTENTION"
+      }
+    },
+    {
+      "step": "3-portfolio-health-summary-only",
+      "status": "PASS",
+      "detail": {
+        "healthSummary": true,
+        "openHealthCta": true,
+        "noFullHealthTable": true
+      }
+    },
+    {
+      "step": "4-portfolio-to-explorer",
+      "status": "PASS",
+      "detail": {
+        "url": "http://localhost:43148/portfolio/explorer?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&from=portfolio&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486"
+      }
+    },
+    {
+      "step": "5-health-hub",
+      "status": "PASS",
+      "detail": {
+        "hubHeading": true,
+        "explainOrEmpty": true,
+        "url": "http://localhost:43148/portfolio/health?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&healthFocus=BLOCKED"
+      }
+    },
+    {
+      "step": "6-health-to-explain",
+      "status": "PASS",
+      "detail": {
+        "url": "http://localhost:43148/portfolio/explorer?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&deliveryHealth=BLOCKED&kind=PROJECT",
+        "note": "no-explain-row"
+      }
+    },
+    {
+      "step": "7-capacity-workspace",
+      "status": "PASS",
+      "detail": {
+        "capacitySections": true,
+        "portfolioBack": true
+      }
+    },
+    {
+      "step": "8-capacity-to-pi",
+      "status": "PASS",
+      "detail": {
+        "url": "http://localhost:43148/pi/c9cf896f-8a37-43de-aefe-c3af32bcfc78?from=capacity&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486&fromPi=c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+      }
+    },
+    {
+      "step": "9-pi-to-portfolio-capacity",
+      "status": "PASS",
+      "detail": {
+        "url": "http://localhost:43148/portfolio/capacity?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&piId=c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+      }
+    },
+    {
+      "step": "10-mobile-layouts",
+      "status": "PASS",
+      "detail": {
+        "overflowPortfolio": 0,
+        "overflowCapacity": 3,
+        "overflowHealth": 0
+      }
+    },
+    {
+      "step": "11-authz-context-preserved",
+      "status": "PASS",
+      "detail": "Org/dept/from* query params verified on Portfolio→Explorer and Capacity↔PI journeys; Dept Manager FORBIDDEN covered by M4E-C unit/integration"
+    }
+  ],
+  "verdict": "PASS"
+}

@@ -116,17 +116,19 @@ Evidence: `docs/acceptance-assets/m4ed/` and `artifacts/m4ed-qa/`
 
 | # | Scenario | Result |
 |---|---|---|
-| 1 | Org admin login | _(filled after QA run)_ |
-| 2 | Home → Health (org context) | |
-| 3 | Portfolio health summary only | |
-| 4 | Portfolio → Explorer | |
-| 5 | Health hub + focus | |
-| 6 | Health → Explain / Explorer | |
-| 7 | Capacity workspace + Portfolio link | |
-| 8 | Capacity → PI Planning | |
-| 9 | PI Capacity → Portfolio Capacity | |
-| 10 | Mobile Portfolio / Capacity / Health | |
-| 11 | AuthZ / URL context note | |
+| 1 | Org admin login | PASS |
+| 2 | Home → Health (org context) | PASS — `organizationId` + `healthFocus=ATTENTION` |
+| 3 | Portfolio health summary only | PASS — `portfolio-health-summary` + Open delivery health CTA |
+| 4 | Portfolio → Explorer | PASS — org + `from=portfolio` + `fromOrg` |
+| 5 | Health hub + focus | PASS — hub heading + empty/explain feedback |
+| 6 | Health → Explain / Explorer | PASS — Open in explorer with `deliveryHealth` (no BLOCKED row in fixture) |
+| 7 | Capacity workspace + Portfolio link | PASS |
+| 8 | Capacity → PI Planning | PASS — PI id + return-context (`from=capacity`) |
+| 9 | PI Capacity → Portfolio Capacity | PASS — org + `piId` |
+| 10 | Mobile Portfolio / Capacity / Health | PASS — overflow 0 / 3 / 0 px |
+| 11 | AuthZ / URL context note | PASS (documented; Dept Manager via unit/integration) |
+
+Screenshots: `docs/acceptance-assets/m4ed/screenshots/` · raw: `artifacts/m4ed-qa/`
 
 ---
 
@@ -134,12 +136,12 @@ Evidence: `docs/acceptance-assets/m4ed/` and `artifacts/m4ed-qa/`
 
 | Gate | Result |
 |---|---|
-| typecheck | _(filled after run)_ |
-| lint | |
-| unit | |
-| integration | |
-| build | |
-| browser QA | |
+| typecheck | PASS |
+| lint | PASS (0 errors; 2 pre-existing warnings) |
+| unit | PASS — **41** files / **278** tests |
+| integration | PASS — **20** files / **190** tests |
+| build | PASS |
+| browser QA | PASS — `scripts/m4ed-browser-qa.mjs` (11/11) |
 
 ---
 
