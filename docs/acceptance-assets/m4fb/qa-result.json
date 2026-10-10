@@ -1,0 +1,266 @@
+{
+  "milestone": "M4F-B",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-10T06:52:22.606Z",
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-360",
+      "status": "PASS",
+      "detail": {
+        "homeOverflow": {
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "overflowX": false
+        },
+        "explorerOverflow": {
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "overflowX": false
+        },
+        "capacityOverflow": {
+          "scrollWidth": 360,
+          "clientWidth": 360,
+          "overflowX": false
+        },
+        "applyVisible": true
+      }
+    },
+    {
+      "step": "viewport-390",
+      "status": "PASS",
+      "detail": {
+        "homeOverflow": {
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "explorerOverflow": {
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "capacityOverflow": {
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "applyVisible": true
+      }
+    },
+    {
+      "step": "viewport-768",
+      "status": "PASS",
+      "detail": {
+        "homeOverflow": {
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "explorerOverflow": {
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "capacityOverflow": {
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "applyVisible": true
+      }
+    },
+    {
+      "step": "viewport-1024",
+      "status": "PASS",
+      "detail": {
+        "homeOverflow": {
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "explorerOverflow": {
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "capacityOverflow": {
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "applyVisible": true
+      }
+    },
+    {
+      "step": "viewport-1440",
+      "status": "PASS",
+      "detail": {
+        "homeOverflow": {
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        },
+        "explorerOverflow": {
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        },
+        "capacityOverflow": {
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        },
+        "applyVisible": true
+      }
+    },
+    {
+      "step": "mobile-nav-escape",
+      "status": "PASS"
+    },
+    {
+      "step": "explorer-live-region",
+      "status": "PASS",
+      "detail": {
+        "liveText": "No matching portfolio items for the current filters."
+      }
+    },
+    {
+      "step": "board-keyboard-move-path",
+      "status": "PASS",
+      "detail": {
+        "hintOk": true,
+        "detailsCount": 1,
+        "moveFormOk": true
+      }
+    },
+    {
+      "step": "capacity-filter-live-region",
+      "status": "PASS",
+      "detail": {
+        "text": "Showing 2 of 2 departments in the capacity hierarchy."
+      }
+    },
+    {
+      "step": "main-landmark",
+      "status": "PASS"
+    }
+  ],
+  "viewports": [
+    {
+      "name": "360",
+      "width": 360,
+      "height": 740,
+      "homeOverflow": {
+        "scrollWidth": 360,
+        "clientWidth": 360,
+        "overflowX": false
+      },
+      "explorerOverflow": {
+        "scrollWidth": 360,
+        "clientWidth": 360,
+        "overflowX": false
+      },
+      "capacityOverflow": {
+        "scrollWidth": 360,
+        "clientWidth": 360,
+        "overflowX": false
+      },
+      "applyVisible": true,
+      "status": "PASS"
+    },
+    {
+      "name": "390",
+      "width": 390,
+      "height": 844,
+      "homeOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false
+      },
+      "explorerOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false
+      },
+      "capacityOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false
+      },
+      "applyVisible": true,
+      "status": "PASS"
+    },
+    {
+      "name": "768",
+      "width": 768,
+      "height": 1024,
+      "homeOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false
+      },
+      "explorerOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false
+      },
+      "capacityOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false
+      },
+      "applyVisible": true,
+      "status": "PASS"
+    },
+    {
+      "name": "1024",
+      "width": 1024,
+      "height": 768,
+      "homeOverflow": {
+        "scrollWidth": 1024,
+        "clientWidth": 1024,
+        "overflowX": false
+      },
+      "explorerOverflow": {
+        "scrollWidth": 1024,
+        "clientWidth": 1024,
+        "overflowX": false
+      },
+      "capacityOverflow": {
+        "scrollWidth": 1024,
+        "clientWidth": 1024,
+        "overflowX": false
+      },
+      "applyVisible": true,
+      "status": "PASS"
+    },
+    {
+      "name": "1440",
+      "width": 1440,
+      "height": 900,
+      "homeOverflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "overflowX": false
+      },
+      "explorerOverflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "overflowX": false
+      },
+      "capacityOverflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "overflowX": false
+      },
+      "applyVisible": true,
+      "status": "PASS"
+    }
+  ],
+  "focusTrail": [],
+  "verdict": "PASS"
+}

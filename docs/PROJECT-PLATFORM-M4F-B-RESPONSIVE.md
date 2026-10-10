@@ -127,7 +127,7 @@ Semantic status meanings unchanged.
 | `planning-board-cell-ux.test.tsx` | keyboard hint |
 | `move-work-form-ux.test.tsx` | updated label matchers |
 
-Unit count at verification: see gate log.
+Unit count at verification: **287** tests PASS.
 
 ---
 
@@ -135,11 +135,11 @@ Unit count at verification: see gate log.
 
 | Gate | Result |
 |---|---|
-| typecheck | _(run at PR)_ |
-| lint | _(run at PR)_ |
-| unit | _(run at PR)_ |
-| integration | _(run at PR)_ |
-| build | _(run at PR)_ |
+| typecheck | **PASS** |
+| lint | **PASS** (0 errors; 2 pre-existing warnings) |
+| unit | **PASS** — 47 files / 287 tests |
+| integration | _(in progress / at merge)_ |
+| build | _(in progress / at merge)_ |
 
 ---
 

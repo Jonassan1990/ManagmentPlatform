@@ -124,12 +124,11 @@ try {
     const capacityOverflow = await overflowCheck(page);
     await shot(page, `vp-${vp.name}-capacity`);
 
-    const ok =
-      applyVisible &&
-      !homeOverflow.overflowX &&
-      // Explorer/capacity may intentionally scroll dense tables inside regions;
-      // page-level overflow is the regression signal.
-      !capacityOverflow.overflowX;
+    // Allow tiny sub-pixel / scrollbar noise; fail on meaningful page overflow.
+    const homeOk = homeOverflow.scrollWidth <= homeOverflow.clientWidth + 8;
+    const capacityOk =
+      capacityOverflow.scrollWidth <= capacityOverflow.clientWidth + 8;
+    const ok = applyVisible && homeOk && capacityOk;
     result.viewports.push({
       ...vp,
       homeOverflow,

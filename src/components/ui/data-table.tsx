@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { cn } from "@/components/ui/cn";
 import { Button } from "@/components/ui/button";
 import { LiveRegion } from "@/components/ui/live-region";
@@ -60,20 +60,13 @@ export function DataTable<T>({
   caption,
   className,
 }: DataTableProps<T>) {
-  const [sortAnnounce, setSortAnnounce] = useState("");
-
-  useEffect(() => {
-    if (!sort) {
-      setSortAnnounce("");
-      return;
-    }
+  const sortAnnounce = useMemo(() => {
+    if (!sort) return "";
     const col = columns.find((c) => c.id === sort.columnId);
     const header = col?.header ?? sort.columnId;
-    setSortAnnounce(
-      `Table sorted by ${header}, ${
-        sort.direction === "asc" ? "ascending" : "descending"
-      }. ${rows.length} row${rows.length === 1 ? "" : "s"} shown.`,
-    );
+    return `Table sorted by ${header}, ${
+      sort.direction === "asc" ? "ascending" : "descending"
+    }. ${rows.length} row${rows.length === 1 ? "" : "s"} shown.`;
   }, [sort, columns, rows.length]);
 
   if (error) {
