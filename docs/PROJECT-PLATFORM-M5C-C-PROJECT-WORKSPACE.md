@@ -124,6 +124,7 @@ Structural counts from browser QA on seeded fixtures (not user-study claims):
 | Steps to find owner | 1–2 (scan update form) | **0** — Header field |
 | Steps to find milestone status | 2 (scroll Delivery) | **0–1** — KPI strip / `#milestones` nav |
 | Steps to find next action | 2 (sidebar / closure panel) | **0** — `NextActionPanel` above fold |
+| Visible interactive controls (blocked fixture) | Dense equal-weight forms | **43** recorded (links + buttons; hierarchy via next action) |
 | Closed project clarity | Banner only; forms still rendered disabled | Banner + summary; mutation forms **hidden** |
 
 ---
