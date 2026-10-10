@@ -1,0 +1,35 @@
+
+ RUN  v3.2.7 /tmp/mgmt-platform/ManagmentPlatform
+
+stderr | tests/integration/home-dashboard-m5b.test.ts > M5B-A Home dashboard — persona modes > Department Manager is manager-scoped to organization context
+{"ts":"2026-10-10T10:37:26.063Z","level":"warn","event":"authz.denied","requestId":null,"permission":"pi.view","scopeType":"ORGANIZATION","principalId":"20ce93bb-6c22-456c-b80e-7b50714d3733"}
+
+stderr | tests/integration/home-dashboard-m5b.test.ts > M5B-A Home dashboard — persona modes > Team Manager is manager mode with PI capacity path when permitted
+{"ts":"2026-10-10T10:37:26.523Z","level":"warn","event":"authz.denied","requestId":null,"permission":"pi.view","scopeType":"ORGANIZATION","principalId":"9c857cf7-2fc7-40af-984a-fb0be0fe04fb"}
+
+stderr | tests/integration/home-dashboard-m5b.test.ts > M5B-A Home dashboard — persona modes > Project Manager is manager mode
+{"ts":"2026-10-10T10:37:26.872Z","level":"warn","event":"authz.denied","requestId":null,"permission":"pi.view","scopeType":"ORGANIZATION","principalId":"3f089500-4a43-4f1c-a1ba-40190874d370"}
+
+stderr | tests/integration/home-dashboard-m5b.test.ts > M5B-A Home dashboard — empty vs unavailable + Quick Start authz > forbidden portfolio sections stay null rather than zero for unauthorized dept-only edge
+{"ts":"2026-10-10T10:37:30.935Z","level":"warn","event":"authz.denied","requestId":null,"permission":"pi.view","scopeType":"ORGANIZATION","principalId":"ded4b0c8-a79a-45e4-9fdf-8a0356f19eec"}
+
+ ✓ tests/integration/home-dashboard-m5b.test.ts (16 tests) 6449ms
+   ✓ M5B-A Home dashboard — persona modes > Organization Admin gets manager mode and create/manage Quick Start  523ms
+   ✓ M5B-A Home dashboard — persona modes > Portfolio Manager gets manager mode without manage-resources unless permitted  446ms
+   ✓ M5B-A Home dashboard — persona modes > Department Manager is manager-scoped to organization context  533ms
+   ✓ M5B-A Home dashboard — persona modes > Team Manager is manager mode with PI capacity path when permitted  447ms
+   ✓ M5B-A Home dashboard — persona modes > Project Manager is manager mode  334ms
+   ✓ M5B-A Home dashboard — persona modes > Viewer is employee mode without create Quick Start  322ms
+   ✓ M5B-A Home dashboard — unbound / no resource / My Work > Principal without Resource link does not invent My Work from free-text owners  422ms
+   ✓ M5B-A Home dashboard — unbound / no resource / My Work > My Work attributes only via linked Resource ownership FKs  511ms
+   ✓ M5B-A Home dashboard — unbound / no resource / My Work > Manager with linked Resource becomes mixed mode  442ms
+   ✓ M5B-A Home dashboard — multi-org and denial > labels multiple organizations and does not merge without preferred scope  434ms
+   ✓ M5B-A Home dashboard — empty vs unavailable + Quick Start authz > empty portfolio returns empty/available zeros, not unavailable  362ms
+   ✓ M5B-A Home dashboard — empty vs unavailable + Quick Start authz > Quick Start actions only include authorized routes  540ms
+   ✓ M5B-A Home dashboard — empty vs unavailable + Quick Start authz > forbidden portfolio sections stay null rather than zero for unauthorized dept-only edge  441ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  10:37:23
+   Duration  7.49s (transform 563ms, setup 0ms, collect 855ms, tests 6.45s, environment 0ms, prepare 70ms)
+

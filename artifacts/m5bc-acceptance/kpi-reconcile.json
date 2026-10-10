@@ -1,0 +1,259 @@
+{
+  "milestone": "M5B-C",
+  "generatedAt": "2026-10-10T10:39:47.470Z",
+  "database": "postgresql://mgmt:***@localhost:5432/management_platform_m5bc_accept?schema=public",
+  "orgId": "7a0bf027-1118-4825-8533-22ee6a984aa8",
+  "latencyMs": 1740,
+  "personas": {
+    "manager": "manager",
+    "employee": "employee",
+    "mixed": "mixed",
+    "viewer": "employee"
+  },
+  "kpiReconciliation": {
+    "active-initiatives": {
+      "source": "getPortfolioSnapshot.initiatives.value.total",
+      "expected": 4,
+      "home": 4,
+      "ok": true
+    },
+    "active-projects": {
+      "source": "getPortfolioSnapshot.projects.value.active",
+      "expected": 2,
+      "home": 2,
+      "ok": true
+    },
+    "delayed-projects": {
+      "source": "getPortfolioSnapshot.delayedProjects.value.delayedProjects",
+      "expected": 0,
+      "home": 0,
+      "ok": true
+    },
+    "pending-governance": {
+      "source": "getPortfolioSnapshot.governance.waitingForApproval+waitingForDecision",
+      "expected": 0,
+      "home": 0,
+      "ok": true
+    },
+    "blocked-at-risk-attention": {
+      "source": "getDeliveryHealthSummary.attentionCount → needsAttention.counts",
+      "expected": 0,
+      "home": 0,
+      "ok": true
+    },
+    "overloaded-teams": {
+      "source": "getPortfolioSnapshot.piCapacity.value.overloadedTeamIterations",
+      "expected": null,
+      "home": null,
+      "ok": true
+    }
+  },
+  "snapshot": {
+    "initiativesTotal": 4,
+    "projectsActive": 2,
+    "delayedProjects": 0,
+    "pendingGovernance": 0,
+    "overloadedTeams": null,
+    "attentionCount": 0
+  },
+  "homeSample": {
+    "managerActions": [
+      "create-initiative",
+      "view-projects",
+      "open-pi-planning",
+      "review-governance",
+      "open-portfolio",
+      "manage-resources",
+      "explorer",
+      "health",
+      "capacity",
+      "pi-new",
+      "organization",
+      "access",
+      "policy"
+    ],
+    "employeeMyWork": [
+      {
+        "kind": "initiative",
+        "ref": "INIT-M5BC-1",
+        "href": "/initiatives/01566f2a-edd8-4d10-846e-7cd1d9e7a30c"
+      },
+      {
+        "kind": "project",
+        "ref": "PRJ-M5BC-1",
+        "href": "/initiatives/01566f2a-edd8-4d10-846e-7cd1d9e7a30c?tab=project"
+      }
+    ],
+    "mixedMyWork": [
+      "PRJ-MIXED"
+    ],
+    "viewerActions": [
+      "view-projects",
+      "open-pi-planning",
+      "open-portfolio",
+      "view-resources",
+      "explorer",
+      "health",
+      "capacity",
+      "organization"
+    ],
+    "capacityState": "empty",
+    "attentionCount": 1,
+    "warnings": [
+      "MULTI_ORG_SCOPE"
+    ]
+  },
+  "checks": [
+    {
+      "id": "persona.manager.mode",
+      "ok": true,
+      "detail": "mode=manager"
+    },
+    {
+      "id": "persona.manager.no_linked_resource",
+      "ok": true,
+      "detail": "No ACTIVE Resource is linked to this Principal via linkedPrincipalId. Ownership-based My Work cannot be attributed. Free-text owner names are never used as identity."
+    },
+    {
+      "id": "persona.manager.create_initiative",
+      "ok": true
+    },
+    {
+      "id": "persona.manager.attention_available",
+      "ok": true,
+      "detail": "available"
+    },
+    {
+      "id": "persona.employee.mode",
+      "ok": true,
+      "detail": "mode=employee"
+    },
+    {
+      "id": "persona.employee.my_work",
+      "ok": true,
+      "detail": "items=INIT-M5BC-1,PRJ-M5BC-1"
+    },
+    {
+      "id": "persona.employee.no_decoy",
+      "ok": true
+    },
+    {
+      "id": "persona.employee.no_create",
+      "ok": true
+    },
+    {
+      "id": "persona.mixed.mode",
+      "ok": true,
+      "detail": "mode=mixed"
+    },
+    {
+      "id": "persona.mixed.my_work_and_kpis",
+      "ok": true
+    },
+    {
+      "id": "persona.mixed.no_duplicate_work",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "id": "persona.mixed.no_duplicate_kpis",
+      "ok": true,
+      "detail": "keys=active-initiatives,active-projects,pending-governance,delayed-projects,overloaded-teams,projects-at-risk-overview"
+    },
+    {
+      "id": "persona.viewer.employee_mode",
+      "ok": true
+    },
+    {
+      "id": "persona.viewer.no_create_manage",
+      "ok": true,
+      "detail": "actions=view-projects,open-pi-planning,open-portfolio,view-resources,explorer,health,capacity,organization"
+    },
+    {
+      "id": "persona.viewer.portfolio_readable",
+      "ok": true
+    },
+    {
+      "id": "persona.unbound.denied_when_orgs_exist",
+      "ok": true,
+      "detail": "FORBIDDEN — no fabricated empty dashboard for principals without org read"
+    },
+    {
+      "id": "security.multi_org_warning",
+      "ok": true
+    },
+    {
+      "id": "security.preferred_org_scoped",
+      "ok": true
+    },
+    {
+      "id": "security.cross_org_denied",
+      "ok": true
+    },
+    {
+      "id": "kpi.active-initiatives",
+      "ok": true,
+      "detail": "src=getPortfolioSnapshot.initiatives.value.total expected=4 home=4"
+    },
+    {
+      "id": "kpi.active-projects",
+      "ok": true,
+      "detail": "src=getPortfolioSnapshot.projects.value.active expected=2 home=2"
+    },
+    {
+      "id": "kpi.delayed-projects",
+      "ok": true,
+      "detail": "src=getPortfolioSnapshot.delayedProjects.value.delayedProjects expected=0 home=0"
+    },
+    {
+      "id": "kpi.pending-governance",
+      "ok": true,
+      "detail": "src=getPortfolioSnapshot.governance.waitingForApproval+waitingForDecision expected=0 home=0"
+    },
+    {
+      "id": "kpi.blocked-at-risk-attention",
+      "ok": true,
+      "detail": "src=getDeliveryHealthSummary.attentionCount → needsAttention.counts expected=0 home=0"
+    },
+    {
+      "id": "kpi.overloaded-teams",
+      "ok": true,
+      "detail": "src=getPortfolioSnapshot.piCapacity.value.overloadedTeamIterations expected=null home=null"
+    },
+    {
+      "id": "kpi.capacity_empty_not_zero",
+      "ok": true,
+      "detail": "state=empty"
+    },
+    {
+      "id": "kpi.capacity_totals_null_when_not_available",
+      "ok": true
+    },
+    {
+      "id": "empty.portfolio_not_unavailable_as_zero",
+      "ok": true
+    },
+    {
+      "id": "empty.active_initiatives_zero_when_available",
+      "ok": true,
+      "detail": "value=0"
+    },
+    {
+      "id": "empty.metric_overloaded-teams_null",
+      "ok": true,
+      "detail": "No Program Increments with PI_VIEW access in PLANNING/REVIEW/BASELINED/ACTIVE for this scope."
+    },
+    {
+      "id": "arch.one_composition",
+      "ok": true,
+      "detail": "HomeDashboardQueryService composes portfolio/initiative/pi/governance"
+    },
+    {
+      "id": "arch.my_work_resource_fk_only",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failedCount": 0,
+  "passCount": 32
+}
