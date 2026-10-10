@@ -218,3 +218,100 @@ Minimum checklist (all required unless explicitly waived in writing by Product O
 | R1 restarted? | **No** |
 
 **STATUS:** `V1 RELEASE REVIEW COMPLETE — NO GO (PRODUCTION BLOCKED)`
+
+---
+
+## 14. Appendix — V1-R1-RECOVERY-A (2026-10-10T18:35Z)
+
+**Phase:** Vercel Deployment Recovery & PR #85 Reconciliation  
+**Mode:** Investigate first; no business-logic changes; no empty-commit redeploys; R1 infra not restarted.
+
+### 14.1 Root cause (evidence-based)
+
+| Question | Finding |
+|---|---|
+| Failure type | **Temporary / account Vercel build rate limiting** (Hobby-tier style quota) |
+| Exact check message | `Deployment rate limited — retry in 24 hours.` |
+| Target URL | `https://vercel.com/jonassan1990s-projects?upgradeToPro=build-rate-limit` |
+| Application build failure? | **No** — no failing Next.js compile logs for tip; prior Production builds for sibling SHAs completed Ready in ~1–2 minutes |
+| GitHub integration broken? | **No** — Vercel statuses and deployments continue to post to GitHub |
+| Configuration / env mutation? | **Not indicated**; no env changes made in this phase |
+| Concurrency? | High deploy cadence earlier on 2026-10-10 (many Preview+Production in &lt;2h) consistent with hitting build rate limits |
+
+**Commit status samples (GitHub API):**
+
+| SHA | Vercel state | Description timestamp (UTC) |
+|---|---|---|
+| `33f1d57` | success | 14:08:23 — Deployment has completed |
+| `df637cf` | success | 14:33:25 — Deployment has completed |
+| `0d397e9` / `f5e9b21` | failure | 14:16:02 / 14:16:41 — rate limited |
+| `4381874` / `8e25535` (PR #85) | failure | 14:36:53 / 14:38:03 — rate limited |
+
+**Rate-limit window:** last PR-head failure `2026-10-10T14:38:03Z` + 24h → earliest natural clear ≈ **`2026-10-11T14:38:03Z`**. Investigation at `2026-10-10T18:34Z` ≈ **3.9h** elapsed → **still active**.
+
+### 14.2 PR #85 inspection
+
+| Check | Result |
+|---|---|
+| State | **OPEN** |
+| Files | Docs/artifacts only (`docs/PROJECT-PLATFORM-V1-RELEASE-REVIEW.md` + QA JSON). **No `src/` changes** |
+| Required GitHub check observed | `Vercel` status context → **FAILURE** (rate limit) |
+| Check runs (Actions) | `total_count: 0` |
+| Merge | **Not performed** — must not override failed required check |
+| Branch protection API | Token returned 403 (cannot enumerate rules); merge policy followed via observed failing check |
+
+### 14.3 Production deployment reconciliation
+
+| Item | Value |
+|---|---|
+| Latest successful Production (GitHub Deployments) | `df637cf50e0f250a071ca840f440087625a41b19` (id `6982265506`, created 14:33:25Z, state **success**) |
+| Vercel deployment | `dpl_8wh6vdjCGSgGi6pJHGMAzuAPEShV` — Ready, target production |
+| Production URL | `https://managmentplatform.vercel.app` |
+| Reviewed main tip | `f5e9b21394952ef3abe5bdab67fdb41c4b8e57e6` |
+| Tip == Production? | **No** (`f5e9b21` still rate-limit failed; Production on `df637cf`) |
+| Delta tip vs Production | Doc-only merges (#83/#84 SHA notes) after `df637cf` |
+
+**Do not treat `33f1d57` or `df637cf` as verification of tip `f5e9b21`.**
+
+### 14.4 Safe runtime probes (unauthenticated)
+
+| Probe | Result |
+|---|---|
+| `GET /api/health` | **200** — `status:ok`, `ready:true`, `database:ok`, `oidcConfigured:false`, `tempAuthConfigured:true` |
+| `/login` and app routes | **200** — redirect to login (session required); pages load |
+| Full authenticated Production smoke | **NOT COMPLETED** this phase (no credential use / no claim) |
+
+### 14.5 Isolated QA (re-run)
+
+| Gate | Result |
+|---|---|
+| typecheck | PASS |
+| lint | PASS (0 errors) |
+| unit | PASS 363 |
+| integration | PASS 217 (QA DB only) |
+| build | PASS |
+
+### 14.6 Actions taken / not taken
+
+| Done | Not done (by design) |
+|---|---|
+| Diagnosed rate limit with API + CLI evidence | Empty commits / spam redeploy |
+| Confirmed PR #85 docs-only | Merge with failing Vercel check |
+| Health + unauthenticated page probes | OIDC / backup / monitoring changes |
+| Re-ran isolated test gates | Force-push / env var edits / architecture changes |
+
+### 14.7 Safe next action (when rate limit clears)
+
+1. After ≈ `2026-10-11T14:38:03Z` (or when tip status no longer shows rate limit), allow **one** Vercel Preview rebuild on PR #85 (re-run check or harmless docs push if needed).
+2. When `Vercel` is **success** on PR head, **merge #85** normally.
+3. Confirm Production deployment SHA equals merged main tip (likely `f5e9b21…` + merge commit).
+4. Proceed to **R1-RECOVERY-B** for OIDC/ops — **not** in this phase.
+5. Keep V1 release decision **NO GO** until OIDC, backups/alerts, and authenticated Production acceptance are independently satisfied.
+
+### 14.8 Recovery-A verdict
+
+| Field | Value |
+|---|---|
+| R1-RECOVERY-A STATUS | **BLOCKED** |
+| Blocker | Vercel build rate limit still active; PR #85 cannot merge green |
+| V1 release decision | Unchanged: **NO GO** |
