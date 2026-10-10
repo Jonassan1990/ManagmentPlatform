@@ -12,6 +12,15 @@ export type AuditWriteInput = {
   result: "success" | "denied" | "failure";
 };
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** correlationId column is UUID — ignore opaque request ids like `req_…`. */
+function uuidOrNull(value: string | null | undefined): string | null {
+  if (!value) return null;
+  return UUID_RE.test(value) ? value : null;
+}
+
 export class AuditService {
   constructor(private readonly db: PrismaClient) {}
 
@@ -23,7 +32,9 @@ export class AuditService {
         subjectType: input.subjectType,
         subjectId: input.subjectId ?? null,
         organizationId: input.organizationId ?? null,
-        correlationId: input.correlationId ?? getRequestId() ?? null,
+        correlationId: uuidOrNull(
+          input.correlationId ?? getRequestId() ?? null,
+        ),
         payload: input.payload,
         result: input.result,
       },
