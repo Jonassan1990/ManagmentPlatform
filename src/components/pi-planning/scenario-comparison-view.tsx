@@ -508,11 +508,16 @@ function ComparisonResults({
         ) : (
           <div className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white">
             <table className="w-full min-w-[40rem] text-left text-sm">
+              <caption className="sr-only">
+                Team capacity comparison by scenario revision
+              </caption>
               <thead>
                 <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[#74848e]">
-                  <th className="p-3 font-medium">Team</th>
+                  <th scope="col" className="p-3 font-medium">
+                    Team
+                  </th>
                   {comparison.revisions.map((r) => (
-                    <th key={r.id} className="p-3 font-medium">
+                    <th key={r.id} scope="col" className="p-3 font-medium">
                       {scenarioRevisionLabel(r)}
                     </th>
                   ))}
@@ -554,7 +559,12 @@ function ComparisonResults({
                           </p>
                           <div
                             className="mt-1 h-1.5 w-full max-w-[8rem] overflow-hidden rounded-full bg-[#e2e8eb]"
-                            role="presentation"
+                            role="img"
+                            aria-label={`Utilization ${formatUtilizationPercent(
+                              col.utilization != null
+                                ? col.utilization * 100
+                                : null,
+                            )}${col.overloaded ? ", overloaded" : ""}`}
                           >
                             <div
                               className={`h-full ${utilizationBarClass(col.band)}`}
@@ -566,6 +576,7 @@ function ComparisonResults({
                                     : 0,
                                 )}%`,
                               }}
+                              aria-hidden="true"
                             />
                           </div>
                         </td>

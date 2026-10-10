@@ -147,7 +147,18 @@ export function DataTable<T>({
                     {col.sortable && onSortChange ? (
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 hover:text-[var(--color-primary)]"
+                        className="inline-flex min-h-10 items-center gap-1 rounded-sm px-1 hover:text-[var(--color-primary)]"
+                        aria-label={
+                          active
+                            ? `${col.header}, sorted ${
+                                sort!.direction === "asc"
+                                  ? "ascending"
+                                  : "descending"
+                              }. Activate to sort ${
+                                nextDir === "asc" ? "ascending" : "descending"
+                              }.`
+                            : `${col.header}, not sorted. Activate to sort ascending.`
+                        }
                         onClick={() =>
                           onSortChange({
                             columnId: col.id,

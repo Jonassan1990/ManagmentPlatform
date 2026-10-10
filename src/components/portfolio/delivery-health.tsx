@@ -308,16 +308,35 @@ export function DeliveryHealthAttentionList({
           {/* Desktop */}
           <div className="mt-4 hidden overflow-x-auto md:block">
             <table className="w-full min-w-[920px] text-left text-sm">
+              <caption className="sr-only">
+                Delivery health attention list
+              </caption>
               <thead className="border-b border-[var(--line)] text-[var(--muted)]">
                 <tr>
-                  <th className="py-2 pr-3 font-medium">Project</th>
-                  <th className="py-2 pr-3 font-medium">Health</th>
-                  <th className="py-2 pr-3 font-medium">Primary reason</th>
-                  <th className="py-2 pr-3 font-medium">Owner</th>
-                  <th className="py-2 pr-3 font-medium">Department</th>
-                  <th className="py-2 pr-3 font-medium">Relevant date</th>
-                  <th className="py-2 pr-3 font-medium">Signals</th>
-                  <th className="py-2 font-medium">Actions</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Project
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Health
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Primary reason
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Owner
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Department
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Relevant date
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Signals
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">

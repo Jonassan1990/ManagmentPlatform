@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   extractActivePiId,
   resolveNavGroups,
@@ -11,6 +11,7 @@ import type {
   ResolvedNavGroup,
   ShellNavCapabilities,
 } from "@/modules/navigation/types";
+import { RouteFocusMain } from "./route-focus-main";
 import { SignOutButton } from "./sign-out-button";
 
 export type ShellPrincipal = {
@@ -37,6 +38,8 @@ export function AppShell({
   const pathname = usePathname() || "/";
   const [open, setOpen] = useState(false);
   const navId = useId();
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const navPanelRef = useRef<HTMLElement>(null);
 
   const groups = useMemo(() => {
     return resolveNavGroups(pathname, {
@@ -54,10 +57,23 @@ export function AppShell({
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        menuButtonRef.current?.focus();
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const panel = navPanelRef.current;
+    if (!panel) return;
+    const focusable = panel.querySelector<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus();
   }, [open]);
 
   function isGroupExpanded(group: ResolvedNavGroup): boolean {
@@ -75,8 +91,10 @@ export function AppShell({
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
+      <RouteFocusMain />
       <aside
         id={navId}
+        ref={navPanelRef}
         className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-[var(--sidebar)] text-[var(--sidebar-ink)] transition-transform lg:static lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -116,12 +134,19 @@ export function AppShell({
         />
       ) : null}
 
-      <div className="min-w-0">
+      <div className="min-w-0" aria-hidden={open ? true : undefined}>
+        <a
+          href="#main-content"
+          className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:block focus:h-auto focus:w-auto focus:overflow-visible focus:rounded-md focus:bg-[var(--surface)] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] lg:left-[calc(240px+1rem)]"
+        >
+          Skip to main content
+        </a>
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[var(--line)] bg-[var(--surface)] px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
+              ref={menuButtonRef}
               type="button"
-              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm lg:hidden"
+              className="min-h-11 rounded-md border border-[var(--line)] px-3 py-1.5 text-sm lg:hidden"
               onClick={() => setOpen(true)}
               aria-label="Open navigation"
               aria-expanded={open}
@@ -159,7 +184,13 @@ export function AppShell({
             )}
           </div>
         </header>
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="px-4 py-6 outline-none sm:px-6 lg:px-8"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -186,7 +217,7 @@ function NavGroupBlock({
         href={group.hubHref}
         onClick={onNavigate}
         aria-current={group.hubActive ? "page" : undefined}
-        className={`block rounded-md px-3 py-2 text-sm ${
+        className={`block min-h-11 rounded-md px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
           group.hubActive
             ? "bg-[var(--sidebar-active)] text-white"
             : "hover:bg-white/5"
@@ -205,7 +236,7 @@ function NavGroupBlock({
             href={group.hubHref}
             onClick={onNavigate}
             aria-current={group.hubActive ? "page" : undefined}
-            className={`min-w-0 flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+            className={`min-h-11 min-w-0 flex-1 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
               group.hubActive
                 ? "bg-[var(--sidebar-active)] text-white"
                 : "hover:bg-white/5"
@@ -221,7 +252,7 @@ function NavGroupBlock({
         {hasChildren ? (
           <button
             type="button"
-            className="rounded-md px-2 text-white/70 hover:bg-white/5 hover:text-white"
+            className="min-h-11 min-w-11 rounded-md px-2 text-white/70 hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             aria-expanded={expanded}
             aria-controls={panelId}
             aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}
@@ -239,7 +270,7 @@ function NavGroupBlock({
                 href={item.href}
                 onClick={onNavigate}
                 aria-current={item.active ? "page" : undefined}
-                className={`block rounded-md px-3 py-1.5 text-sm ${
+                className={`block min-h-11 rounded-md px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
                   item.active
                     ? "bg-[var(--sidebar-active)] text-white"
                     : "text-white/85 hover:bg-white/5"
