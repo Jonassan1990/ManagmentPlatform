@@ -12,6 +12,7 @@
 | Starting / reviewed `origin/main` SHA (full) | `f5e9b21394952ef3abe5bdab67fdb41c4b8e57e6` |
 | Minimum ancestor required | `f5e9b21` — **verified** |
 | Branch | `cursor/v1-release-review-60bb` |
+| Pull request | [#85](https://github.com/Jonassan1990/ManagmentPlatform/pull/85) — **OPEN** (Vercel check **failure**: rate-limited; not merged per “successful checks” rule) |
 | M5-FINAL reference | [PROJECT-PLATFORM-M5-FINAL-ACCEPTANCE.md](./PROJECT-PLATFORM-M5-FINAL-ACCEPTANCE.md) |
 
 ---
