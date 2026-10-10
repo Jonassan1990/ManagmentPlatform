@@ -526,42 +526,37 @@ describe("M5B-A Home dashboard — multi-org and denial", () => {
 
   it("denies cross-organization preferred scope", async () => {
     const admin = principal();
-    await seedOrg(admin, "Org A");
-
-    const stranger = principal();
-    await db.principal.create({
-      data: { id: stranger.id, displayName: stranger.displayName },
-    });
-    await authz.ensureBootstrapBinding(stranger.id);
-    const foreign = await organization.createOrganization(stranger, {
+    const { org: orgA } = await seedOrg(admin, "Org A");
+    const orgB = await organization.createOrganization(admin, {
       name: "Foreign Org",
     });
 
+    const outsider = await createScopedPrincipal(
+      admin,
+      ROLE_KEYS.VIEWER,
+      { scopeType: ScopeType.ORGANIZATION, organizationId: orgB.id },
+      "Outsider",
+    );
+
     await expect(
-      homeDashboard.getHomeDashboard(admin, {
-        organizationId: foreign.id,
+      homeDashboard.getHomeDashboard(outsider, {
+        organizationId: orgA.id,
       }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" } satisfies Partial<AppError>);
   });
 
-  it("Viewer cannot see foreign org snapshot inside preferred org denial path", async () => {
+  it("Viewer cannot select a preferred org outside listable authority", async () => {
     const admin = principal();
     const { org: orgA } = await seedOrg(admin, "Org A");
+    const orgB = await organization.createOrganization(admin, {
+      name: "Org B",
+    });
     const viewer = await createScopedPrincipal(
       admin,
       ROLE_KEYS.VIEWER,
       { scopeType: ScopeType.ORGANIZATION, organizationId: orgA.id },
       "Viewer A",
     );
-
-    const stranger = principal();
-    await db.principal.create({
-      data: { id: stranger.id, displayName: stranger.displayName },
-    });
-    await authz.ensureBootstrapBinding(stranger.id);
-    const orgB = await organization.createOrganization(stranger, {
-      name: "Org B",
-    });
 
     await expect(
       homeDashboard.getHomeDashboard(viewer, { organizationId: orgB.id }),
