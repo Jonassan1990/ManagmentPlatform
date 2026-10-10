@@ -154,6 +154,26 @@ describe("buildHomeQuickLinks", () => {
     );
   });
 
+  it("scopes Portfolio / Explorer / Health / Capacity quick links to organizationId", () => {
+    const links = buildHomeQuickLinks({
+      capabilities: DEFAULT_SHELL_CAPABILITIES,
+      organizationId: "org-42",
+      piEntry: null,
+    });
+    expect(links.find((l) => l.id === "portfolio")?.href).toBe(
+      "/portfolio?organizationId=org-42",
+    );
+    expect(links.find((l) => l.id === "explorer")?.href).toBe(
+      "/portfolio/explorer?organizationId=org-42",
+    );
+    expect(links.find((l) => l.id === "health")?.href).toBe(
+      "/portfolio/health?organizationId=org-42",
+    );
+    expect(links.find((l) => l.id === "capacity")?.href).toBe(
+      "/portfolio/capacity?organizationId=org-42",
+    );
+  });
+
   it("footer links are a capability-filtered subset", () => {
     const footer = buildHomeFooterLinks({
       capabilities: {

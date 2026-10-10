@@ -134,7 +134,7 @@ export default async function PortfolioPage({
         sortBy: "classification",
         sortDir: "asc",
         page: 1,
-        pageSize: 25,
+        pageSize: 5,
       }),
     ]);
 
@@ -161,20 +161,20 @@ export default async function PortfolioPage({
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
-              href={`/portfolio/explorer?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`}
-              className="min-h-10 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              href={`/portfolio/explorer?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}&from=portfolio&fromOrg=${organizationId}${departmentId ? `&fromDept=${departmentId}` : ""}`}
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               Explorer
             </Link>
             <Link
-              href={`/portfolio/health?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`}
-              className="min-h-10 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              href={`/portfolio/health?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}&from=portfolio&fromOrg=${organizationId}${departmentId ? `&fromDept=${departmentId}` : ""}`}
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               Delivery health
             </Link>
             <Link
-              href={`/portfolio/capacity?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`}
-              className="min-h-10 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              href={`/portfolio/capacity?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}&from=portfolio&fromOrg=${organizationId}${departmentId ? `&fromDept=${departmentId}` : ""}`}
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               PI &amp; capacity
             </Link>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CapacityPanels } from "@/components/pi-planning/capacity-panels";
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
@@ -72,7 +73,15 @@ export default async function PiCapacityPage({
       />
       <PageHeader
         title="Capacity"
-        description={`${pi.name} · ${piStatusLabel(pi.status)} — team and resource utilization by iteration.`}
+        description={`${pi.name} · ${piStatusLabel(pi.status)} — change planning commitments by iteration. For portfolio-wide resource coordination, open Portfolio Capacity.`}
+        actions={
+          <Link
+            href={`/portfolio/capacity?organizationId=${pi.organizationId}&piId=${piId}`}
+            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
+            Portfolio Capacity
+          </Link>
+        }
       />
       <PiTabs piId={piId} active="capacity" preserveQuery={query} />
       <CapacityPanels

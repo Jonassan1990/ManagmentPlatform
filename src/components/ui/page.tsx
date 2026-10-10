@@ -94,13 +94,15 @@ export function PageHeader({
 export function Panel({
   children,
   className = "",
+  ...rest
 }: {
   children: React.ReactNode;
   className?: string;
-}) {
+} & React.HTMLAttributes<HTMLElement>) {
   return (
     <section
       className={`rounded-lg border border-[var(--line)] bg-[var(--surface)] p-5 ${className}`}
+      {...rest}
     >
       {children}
     </section>
