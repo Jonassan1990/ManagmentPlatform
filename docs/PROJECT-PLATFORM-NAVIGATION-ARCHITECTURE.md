@@ -25,7 +25,7 @@ Portfolio                    → /portfolio
   · Executive overview       → /portfolio
   · Explorer                 → /portfolio/explorer
   · Delivery health          → /portfolio/health
-  · PI & capacity            → /portfolio/capacity
+  · Resource Planning        → /portfolio/capacity
 Initiatives                  → /initiatives
   · All initiatives          → /initiatives
   · Create initiative        → /initiatives/new          [canCreateInitiative]

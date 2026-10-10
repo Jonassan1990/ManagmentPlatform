@@ -236,7 +236,7 @@ export function returnCrumbLabel(from: ReturnFromToken): string {
     case "explorer":
       return "Explorer";
     case "capacity":
-      return "PI & capacity";
+      return "Resource Planning";
     case "health":
       return "Delivery health";
     case "approvals":

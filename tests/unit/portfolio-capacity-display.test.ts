@@ -3,6 +3,7 @@ import {
   aggregateResourcesByTeam,
   bandTone,
   buildDepartmentCards,
+  buildProjectStackSegments,
   capacityStatusLabel,
   committedLoadBarPct,
   filterDepartmentCards,
@@ -83,6 +84,24 @@ describe("portfolio capacity display helpers", () => {
         teamId: "t1",
         iterationId: "i1",
         membershipAllocationPercent: 100,
+        projectSegments: [
+          {
+            projectId: "p1",
+            initiativeId: "init-1",
+            referenceKey: "PRJ-1",
+            name: "Alpha",
+            href: "/initiatives/init-1/project",
+            committedHours: 60,
+          },
+          {
+            projectId: "p2",
+            initiativeId: "init-2",
+            referenceKey: "PRJ-2",
+            name: "Beta",
+            href: "/initiatives/init-2/project",
+            committedHours: 40,
+          },
+        ],
         ...hours(80, 100, "overload"),
       },
       {
@@ -91,6 +110,16 @@ describe("portfolio capacity display helpers", () => {
         teamId: "t1",
         iterationId: "i2",
         membershipAllocationPercent: 100,
+        projectSegments: [
+          {
+            projectId: "p1",
+            initiativeId: "init-1",
+            referenceKey: "PRJ-1",
+            name: "Alpha",
+            href: "/initiatives/init-1/project",
+            committedHours: 20,
+          },
+        ],
         ...hours(80, 20, "under"),
       },
     ];
@@ -107,6 +136,10 @@ describe("portfolio capacity display helpers", () => {
     expect(aggregated[0]!.availableHours).toBe(160);
     expect(aggregated[0]!.committedHours).toBe(120);
     expect(aggregated[0]!.band).toBe("ok");
+    expect(aggregated[0]!.projectSegments).toEqual([
+      expect.objectContaining({ projectId: "p1", committedHours: 80 }),
+      expect.objectContaining({ projectId: "p2", committedHours: 40 }),
+    ]);
 
     const cards = buildDepartmentCards(departments, teams, resources);
     expect(cards).toHaveLength(1);
@@ -153,6 +186,7 @@ describe("portfolio capacity display helpers", () => {
         teamId: "t1",
         iterationId: "i1",
         membershipAllocationPercent: 100,
+        projectSegments: [],
         ...hours(100, 50),
       },
       {
@@ -161,6 +195,7 @@ describe("portfolio capacity display helpers", () => {
         teamId: "t2",
         iterationId: "i1",
         membershipAllocationPercent: 100,
+        projectSegments: [],
         ...hours(100, 120, "overload"),
       },
     ];
@@ -175,6 +210,32 @@ describe("portfolio capacity display helpers", () => {
 
   it("builds initials for avatars", () => {
     expect(initials("Lina Andersson")).toBe("LA");
+  });
+
+  it("builds project stack segments from real hours (no FTE invention)", () => {
+    const segments = buildProjectStackSegments(100, [
+      {
+        projectId: "p1",
+        initiativeId: "i1",
+        referenceKey: "PRJ-1",
+        name: "Core",
+        href: "/initiatives/i1/project",
+        committedHours: 40,
+      },
+      {
+        projectId: "p2",
+        initiativeId: "i2",
+        referenceKey: "PRJ-2",
+        name: "Support",
+        href: "/initiatives/i2/project",
+        committedHours: 20,
+      },
+    ]);
+    expect(segments).toHaveLength(2);
+    expect(segments[0]!.widthPct).toBe(40);
+    expect(segments[1]!.widthPct).toBe(20);
+    expect(segments.every((s) => s.color.length > 0)).toBe(true);
+    expect(buildProjectStackSegments(0, [])).toEqual([]);
   });
 
   it("keeps shared-resource membership rows separate per team (no double full capacity)", () => {
@@ -203,6 +264,7 @@ describe("portfolio capacity display helpers", () => {
         teamId: "t1",
         iterationId: "i1",
         membershipAllocationPercent: 50,
+        projectSegments: [],
         ...hours(40, 30),
       },
       {
@@ -211,6 +273,7 @@ describe("portfolio capacity display helpers", () => {
         teamId: "t2",
         iterationId: "i1",
         membershipAllocationPercent: 50,
+        projectSegments: [],
         ...hours(40, 20),
       },
     ];

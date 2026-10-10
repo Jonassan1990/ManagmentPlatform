@@ -261,7 +261,7 @@ function baseDashboard(
       drillDown: [
         {
           id: "capacity",
-          label: "PI & capacity",
+          label: "Resource Planning",
           href: `/portfolio/capacity?organizationId=${ORG}&piId=pi-1`,
         },
       ],

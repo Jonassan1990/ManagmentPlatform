@@ -497,7 +497,9 @@ export function PortfolioDashboardView({
             label="PI capacity status"
             href={capacity.available ? capacityHref : piHref}
             actionLabel={
-              capacity.available ? "Open PI & capacity" : "Open PI Planning"
+              capacity.available
+                ? "Open Resource Planning"
+                : "Open PI Planning"
             }
             hint={
               capacity.available

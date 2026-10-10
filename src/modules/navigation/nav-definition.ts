@@ -67,10 +67,11 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
       },
       {
         id: "portfolio-capacity",
-        label: "PI & capacity",
+        label: "Resource Planning",
         href: "/portfolio/capacity",
         match: { type: "prefix", path: "/portfolio/capacity" },
         capability: "always",
+        description: "Capacity, utilization, and project commitments",
       },
     ],
   },

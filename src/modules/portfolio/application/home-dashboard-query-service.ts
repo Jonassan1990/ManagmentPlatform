@@ -2055,7 +2055,7 @@ export class HomeDashboardQueryService {
           ? [
               {
                 id: "capacity",
-                label: "PI & capacity",
+                label: "Resource Planning",
                 href: `/portfolio/capacity?organizationId=${preferredOrganizationId}${
                   piId ? `&piId=${piId}` : ""
                 }`,
@@ -2135,7 +2135,7 @@ export class HomeDashboardQueryService {
           [
             {
               id: "capacity",
-              label: "PI & capacity",
+              label: "Resource Planning",
               href: `/portfolio/capacity?organizationId=${preferredOrganizationId}&piId=${piEntry.id}`,
             },
             {
