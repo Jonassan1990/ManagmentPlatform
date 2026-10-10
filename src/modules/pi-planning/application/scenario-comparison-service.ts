@@ -682,7 +682,7 @@ export class ScenarioComparisonService {
       "Capacity inputs (Resource / membership / availability) are shared across compared revisions; only WorkAllocation commitments differ.",
     );
     notes.push(
-      "Baseline snapshots are not mixed into this comparison; compare live CURRENT/scenario revisions only.",
+      "Baseline snapshots are not mixed into this comparison; compare live current plan and scenario revisions only.",
     );
     return { missingCapacityInputs, notes };
   }

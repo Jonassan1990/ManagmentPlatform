@@ -133,7 +133,7 @@ export class ScenarioService {
     if (source.isCurrent || source.key === "CURRENT") {
       throw new AppError(
         "VALIDATION",
-        "Use create-from-CURRENT to branch the live plan.",
+        "Use create-from-current-plan to branch the live plan.",
       );
     }
     if (source.status === "ARCHIVED" || source.archivedAt != null) {

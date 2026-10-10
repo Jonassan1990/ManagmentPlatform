@@ -188,7 +188,7 @@ export class BaselineService {
         ) {
           throw new AppError(
             "CONFLICT",
-            "CURRENT plan changed concurrently. Re-approve before baselining.",
+            "Current plan changed concurrently. Re-approve before baselining.",
           );
         }
 

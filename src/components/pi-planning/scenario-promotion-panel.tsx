@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { mapScenarioStatusBadge } from "@/components/ui/status-adapters";
 import { formatHours } from "@/components/pi-planning/pi-nav";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
+import { readinessClassificationLabel } from "@/modules/pi-planning/application/pi-planning-presentation";
 import type { ScenarioPromotionPreview } from "@/modules/pi-planning/application/scenario-promotion-types";
 
 type Caps = Partial<PrincipalCapabilities>;
@@ -58,7 +59,7 @@ export function ScenarioPromotionPanel({
       }
       setConfirmOpen(false);
       setSuccess(
-        `Promoted ${selected.label ?? selected.key} into CURRENT (${result.data.allocationCount} allocation${result.data.allocationCount === 1 ? "" : "s"}). Baseline was not created.`,
+        `Applied ${selected.label ?? selected.key} to the current plan (${result.data.allocationCount} allocation${result.data.allocationCount === 1 ? "" : "s"}). No baseline was created.`,
       );
       router.refresh();
     });
@@ -77,12 +78,11 @@ export function ScenarioPromotionPanel({
       {embedded ? null : (
       <div>
         <h2 className="text-sm font-semibold text-[#102a43]">
-          Promote selected scenario to CURRENT
+          Apply selected scenario to current plan
         </h2>
         <p className="mt-1 text-xs text-[#74848e]">
-          Replaces the authoritative CURRENT allocations with the selected
-          scenario. This does not approve the PI or create an immutable
-          baseline.
+          Replaces current plan allocations with the selected scenario. This does
+          not approve the PI or create an immutable baseline.
         </p>
       </div>
       )}
@@ -96,7 +96,7 @@ export function ScenarioPromotionPanel({
 
       {!selected ? (
         <p className="text-sm text-[#74848e]">
-          Select a scenario for review above before promoting.
+          Select a scenario for review above before applying it.
         </p>
       ) : (
         <div className="space-y-3 text-sm">
@@ -115,8 +115,12 @@ export function ScenarioPromotionPanel({
           </p>
           {preview.readiness ? (
             <p>
-              Current readiness:{" "}
-              <strong>{preview.readiness.classification}</strong>
+              Readiness:{" "}
+              <strong>
+                {readinessClassificationLabel(
+                  preview.readiness.classification,
+                )}
+              </strong>
             </p>
           ) : null}
 
@@ -148,12 +152,12 @@ export function ScenarioPromotionPanel({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <PreviewMetric
-              label="CURRENT now"
+              label="Current plan now"
               count={preview.currentAllocations.allocationCount}
               hours={preview.currentAllocations.totalCommittedHours}
             />
             <PreviewMetric
-              label="After promote"
+              label="After apply"
               count={preview.selectedAllocations.allocationCount}
               hours={preview.selectedAllocations.totalCommittedHours}
             />
@@ -169,7 +173,7 @@ export function ScenarioPromotionPanel({
                 disabled={!canReview || pending}
               />
               <span>
-                I acknowledge the readiness warnings and want to promote anyway.
+                I acknowledge the readiness warnings and want to apply anyway.
               </span>
             </label>
           ) : null}
@@ -187,7 +191,7 @@ export function ScenarioPromotionPanel({
               setConfirmOpen(true);
             }}
           >
-            Promote selected scenario to CURRENT
+            Apply selected scenario to current plan
           </PrimaryButton>
 
           <ConfirmDialog
@@ -197,9 +201,9 @@ export function ScenarioPromotionPanel({
               setConfirmOpen(open);
               if (!open) setError(null);
             }}
-            title="Promote scenario to CURRENT?"
-            description={`Changes: CURRENT allocations become a copy of “${selected.label ?? selected.key}”. Unchanged: the source scenario, approvals, and baselines. Reversible: only by promoting another scenario later — not undone automatically. Approval/baseline: not created.`}
-            confirmLabel="Confirm promote to CURRENT"
+            title="Apply scenario to current plan?"
+            description={`Changes: current plan allocations become a copy of “${selected.label ?? selected.key}”. Unchanged: the source scenario, approvals, and baselines. Reversible: only by applying another scenario later — not undone automatically. Approval/baseline: not created.`}
+            confirmLabel="Confirm apply to current plan"
             cancelLabel="Cancel"
             variant="destructive"
             pending={pending}
@@ -209,7 +213,7 @@ export function ScenarioPromotionPanel({
 
           {!canReview ? (
             <p className="text-xs text-[#74848e]">
-              Promoting requires PI review permission.
+              Applying a scenario requires review permission.
             </p>
           ) : null}
         </div>

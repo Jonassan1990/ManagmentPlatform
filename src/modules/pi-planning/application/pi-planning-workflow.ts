@@ -69,7 +69,7 @@ export type DerivePiPlanningWorkflowInput = {
 };
 
 const LIFECYCLE_NOTE =
-  "Selected ≠ Promoted ≠ Approved ≠ Baselined — each step is a separate decision.";
+  "Selected ≠ Applied to current plan ≠ Approved ≠ Baselined — each step is a separate decision.";
 
 /**
  * Pure derivation for the Review journey progress indicator.
@@ -147,17 +147,17 @@ export function derivePiPlanningWorkflow(
           : "upcoming",
       detail: selectDone
         ? input.selectedLabel
-          ? `Selected: ${input.selectedLabel}`
-          : "A scenario is selected or already promoted."
+          ? `Selected scenario: ${input.selectedLabel}`
+          : "A scenario is selected or already applied to the current plan."
         : input.canReviewPi
-          ? "Choose one preferred draft for review. Does not change CURRENT."
-          : "Selection requires PI review permission.",
+          ? "Choose one preferred draft for review. Does not change the current plan."
+          : "You need review permission to select a scenario.",
       href: reviewHref,
     },
     {
       id: "promote",
-      label: "Promote",
-      shortLabel: "Promote",
+      label: "Apply to current plan",
+      shortLabel: "Apply",
       status: promoteDone
         ? "completed"
         : !selectDone
@@ -168,9 +168,9 @@ export function derivePiPlanningWorkflow(
               ? "current"
               : "available",
       detail: promoteDone
-        ? "Selected scenario was copied into CURRENT."
+        ? "Selected scenario was applied to the current plan."
         : [...authReviewReason, ...input.promoteDisabledReasons].join(" ") ||
-          "Apply the selected scenario to CURRENT (not approval).",
+          "Apply the selected scenario to the current plan (not approval).",
       href: reviewHref,
     },
     {
@@ -189,11 +189,11 @@ export function derivePiPlanningWorkflow(
                 ? "current"
                 : "available",
       detail: approveDone
-        ? `CURRENT v${input.currentRevisionVersion ?? "—"} approved.`
+        ? `Current plan v${input.currentRevisionVersion ?? "—"} approved.`
         : input.approvalState === "APPROVAL_STALE"
-          ? "Previous approval is stale — re-approve the exact CURRENT version."
+          ? "Previous approval is stale — re-approve this exact current plan version."
           : [...authReviewReason, ...input.approveDisabledReasons].join(" ") ||
-            "Approve the exact CURRENT version (does not create a baseline).",
+            "Approve this exact current plan version (does not create a baseline).",
       href: reviewHref,
     },
     {
@@ -210,10 +210,11 @@ export function derivePiPlanningWorkflow(
               ? "current"
               : "available",
       detail: baselineDone
-        ? "Immutable baseline recorded."
+        ? "Approved baseline recorded (immutable)."
         : [...authBaselineReason, ...input.baselineDisabledReasons].join(
             " ",
-          ) || "Record an immutable commitment from the approved CURRENT plan.",
+          ) ||
+          "Record an immutable approved baseline from the approved current plan.",
       href: baselineHref,
     },
   ];
@@ -297,8 +298,8 @@ function buildPrimaryAction(
     return {
       stageId: "promote",
       label: blocked
-        ? "Promote blocked"
-        : "Promote selected scenario to CURRENT",
+        ? "Apply blocked"
+        : "Apply selected scenario to current plan",
       href: ctx.reviewHref,
       blocked,
       reasons,
@@ -310,7 +311,7 @@ function buildPrimaryAction(
       ...ctx.authReviewReason,
       ...input.approveDisabledReasons,
       ...(input.approvalState === "APPROVAL_STALE"
-        ? ["Stale approval — re-approve the current CURRENT version."]
+        ? ["Stale approval — re-approve this exact current plan version."]
         : []),
     ];
     const blocked = !input.canReviewPi || !input.canApprove;
@@ -319,11 +320,11 @@ function buildPrimaryAction(
       stageId: "approve",
       label: blocked
         ? stale
-          ? "Re-approve CURRENT plan"
+          ? "Re-approve current plan"
           : "Approve blocked"
         : stale
-          ? "Re-approve CURRENT plan"
-          : "Approve CURRENT plan",
+          ? "Re-approve current plan"
+          : "Approve current plan",
       href: ctx.reviewHref,
       blocked,
       reasons,
@@ -340,8 +341,8 @@ function buildPrimaryAction(
     label: blocked
       ? input.canBaselinePi
         ? "Baseline blocked"
-        : "Baseline unavailable — missing PI_BASELINE"
-      : "Create immutable baseline",
+        : "Baseline unavailable — missing baseline permission"
+      : "Create approved baseline",
     href: ctx.baselineHref,
     blocked,
     reasons,

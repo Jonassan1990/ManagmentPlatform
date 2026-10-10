@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { mapApprovalStateBadge } from "@/components/ui/status-adapters";
 import { formatHours } from "@/components/pi-planning/pi-nav";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
+import { readinessClassificationLabel } from "@/modules/pi-planning/application/pi-planning-presentation";
 import type { PlanApprovalPreview } from "@/modules/pi-planning/application/plan-approval-types";
 
 type Caps = Partial<PrincipalCapabilities>;
@@ -86,7 +87,7 @@ export function PlanApprovalPanel({
       setConfirmApprove(false);
       setActiveDialog(null);
       setSuccess(
-        `Approved CURRENT version ${result.data.currentRevisionVersion}. Baseline was not created.`,
+        `Approved current plan version ${result.data.currentRevisionVersion}. No baseline was created.`,
       );
       router.refresh();
     });
@@ -135,10 +136,10 @@ export function PlanApprovalPanel({
       {embedded ? null : (
       <div>
         <h2 className="text-sm font-semibold text-[#102a43]">
-          Approve CURRENT plan & create baseline
+          Approve current plan & create baseline
         </h2>
         <p className="mt-1 text-xs text-[#74848e]">
-          Approval binds to an exact CURRENT version and allocation fingerprint.
+          Approval binds to an exact current plan version and allocation fingerprint.
           Baseline creation is a separate action and does not rewrite history.
         </p>
       </div>
@@ -157,8 +158,8 @@ export function PlanApprovalPanel({
           />
         </div>
         <span className="mt-1 block text-xs text-[#74848e]">
-          Lifecycle: Selected for review → Promoted to CURRENT — not approved →
-          Approved CURRENT version → Baselined — immutable commitment
+          Lifecycle: Selected scenario → Applied to current plan — not approved →
+          Approved current plan version → Approved baseline — immutable
         </span>
       </div>
 
@@ -169,7 +170,7 @@ export function PlanApprovalPanel({
 
       <div className="grid gap-3 text-sm sm:grid-cols-2">
         <p>
-          CURRENT version:{" "}
+          Current plan version:{" "}
           <strong>
             {preview.currentRevision
               ? `v${preview.currentRevision.version}`
@@ -183,7 +184,7 @@ export function PlanApprovalPanel({
           </strong>
         </p>
         <p>
-          Promoted from:{" "}
+          Applied from:{" "}
           <strong>
             {preview.promotedFromRevisionId
               ? preview.promotedFromRevisionId.slice(0, 8)
@@ -192,7 +193,9 @@ export function PlanApprovalPanel({
         </p>
         <p>
           Readiness:{" "}
-          <strong>{preview.readiness?.classification ?? "—"}</strong>
+          <strong>
+            {readinessClassificationLabel(preview.readiness?.classification)}
+          </strong>
         </p>
       </div>
 
@@ -219,7 +222,7 @@ export function PlanApprovalPanel({
           {preview.latestApproval.invalidatedReason
             ? ` (${preview.latestApproval.invalidatedReason})`
             : ""}
-          . Re-approve the current CURRENT plan before baselining.
+          . Re-approve the current plan before baselining.
         </Alert>
       ) : null}
 
@@ -261,7 +264,7 @@ export function PlanApprovalPanel({
               />
               <span>
                 I acknowledge the readiness warnings and still want to approve
-                this CURRENT plan.
+                this current plan.
               </span>
             </label>
           ) : null}
@@ -275,7 +278,7 @@ export function PlanApprovalPanel({
           {!canReview ? (
             <Alert tone="info" title="Permission">
               Approving requires PI review permission. You can still inspect
-              readiness and CURRENT version details.
+              readiness and current plan version details.
             </Alert>
           ) : null}
 
@@ -288,7 +291,7 @@ export function PlanApprovalPanel({
               setConfirmApprove(true);
             }}
           >
-            Approve CURRENT plan
+            Approve current plan
           </PrimaryButton>
 
           <ConfirmDialog
@@ -301,8 +304,8 @@ export function PlanApprovalPanel({
                 setActiveDialog(null);
               }
             }}
-            title="Approve CURRENT plan?"
-            description={`Changes: records approval for CURRENT version ${preview.currentRevision?.version ?? "—"} at the current allocation fingerprint. Unchanged: allocations, scenarios, and existing baselines. Reversible: approval can be invalidated by a later promotion; it is not a baseline. Approval/baseline: approval only — no immutable baseline is created.`}
+            title="Approve current plan?"
+            description={`Changes: records approval for current plan version ${preview.currentRevision?.version ?? "—"} at the current allocation fingerprint. Unchanged: allocations, scenarios, and existing baselines. Reversible: approval can be invalidated by a later apply; it is not a baseline. Approval/baseline: approval only — no immutable baseline is created.`}
             confirmLabel="Confirm approval"
             cancelLabel="Cancel"
             pending={pending && activeDialog === "approve"}
@@ -377,7 +380,7 @@ export function PlanApprovalPanel({
               }
             }}
             title="Create immutable baseline?"
-            description={`Changes: creates a new immutable baseline snapshot from approved CURRENT version ${preview.currentRevision?.version ?? "—"}. Unchanged: live allocations and prior baselines (history is append-only). Reversible: no — baselines are not rewritten. Approval/baseline: baseline is created from the exact approved CURRENT state.`}
+            description={`Changes: creates a new immutable approved baseline from current plan version ${preview.currentRevision?.version ?? "—"}. Unchanged: live allocations and prior baselines (history is append-only). Reversible: no — baselines are not rewritten. Approval/baseline: baseline is created from the exact approved current plan.`}
             confirmLabel="Confirm baseline"
             cancelLabel="Cancel"
             variant="destructive"

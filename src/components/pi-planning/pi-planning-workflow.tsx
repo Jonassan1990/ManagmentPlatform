@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
 import type { StatusBadgeMapping } from "@/components/ui/status-adapters";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { readinessClassificationLabel } from "@/modules/pi-planning/application/pi-planning-presentation";
 import type {
   PiPlanningWorkflowView,
   PiWorkflowStage,
@@ -18,7 +19,7 @@ function statusBadge(status: PiWorkflowStageStatus): {
     case "completed":
       return { status: "completed", label: "Done" };
     case "current":
-      return { status: "in-progress", label: "Current" };
+      return { status: "in-progress", label: "In progress" };
     case "blocked":
       return { status: "blocked", label: "Blocked" };
     case "available":
@@ -201,10 +202,10 @@ export function ReviewSummaryStrip({
       <SummaryItem label="Selected scenario" value={selectedLabel ?? "None"} />
       <SummaryItem
         label="Readiness"
-        value={readinessClassification ?? "—"}
+        value={readinessClassificationLabel(readinessClassification)}
       />
       <SummaryItem
-        label="Capacity / conflicts"
+        label="Project / team impact"
         value={
           committedHours != null
             ? `${committedHours}h committed · ${blockerConflictCount} blocker / ${conflictCount} total`
@@ -212,7 +213,7 @@ export function ReviewSummaryStrip({
         }
       />
       <SummaryItem
-        label="CURRENT version"
+        label="Current plan version"
         value={
           currentRevisionVersion != null
             ? `v${currentRevisionVersion}`
@@ -220,7 +221,9 @@ export function ReviewSummaryStrip({
         }
       />
       <div className="space-y-1 text-sm">
-        <p className="text-xs font-medium text-[var(--muted)]">Approval</p>
+        <p className="text-xs font-medium text-[var(--muted)]">
+          Approval version
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge
             status={approvalBadge.status}
@@ -231,8 +234,8 @@ export function ReviewSummaryStrip({
         </div>
       </div>
       <SummaryItem
-        label="Baseline"
-        value={baselineLabel ?? "Not baselined"}
+        label="Approved baseline"
+        value={baselineLabel ?? "Not baselined — immutable once created"}
       />
     </section>
   );

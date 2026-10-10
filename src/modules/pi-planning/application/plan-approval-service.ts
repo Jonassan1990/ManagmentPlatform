@@ -186,16 +186,16 @@ export class PlanApprovalService {
       approveDisabledReasons.push("Closed PIs cannot be approved.");
     }
     if (!current) {
-      approveDisabledReasons.push("CURRENT planning revision is missing.");
+      approveDisabledReasons.push("Current plan revision is missing.");
     }
     if (!pi.lastPromotedFromRevisionId) {
       approveDisabledReasons.push(
-        "Promotion provenance is required — promote a selected scenario to CURRENT first.",
+        "Promotion provenance is required — apply a selected scenario to the current plan first.",
       );
     }
     if (readiness?.classification === "NOT_READY") {
       approveDisabledReasons.push(
-        "CURRENT plan has unresolved hard readiness blockers.",
+        "Current plan has unresolved hard readiness blockers.",
       );
     }
     if (readiness?.classification === "UNAVAILABLE") {
@@ -208,7 +208,7 @@ export class PlanApprovalService {
       freshActive.currentRevisionVersion === current?.version
     ) {
       approveDisabledReasons.push(
-        "CURRENT plan is already approved for this exact state.",
+        "Current plan is already approved for this exact state.",
       );
     }
 
@@ -228,7 +228,7 @@ export class PlanApprovalService {
     }
     if (!freshActive) {
       baselineDisabledReasons.push(
-        "A valid approval of the current CURRENT plan is required before baselining.",
+        "A valid approval of the current plan is required before baselining.",
       );
     }
     if (
@@ -239,7 +239,7 @@ export class PlanApprovalService {
         freshActive.allocationFingerprint !== fingerprint)
     ) {
       baselineDisabledReasons.push(
-        "Approval is stale — CURRENT changed after approval.",
+        "Approval is stale — the current plan changed after approval.",
       );
     }
     const isFirst = pi.status === "REVIEW";
@@ -285,9 +285,9 @@ export class PlanApprovalService {
       approveDisabledReasons,
       baselineDisabledReasons,
       disclaimerApprove:
-        "Approve CURRENT plan — does not create an immutable baseline",
+        "Approve current plan — does not create an immutable baseline",
       disclaimerBaseline:
-        "Create immutable baseline from the exact approved CURRENT state",
+        "Create immutable baseline from the exact approved current plan",
     };
   }
 
@@ -319,7 +319,7 @@ export class PlanApprovalService {
     if (!pi.lastPromotedFromRevisionId) {
       throw new AppError(
         "VALIDATION",
-        "Promotion provenance is required. Promote a selected scenario to CURRENT before approval.",
+        "Promotion provenance is required. Apply a selected scenario to the current plan before approval.",
       );
     }
 
@@ -327,7 +327,7 @@ export class PlanApprovalService {
     if (current.version !== input.expectedCurrentRevisionVersion) {
       throw new AppError(
         "CONFLICT",
-        "CURRENT plan changed concurrently. Refresh and retry approval.",
+        "Current plan changed concurrently. Refresh and retry approval.",
         {
           details: {
             expected: input.expectedCurrentRevisionVersion,
@@ -363,7 +363,7 @@ export class PlanApprovalService {
         approvedAt: existingValid.approvedAt.toISOString(),
         idempotentReplay: true,
         disclaimer:
-          "Approve CURRENT plan — does not create an immutable baseline",
+          "Approve current plan — does not create an immutable baseline",
       };
     }
 
@@ -403,13 +403,13 @@ export class PlanApprovalService {
         if (!lockedCurrent) {
           throw new AppError(
             "VALIDATION",
-            "CURRENT planning revision is missing.",
+            "Current plan revision is missing.",
           );
         }
         if (lockedCurrent.version !== input.expectedCurrentRevisionVersion) {
           throw new AppError(
             "CONFLICT",
-            "CURRENT plan changed concurrently. Refresh and retry approval.",
+            "Current plan changed concurrently. Refresh and retry approval.",
           );
         }
 
@@ -420,7 +420,7 @@ export class PlanApprovalService {
         if (lockedFingerprint !== fingerprint) {
           throw new AppError(
             "CONFLICT",
-            "CURRENT allocations changed concurrently. Refresh and retry approval.",
+            "Current plan allocations changed concurrently. Refresh and retry approval.",
           );
         }
 
@@ -430,7 +430,7 @@ export class PlanApprovalService {
         if (!lockedPi.lastPromotedFromRevisionId) {
           throw new AppError(
             "VALIDATION",
-            "Promotion provenance is required. Promote a selected scenario to CURRENT before approval.",
+            "Promotion provenance is required. Apply a selected scenario to the current plan before approval.",
           );
         }
 
@@ -505,7 +505,7 @@ export class PlanApprovalService {
         approvedAt: now.toISOString(),
         idempotentReplay: false,
         disclaimer:
-          "Approve CURRENT plan — does not create an immutable baseline",
+          "Approve current plan — does not create an immutable baseline",
       };
     } catch (error) {
       if (error instanceof AppError) throw error;
@@ -557,7 +557,7 @@ export class PlanApprovalService {
     if (approval.status !== "VALID" && approval.status !== "CONSUMED") {
       throw new AppError(
         "VALIDATION",
-        "Approval is no longer valid. Re-approve the CURRENT plan before baselining.",
+        "Approval is no longer valid. Re-approve the current plan before baselining.",
         { details: { status: approval.status, reason: approval.invalidatedReason } },
       );
     }
@@ -566,7 +566,7 @@ export class PlanApprovalService {
     if (current.version !== expectedCurrentRevisionVersion) {
       throw new AppError(
         "CONFLICT",
-        "CURRENT plan changed after approval. Re-approve before baselining.",
+        "Current plan changed after approval. Re-approve before baselining.",
         {
           details: {
             expected: expectedCurrentRevisionVersion,
@@ -578,13 +578,13 @@ export class PlanApprovalService {
     if (approval.currentRevisionId !== current.id) {
       throw new AppError(
         "CONFLICT",
-        "Approval does not bind to the current CURRENT revision.",
+        "Approval does not bind to the current plan revision.",
       );
     }
     if (approval.currentRevisionVersion !== current.version) {
       throw new AppError(
         "CONFLICT",
-        "Approval is stale — CURRENT version changed. Re-approve before baselining.",
+        "Approval is stale — current plan version changed. Re-approve before baselining.",
       );
     }
 
@@ -595,7 +595,7 @@ export class PlanApprovalService {
     if (fingerprint !== approval.allocationFingerprint) {
       throw new AppError(
         "CONFLICT",
-        "Approval fingerprint does not match CURRENT allocations. Re-approve before baselining.",
+        "Approval fingerprint does not match current plan allocations. Re-approve before baselining.",
       );
     }
 
@@ -659,7 +659,7 @@ export class PlanApprovalService {
     if (args.freshActive?.status === "VALID") {
       return {
         stateLabel: "APPROVED",
-        stateMessage: "Approved CURRENT version",
+        stateMessage: "Approved current plan version",
       };
     }
     if (args.latestApproval?.status === "CONSUMED") {
@@ -684,18 +684,18 @@ export class PlanApprovalService {
     ) {
       return {
         stateLabel: "APPROVAL_STALE",
-        stateMessage: "Approval stale — CURRENT changed",
+        stateMessage: "Approval stale — current plan changed",
       };
     }
     if (args.pi.lastPromotedFromRevisionId) {
       return {
         stateLabel: "PROMOTED_NOT_APPROVED",
-        stateMessage: "Promoted to CURRENT — not approved",
+        stateMessage: "Applied to current plan — not approved",
       };
     }
     return {
       stateLabel: "NO_PROMOTION",
-      stateMessage: "Promote a selected scenario before approval",
+      stateMessage: "Apply a selected scenario to the current plan before approval",
     };
   }
 
@@ -711,7 +711,7 @@ export class PlanApprovalService {
     ) {
       throw new AppError(
         "VALIDATION",
-        "CURRENT plan is not ready for approval. Resolve blockers and retry.",
+        "Current plan is not ready for approval. Resolve blockers and retry.",
         {
           details: {
             classification: readiness.classification,

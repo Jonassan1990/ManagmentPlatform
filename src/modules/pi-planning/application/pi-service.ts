@@ -442,7 +442,7 @@ export class PiService {
     if (!revision) {
       throw new AppError(
         "CONFLICT",
-        "CURRENT planning revision is missing for this PI.",
+        "Current plan revision is missing for this PI.",
       );
     }
     return revision;

@@ -119,10 +119,10 @@ export function scenarioRevisionLabel(
     "isCurrent" | "label" | "key" | "status" | "archivedAt"
   >,
 ): string {
-  if (scenario.isCurrent) return "CURRENT";
+  if (scenario.isCurrent) return "Current plan";
   const name = scenario.label?.trim() || scenario.key;
-  if (scenario.archivedAt) return `${name} (ARCHIVED)`;
-  return `${name} (${scenario.status})`;
+  if (scenario.archivedAt) return `${name} (archived)`;
+  return `${name} (${humanizeScenarioStatus(scenario.status)})`;
 }
 
 export function scenarioOptionLabel(
@@ -131,10 +131,43 @@ export function scenarioOptionLabel(
     "isCurrent" | "label" | "key" | "status" | "archivedAt"
   >,
 ): string {
-  if (scenario.isCurrent) return "CURRENT — live plan";
+  if (scenario.isCurrent) return "Current plan — live allocations";
   const name = scenario.label?.trim() || scenario.key;
-  const archived = scenario.archivedAt ? " · ARCHIVED" : "";
-  return `${name} · ${scenario.status}${archived}`;
+  const archived = scenario.archivedAt ? " · archived" : "";
+  return `${name} · ${humanizeScenarioStatus(scenario.status)}${archived}`;
+}
+
+function humanizeScenarioStatus(status: string): string {
+  switch (status) {
+    case "DRAFT":
+      return "Draft";
+    case "READY_FOR_REVIEW":
+      return "Ready for review";
+    case "SELECTED":
+      return "Selected";
+    case "PROMOTED":
+      return "Applied";
+    case "ARCHIVED":
+      return "Archived";
+    default:
+      return status
+        .toLowerCase()
+        .split("_")
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(" ");
+  }
+}
+
+/** Plain-language delta vs the reference scenario column. */
+export function referenceDeltaLabel(
+  isReference: boolean,
+  signedDelta: string,
+): string {
+  if (isReference) return "Reference scenario";
+  if (signedDelta === "0" || signedDelta === "0h" || signedDelta === "0%") {
+    return "Same as reference";
+  }
+  return `vs reference: ${signedDelta}`;
 }
 
 export function formatUtilizationPercent(

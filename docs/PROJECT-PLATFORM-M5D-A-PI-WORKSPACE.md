@@ -132,7 +132,7 @@ Technical revision UUIDs remain in URLs (`revisionId`) and Settings/audit only.
 
 ## 9. M5D-B handoff
 
-**M5D-B** should:
+**M5D-B** (see [M5D-B Scenario UX](./PROJECT-PLATFORM-M5D-B-SCENARIO-UX.md)):
 
 - Polish Review stepper copy (Select → Apply to current plan → Approve → Baseline)
 - Keep M5D-A board/capacity chrome and vocabulary
