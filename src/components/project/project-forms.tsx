@@ -1336,8 +1336,9 @@ export function ClosedProjectBanner({
         {closure ? ` · ${humanizeSafe(closure.outcome)}` : ""}
       </p>
       <Alert tone="warning">
-        Delivery mutations are disabled. Work items, issues, milestones, and
-        closure forms stay visible for history but cannot change this project.
+        Delivery mutations are disabled. Editable create/update controls are
+        hidden. Historical work items, issues, milestones, and the closure
+        record remain visible below.
       </Alert>
       {closedAt ? (
         <p className="text-sm text-[var(--muted)]">

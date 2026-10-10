@@ -47,6 +47,7 @@ const projectInclude = {
   initiative: true,
   department: { include: { section: true } },
   participatingDepartments: { include: { department: true } },
+  ownerResource: true,
   milestones: { orderBy: { plannedDate: "asc" as const } },
   workItems: { orderBy: { referenceKey: "asc" as const } },
   closure: { include: { closedBy: true } },
