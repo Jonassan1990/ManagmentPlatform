@@ -257,6 +257,15 @@ export function PlanningBoard({
     if (mobileCell) break;
   }
 
+  const filterAnnounce = [
+    filters.departmentId ? "department filter on" : null,
+    filters.projectId ? "project filter on" : null,
+    filters.type ? "type filter on" : null,
+    filters.priority ? "priority filter on" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -272,9 +281,24 @@ export function PlanningBoard({
           onChange={setFilters}
         />
         {pending ? (
-          <p className="text-xs text-[var(--muted)]">Refreshing…</p>
+          <p className="text-xs text-[var(--muted)]" role="status" aria-live="polite">
+            Refreshing…
+          </p>
         ) : null}
       </div>
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {filterAnnounce
+          ? `Board filters active: ${filterAnnounce}.`
+          : "Board filters cleared."}
+      </p>
+      {canAllocate ? (
+        <p className="text-sm text-[var(--muted)]" data-testid="board-keyboard-hint">
+          Keyboard: open <span className="font-medium text-[var(--ink)]">Details</span>{" "}
+          on a card to <span className="font-medium text-[var(--ink)]">Move</span>{" "}
+          allocations, or use <span className="font-medium text-[var(--ink)]">Allocate</span>{" "}
+          on backlog items. Drag-and-drop is optional.
+        </p>
+      ) : null}
 
       {error ? <Alert>{error}</Alert> : null}
 
@@ -340,10 +364,15 @@ export function PlanningBoard({
       </div>
 
       {/* Desktop matrix */}
-      <div className="hidden md:grid md:grid-cols-[1fr_280px] md:gap-0 md:overflow-hidden md:rounded-lg md:border md:border-[var(--line)]">
-        <div className="min-w-0 overflow-x-auto">
+      <div className="hidden md:grid md:grid-cols-[1fr_minmax(240px,280px)] md:gap-0 md:overflow-hidden md:rounded-lg md:border md:border-[var(--line)]">
+        <div
+          className="min-w-0 overflow-x-auto"
+          role="region"
+          aria-label="PI planning board matrix. Scroll horizontally to see all iterations."
+          tabIndex={0}
+        >
           {filteredDepartments.length === 0 || iterations.length === 0 ? (
-            <div className="p-6 text-sm text-[var(--muted)]">
+            <div className="p-6 text-sm text-[var(--muted)]" role="status">
               {iterations.length === 0
                 ? "Define iterations in Settings before planning on the board."
                 : filteredDepartments.every((d) => d.teams.length === 0)
@@ -351,16 +380,24 @@ export function PlanningBoard({
                   : "No departments match the current filters."}
             </div>
           ) : (
-            <table className="w-full min-w-[720px] border-collapse text-sm">
+            <table className="w-full min-w-[560px] border-collapse text-sm lg:min-w-[720px]">
+              <caption className="sr-only">
+                PI planning board by team and iteration. Use Details then Move for
+                keyboard allocation changes.
+              </caption>
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-20 min-w-[10rem] border-b border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium">
+                  <th
+                    scope="col"
+                    className="sticky left-0 z-20 min-w-[8rem] border-b border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium"
+                  >
                     Team
                   </th>
                   {iterations.map((it) => (
                     <th
                       key={it.id}
-                      className="sticky top-0 z-10 min-w-[12rem] border-b border-l border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium"
+                      scope="col"
+                      className="sticky top-0 z-10 min-w-[10rem] border-b border-l border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium"
                     >
                       <span className="block">{it.name}</span>
                       <span className="text-xs font-normal text-[var(--muted)]">
@@ -393,7 +430,10 @@ export function PlanningBoard({
                     ) : (
                       dept.teams.map((team) => (
                         <tr key={team.teamId} className="align-top">
-                          <th className="sticky left-0 z-10 border-t border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium">
+                          <th
+                            scope="row"
+                            className="sticky left-0 z-10 border-t border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium"
+                          >
                             {team.teamName}
                           </th>
                           {team.iterations.map((cell) => (
@@ -503,7 +543,7 @@ function CellBody({
       {cell.cards.length === 0 ? (
         <p className="text-[10px] text-[var(--muted)]">
           {canAllocate
-            ? "Empty — drop work here or Allocate from backlog."
+            ? "Empty — Allocate from backlog, or drop work here."
             : "No allocations in this cell."}
         </p>
       ) : null}

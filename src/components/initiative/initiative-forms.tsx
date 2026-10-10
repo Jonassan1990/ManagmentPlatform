@@ -449,7 +449,8 @@ export function AddCriterionForm({ requirementId }: { requirementId: string }) {
   const form = useActionForm(addAcceptanceCriterionAction);
   return (
     <form
-      className="flex gap-2"
+      className="space-y-2"
+      aria-label="Add acceptance criterion"
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
@@ -460,13 +461,25 @@ export function AddCriterionForm({ requirementId }: { requirementId: string }) {
         e.currentTarget.reset();
       }}
     >
-      <input
-        name="description"
-        required
-        placeholder="Add acceptance criterion"
-        className={fieldClassName}
-      />
-      <PrimaryButton disabled={form.pending}>Add</PrimaryButton>
+      {form.ErrorAlert}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div className="min-w-0 flex-1">
+          <FormField
+            label="Acceptance criterion"
+            htmlFor={`criterion-${requirementId}`}
+            required
+          >
+            <input
+              id={`criterion-${requirementId}`}
+              name="description"
+              required
+              placeholder="Describe the acceptance criterion"
+              className={fieldClassName}
+            />
+          </FormField>
+        </div>
+        <PrimaryButton disabled={form.pending}>Add</PrimaryButton>
+      </div>
     </form>
   );
 }
@@ -494,32 +507,55 @@ export function CreateRelationForm({
       <h3 className="font-medium">Add relationship</h3>
       {form.ErrorAlert}
       <div className="grid gap-3 sm:grid-cols-3">
-        <select name="fromRequirementId" required className={fieldClassName} defaultValue="">
-          <option value="" disabled>
-            From
-          </option>
-          {requirements.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.referenceKey} — {r.title}
+        <FormField label="From requirement" htmlFor="fromRequirementId" required>
+          <select
+            id="fromRequirementId"
+            name="fromRequirementId"
+            required
+            className={fieldClassName}
+            defaultValue=""
+          >
+            <option value="" disabled>
+              Select source
             </option>
-          ))}
-        </select>
-        <select name="relationType" className={fieldClassName} defaultValue="RELATED_TO">
-          <option value="DEPENDS_ON">Depends on</option>
-          <option value="RELATED_TO">Related to</option>
-          <option value="REFINES">Refines</option>
-          <option value="CONFLICTS_WITH">Conflicts with</option>
-        </select>
-        <select name="toRequirementId" required className={fieldClassName} defaultValue="">
-          <option value="" disabled>
-            To
-          </option>
-          {requirements.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.referenceKey} — {r.title}
+            {requirements.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.referenceKey} — {r.title}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Relation type" htmlFor="relationType">
+          <select
+            id="relationType"
+            name="relationType"
+            className={fieldClassName}
+            defaultValue="RELATED_TO"
+          >
+            <option value="DEPENDS_ON">Depends on</option>
+            <option value="RELATED_TO">Related to</option>
+            <option value="REFINES">Refines</option>
+            <option value="CONFLICTS_WITH">Conflicts with</option>
+          </select>
+        </FormField>
+        <FormField label="To requirement" htmlFor="toRequirementId" required>
+          <select
+            id="toRequirementId"
+            name="toRequirementId"
+            required
+            className={fieldClassName}
+            defaultValue=""
+          >
+            <option value="" disabled>
+              Select target
             </option>
-          ))}
-        </select>
+            {requirements.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.referenceKey} — {r.title}
+              </option>
+            ))}
+          </select>
+        </FormField>
       </div>
       <PrimaryButton disabled={form.pending}>Create relationship</PrimaryButton>
     </form>

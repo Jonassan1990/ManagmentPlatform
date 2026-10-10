@@ -31,6 +31,12 @@ describe("M4D-A PlanningBoard cell presentation", () => {
     expect(
       screen.getByText(/Define iterations in Settings/i),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("board-keyboard-hint")).toHaveTextContent(
+      /Details/i,
+    );
+    expect(screen.getByTestId("board-keyboard-hint")).toHaveTextContent(
+      /Move/i,
+    );
   });
 
   it("shows conflict chip and CapacityBar for a populated cell", () => {
@@ -88,7 +94,7 @@ describe("M4D-A PlanningBoard cell presentation", () => {
     expect(screen.getAllByText(/2 conflicts/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText(/overload/i).length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText(/Empty — drop work here/i).length,
+      screen.getAllByText(/Empty — Allocate from backlog/i).length,
     ).toBeGreaterThan(0);
   });
 

@@ -81,7 +81,8 @@ export function WorkCard({
               className="text-[10px] font-medium uppercase tracking-wide text-[var(--warning)]"
               title="Dependency timing conflict"
             >
-              Dep
+              <span aria-hidden="true">Dep</span>
+              <span className="sr-only">Dependency timing conflict</span>
             </span>
           ) : null}
           <span className="text-[10px] text-[var(--muted)]">
@@ -97,10 +98,16 @@ export function WorkCard({
       {onToggleExpand ? (
         <button
           type="button"
-          className="mt-2 text-[11px] text-[var(--accent)]"
+          className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           onClick={onToggleExpand}
+          aria-expanded={expanded}
+          aria-label={
+            expanded
+              ? `Hide details for ${card.workItem.referenceKey}`
+              : `Show details and move options for ${card.workItem.referenceKey}`
+          }
         >
-          {expanded ? "Hide details" : "Details"}
+          {expanded ? "Hide details" : "Details / Move"}
         </button>
       ) : null}
       {expanded ? (

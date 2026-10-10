@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { fieldClassName } from "@/components/ui/forms";
+import { LiveRegion } from "@/components/ui/live-region";
 import { EmptyState, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -199,7 +200,7 @@ export function PortfolioExplorerFilters({
           <select
             name="kind"
             defaultValue={filters.kind ?? ""}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="">Initiatives and projects</option>
             <option value="INITIATIVE">Initiatives only</option>
@@ -211,7 +212,7 @@ export function PortfolioExplorerFilters({
           <select
             name="sectionId"
             defaultValue={filters.sectionId ?? ""}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="">All visible sections</option>
             {sections.map((s) => (
@@ -226,7 +227,7 @@ export function PortfolioExplorerFilters({
           <select
             name="departmentId"
             defaultValue={filters.departmentId ?? ""}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="">All visible departments</option>
             {departments.map((d) => (
@@ -241,7 +242,7 @@ export function PortfolioExplorerFilters({
           <select
             name="initiativeStage"
             defaultValue={filters.initiativeStage ?? ""}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="">Any</option>
             <option value="DEMAND">Demand</option>
@@ -257,7 +258,7 @@ export function PortfolioExplorerFilters({
           <select
             name="projectStatus"
             defaultValue={filters.projectStatus ?? ""}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="">Any</option>
             <option value="ACTIVE">Active</option>
@@ -271,7 +272,7 @@ export function PortfolioExplorerFilters({
           <select
             name="ownerResourceId"
             defaultValue={filters.ownerResourceId ?? ""}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="">Any structured owner</option>
             {owners.map((o) => (
@@ -286,7 +287,7 @@ export function PortfolioExplorerFilters({
           <select
             name="delivery"
             defaultValue={filters.delivery ?? ""}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="">Any</option>
             <option value="DELAYED">Delayed projects</option>
@@ -299,7 +300,7 @@ export function PortfolioExplorerFilters({
           <select
             name="deliveryHealth"
             defaultValue={filters.deliveryHealth ?? ""}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="">Any classification</option>
             <option value="BLOCKED">Blocked</option>
@@ -315,7 +316,7 @@ export function PortfolioExplorerFilters({
           <select
             name="sortBy"
             defaultValue={filters.sortBy ?? "updatedAt"}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="updatedAt">Updated</option>
             <option value="name">Name</option>
@@ -328,7 +329,7 @@ export function PortfolioExplorerFilters({
           <select
             name="sortDir"
             defaultValue={filters.sortDir ?? "desc"}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             <option value="desc">Descending</option>
             <option value="asc">Ascending</option>
@@ -359,28 +360,37 @@ export function PortfolioExplorerResults({
   const to = Math.min(result.total, result.page * result.pageSize);
   const rowHref = (row: PortfolioExplorerRow) => contextualRowHref(row, filters);
 
+  const resultsMessage =
+    result.total === 0
+      ? "No matching portfolio items for the current filters."
+      : `Showing ${from} to ${to} of ${result.total} portfolio results, sorted by ${result.sortBy}, ${result.sortDir}.`;
+
   if (result.total === 0) {
     return (
-      <EmptyState
-        title="No matching portfolio items"
-        description="Nothing matched the current search and filters in your authorized scope. Try clearing filters or broadening the search."
-        action={
-          <Link
-            href={`/portfolio/explorer?organizationId=${filters.organizationId}`}
-            className="rounded-md border border-[var(--line)] px-4 py-2 text-sm"
-          >
-            Reset filters
-          </Link>
-        }
-      />
+      <>
+        <LiveRegion message={resultsMessage} />
+        <EmptyState
+          title="No matching portfolio items"
+          description="Nothing matched the current search and filters in your authorized scope. Try clearing filters or broadening the search."
+          action={
+            <Link
+              href={`/portfolio/explorer?organizationId=${filters.organizationId}`}
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            >
+              Reset filters
+            </Link>
+          }
+        />
+      </>
     );
   }
 
   return (
     <div className="space-y-4">
+      <LiveRegion message={resultsMessage} />
       <Panel>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-[var(--muted)]">
-          <p>
+          <p aria-hidden="true">
             Showing{" "}
             <span className="font-medium text-[var(--ink)] tabular-nums">
               {from}–{to}
@@ -401,8 +411,13 @@ export function PortfolioExplorerResults({
         </div>
 
         {/* Desktop table */}
-        <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[880px] text-left text-sm">
+        <div
+          className="hidden overflow-x-auto md:block"
+          role="region"
+          aria-label="Portfolio explorer results table. Scroll horizontally to see all columns."
+          tabIndex={0}
+        >
+          <table className="w-full min-w-[640px] text-left text-sm lg:min-w-[880px]">
             <caption className="sr-only">
               Portfolio explorer results
             </caption>
@@ -522,12 +537,12 @@ export function PortfolioExplorerResults({
                 href={buildExplorerHref(filters, {
                   page: String(result.page - 1),
                 })}
-                className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
                 Previous
               </Link>
             ) : (
-              <span className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--muted)]">
+              <span className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--muted)]">
                 Previous
               </span>
             )}
@@ -536,12 +551,12 @@ export function PortfolioExplorerResults({
                 href={buildExplorerHref(filters, {
                   page: String(result.page + 1),
                 })}
-                className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
                 Next
               </Link>
             ) : (
-              <span className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--muted)]">
+              <span className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--muted)]">
                 Next
               </span>
             )}

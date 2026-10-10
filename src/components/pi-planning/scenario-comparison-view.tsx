@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { LiveRegion } from "@/components/ui/live-region";
 import { Alert } from "@/components/ui/page";
 import {
   formatHours,
@@ -92,13 +93,25 @@ function WorkItemDiffTable({ rows }: { rows: WorkItemAllocationDiff[] }) {
     );
   }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[32rem] text-left text-sm">
+    <div
+      className="overflow-x-auto"
+      role="region"
+      aria-label="Work item allocation differences. Scroll horizontally on small screens."
+      tabIndex={0}
+    >
+      <table className="w-full min-w-[28rem] text-left text-sm sm:min-w-[32rem]">
+        <caption className="sr-only">Work item allocation differences</caption>
         <thead>
-          <tr className="border-b border-[#e2e8eb] text-[11px] uppercase tracking-wide text-[#74848e]">
-            <th className="py-2 pr-3 font-medium">Work item</th>
-            <th className="py-2 pr-3 font-medium">Change</th>
-            <th className="py-2 font-medium">Details</th>
+          <tr className="border-b border-[var(--line)] text-[11px] uppercase tracking-wide text-[var(--muted)]">
+            <th scope="col" className="py-2 pr-3 font-medium">
+              Work item
+            </th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              Change
+            </th>
+            <th scope="col" className="py-2 font-medium">
+              Details
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -373,8 +386,16 @@ function ComparisonResults({
     comparison.revisions.map((r) => [r.id, r] as const),
   );
 
+  const changeCount =
+    comparison.allocationChanges.added.length +
+    comparison.allocationChanges.removed.length +
+    comparison.allocationChanges.changed.length;
+
   return (
     <div className="space-y-8">
+      <LiveRegion
+        message={`Scenario comparison ready for ${comparison.revisions.length} revisions. ${comparison.byTeam.length} team rows. ${changeCount} allocation differences.`}
+      />
       {comparison.dataQuality.missingCapacityInputs ||
       comparison.dataQuality.notes.length > 0 ? (
         <Alert tone="warning">
@@ -388,7 +409,7 @@ function ComparisonResults({
       <section aria-labelledby="compare-summary-heading">
         <h2
           id="compare-summary-heading"
-          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#74848e]"
+          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]"
         >
           Summary
         </h2>
@@ -506,8 +527,13 @@ function ComparisonResults({
         {comparison.byTeam.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">No team rows to show.</p>
         ) : (
-          <div className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white">
-            <table className="w-full min-w-[40rem] text-left text-sm">
+          <div
+            className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white"
+            role="region"
+            aria-label="Team capacity comparison. Scroll horizontally on small screens."
+            tabIndex={0}
+          >
+            <table className="w-full min-w-[28rem] text-left text-sm sm:min-w-[40rem]">
               <caption className="sr-only">
                 Team capacity comparison by scenario revision
               </caption>

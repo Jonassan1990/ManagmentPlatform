@@ -1,11 +1,37 @@
 "use client";
 
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions/organization";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
+function describedByIds(
+  existing: string | undefined,
+  ...ids: Array<string | undefined>
+): string | undefined {
+  const parts = [existing, ...ids].filter(
+    (v): v is string => typeof v === "string" && v.length > 0,
+  );
+  return parts.length > 0 ? parts.join(" ") : undefined;
+}
+
+/**
+ * Field chrome with label, optional hint/error, and ARIA wiring on a single
+ * control child (`aria-invalid`, `aria-describedby`, `aria-required`).
+ * Does not change validation rules — presentation only.
+ */
 export function FormField({
   label,
   htmlFor,
@@ -16,7 +42,7 @@ export function FormField({
 }: {
   label: string;
   htmlFor: string;
-  children: React.ReactNode;
+  children: ReactNode;
   hint?: string;
   error?: string | null;
   required?: boolean;
@@ -24,19 +50,49 @@ export function FormField({
   const errorId = useId();
   const hintId = useId();
 
+  const childArray = Children.toArray(children).filter(Boolean);
+  const singleChild =
+    childArray.length === 1 && isValidElement(childArray[0])
+      ? (childArray[0] as ReactElement<{
+          required?: boolean;
+          "aria-invalid"?: boolean | "true" | "false";
+          "aria-required"?: boolean | "true" | "false";
+          "aria-describedby"?: string;
+        }>)
+      : null;
+
+  const childRequired = Boolean(singleChild?.props.required);
+  const isRequired = Boolean(required) || childRequired;
+  const hasError = Boolean(error);
+
+  const enhancedChildren = singleChild
+    ? cloneElement(singleChild, {
+        "aria-invalid": hasError
+          ? true
+          : singleChild.props["aria-invalid"],
+        "aria-required": isRequired
+          ? true
+          : singleChild.props["aria-required"],
+        "aria-describedby": describedByIds(
+          singleChild.props["aria-describedby"],
+          hint ? hintId : undefined,
+          hasError ? errorId : undefined,
+        ),
+      })
+    : children;
+
   return (
     <div className="space-y-1.5">
       <label htmlFor={htmlFor} className="block text-sm font-medium">
         {label}
-        {required ? (
+        {isRequired ? (
           <span className="text-[var(--color-error)]" aria-hidden="true">
             {" "}
             *
           </span>
         ) : null}
-        {required ? <span className="sr-only"> (required)</span> : null}
       </label>
-      {children}
+      {enhancedChildren}
       {hint ? (
         <p id={hintId} className="text-xs text-[var(--muted)]">
           {hint}
@@ -57,7 +113,7 @@ export function FormField({
 
 /** Shared control chrome — uses compatibility CSS vars + design-token focus ring. */
 export const fieldClassName =
-  "w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)] disabled:bg-[var(--color-disabled-bg)] disabled:text-[var(--color-disabled)]";
+  "w-full min-h-11 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] disabled:bg-[var(--color-disabled-bg)] disabled:text-[var(--color-disabled)]";
 
 /** Compatibility wrapper — prefer `Button variant="primary"` for new code. */
 export function PrimaryButton({

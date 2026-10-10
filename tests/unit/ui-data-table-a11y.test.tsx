@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DataTable } from "@/components/ui/data-table";
@@ -32,6 +32,31 @@ describe("DataTable accessibility", () => {
     expect(onSortChange).toHaveBeenCalledWith({
       columnId: "name",
       direction: "desc",
+    });
+  });
+
+  it("announces sort changes and exposes a scrollable table region", async () => {
+    render(
+      <DataTable
+        columns={columns}
+        rows={[{ id: "1", name: "Alpha" }]}
+        getRowId={(r) => r.id}
+        sort={{ columnId: "name", direction: "desc" }}
+        onSortChange={() => {}}
+        caption="Items"
+      />,
+    );
+
+    expect(
+      screen.getByRole("region", {
+        name: /Items\. Scroll horizontally to see all columns/i,
+      }),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /sorted by Name, descending/i,
+      );
     });
   });
 });

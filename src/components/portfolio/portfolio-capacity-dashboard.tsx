@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CAPACITY_BAND_LABELS } from "@/components/portfolio/metric";
 import { Alert } from "@/components/ui/alert";
 import { CapacityBar } from "@/components/ui/capacity-bar";
+import { LiveRegion } from "@/components/ui/live-region";
 import { EmptyState } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { StatusBadgeVariant } from "@/components/ui/status-badge";
@@ -172,14 +173,15 @@ function ScopeForm({
     <form
       method="get"
       action="/portfolio/capacity"
-      className="flex flex-wrap items-end gap-3 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]"
+      className="flex max-w-full flex-wrap items-end gap-3 overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]"
+      aria-label="Capacity scope filters"
     >
-      <label className="text-sm">
-        <span className="mb-1 block text-[#74848e]">Organization</span>
+      <label className="min-w-0 flex-1 basis-full text-sm sm:basis-[12rem] sm:flex-none">
+        <span className="mb-1 block text-[var(--muted)]">Organization</span>
         <select
           name="organizationId"
           defaultValue={organizationId}
-          className="min-w-[12rem] rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+          className="min-h-11 w-full max-w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
         >
           {organizations.map((o) => (
             <option key={o.id} value={o.id}>
@@ -188,12 +190,12 @@ function ScopeForm({
           ))}
         </select>
       </label>
-      <label className="text-sm">
-        <span className="mb-1 block text-[#74848e]">Department</span>
+      <label className="min-w-0 flex-1 basis-full text-sm sm:basis-[12rem] sm:flex-none">
+        <span className="mb-1 block text-[var(--muted)]">Department</span>
         <select
           name="departmentId"
           defaultValue={departmentId ?? ""}
-          className="min-w-[12rem] rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+          className="min-h-11 w-full max-w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
         >
           <option value="">All visible</option>
           {departments.map((d) => (
@@ -203,12 +205,12 @@ function ScopeForm({
           ))}
         </select>
       </label>
-      <label className="text-sm">
-        <span className="mb-1 block text-[#74848e]">Program Increment</span>
+      <label className="min-w-0 flex-1 basis-full text-sm sm:basis-[14rem] sm:flex-none sm:max-w-md">
+        <span className="mb-1 block text-[var(--muted)]">Program Increment</span>
         <select
           name="piId"
           defaultValue={piId ?? ""}
-          className="min-w-[14rem] rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+          className="min-h-11 w-full max-w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
           aria-label="Select Program Increment"
         >
           <option value="">Select a PI…</option>
@@ -221,7 +223,7 @@ function ScopeForm({
       </label>
       <button
         type="submit"
-        className="rounded-md bg-[#087f78] px-4 py-2 text-sm font-semibold text-white"
+        className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
       >
         Apply
       </button>
@@ -1411,6 +1413,16 @@ export function PortfolioCapacityDashboard({
               />
             </div>
           </div>
+
+          <LiveRegion
+            message={
+              cards.length === 0
+                ? "No participating departments for this PI."
+                : filtered.length === 0
+                  ? "No departments match the current capacity filters."
+                  : `Showing ${filtered.length} of ${cards.length} department${cards.length === 1 ? "" : "s"} in the capacity hierarchy.`
+            }
+          />
 
           {cards.length === 0 ? (
             <EmptyState
