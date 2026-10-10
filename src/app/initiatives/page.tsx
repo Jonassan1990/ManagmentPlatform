@@ -9,6 +9,7 @@ import {
 import { homeCrumb, initiativesHubCrumb } from "@/modules/navigation/breadcrumbs";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { mapInitiativeStageBadge } from "@/components/ui/status-adapters";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +61,18 @@ export default async function InitiativesPage({
     stage: stageFilter,
   });
 
+  const canCreate = (
+    await Promise.all(
+      orgs.map((o) =>
+        authz.hasPermissionInOrganization(
+          principal,
+          PERMISSIONS.INITIATIVE_CREATE,
+          o.id,
+        ),
+      ),
+    )
+  ).some(Boolean);
+
   return (
     <div>
       <Breadcrumbs
@@ -69,12 +82,14 @@ export default async function InitiativesPage({
         title="Initiatives"
         description="One initiative journey: Discovery → Governance → Validation → Delivery."
         actions={
-          <Link
-            href="/initiatives/new"
-            className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
-          >
-            New initiative
-          </Link>
+          canCreate ? (
+            <Link
+              href="/initiatives/new"
+              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+            >
+              New initiative
+            </Link>
+          ) : undefined
         }
       />
 
@@ -115,14 +130,20 @@ export default async function InitiativesPage({
       {list.length === 0 ? (
         <EmptyState
           title="No initiatives yet"
-          description="Create the first initiative to start the demand → requirements → pre-study flow."
+          description={
+            canCreate
+              ? "Create the first initiative to start the demand → requirements → pre-study flow."
+              : "No initiatives are visible in your authorized scope."
+          }
           action={
-            <Link
-              href="/initiatives/new"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
-            >
-              Create initiative
-            </Link>
+            canCreate ? (
+              <Link
+                href="/initiatives/new"
+                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+              >
+                Create initiative
+              </Link>
+            ) : undefined
           }
         />
       ) : (

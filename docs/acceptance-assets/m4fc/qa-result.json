@@ -1,0 +1,196 @@
+{
+  "milestone": "M4F-C",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-10T07:06:04.935Z",
+  "journeys": [
+    {
+      "journey": "A-Initiative",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "initHub": true,
+        "createInit": true,
+        "initDetail": true
+      }
+    },
+    {
+      "journey": "B-Governance",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "approvals": true,
+        "decisions": true
+      }
+    },
+    {
+      "journey": "C-Project",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "explorerProjects": true,
+        "projectSurface": true
+      }
+    },
+    {
+      "journey": "D-PI-Planning",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "board": true,
+        "compare": true,
+        "review": true
+      }
+    },
+    {
+      "journey": "E-Portfolio",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "home": true,
+        "portfolio": true,
+        "explorer": true,
+        "health": true
+      }
+    },
+    {
+      "journey": "F-Resource-Planning",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "capacity": true,
+        "inspected": true
+      }
+    },
+    {
+      "journey": "G-Organization",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "orgPage": true,
+        "access": true,
+        "resources": true
+      }
+    }
+  ],
+  "personas": [
+    {
+      "persona": "viewer",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "labels": "Home | Portfolio | Initiatives | PI Planning | Organization",
+        "onAccessDenied": false,
+        "approvalsNav": false,
+        "createInitiativeVisible": false
+      }
+    },
+    {
+      "persona": "portfolio-manager",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "labels": "Home | Portfolio | Initiatives | PI Planning | Organization",
+        "onAccessDenied": false,
+        "approvalsNav": false
+      }
+    },
+    {
+      "persona": "department-manager",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "labels": "Home | Portfolio | Initiatives | PI Planning | Organization",
+        "onAccessDenied": false,
+        "approvalsNav": false,
+        "initiativesNav": true,
+        "piNav": true
+      }
+    },
+    {
+      "persona": "section-manager",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "labels": "Home | Portfolio | Initiatives | PI Planning | Organization",
+        "onAccessDenied": false,
+        "approvalsNav": false,
+        "initiativesNav": true,
+        "piNav": true
+      }
+    },
+    {
+      "persona": "team-manager",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "labels": "Home | Portfolio | Initiatives | PI Planning | Organization",
+        "onAccessDenied": false,
+        "approvalsNav": false
+      }
+    },
+    {
+      "persona": "project-manager",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "labels": "Home | Portfolio | Initiatives | PI Planning | Organization",
+        "onAccessDenied": false,
+        "approvalsNav": false
+      }
+    },
+    {
+      "persona": "pi-planner",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "labels": "Home | Portfolio | Initiatives | PI Planning | Organization",
+        "onAccessDenied": false,
+        "approvalsNav": false,
+        "initiativesNav": true,
+        "piNav": true,
+        "piBoard": true
+      }
+    },
+    {
+      "persona": "governance-reviewer",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "labels": "Home | Portfolio | Initiatives | PI Planning | Organization",
+        "onAccessDenied": false,
+        "approvalsNav": true
+      }
+    },
+    {
+      "persona": "unbound",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "url": "http://localhost:43148/access-not-configured",
+        "unboundOk": true
+      }
+    }
+  ],
+  "steps": [
+    {
+      "step": "login-org-admin",
+      "status": "PASS"
+    },
+    {
+      "step": "keyboard-skip-main",
+      "status": "PASS"
+    },
+    {
+      "step": "viewer-access-denied-or-empty",
+      "status": "PASS",
+      "detail": {
+        "url": "http://localhost:43148/organization/f6b317a2-839d-413b-9aa1-2ea4e006f486/access"
+      }
+    },
+    {
+      "step": "mobile-nav-practical",
+      "status": "PASS"
+    }
+  ],
+  "verdict": "PASS"
+}
