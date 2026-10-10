@@ -48,8 +48,8 @@ export type PlanApprovalPreview = {
   requiresWarningAcknowledgement: boolean;
   approveDisabledReasons: string[];
   baselineDisabledReasons: string[];
-  disclaimerApprove: "Approve CURRENT plan — does not create an immutable baseline";
-  disclaimerBaseline: "Create immutable baseline from the exact approved CURRENT state";
+  disclaimerApprove: "Approve current plan — does not create an immutable baseline";
+  disclaimerBaseline: "Create immutable baseline from the exact approved current plan";
 };
 
 export type PlanApprovalResult = {
@@ -61,7 +61,7 @@ export type PlanApprovalResult = {
   allocationFingerprint: string;
   approvedAt: string;
   idempotentReplay: boolean;
-  disclaimer: "Approve CURRENT plan — does not create an immutable baseline";
+  disclaimer: "Approve current plan — does not create an immutable baseline";
 };
 
 export type PlanBaselineFromApprovalResult = {

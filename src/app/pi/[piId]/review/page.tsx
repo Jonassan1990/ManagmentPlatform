@@ -200,7 +200,7 @@ export default async function PiReviewPage({
       />
       <PageHeader
         title="Management review"
-        description={`${pi.name} · ${piStatusLabel(pi.status)} — guided Select → Promote → Approve → Baseline. Selected is not approved.`}
+        description={`${pi.name} · ${piStatusLabel(pi.status)} — Select → Apply to current plan → Approve → Baseline. Selected is not approved.`}
       />
       <PiTabs piId={piId} active="review" preserveQuery={query} />
 
@@ -239,7 +239,7 @@ export default async function PiReviewPage({
 
       <ReviewStageSection
         title="3. Select preferred scenario"
-        description="Choose one draft for review. Does not change CURRENT allocations."
+        description="Choose one draft for review. Does not change current plan allocations."
         status={stageStatus("select")}
         defaultOpen={
           workflow.currentStageId === "select" ||
@@ -269,8 +269,8 @@ export default async function PiReviewPage({
       </ReviewStageSection>
 
       <ReviewStageSection
-        title="4. Promote to CURRENT"
-        description="Atomic copy into the authoritative plan — not approval, not a baseline."
+        title="4. Apply to current plan"
+        description="Copy the selected scenario into the current plan — not approval, not a baseline."
         status={stageStatus("promote")}
         defaultOpen={
           workflow.currentStageId === "promote" ||
@@ -286,8 +286,8 @@ export default async function PiReviewPage({
       </ReviewStageSection>
 
       <ReviewStageSection
-        title="5. Approve CURRENT version"
-        description="Binds approval to an exact CURRENT version and fingerprint."
+        title="5. Approve current plan version"
+        description="Binds approval to this exact current plan version and fingerprint."
         status={stageStatus("approve")}
         defaultOpen={
           workflow.currentStageId === "approve" ||
@@ -304,8 +304,8 @@ export default async function PiReviewPage({
       </ReviewStageSection>
 
       <ReviewStageSection
-        title="6. Baseline immutable commitment"
-        description="Append-only snapshot. Requires PI_BASELINE when creating."
+        title="6. Create approved baseline"
+        description="Immutable append-only snapshot. Requires baseline permission when creating."
         status={stageStatus("baseline")}
         defaultOpen={
           workflow.currentStageId === "baseline" ||

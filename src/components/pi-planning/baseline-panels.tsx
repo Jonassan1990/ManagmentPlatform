@@ -62,7 +62,7 @@ export function BaselinePanels({
     blockedReason = undefined;
   } else if (!hasValidApproval) {
     blockedReason =
-      "Approve the CURRENT plan on the Review tab before creating a baseline.";
+      "Approve the current plan on the Review tab before creating a baseline.";
   } else if (!statusOk) {
     blockedReason = "Move the PI to Review before creating the first baseline.";
   } else if (approvalPreview.baselineDisabledReasons[0]) {
@@ -76,7 +76,7 @@ export function BaselinePanels({
           <div>
             <h2 className="font-medium">Create immutable baseline</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Baseline freezes the exact approved CURRENT plan. Approval and
+              Baseline freezes the exact approved current plan. Approval and
               baseline are separate actions — see{" "}
               <Link href={`/pi/${piId}/review`} className="text-[var(--accent)]">
                 Review

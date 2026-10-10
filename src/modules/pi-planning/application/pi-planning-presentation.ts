@@ -166,3 +166,25 @@ export function readinessSummaryLabel(input: {
   }
   return "No overload or blocker conflicts on this view";
 }
+
+/** Scenario readiness classification → planner-facing title (presentation only). */
+export function readinessClassificationLabel(
+  classification: string | null | undefined,
+): string {
+  switch (classification) {
+    case "READY":
+      return "Ready to apply";
+    case "READY_WITH_WARNINGS":
+      return "Ready with warnings";
+    case "NOT_READY":
+      return "Not ready";
+    case "UNAVAILABLE":
+      return "Readiness unavailable";
+    default:
+      return classification?.trim() || "Readiness not evaluated";
+  }
+}
+
+export function scenarioLifecycleInvariant(): string {
+  return "Selected ≠ Applied to current plan ≠ Approved ≠ Baselined";
+}

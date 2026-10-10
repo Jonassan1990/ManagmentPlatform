@@ -59,7 +59,7 @@ export default async function PiBaselinePage({
       />
       <PageHeader
         title="Baseline"
-        description={`${pi.name} · ${piStatusLabel(pi.status)} — freeze the approved CURRENT plan and track drift.`}
+        description={`${pi.name} · ${piStatusLabel(pi.status)} — freeze the approved current plan as an immutable baseline and track drift.`}
       />
       <PiTabs piId={piId} active="baseline" preserveQuery={query} />
       <BaselinePanels

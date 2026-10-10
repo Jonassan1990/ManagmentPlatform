@@ -18,6 +18,7 @@ import {
   formatSignedDelta,
   formatSignedDeltaPercent,
   formatUtilizationPercent,
+  referenceDeltaLabel,
   scenarioOptionLabel,
   scenarioRevisionLabel,
   toggleRevisionInSelection,
@@ -307,10 +308,10 @@ export function ScenarioComparisonView({
 
         {nonCurrentCount === 0 ? (
           <Alert tone="ok">
-            Only CURRENT exists for {piReferenceKey}. Create a draft scenario on
-            the{" "}
+            Only the current plan exists for {piReferenceKey}. Create a draft
+            scenario on the{" "}
             <Link href={`/pi/${piId}/board`} className="underline">
-              planning board
+              plan board
             </Link>{" "}
             to compare what-if plans.
           </Alert>
@@ -431,26 +432,32 @@ function ComparisonResults({
                     label="Available"
                     value={formatHours(m.availableHours)}
                     delta={
-                      isRef ? (
-                        "Baseline"
-                      ) : (
-                        <span className={deltaToneClass(d.availableHours)}>
-                          {formatSignedDelta(d.availableHours, { suffix: "h" })}
-                        </span>
-                      )
+                      <span
+                        className={
+                          isRef ? undefined : deltaToneClass(d.availableHours)
+                        }
+                      >
+                        {referenceDeltaLabel(
+                          isRef,
+                          formatSignedDelta(d.availableHours, { suffix: "h" }),
+                        )}
+                      </span>
                     }
                   />
                   <CompareKpiCard
                     label="Committed"
                     value={formatHours(m.committedHours)}
                     delta={
-                      isRef ? (
-                        "Baseline"
-                      ) : (
-                        <span className={deltaToneClass(d.committedHours)}>
-                          {formatSignedDelta(d.committedHours, { suffix: "h" })}
-                        </span>
-                      )
+                      <span
+                        className={
+                          isRef ? undefined : deltaToneClass(d.committedHours)
+                        }
+                      >
+                        {referenceDeltaLabel(
+                          isRef,
+                          formatSignedDelta(d.committedHours, { suffix: "h" }),
+                        )}
+                      </span>
                     }
                     tone="teal"
                   />
@@ -458,41 +465,52 @@ function ComparisonResults({
                     label="Remaining"
                     value={formatHours(m.remainingHours)}
                     delta={
-                      isRef ? (
-                        "Baseline"
-                      ) : (
-                        <span className={deltaToneClass(d.remainingHours)}>
-                          {formatSignedDelta(d.remainingHours, { suffix: "h" })}
-                        </span>
-                      )
+                      <span
+                        className={
+                          isRef ? undefined : deltaToneClass(d.remainingHours)
+                        }
+                      >
+                        {referenceDeltaLabel(
+                          isRef,
+                          formatSignedDelta(d.remainingHours, { suffix: "h" }),
+                        )}
+                      </span>
                     }
                   />
                   <CompareKpiCard
                     label="Utilization"
                     value={formatUtilizationPercent(m.utilizationPercent)}
                     delta={
-                      isRef ? (
-                        "Baseline"
-                      ) : (
-                        <span
-                          className={deltaToneClass(d.utilizationPercent ?? 0)}
-                        >
-                          {formatSignedDeltaPercent(d.utilizationPercent)}
-                        </span>
-                      )
+                      <span
+                        className={
+                          isRef
+                            ? undefined
+                            : deltaToneClass(d.utilizationPercent ?? 0)
+                        }
+                      >
+                        {referenceDeltaLabel(
+                          isRef,
+                          formatSignedDeltaPercent(d.utilizationPercent),
+                        )}
+                      </span>
                     }
                   />
                   <CompareKpiCard
                     label="Overloaded teams"
                     value={m.overloadedTeamCount}
                     delta={
-                      isRef ? (
-                        "Baseline"
-                      ) : (
-                        <span className={deltaToneClass(d.overloadedTeamCount)}>
-                          {formatSignedDelta(d.overloadedTeamCount)}
-                        </span>
-                      )
+                      <span
+                        className={
+                          isRef
+                            ? undefined
+                            : deltaToneClass(d.overloadedTeamCount)
+                        }
+                      >
+                        {referenceDeltaLabel(
+                          isRef,
+                          formatSignedDelta(d.overloadedTeamCount),
+                        )}
+                      </span>
                     }
                     tone={m.overloadedTeamCount > 0 ? "critical" : "default"}
                   />
@@ -500,13 +518,16 @@ function ComparisonResults({
                     label="Conflicts"
                     value={m.conflictCount}
                     delta={
-                      isRef ? (
-                        "Baseline"
-                      ) : (
-                        <span className={deltaToneClass(d.conflictCount)}>
-                          {formatSignedDelta(d.conflictCount)}
-                        </span>
-                      )
+                      <span
+                        className={
+                          isRef ? undefined : deltaToneClass(d.conflictCount)
+                        }
+                      >
+                        {referenceDeltaLabel(
+                          isRef,
+                          formatSignedDelta(d.conflictCount),
+                        )}
+                      </span>
                     }
                     tone={m.blockerConflictCount > 0 ? "critical" : "warn"}
                   />
@@ -647,7 +668,7 @@ function ComparisonResults({
                     </th>
                   ))}
                   <th scope="col" className="p-3 font-medium">
-                    Δ vs ref
+                    vs reference
                   </th>
                 </tr>
               </thead>

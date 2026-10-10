@@ -156,13 +156,13 @@ export class ScenarioPromotionService {
       disabledReasons.push("Exactly one scenario must be selected for review.");
     }
     if (!current) {
-      disabledReasons.push("CURRENT planning revision is missing.");
+      disabledReasons.push("Current plan revision is missing.");
     }
     if (selected?.archivedAt || selected?.status === "ARCHIVED") {
       disabledReasons.push("Selected scenario is archived.");
     }
     if (selected?.isCurrent || selected?.key === "CURRENT") {
-      disabledReasons.push("CURRENT cannot be promoted onto itself.");
+      disabledReasons.push("The current plan cannot be applied onto itself.");
     }
     if (readiness?.classification === "NOT_READY") {
       disabledReasons.push(
@@ -278,7 +278,7 @@ export class ScenarioPromotionService {
     if (currentBefore.version !== input.expectedCurrentRevisionVersion) {
       throw new AppError(
         "CONFLICT",
-        "CURRENT plan changed concurrently. Refresh and retry promotion.",
+        "Current plan changed concurrently. Refresh and retry apply.",
         {
           details: {
             expected: input.expectedCurrentRevisionVersion,
@@ -337,13 +337,13 @@ export class ScenarioPromotionService {
         if (!current) {
           throw new AppError(
             "VALIDATION",
-            "CURRENT planning revision is missing.",
+            "Current plan revision is missing.",
           );
         }
         if (current.version !== input.expectedCurrentRevisionVersion) {
           throw new AppError(
             "CONFLICT",
-            "CURRENT plan changed concurrently. Refresh and retry promotion.",
+            "Current plan changed concurrently. Refresh and retry apply.",
           );
         }
 
@@ -564,7 +564,7 @@ export class ScenarioPromotionService {
     if (source.isCurrent || source.key === "CURRENT") {
       throw new AppError(
         "VALIDATION",
-        "CURRENT cannot be promoted onto itself.",
+        "The current plan cannot be applied onto itself.",
       );
     }
     if (source.status === "ARCHIVED" || source.archivedAt) {

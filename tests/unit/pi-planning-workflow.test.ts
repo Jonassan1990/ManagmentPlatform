@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { derivePiPlanningWorkflow } from "@/modules/pi-planning/application/pi-planning-workflow";
 
-describe("M4D-B derivePiPlanningWorkflow", () => {
+describe("M5D-B derivePiPlanningWorkflow", () => {
   const base = {
     piId: "pi-1",
     hasSelection: false,
@@ -9,7 +9,7 @@ describe("M4D-B derivePiPlanningWorkflow", () => {
     canPromote: false,
     promoteDisabledReasons: ["No scenario selected."],
     canApprove: false,
-    approveDisabledReasons: ["CURRENT has not been promoted."],
+    approveDisabledReasons: ["Current plan has not been applied from a scenario."],
     canBaseline: false,
     baselineDisabledReasons: ["No valid approval."],
     canReviewPi: true,
@@ -26,10 +26,12 @@ describe("M4D-B derivePiPlanningWorkflow", () => {
     expect(view.primaryAction.label).toMatch(/Select/i);
     expect(view.stages.find((s) => s.id === "plan")?.status).toBe("completed");
     expect(view.stages.find((s) => s.id === "select")?.status).toBe("current");
-    expect(view.lifecycleNote).toMatch(/Selected ≠ Promoted/);
+    expect(view.lifecycleNote).toMatch(
+      /Selected ≠ Applied to current plan ≠ Approved ≠ Baselined/,
+    );
   });
 
-  it("moves to Promote after selection without implying approval", () => {
+  it("moves to Apply after selection without implying approval", () => {
     const view = derivePiPlanningWorkflow({
       ...base,
       hasSelection: true,
@@ -40,7 +42,10 @@ describe("M4D-B derivePiPlanningWorkflow", () => {
     });
     expect(view.currentStageId).toBe("promote");
     expect(view.primaryAction.blocked).toBe(false);
-    expect(view.primaryAction.label).toMatch(/Promote/i);
+    expect(view.primaryAction.label).toMatch(/Apply/i);
+    expect(view.stages.find((s) => s.id === "promote")?.label).toMatch(
+      /Apply to current plan/i,
+    );
     expect(view.stages.find((s) => s.id === "select")?.status).toBe(
       "completed",
     );
@@ -73,10 +78,10 @@ describe("M4D-B derivePiPlanningWorkflow", () => {
       "completed",
     );
     expect(view.currentStageId).toBe("approve");
-    expect(view.primaryAction.label).toMatch(/Approve CURRENT/i);
+    expect(view.primaryAction.label).toMatch(/Approve current plan/i);
   });
 
-  it("surfaces PI_BASELINE denial clearly on Baseline stage", () => {
+  it("surfaces baseline permission denial clearly on Baseline stage", () => {
     const view = derivePiPlanningWorkflow({
       ...base,
       approvalState: "APPROVED",
@@ -89,9 +94,9 @@ describe("M4D-B derivePiPlanningWorkflow", () => {
     });
     expect(view.currentStageId).toBe("baseline");
     expect(view.primaryAction.blocked).toBe(true);
-    expect(view.primaryAction.label).toMatch(/PI_BASELINE/i);
+    expect(view.primaryAction.label).toMatch(/baseline permission/i);
     expect(view.stages.find((s) => s.id === "baseline")?.detail).toMatch(
-      /PI_BASELINE/,
+      /baseline permission/i,
     );
   });
 

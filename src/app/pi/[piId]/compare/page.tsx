@@ -103,7 +103,7 @@ export default async function PiComparePage({
       />
       <PageHeader
         title="Compare scenarios"
-        description={`${pi.name} · ${piStatusLabel(pi.status)} — read-only side-by-side what-if analysis. CURRENT remains authoritative.`}
+        description={`${pi.name} · ${piStatusLabel(pi.status)} — read-only side-by-side what-if analysis. The current plan remains authoritative.`}
       />
       <PiTabs piId={piId} active="compare" preserveQuery={sp} />
       <ScenarioComparisonView

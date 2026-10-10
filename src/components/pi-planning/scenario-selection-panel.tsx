@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { mapScenarioStatusBadge } from "@/components/ui/status-adapters";
 import { formatHours } from "@/components/pi-planning/pi-nav";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
+import { readinessClassificationLabel } from "@/modules/pi-planning/application/pi-planning-presentation";
 import type {
   ScenarioReadinessResult,
   ScenarioSelectionHistoryEntry,
@@ -127,7 +128,7 @@ export function ScenarioSelectionPanel({
           </h2>
           <p className="mt-1 text-xs text-[#74848e]">
             Choose one preferred draft for review. This is not approval and does
-            not change CURRENT allocations.
+            not change current plan allocations.
           </p>
             </>
           )}
@@ -165,7 +166,10 @@ export function ScenarioSelectionPanel({
       {readiness ? (
         <div className="space-y-3">
           <Alert tone={classificationTone(readiness.classification)}>
-            Readiness: <strong>{readiness.classification}</strong>
+            Readiness:{" "}
+            <strong>
+              {readinessClassificationLabel(readiness.classification)}
+            </strong>
             {readiness.revision
               ? ` for ${readiness.revision.label ?? readiness.revision.key}`
               : ""}

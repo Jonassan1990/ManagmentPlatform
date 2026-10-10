@@ -5,6 +5,7 @@ import {
   formatSignedDeltaPercent,
   formatUtilizationPercent,
   parseCompareSearchParams,
+  referenceDeltaLabel,
   scenarioRevisionLabel,
   toggleRevisionInSelection,
 } from "@/modules/pi-planning/application/scenario-comparison-display";
@@ -78,7 +79,7 @@ describe("metric display", () => {
     );
   });
 
-  it("labels CURRENT, DRAFT, and ARCHIVED scenarios", () => {
+  it("labels current plan, draft, applied, and archived scenarios", () => {
     expect(
       scenarioRevisionLabel({
         isCurrent: true,
@@ -87,7 +88,7 @@ describe("metric display", () => {
         status: "CURRENT",
         archivedAt: null,
       }),
-    ).toBe("CURRENT");
+    ).toBe("Current plan");
     expect(
       scenarioRevisionLabel({
         isCurrent: false,
@@ -96,7 +97,16 @@ describe("metric display", () => {
         status: "DRAFT",
         archivedAt: null,
       }),
-    ).toBe("Scenario A (DRAFT)");
+    ).toBe("Scenario A (Draft)");
+    expect(
+      scenarioRevisionLabel({
+        isCurrent: false,
+        label: "Chosen",
+        key: "sc-b",
+        status: "PROMOTED",
+        archivedAt: null,
+      }),
+    ).toBe("Chosen (Applied)");
     expect(
       scenarioRevisionLabel({
         isCurrent: false,
@@ -105,6 +115,12 @@ describe("metric display", () => {
         status: "ARCHIVED",
         archivedAt: "2026-01-01T00:00:00.000Z",
       }),
-    ).toBe("Old (ARCHIVED)");
+    ).toBe("Old (archived)");
+  });
+
+  it("explains reference deltas in plain language", () => {
+    expect(referenceDeltaLabel(true, "+4h")).toBe("Reference scenario");
+    expect(referenceDeltaLabel(false, "0h")).toBe("Same as reference");
+    expect(referenceDeltaLabel(false, "+4h")).toBe("vs reference: +4h");
   });
 });

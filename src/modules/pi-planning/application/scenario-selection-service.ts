@@ -177,7 +177,7 @@ export class ScenarioSelectionService {
     if (revision.isCurrent || revision.key === "CURRENT") {
       throw new AppError(
         "VALIDATION",
-        "CURRENT cannot be selected as an alternative scenario.",
+        "The current plan cannot be selected as an alternative scenario.",
       );
     }
     if (revision.status === "ARCHIVED" || revision.archivedAt) {

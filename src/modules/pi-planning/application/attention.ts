@@ -38,7 +38,7 @@ export function buildPiAttentionItems(
     items.push({
       key: "missing-current-revision",
       severity: "blocker",
-      message: "CURRENT planning revision is missing",
+      message: "Current plan revision is missing",
       area: "structure",
     });
   }

@@ -3,8 +3,10 @@ import {
   describeEditability,
   formatPiDateRange,
   planIdentityLabel,
+  readinessClassificationLabel,
   readinessSummaryLabel,
   scenarioChipLabel,
+  scenarioLifecycleInvariant,
   summarizeCapacityFromViews,
 } from "@/modules/pi-planning/application/pi-planning-presentation";
 
@@ -96,5 +98,25 @@ describe("M5D-A capacity rollup", () => {
     const empty = summarizeCapacityFromViews({ teams: [] });
     expect(empty.availableHours).toBeNull();
     expect(readinessSummaryLabel(empty)).toMatch(/unavailable/i);
+  });
+});
+
+describe("M5D-B readiness & lifecycle presentation", () => {
+  it("humanizes readiness classifications", () => {
+    expect(readinessClassificationLabel("READY")).toBe("Ready to apply");
+    expect(readinessClassificationLabel("READY_WITH_WARNINGS")).toBe(
+      "Ready with warnings",
+    );
+    expect(readinessClassificationLabel("NOT_READY")).toBe("Not ready");
+    expect(readinessClassificationLabel("UNAVAILABLE")).toBe(
+      "Readiness unavailable",
+    );
+    expect(readinessClassificationLabel(null)).toMatch(/not evaluated/i);
+  });
+
+  it("states Selected ≠ Applied ≠ Approved ≠ Baselined", () => {
+    expect(scenarioLifecycleInvariant()).toMatch(
+      /Selected ≠ Applied to current plan ≠ Approved ≠ Baselined/,
+    );
   });
 });
