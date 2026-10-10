@@ -1,0 +1,100 @@
+{
+  "milestone": "M5E-C",
+  "generatedAt": "2026-10-10T14:35:43.717Z",
+  "startingMainHint": "8eabe5c",
+  "seed": {
+    "milestone": "M5E-B",
+    "generatedAt": "2026-10-10T14:35:43.343Z",
+    "organizationId": "3cc91462-d361-4ef4-be7f-5b82db530c62",
+    "departmentId": "cf24be37-8ae1-4d5d-bf54-7acdde83f804",
+    "sectionId": "0ac52e97-8d18-4348-8a98-28d6ad4e529a",
+    "teamId": "d1f23da6-9dff-4c9f-b15b-929b41c977fa",
+    "piId": "2b9ec3ef-ee91-4a59-b703-b29fe9878d73",
+    "principalId": "f796fe09-b948-4eb6-9fcd-0770990ab453",
+    "paths": {
+      "reports": "/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&reportType=portfolio_summary",
+      "capacityReport": "/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73&reportType=pi_capacity",
+      "resourceReport": "/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73&reportType=resource_allocation",
+      "projectStatus": "/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&reportType=project_status",
+      "risks": "/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&reportType=risks_blockers",
+      "governance": "/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&reportType=governance_decisions",
+      "exportCsv": "/api/reports/export?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&reportType=portfolio_summary",
+      "capacityExport": "/api/reports/export?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73&reportType=pi_capacity"
+    }
+  },
+  "verdict": "PASS",
+  "checks": [
+    {
+      "id": "capacity-ready",
+      "ok": true
+    },
+    {
+      "id": "capacity-reconciles-capacity-service",
+      "ok": true,
+      "detail": "availΔ=0.000 commitΔ=0.000"
+    },
+    {
+      "id": "shared-resources-present",
+      "ok": true,
+      "detail": "rows=4"
+    },
+    {
+      "id": "shared-resources-not-full-per-team",
+      "ok": true,
+      "detail": "membership % reflects policy split"
+    },
+    {
+      "id": "project-segments-bounded-by-committed",
+      "ok": true
+    },
+    {
+      "id": "kpi-active-initiatives-reconcile",
+      "ok": true,
+      "detail": "report=2 snap=2"
+    },
+    {
+      "id": "kpi-delayed-reconcile",
+      "ok": true,
+      "detail": "report=0 snap=0"
+    },
+    {
+      "id": "report-filters-department-scope",
+      "ok": true,
+      "detail": "dept=1 org=2"
+    },
+    {
+      "id": "csv-matches-preview-first-cell",
+      "ok": true,
+      "detail": "OT Security"
+    },
+    {
+      "id": "csv-includes-as-of-in-service-path",
+      "ok": true
+    },
+    {
+      "id": "unavailable-not-coerced-zero",
+      "ok": true,
+      "detail": "unavailableCount=0"
+    },
+    {
+      "id": "csv-injection-neutralized",
+      "ok": true
+    },
+    {
+      "id": "as-of-snapshot",
+      "ok": true
+    },
+    {
+      "id": "as-of-report",
+      "ok": true
+    },
+    {
+      "id": "as-of-capacity",
+      "ok": true
+    },
+    {
+      "id": "cross-org-report-denied",
+      "ok": true
+    }
+  ]
+}

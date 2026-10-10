@@ -1,0 +1,236 @@
+{
+  "milestone": "M5-FINAL",
+  "base": "http://localhost:43155",
+  "generatedAt": "2026-10-10T14:35:42.106Z",
+  "journeys": [
+    {
+      "journey": "home",
+      "path": "/",
+      "url": "http://localhost:43155/",
+      "ms": 1257,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▸ GOVERNANCE ▸ Organization ▸ Management workspace "
+    },
+    {
+      "journey": "portfolio-kpis",
+      "path": "/portfolio?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62",
+      "url": "http://localhost:43155/portfolio?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62",
+      "ms": 1195,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▾ Executive overview Explorer Delivery health Resource Planning Reports Initiativ"
+    },
+    {
+      "journey": "initiatives",
+      "path": "/initiatives",
+      "url": "http://localhost:43155/initiatives",
+      "ms": 1059,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▾ All initiatives Create initiative PI Planning ▸ GOVERNANCE ▸ Orga"
+    },
+    {
+      "journey": "approvals",
+      "path": "/approvals",
+      "url": "http://localhost:43155/approvals",
+      "ms": 1022,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▸ GOVERNANCE ▾ Approvals Decisions Governance policy "
+    },
+    {
+      "journey": "explorer",
+      "path": "/portfolio/explorer?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62",
+      "url": "http://localhost:43155/portfolio/explorer?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62",
+      "ms": 1152,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▾ Executive overview Explorer Delivery health Resource Planning Reports Initiativ"
+    },
+    {
+      "journey": "pi-list",
+      "path": "/pi",
+      "url": "http://localhost:43155/pi",
+      "ms": 1065,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▾ Program increments Create PI GOVERNANCE ▸ Organizat"
+    },
+    {
+      "journey": "pi-board",
+      "path": "/pi/2b9ec3ef-ee91-4a59-b703-b29fe9878d73/board",
+      "url": "http://localhost:43155/pi/2b9ec3ef-ee91-4a59-b703-b29fe9878d73/board",
+      "ms": 1188,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▾ Program increments Create PI GOVERNANCE ▸ Organizat"
+    },
+    {
+      "journey": "resource-planning",
+      "path": "/portfolio/capacity?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73",
+      "url": "http://localhost:43155/portfolio/capacity?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73",
+      "ms": 1243,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▾ Executive overview Explorer Delivery health Resource Planning Reports Initiativ"
+    },
+    {
+      "journey": "reports",
+      "path": "/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73&reportType=portfolio_summary",
+      "url": "http://localhost:43155/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73&reportType=portfolio_summary",
+      "ms": 1116,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▾ Executive overview Explorer Delivery health Resource Planning Reports Initiativ"
+    },
+    {
+      "journey": "organization",
+      "path": "/organization",
+      "url": "http://localhost:43155/organization",
+      "ms": 1060,
+      "status": "PASS",
+      "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▸ GOVERNANCE ▸ Organization ▾ Organizations Access & "
+    }
+  ],
+  "timings": {
+    "home": 1257,
+    "portfolio-kpis": 1195,
+    "initiatives": 1059,
+    "approvals": 1022,
+    "explorer": 1152,
+    "pi-list": 1065,
+    "pi-board": 1188,
+    "resource-planning": 1243,
+    "reports": 1116,
+    "organization": 1060
+  },
+  "steps": [
+    {
+      "id": "reconcile",
+      "ok": true,
+      "detail": {}
+    },
+    {
+      "id": "journey-home",
+      "ok": true,
+      "detail": {
+        "ms": 1257,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▸ GOVERNANCE "
+      }
+    },
+    {
+      "id": "journey-portfolio-kpis",
+      "ok": true,
+      "detail": {
+        "ms": 1195,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/portfolio?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▾ Executive overview Explorer Delivery he"
+      }
+    },
+    {
+      "id": "journey-initiatives",
+      "ok": true,
+      "detail": {
+        "ms": 1059,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/initiatives",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▾ All initiatives Create in"
+      }
+    },
+    {
+      "id": "journey-approvals",
+      "ok": true,
+      "detail": {
+        "ms": 1022,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/approvals",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▸ GOVERNANCE "
+      }
+    },
+    {
+      "id": "journey-explorer",
+      "ok": true,
+      "detail": {
+        "ms": 1152,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/portfolio/explorer?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▾ Executive overview Explorer Delivery he"
+      }
+    },
+    {
+      "id": "journey-pi-list",
+      "ok": true,
+      "detail": {
+        "ms": 1065,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/pi",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▾ Program inc"
+      }
+    },
+    {
+      "id": "journey-pi-board",
+      "ok": true,
+      "detail": {
+        "ms": 1188,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/pi/2b9ec3ef-ee91-4a59-b703-b29fe9878d73/board",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▾ Program inc"
+      }
+    },
+    {
+      "id": "journey-resource-planning",
+      "ok": true,
+      "detail": {
+        "ms": 1243,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/portfolio/capacity?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▾ Executive overview Explorer Delivery he"
+      }
+    },
+    {
+      "id": "journey-reports",
+      "ok": true,
+      "detail": {
+        "ms": 1116,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/portfolio/reports?organizationId=3cc91462-d361-4ef4-be7f-5b82db530c62&piId=2b9ec3ef-ee91-4a59-b703-b29fe9878d73&reportType=portfolio_summary",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▾ Executive overview Explorer Delivery he"
+      }
+    },
+    {
+      "id": "journey-organization",
+      "ok": true,
+      "detail": {
+        "ms": 1060,
+        "textOk": true,
+        "tidOk": true,
+        "url": "http://localhost:43155/organization",
+        "snippet": "Skip to main content Management Platform Workflow navigation Home Portfolio ▸ Initiatives ▸ PI Planning ▸ GOVERNANCE "
+      }
+    },
+    {
+      "id": "persona-viewer-home",
+      "ok": true
+    },
+    {
+      "id": "persona-unbound",
+      "ok": true,
+      "detail": {
+        "url": "http://localhost:43155/access-not-configured"
+      }
+    },
+    {
+      "id": "mobile-home",
+      "ok": true
+    },
+    {
+      "id": "mobile-reports",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS"
+}
