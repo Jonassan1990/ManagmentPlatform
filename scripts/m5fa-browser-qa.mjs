@@ -209,18 +209,36 @@ try {
     focusOutline,
   );
 
-  // Reduced motion: transitions should collapse via media query
+  // Reduced motion: transitions collapse via global + polish utilities
   await page.emulateMedia({ reducedMotion: "reduce" });
   const reducedOk = await page.evaluate(() => {
     const probe = document.createElement("div");
     probe.className = "ds-interactive";
     document.body.appendChild(probe);
     const cs = getComputedStyle(probe);
-    const dur = cs.transitionDuration;
+    const dur = String(cs.transitionDuration || "");
+    const parts = dur.split(",").map((p) => p.trim());
     probe.remove();
-    return dur === "0s" || dur === "0.01ms" || dur.startsWith("0.01");
+    // Accept none/0s/0.01ms (Tailwind/global reduced-motion patterns).
+    return (
+      parts.length > 0 &&
+      parts.every((p) => {
+        const n = Number.parseFloat(p);
+        // 0 / 0.01ms (often serialized as 1e-05s) both count as reduced.
+        return Number.isFinite(n) && n <= 0.001;
+      })
+    );
   });
-  step("reduced-motion-utilities", reducedOk);
+  step("reduced-motion-utilities", reducedOk, {
+    detail: await page.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.className = "ds-interactive";
+      document.body.appendChild(probe);
+      const dur = getComputedStyle(probe).transitionDuration;
+      probe.remove();
+      return dur;
+    }),
+  });
   await shot(page, "02-reduced-motion-reports");
   await page.emulateMedia({ reducedMotion: "no-preference" });
 

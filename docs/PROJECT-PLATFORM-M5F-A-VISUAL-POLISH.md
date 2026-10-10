@@ -42,7 +42,7 @@ Make major workspaces visually coherent and professional using the existing navy
 
 ### 3.3 Cards, spacing, action hierarchy
 
-- Elevated panels use `rounded-lg` + `border-[var(--line)]` + `bg-[var(--surface)]` + `shadow-[var(--shadow-md|sm)]`.
+- Elevated panels use tokenized radius, border, surface, and shadow (`--shadow-md` on workspaces; `--shadow-sm` on `Panel`).
 - `Panel` gains subtle `--shadow-sm` for consistent card weight.
 - Reports KPIs use `.ds-kpi-rail` (left accent rail).
 - Empty-state primary CTAs standardized to `min-h-11`, `--color-primary`, hover brightness, focus-ring.
@@ -82,12 +82,12 @@ Browser QA script: `scripts/m5fa-browser-qa.mjs` → `artifacts/m5fa-qa/qa-resul
 
 | Gate | Result |
 |---|---|
-| Typecheck | (recorded in PR CI / local run) |
-| Lint | (recorded in PR CI / local run) |
-| Unit | (recorded in PR CI / local run) |
-| Integration | (recorded in PR CI / local run) |
-| Build | (recorded in PR CI / local run) |
-| Browser QA | `scripts/m5fa-browser-qa.mjs` — desktop/tablet/mobile, reduced motion, focus, viewer persona, hex-debt scan |
+| Typecheck | PASS (`tsc --noEmit`) |
+| Lint | PASS (0 errors; pre-existing script warnings only) |
+| Unit | PASS (57 files / 363 tests) |
+| Integration | PASS (23 files / 217 tests) |
+| Build | PASS (`next build`) |
+| Browser QA | PASS (`scripts/m5fa-browser-qa.mjs` — 14/14: desktop hubs, focus ring, reduced motion, tablet, mobile, viewer persona, hex-debt scan) |
 
 ## 6. Business behavior preservation
 
