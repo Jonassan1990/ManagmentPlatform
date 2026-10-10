@@ -8,14 +8,22 @@
 **Repository:** `Jonassan1990/ManagmentPlatform`  
 **Starting main SHA:** `5adc8450333a3b951213a168c34ff161cb00802a`  
 **Date:** 2026-10-10  
+**Amended:** 2026-10-10 — product priority realignment (R1 paused; M5 primary)
 
 **References:** M4 Final Acceptance (maturity **3.6/5**), M4 UX Audit, Navigation Architecture, Design System, UX Principles, `docs/ui-reference/resource-overview.html`, R1-A/B/C ops docs.
+
+### Product priority (binding)
+
+**R1 infrastructure and production release preparation are paused.**  
+**Primary product focus is M5 — Product Experience & Visual Redesign.**
+
+M5 must make the Management Platform **visually professional, intuitive, and genuinely useful** for managers, planners, and employees. Reuse existing architecture, business logic, APIs, and design system. Do **not** invent new scoring engines. Do **not** implement M5B in this document’s change set; do **not** modify production infrastructure here.
 
 ---
 
 ## 1. Executive Summary
 
-M4 made the platform **coherent and shippable**. M5 makes it **immediately understandable**.
+M4 made the platform **coherent and shippable**. M5 makes it **immediately understandable and premium to use**.
 
 | Today (M4) | Target (M5) |
 |---|---|
@@ -26,7 +34,7 @@ M4 made the platform **coherent and shippable**. M5 makes it **immediately under
 | PI tabs expose revision mechanics | **Planning language** (scenarios → plan → baseline) |
 | Capacity powerful but token-inconsistent | **Resource Planning** aligned to reference visual language |
 
-**Recommended product experience:** One enterprise app with five primary workspaces — **Home**, **Initiatives**, **Projects** (delivery lens), **PI Planning**, **Resources** — plus Portfolio (executive), Governance, and Organization as supporting hubs. Users always see: where they are, what they own, what needs them, and the next action.
+**Recommended product experience:** One premium enterprise app with role-aware **manager and employee dashboards**, five primary workspaces — **Home**, **Initiatives**, **Projects** (delivery lens), **PI Planning**, **Resources** — plus Portfolio (executive), Governance, Organization, and a **Reports** surface for exportable management outputs. Users always see: where to start, what they own, what needs attention, and the next action.
 
 **M5A deliverable:** This design proposal + roadmap M5B–M5F. **STOP — do not implement M5B in this change set.**
 
@@ -175,6 +183,29 @@ Permissions remain RoleBinding-based. Personas below are **UX packaging**, not n
 | Attention | Visible but non-actionable (no mutate CTAs) |
 | Nav | Home, Portfolio, Initiatives, PI (read paths); hide Create |
 
+### 4.9 Employee (individual contributor)
+
+Employees are not a separate permission pack today; UX packages the **linked Resource + Viewer/Team-scoped bindings** into a lighter dashboard.
+
+| Aspect | Design |
+|---|---|
+| Landing | **My Work** first: assigned initiatives/projects, personal capacity load, open issues owned via Resource link where queryable |
+| Responsibilities | See commitments, blockers affecting their work, PI iteration context |
+| Primary actions | Open project/initiative; view PI board read-only unless allocate permission |
+| Attention | Personal overload; blocked work items touching their Resource |
+| Frequent workflows | Home → Project → Issues; Home → PI capacity (self row) |
+| Nav | Home (employee layout), Initiatives, Projects, PI Planning (read), Resources (self) |
+| Constraints | No invented personal score; reuse ownership/Resource link + capacity-policy rows; hide Create/Approve CTAs without permission |
+
+### 4.10 Manager vs employee dashboard modes
+
+| Mode | When | Emphasis |
+|---|---|---|
+| **Manager dashboard** | Org/Dept/Team/Portfolio/Project manage or PI/gov permissions | Needs Attention, team/dept KPIs, approvals, capacity overload, Quick Start creates |
+| **Employee dashboard** | Limited mutate; Resource-linked principal | My Work, my load, my blockers; quieter portfolio summary |
+
+Same Home route; **composition switches by capabilities** (`PrincipalCapabilities` / shell caps) — not a second app.
+
 ---
 
 ## 5. Home Design
@@ -210,11 +241,56 @@ Permissions remain RoleBinding-based. Personas below are **UX packaging**, not n
 | Resource Capacity | `PortfolioPiCapacityQueryService` summary (CURRENT only) — progressive, not full hierarchy on Home |
 | Recent Activity | Existing `AuditEvent` feed if/when listed for principal — **progressive disclosure**; omit if no safe list API yet |
 
-### 5.3 Principles
+### 5.3 Actionable management KPIs (Home & Portfolio)
+
+KPI cards must be **actionable** (click → filtered list or workspace), not decorative.
+
+| KPI (label) | Source contract | Click-through |
+|---|---|---|
+| Blocked / at-risk delivery | Delivery health summary counts | `/portfolio/health` |
+| Initiatives needing attention | Overview metrics | `/initiatives` (filtered when UI supports) |
+| Waiting approval | Overview / approvals capability | `/approvals` |
+| PIs needing attention | Executive PI metrics | `/pi` or current PI Review |
+| Capacity overload | Portfolio PI capacity conflicts | `/portfolio/capacity` |
+| Active projects | Overview / portfolio snapshot | Projects index → project workspace |
+
+**Rule:** every KPI value already exists in query services; M5 only improves presentation and affordances.
+
+### 5.4 Principles
 
 - **One hero next action** above the fold (e.g. “Review 3 approvals” or “Continue PI 2026.Q4”).
 - KPI cards use resource-overview pattern (left rail color, large value, short note) — **no new formulas**.
+- Manager mode: Attention + KPIs dominant; Employee mode: My Work dominant.
 - Mobile: Attention → My Work → Quick Start stack; hide dense capacity until expand.
+
+---
+
+## 5A. Reports & exportable management outputs
+
+There is **no first-class CSV/PDF export** in the product today. M5 introduces a **Reports** experience as composition + export of existing read models — still no new business calculations.
+
+### 5A.1 Target reports (design)
+
+| Report | Audience | Data basis | Export (implementation phase) |
+|---|---|---|---|
+| Portfolio attention | Portfolio / Dept managers | Delivery health attention list | CSV / print stylesheet |
+| Initiative pipeline | Portfolio / Dept | Overview metrics + explorer rows | CSV |
+| PI plan summary | PI Planner / Portfolio | Current plan allocations + readiness | CSV / print |
+| Capacity & overload | Dept / Team managers | Portfolio PI capacity + conflicts | CSV |
+| Approval queue | Governance reviewers | Approvals list | CSV |
+| Project delivery status | Project / Portfolio managers | Health classification + milestones/issues counts | CSV / print |
+
+### 5A.2 UX placement
+
+- Shell: **Reports** under Portfolio (or top-level if capability `canViewPortfolio`-class).
+- Each major workspace: **Export** affordance on list/table toolbars (Explorer, Health, Capacity, Approvals).
+- Exports respect AuthZ (same scope as on-screen query); never bypass RoleBindings.
+- Prefer **CSV + browser print** for M5; PDF generation is optional later — do not block M5 on PDF infra.
+
+### 5A.3 Non-goals
+
+- Ad-hoc BI warehouse, custom formula builder, or third-party BI embed in M5.
+- Exporting secrets, auth tokens, or full audit dumps to end users.
 
 ---
 
@@ -357,9 +433,9 @@ Replace residual hardcoded `#74848e` / `#087f78` on capacity surfaces with desig
 
 | Group | Items | Notes |
 |---|---|---|
-| **Home** | `/` | Role-aware |
+| **Home** | `/` | Manager or employee dashboard mode |
 | **My work** (optional subgroup) | Shortcuts from Home | Or keep inside Home only for M5B |
-| **Portfolio** | Overview, Explorer, Delivery health, Capacity | Executive |
+| **Portfolio** | Overview, Explorer, Delivery health, Capacity, **Reports** | Executive + exports |
 | **Initiatives** | All, Create | Journey spine |
 | **Projects** | Active projects list | Deep-link to initiative project workspace |
 | **PI Planning** | All PIs, Create PI | Planner primary |
@@ -413,6 +489,15 @@ Subtle only: nav active state, accordion expand, dialog enter — **no decorativ
 
 Enterprise-comfortable: 14px base, clear 8/12 spacing, KPI value ~24–28px.
 
+### 11.6 Premium modern enterprise bar
+
+“Premium” here means **clarity and craft**, not ornament:
+
+- Consistent navy/teal system, generous whitespace, crisp KPI cards.
+- Predictable hierarchy and status language across Home → Initiative → Project → PI → Resources.
+- Polished empty/loading/error states using existing EmptyState / Alert / LiveRegion.
+- Soft elevation only where it aids scanning (reference card shadow), not multi-layer glow.
+
 ---
 
 ## 12. Component Reuse
@@ -464,15 +549,17 @@ Preserve M4F-B matrix expectations; Resource Planning collapses dept grid to 1-c
 
 ## 15. M5B–M5F Roadmap
 
+R1 remains paused unless a critical production incident requires it. M5 sequence:
+
 | Phase | Focus | Outcomes |
 |---|---|---|
-| **M5B** | Home + navigation IA | Role-aware Home sections; Projects nav entry; Quick Start |
+| **M5B** | Dashboards + navigation IA | Manager/employee Home modes; actionable KPI click-throughs; Projects + Resources nav; Quick Start |
 | **M5C** | Initiative + Project workspaces | Situation Overview; Projects index; delivery section polish |
 | **M5D** | PI Planning language + Review UX | Relabels; planner flow; hide revision jargon |
-| **M5E** | Resource Planning visual alignment | KPI/dept cards; token fix; reference density |
-| **M5F** | Hardening & acceptance | A11y/responsive/role QA; maturity re-score; V1 UX gate |
+| **M5E** | Resource Planning + Reports | KPI/dept cards; token fix; reference density; CSV/print exports from existing lists |
+| **M5F** | Hardening & acceptance | A11y/responsive/role QA (incl. employee mode); maturity re-score; UX gate for continued product work |
 
-Dependencies: reuse existing contracts only; OIDC multi-user (R1-B) improves persona QA but is not required to start M5B composition.
+Dependencies: reuse existing contracts only; OIDC multi-user (R1-B) improves multi-persona QA but is **not** required to start M5B composition against capability flags / DEV personas.
 
 ---
 
@@ -487,12 +574,15 @@ Dependencies: reuse existing contracts only; OIDC multi-user (R1-B) improves per
 ### Future M5B+ (preview)
 
 - [ ] Home shows Needs Attention + My Work + Quick Start using existing APIs.
-- [ ] Shell exposes Projects + Resources groupings as designed.
+- [ ] Manager vs employee dashboard compositions switch by capabilities.
+- [ ] KPI cards click through to existing filtered workspaces.
+- [ ] Shell exposes Projects + Resources (+ Reports) groupings as designed.
 - [ ] Initiative Overview presents stage, owner, next action above the fold.
 - [ ] PI UI copy uses Current plan / Scenario / Baseline in primary flows.
 - [ ] Resource Planning matches reference hierarchy (KPI → dept → resource).
+- [ ] At least CSV or print export for attention / capacity / approvals lists (AuthZ-scoped).
 - [ ] No regression to M4F a11y/responsive gates.
-- [ ] Viewer cannot see mutate CTAs; AuthZ unchanged.
+- [ ] Viewer/employee cannot see mutate CTAs; AuthZ unchanged.
 
 ---
 
@@ -517,11 +607,13 @@ Dependencies: reuse existing contracts only; OIDC multi-user (R1-B) improves per
 
 ## Top UX Improvements (priority)
 
-1. **Role-aware Home** — Attention + My Work + one clear next action.
-2. **Task-first nav** — Projects + Resources as first-class groups.
-3. **Initiative situation Overview** — stage, owner, next action, pending gates.
-4. **PI human language** — hide revision jargon in primary planner flows.
-5. **Resource Planning visual system** — match `resource-overview.html` + tokenize capacity colors.
+1. **Manager & employee dashboards** — role-aware Home with clear starting points.
+2. **Actionable KPIs** — every tile drills into real lists (health, approvals, capacity, PIs).
+3. **Task-first nav** — Projects + Resources + Reports as first-class groups.
+4. **Initiative situation Overview** — stage, owner, next action, pending gates.
+5. **PI human language** — hide revision jargon in primary planner flows.
+6. **Resource Planning visual system** — match `resource-overview.html` + tokenize capacity colors.
+7. **Exportable management outputs** — CSV/print from existing portfolio/PI/governance queries.
 
 ---
 
