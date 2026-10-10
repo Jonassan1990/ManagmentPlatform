@@ -205,6 +205,166 @@ export function buildLifecycleStageViews(
 }
 
 /**
+ * M5C-A — Presentation spine including Governance between Pre-study and PoC.
+ * Does not introduce a domain stage; flags come from existing gate/submission state.
+ */
+export type PremiumLifecycleStepId =
+  | InitiativeStage
+  | "GOVERNANCE";
+
+export type PremiumLifecycleStepState =
+  | "completed"
+  | "current"
+  | "upcoming"
+  | "blocked";
+
+export type PremiumLifecycleStep = {
+  id: PremiumLifecycleStepId;
+  label: string;
+  state: PremiumLifecycleStepState;
+  /** Screen-reader / text alternative for the step marker. */
+  stateLabel: string;
+};
+
+export type PremiumLifecycleInput = {
+  currentStage: InitiativeStage;
+  /** True when a Pre-study (or later) gate submission is active. */
+  hasActiveSubmission?: boolean;
+  submissionStatus?: string | null;
+  /** Pre-study GO / CONDITIONAL_GO already recorded. */
+  hasPreStudyGoDecision?: boolean;
+  openBlockingConditions?: number;
+  canSubmitPreStudy?: boolean;
+};
+
+export function buildPremiumLifecycleSteps(
+  input: PremiumLifecycleInput,
+): PremiumLifecycleStep[] {
+  const domain = buildLifecycleStageViews(input.currentStage);
+  const rank = STAGE_RANK[input.currentStage];
+  const blocking = (input.openBlockingConditions ?? 0) > 0;
+  const changesRequested = input.submissionStatus === "CHANGES_REQUESTED";
+  const inGovernanceReview =
+    input.hasActiveSubmission === true ||
+    input.submissionStatus === "APPROVALS_COMPLETE" ||
+    input.canSubmitPreStudy === true;
+  const governanceCompleted =
+    rank > STAGE_RANK.PRE_STUDY || Boolean(input.hasPreStudyGoDecision);
+
+  let governanceState: PremiumLifecycleStepState = "upcoming";
+  if (governanceCompleted) {
+    governanceState = "completed";
+  } else if (rank === STAGE_RANK.PRE_STUDY && (blocking || changesRequested)) {
+    governanceState = "blocked";
+  } else if (rank === STAGE_RANK.PRE_STUDY && inGovernanceReview) {
+    governanceState = "current";
+  }
+
+  const steps: PremiumLifecycleStep[] = [];
+  for (const step of domain) {
+    if (step.stage === "POC") {
+      steps.push({
+        id: "GOVERNANCE",
+        label: "Governance",
+        state: governanceState,
+        stateLabel: stateLabelFor(governanceState),
+      });
+    }
+
+    let state: PremiumLifecycleStepState = step.state;
+    // When Governance is the presentation "current", demote Pre-study to completed
+    // so only one step is current — without inventing a domain transition.
+    if (
+      step.stage === "PRE_STUDY" &&
+      (governanceState === "current" || governanceState === "blocked")
+    ) {
+      state = "completed";
+    }
+    steps.push({
+      id: step.stage,
+      label: step.label,
+      state,
+      stateLabel: stateLabelFor(state),
+    });
+  }
+  return steps;
+}
+
+function stateLabelFor(state: PremiumLifecycleStepState): string {
+  switch (state) {
+    case "completed":
+      return "Completed";
+    case "current":
+      return "Current";
+    case "blocked":
+      return "Blocked";
+    default:
+      return "Upcoming";
+  }
+}
+
+/** Ownership display: Resource FK preferred; free-text name is fallback only. */
+export type OwnershipPartyDisplay = {
+  label: string;
+  name: string | null;
+  resourceId: string | null;
+  basis: "resource_link" | "name_snapshot" | "missing";
+};
+
+export function resolveOwnershipParty(input: {
+  label: string;
+  resource?: { id: string; name: string } | null;
+  resourceId?: string | null;
+  nameSnapshot?: string | null;
+}): OwnershipPartyDisplay {
+  if (input.resource?.name) {
+    return {
+      label: input.label,
+      name: input.resource.name,
+      resourceId: input.resource.id,
+      basis: "resource_link",
+    };
+  }
+  if (input.resourceId) {
+    return {
+      label: input.label,
+      name: input.nameSnapshot?.trim() || null,
+      resourceId: input.resourceId,
+      basis: input.nameSnapshot?.trim()
+        ? "name_snapshot"
+        : "missing",
+    };
+  }
+  if (input.nameSnapshot?.trim()) {
+    return {
+      label: input.label,
+      name: input.nameSnapshot.trim(),
+      resourceId: null,
+      basis: "name_snapshot",
+    };
+  }
+  return {
+    label: input.label,
+    name: null,
+    resourceId: null,
+    basis: "missing",
+  };
+}
+
+export function ownershipBasisLabel(
+  basis: OwnershipPartyDisplay["basis"],
+): string {
+  switch (basis) {
+    case "resource_link":
+      return "Linked Resource";
+    case "name_snapshot":
+      return "Name snapshot (not Resource-linked)";
+    default:
+      return "Not set";
+  }
+}
+
+/**
  * Presentation labels for the journey banner. Callers pass domain-derived flags;
  * this function does not re-evaluate readiness policies.
  */

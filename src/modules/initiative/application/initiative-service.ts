@@ -54,8 +54,25 @@ function parse<T>(schema: { parse: (data: unknown) => T }, data: unknown): T {
   }
 }
 
+const resourcePartySelect = {
+  select: {
+    id: true,
+    name: true,
+    status: true,
+    linkedPrincipalId: true,
+  },
+} as const;
+
 const initiativeInclude = {
-  department: { include: { section: true } },
+  department: {
+    include: {
+      section: { include: { organization: { select: { id: true, name: true } } } },
+    },
+  },
+  /** Phase 0B Resource FK ownership — prefer over free-text name snapshots. */
+  businessOwnerResource: resourcePartySelect,
+  requesterResource: resourcePartySelect,
+  sponsorResource: resourcePartySelect,
   demand: true,
   requirements: {
     include: { acceptanceCriteria: { orderBy: { sortOrder: "asc" as const } } },

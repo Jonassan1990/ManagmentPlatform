@@ -6,18 +6,22 @@ import {
 } from "@/components/governance/governance-forms";
 import { AdvanceLifecycleButton } from "@/components/initiative/initiative-forms";
 import {
+  ActivityHistoryPreview,
   AttentionPanel,
+  InitiativeHeader,
   InitiativeTabs,
   LifecycleRail,
+  NextActionPanel,
   ReadinessPanel,
+  SituationOverview,
+  resolveOwnershipParty,
 } from "@/components/initiative/workspace";
 import {
   ConvertToProjectForm,
   CreatePilotForm,
 } from "@/components/pilot/pilot-forms";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { mapInitiativeStageBadge } from "@/components/ui/status-adapters";
-import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { Panel } from "@/components/ui/page";
+import { Breadcrumbs } from "@/components/ui/page";
 import { describeInitiativeNextAction } from "@/modules/initiative/application/initiative-journey";
 import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
 import {
@@ -27,6 +31,23 @@ import {
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
+
+function urgencyLabel(urgency: string | null | undefined): string | null {
+  if (!urgency) return null;
+  return urgency.charAt(0) + urgency.slice(1).toLowerCase();
+}
+
+function tabHref(
+  initiativeId: string,
+  tab: string,
+  query: Record<string, string | string[] | undefined>,
+): string {
+  const path =
+    tab === "overview" || tab === ""
+      ? `/initiatives/${initiativeId}`
+      : `/initiatives/${initiativeId}/${tab}`;
+  return appendPreservedQuery(path, query);
+}
 
 export default async function InitiativeOverviewPage({
   params,
@@ -116,7 +137,50 @@ export default async function InitiativeOverviewPage({
     pocReady: pocReadiness?.ready ?? null,
     pilotReady: pilotReadiness?.ready ?? null,
   });
-  const stageBadge = mapInitiativeStageBadge(item.currentStage);
+
+  const owner = resolveOwnershipParty({
+    label: "Business owner",
+    resource: item.businessOwnerResource,
+    resourceId: item.businessOwnerResourceId,
+    nameSnapshot: item.businessOwnerName,
+  });
+  const requester = resolveOwnershipParty({
+    label: "Requester",
+    resource: item.requesterResource,
+    resourceId: item.requesterResourceId,
+    nameSnapshot: item.requesterName,
+  });
+  const sponsor = resolveOwnershipParty({
+    label: "Sponsor",
+    resource: item.sponsorResource,
+    resourceId: item.sponsorResourceId,
+    nameSnapshot: null,
+  });
+  const priority = urgencyLabel(item.demand?.urgency ?? null);
+  const nextTab = nextAction.hrefHint ?? "overview";
+  const nextHref = tabHref(item.id, nextTab === "overview" ? "" : nextTab, query);
+  const ctaLabel =
+    nextTab === "demand"
+      ? "Open Demand"
+      : nextTab === "requirements"
+        ? "Open Requirements"
+        : nextTab === "pre-study"
+          ? "Open Pre-study"
+          : nextTab === "governance"
+            ? "Open Governance"
+            : nextTab === "decisions"
+              ? "Open Decisions"
+              : nextTab === "poc"
+                ? "Open PoC"
+                : nextTab === "pilot"
+                  ? "Open Pilot"
+                  : nextTab === "project"
+                    ? "Open Project"
+                    : "Continue";
+
+  // Viewer / unauthorized principals still see the situation; mutation forms
+  // below remain gated by existing capability checks inside the forms.
+  const showMutationChrome = true;
 
   return (
     <div>
@@ -128,23 +192,34 @@ export default async function InitiativeOverviewPage({
           returnContext,
         })}
       />
-      <PageHeader
+
+      <InitiativeHeader
+        referenceKey={item.referenceKey}
         title={item.title}
-        description={`${item.referenceKey} · ${item.department.name} · Owner: ${item.businessOwnerName}`}
-        actions={
-          <StatusBadge
-            status={stageBadge.status}
-            label={stageBadge.label}
-          />
-        }
+        currentStage={item.currentStage}
+        status={item.status}
+        owner={owner}
+        departmentName={item.department.name}
+        organizationName={item.department.section?.organization?.name ?? null}
+        priorityLabel={priority}
+        createdAt={item.createdAt}
+        updatedAt={item.updatedAt}
       />
 
       <div className="mb-5">
         <LifecycleRail
           current={item.currentStage}
-          ownerName={item.businessOwnerName}
+          ownerName={owner.name}
           nextActionLabel={nextAction.label}
           blockedReason={nextAction.blocked ? nextAction.detail : null}
+          premium={{
+            currentStage: item.currentStage,
+            hasActiveSubmission: Boolean(activeSubmission),
+            submissionStatus: activeSubmission?.status ?? null,
+            hasPreStudyGoDecision: Boolean(preStudyGo),
+            openBlockingConditions: openBlocking.length,
+            canSubmitPreStudy,
+          }}
         />
       </div>
 
@@ -159,14 +234,86 @@ export default async function InitiativeOverviewPage({
         preserveQuery={query}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="mb-5">
+        <NextActionPanel
+          label={nextAction.label}
+          detail={nextAction.detail}
+          blocked={nextAction.blocked}
+          href={nextHref}
+          ctaLabel={ctaLabel}
+        >
+          {showMutationChrome && item.currentStage === "DEMAND" ? (
+            <AdvanceLifecycleButton
+              initiativeId={item.id}
+              expectedVersion={item.version}
+              toStage="REQUIREMENTS"
+              label="Advance to Requirements"
+            />
+          ) : null}
+          {showMutationChrome && item.currentStage === "REQUIREMENTS" ? (
+            <AdvanceLifecycleButton
+              initiativeId={item.id}
+              expectedVersion={item.version}
+              toStage="PRE_STUDY"
+              label="Advance to Pre-study"
+            />
+          ) : null}
+          {showMutationChrome && canSubmitPreStudy ? (
+            <SubmitPreStudyButton
+              initiativeId={item.id}
+              expectedInitiativeVersion={item.version}
+              capabilities={capabilities}
+            />
+          ) : null}
+          {showMutationChrome && canCreatePoC ? (
+            <CreatePoCForm
+              initiativeId={item.id}
+              capabilities={capabilities}
+            />
+          ) : null}
+          {showMutationChrome && canCreatePilot ? (
+            <CreatePilotForm
+              initiativeId={item.id}
+              capabilities={capabilities}
+            />
+          ) : null}
+          {showMutationChrome && canConvertProject ? (
+            <ConvertToProjectForm
+              initiativeId={item.id}
+              defaultName={item.title}
+              capabilities={capabilities}
+            />
+          ) : null}
+        </NextActionPanel>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
         <div className="space-y-4">
+          <SituationOverview
+            problem={item.demand?.problemOpportunity}
+            expectedValue={item.demand?.expectedValue}
+            strategicAlignment={item.demand?.strategicAlignment}
+            priorityLabel={priority}
+            owner={owner}
+            requester={requester}
+            sponsor={sponsor}
+            risks={item.risks.map((r) => ({
+              id: r.id,
+              referenceKey: r.referenceKey,
+              title: r.title,
+              status: r.status,
+            }))}
+          />
+
           <AttentionPanel items={attention} />
           <ReadinessPanel readiness={readiness} />
+
           {pocReadiness ? (
-            <Panel>
+            <Panel aria-labelledby="poc-readiness">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="font-medium">PoC readiness</h2>
+                <h2 id="poc-readiness" className="font-medium">
+                  PoC readiness
+                </h2>
                 <span
                   className={`text-sm font-medium ${
                     pocReadiness.ready ? "text-[var(--ok)]" : "text-[var(--danger)]"
@@ -182,9 +329,11 @@ export default async function InitiativeOverviewPage({
             </Panel>
           ) : null}
           {pilotReadiness ? (
-            <Panel>
+            <Panel aria-labelledby="pilot-readiness">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="font-medium">Pilot readiness</h2>
+                <h2 id="pilot-readiness" className="font-medium">
+                  Pilot readiness
+                </h2>
                 <span
                   className={`text-sm font-medium ${
                     pilotReadiness.ready
@@ -200,327 +349,99 @@ export default async function InitiativeOverviewPage({
               </p>
             </Panel>
           ) : null}
+
+          {item.currentStage === "PROJECT" && gateItem.project ? (
+            <Panel>
+              <h2 className="font-medium">Delivery</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                This Initiative has an authorized Project. Continue delivery work
+                in the Project workspace.
+              </p>
+              <Link
+                href={appendPreservedQuery(
+                  `/initiatives/${item.id}/project`,
+                  query,
+                )}
+                className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              >
+                Open Project workspace
+              </Link>
+            </Panel>
+          ) : null}
+        </div>
+
+        <div className="space-y-4">
+          <ActivityHistoryPreview
+            transitions={item.lifecycleTransitions}
+            historyHref={tabHref(item.id, "history", query)}
+          />
+
           <Panel>
-            <h2 className="mb-2 font-medium">Act on next step</h2>
-            <p className="mb-3 text-xs text-[var(--muted)]">
-              Same required next action as the lifecycle strip above — controls
-              live here. Visual stage is not an approval.
+            <h2 className="mb-3 font-medium">Quick links</h2>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link
+                  href={tabHref(item.id, "demand", query)}
+                  className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                >
+                  Discovery · Demand
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={tabHref(item.id, "requirements", query)}
+                  className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                >
+                  Discovery · Requirements
+                </Link>
+              </li>
+              {gateItem.governanceGates.length > 0 ? (
+                <li>
+                  <Link
+                    href={tabHref(item.id, "governance", query)}
+                    className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  >
+                    Governance
+                  </Link>
+                </li>
+              ) : null}
+              {gateItem.poc ? (
+                <li>
+                  <Link
+                    href={tabHref(item.id, "poc", query)}
+                    className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  >
+                    Validation · PoC
+                  </Link>
+                </li>
+              ) : null}
+              {gateItem.pilot ? (
+                <li>
+                  <Link
+                    href={tabHref(item.id, "pilot", query)}
+                    className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  >
+                    Validation · Pilot
+                  </Link>
+                </li>
+              ) : null}
+              {gateItem.project ? (
+                <li>
+                  <Link
+                    href={tabHref(item.id, "project", query)}
+                    className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  >
+                    Delivery · Project
+                  </Link>
+                </li>
+              ) : null}
+            </ul>
+            <p className="mt-4 text-xs text-[var(--muted)]">
+              Actions remain permission-checked on the server. Resource ownership
+              is not Principal authorization.
             </p>
-            {item.currentStage === "DEMAND" ? (
-              <div className="space-y-3">
-                <p className="text-sm text-[var(--muted)]">
-                  Complete demand details, then advance to Requirements.
-                </p>
-                <Link
-                  href={`/initiatives/${item.id}/demand`}
-                  className="mr-2 text-sm text-[var(--accent)] underline"
-                >
-                  Open demand
-                </Link>
-                <AdvanceLifecycleButton
-                  initiativeId={item.id}
-                  expectedVersion={item.version}
-                  toStage="REQUIREMENTS"
-                  label="Advance to Requirements"
-                />
-              </div>
-            ) : null}
-            {item.currentStage === "REQUIREMENTS" ? (
-              <div className="space-y-3">
-                <p className="text-sm text-[var(--muted)]">
-                  Capture and accept requirements, then advance to Pre-study.
-                </p>
-                <Link
-                  href={`/initiatives/${item.id}/requirements`}
-                  className="mr-2 text-sm text-[var(--accent)] underline"
-                >
-                  Open requirements
-                </Link>
-                <AdvanceLifecycleButton
-                  initiativeId={item.id}
-                  expectedVersion={item.version}
-                  toStage="PRE_STUDY"
-                  label="Advance to Pre-study"
-                />
-              </div>
-            ) : null}
-            {item.currentStage === "PRE_STUDY" ? (
-              <div className="space-y-3">
-                {canSubmitPreStudy ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Pre-study is ready. Submit for governance review so
-                      authorities can approve before a decision.
-                    </p>
-                    <SubmitPreStudyButton
-                      initiativeId={item.id}
-                      expectedInitiativeVersion={item.version}
-                      capabilities={capabilities}
-                    />
-                    <Link
-                      href={`/initiatives/${item.id}/governance`}
-                      className="block text-sm text-[var(--accent)] underline"
-                    >
-                      Open governance workspace
-                    </Link>
-                  </>
-                ) : activeSubmission?.status === "CHANGES_REQUESTED" ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Changes were requested. Update the work, then revise the
-                      submission.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/governance`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Revise in governance
-                    </Link>
-                  </>
-                ) : activeSubmission?.status === "APPROVALS_COMPLETE" ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Approvals are complete. A decision is required.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/decisions`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Record decision
-                    </Link>
-                  </>
-                ) : activeSubmission?.status === "IN_REVIEW" ||
-                  activeSubmission?.status === "SUBMITTED" ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Governance review is in progress. Track approvals and the
-                      decision package.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/governance`}
-                      className="mr-3 text-sm text-[var(--accent)] underline"
-                    >
-                      Open governance
-                    </Link>
-                    <Link
-                      href="/approvals"
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      My Approvals
-                    </Link>
-                  </>
-                ) : canCreatePoC ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Pre-study decision allows a PoC. Create the PoC definition
-                      to advance the lifecycle.
-                    </p>
-                    <CreatePoCForm
-                      initiativeId={item.id}
-                      capabilities={capabilities}
-                    />
-                  </>
-                ) : openBlocking.length > 0 ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      {openBlocking.length} blocking condition(s) must be
-                      resolved before creating a PoC.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/decisions`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Resolve conditions
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Complete assessments, alternatives, and risks until
-                      readiness is READY, then submit for governance.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/pre-study`}
-                      className="mr-3 text-sm text-[var(--accent)] underline"
-                    >
-                      Open pre-study
-                    </Link>
-                    <Link
-                      href={`/initiatives/${item.id}/governance`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Governance
-                    </Link>
-                  </>
-                )}
-              </div>
-            ) : null}
-            {item.currentStage === "POC" ? (
-              <div className="space-y-3">
-                {canCreatePilot ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      PoC decision allows a Pilot. Create the Pilot definition to
-                      advance the lifecycle.
-                    </p>
-                    <CreatePilotForm
-                      initiativeId={item.id}
-                      capabilities={capabilities}
-                    />
-                    <Link
-                      href={`/initiatives/${item.id}/poc`}
-                      className="block text-sm text-[var(--accent)] underline"
-                    >
-                      Or continue in PoC workspace
-                    </Link>
-                  </>
-                ) : pocReadiness?.ready && !activeSubmission ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      PoC is ready for a governance decision. Submit the PoC gate
-                      from the PoC workspace.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/poc`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Open PoC workspace
-                    </Link>
-                  </>
-                ) : activeSubmission?.status === "APPROVALS_COMPLETE" ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      PoC approvals are complete. Record the decision.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/decisions`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Record decision
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Continue PoC definition, execution, evaluation, and results
-                      until readiness is READY.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/poc`}
-                      className="mr-3 text-sm text-[var(--accent)] underline"
-                    >
-                      Open PoC
-                    </Link>
-                    <Link
-                      href={`/initiatives/${item.id}/governance`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Governance
-                    </Link>
-                  </>
-                )}
-              </div>
-            ) : null}
-            {item.currentStage === "PILOT" ? (
-              <div className="space-y-3">
-                {canConvertProject ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Scale decision allows Project conversion. Convert
-                      explicitly — it is not automatic.
-                    </p>
-                    <ConvertToProjectForm
-                      initiativeId={item.id}
-                      defaultName={item.title}
-                      capabilities={capabilities}
-                    />
-                  </>
-                ) : pilotReadiness?.ready && !activeSubmission ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Pilot is ready for a scale decision. Submit from the Pilot
-                      workspace.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/pilot`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Open Pilot workspace
-                    </Link>
-                  </>
-                ) : activeSubmission?.status === "APPROVALS_COMPLETE" ? (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Pilot approvals are complete. Record the scale decision.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/decisions`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Record decision
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-[var(--muted)]">
-                      Continue Pilot definition, execution, feedback, and
-                      evaluation until readiness is READY.
-                    </p>
-                    <Link
-                      href={`/initiatives/${item.id}/pilot`}
-                      className="mr-3 text-sm text-[var(--accent)] underline"
-                    >
-                      Open Pilot
-                    </Link>
-                    <Link
-                      href={`/initiatives/${item.id}/governance`}
-                      className="text-sm text-[var(--accent)] underline"
-                    >
-                      Governance
-                    </Link>
-                  </>
-                )}
-              </div>
-            ) : null}
-            {item.currentStage === "PROJECT" ? (
-              <div className="space-y-3">
-                <p className="text-sm text-[var(--muted)]">
-                  Manage work, milestones, and budget in the Project workspace.
-                </p>
-                <Link
-                  href={appendPreservedQuery(
-                    `/initiatives/${item.id}/project`,
-                    query,
-                  )}
-                  className="text-sm text-[var(--accent)] underline"
-                >
-                  Open Project workspace
-                </Link>
-              </div>
-            ) : null}
           </Panel>
         </div>
-        <Panel>
-          <h2 className="mb-3 font-medium">Context</h2>
-          <dl className="space-y-2 text-sm">
-            <div>
-              <dt className="text-[var(--muted)]">Requester</dt>
-              <dd>{item.requesterName}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--muted)]">Business owner</dt>
-              <dd>{item.businessOwnerName}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--muted)]">Department</dt>
-              <dd>{item.department.name}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--muted)]">Updated</dt>
-              <dd>{item.updatedAt.toISOString().slice(0, 10)}</dd>
-            </div>
-          </dl>
-        </Panel>
       </div>
     </div>
   );

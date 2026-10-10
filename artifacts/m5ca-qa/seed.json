@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-10-10T11:03:34.806Z",
+  "organizationId": "f6b317a2-839d-413b-9aa1-2ea4e006f486",
+  "organizationName": "M2E Capacity Org",
+  "departmentId": "805efbca-cc27-4779-b85b-953daee3d10d",
+  "ownerResourceId": "e37a3245-5925-40dc-93ee-0baa074147c4",
+  "initiatives": {
+    "demand": {
+      "id": "ad0573be-b1c6-4a5b-b472-b6c5a84db8e1",
+      "referenceKey": "INIT-M5CA-DEMAND"
+    },
+    "requirements": {
+      "id": "49fa8f3f-780f-485f-9c95-32adb150e374",
+      "referenceKey": "INIT-M5CA-REQ"
+    },
+    "preStudy": {
+      "id": "57d1046c-f7d6-433c-b2fb-b1ab828c73ca",
+      "referenceKey": "INIT-M5CA-PRE"
+    },
+    "project": {
+      "id": "f37a9842-179d-4d54-b66f-69641557b23f",
+      "referenceKey": "INIT-PRJ-M2E-HEAVY"
+    }
+  }
+}
