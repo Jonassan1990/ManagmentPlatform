@@ -1,23 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AppError, toErrorPayload } from "@/modules/shared/errors";
 import { createServices } from "@/server/container";
+import { runAction, type ActionResult } from "@/server/action-runner";
 
-export type ActionResult<T = unknown> =
-  | { ok: true; data: T }
-  | { ok: false; error: { code: string; message: string; details?: unknown } };
+export type { ActionResult };
 
 async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
-  try {
-    const data = await fn();
-    return { ok: true, data };
-  } catch (error) {
-    if (!(error instanceof AppError)) {
-      console.error(error);
-    }
-    return { ok: false, error: toErrorPayload(error) };
-  }
+  return runAction("server_action", fn);
 }
 
 function revalidateGovernance(initiativeId: string) {
@@ -43,7 +33,7 @@ function initiativeIdFrom(input: unknown): string | null {
 }
 
 export async function submitPreStudyForGovernanceAction(input: unknown) {
-  return run(async () => {
+  return runAction("governance.submit_prestudy", async () => {
     const { authz, governance } = createServices();
     const principal = await authz.requirePrincipal();
     const result = await governance.submitPreStudyForGovernance(principal, input);
@@ -53,7 +43,7 @@ export async function submitPreStudyForGovernanceAction(input: unknown) {
 }
 
 export async function submitPoCForGovernanceAction(input: unknown) {
-  return run(async () => {
+  return runAction("governance.submit_poc", async () => {
     const { authz, governance } = createServices();
     const principal = await authz.requirePrincipal();
     const result = await governance.submitPoCForGovernance(principal, input);
@@ -73,7 +63,7 @@ export async function reviseGovernanceSubmissionAction(input: unknown) {
 }
 
 export async function recordApprovalAction(input: unknown) {
-  return run(async () => {
+  return runAction("governance.approval", async () => {
     const { authz, governance } = createServices();
     const principal = await authz.requirePrincipal();
     const result = await governance.recordApproval(principal, input);
@@ -93,7 +83,7 @@ export async function recordApprovalAction(input: unknown) {
 }
 
 export async function recordDecisionAction(input: unknown) {
-  return run(async () => {
+  return runAction("governance.decision", async () => {
     const { authz, governance } = createServices();
     const principal = await authz.requirePrincipal();
     const result = await governance.recordDecision(principal, input);

@@ -1,23 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AppError, toErrorPayload } from "@/modules/shared/errors";
 import { createServices } from "@/server/container";
+import { runAction, type ActionResult } from "@/server/action-runner";
 
-export type ActionResult<T = unknown> =
-  | { ok: true; data: T }
-  | { ok: false; error: { code: string; message: string; details?: unknown } };
+export type { ActionResult };
 
 async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
-  try {
-    const data = await fn();
-    return { ok: true, data };
-  } catch (error) {
-    if (!(error instanceof AppError)) {
-      console.error(error);
-    }
-    return { ok: false, error: toErrorPayload(error) };
-  }
+  return runAction("server_action", fn);
 }
 
 function revalidatePi(piId?: string, organizationId?: string) {
@@ -282,7 +272,7 @@ export async function updateDependencyAction(input: unknown) {
 }
 
 export async function createBaselineAction(input: unknown) {
-  return run(async () => {
+  return runAction("pi.baseline.create", async () => {
     const { authz, planning } = createServices();
     const principal = await authz.requirePrincipal();
     const result = await planning.createBaseline(principal, input);
@@ -293,7 +283,7 @@ export async function createBaselineAction(input: unknown) {
 }
 
 export async function approveCurrentPlanAction(input: unknown) {
-  return run(async () => {
+  return runAction("pi.plan.approve", async () => {
     const { authz, planning } = createServices();
     const principal = await authz.requirePrincipal();
     const result = await planning.approveCurrentPlan(principal, input);
@@ -363,7 +353,7 @@ export async function reopenScenarioAction(input: unknown) {
 }
 
 export async function selectScenarioAction(input: unknown) {
-  return run(async () => {
+  return runAction("pi.scenario.select", async () => {
     const { authz, planning } = createServices();
     const principal = await authz.requirePrincipal();
     const result = await planning.selectScenario(principal, input);
@@ -383,7 +373,7 @@ export async function clearScenarioSelectionAction(input: unknown) {
 }
 
 export async function promoteSelectedScenarioAction(input: unknown) {
-  return run(async () => {
+  return runAction("pi.scenario.promote", async () => {
     const { authz, planning } = createServices();
     const principal = await authz.requirePrincipal();
     const result = await planning.promoteSelectedScenario(principal, input);

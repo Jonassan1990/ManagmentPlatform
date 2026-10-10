@@ -1,28 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AppError, toErrorPayload } from "@/modules/shared/errors";
 import { createServices } from "@/server/container";
+import { runAction } from "@/server/action-runner";
 
-export type ActionResult<T = unknown> =
-  | { ok: true; data: T }
-  | { ok: false; error: { code: string; message: string; details?: unknown } };
+export type { ActionResult } from "@/server/action-runner";
 
-export async function consumeBootstrapAction(
-  token: string,
-): Promise<ActionResult<{ consumed: true }>> {
-  try {
+export async function consumeBootstrapAction(token: string) {
+  return runAction("identity.bootstrap.consume", async () => {
     const { authz, identity } = createServices();
     const principal = await authz.requirePrincipal();
     await identity.consumeBootstrapToken(principal, token);
     revalidatePath("/");
     revalidatePath("/access-not-configured");
     revalidatePath("/setup/bootstrap");
-    return { ok: true, data: { consumed: true } };
-  } catch (error) {
-    if (!(error instanceof AppError)) {
-      console.error(error);
-    }
-    return { ok: false, error: toErrorPayload(error) };
-  }
+    return { consumed: true as const };
+  });
 }

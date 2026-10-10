@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { getRequestId } from "@/server/request-context";
 
 export type AuditWriteInput = {
   actorPrincipalId?: string | null;
@@ -22,7 +23,7 @@ export class AuditService {
         subjectType: input.subjectType,
         subjectId: input.subjectId ?? null,
         organizationId: input.organizationId ?? null,
-        correlationId: input.correlationId ?? null,
+        correlationId: input.correlationId ?? getRequestId() ?? null,
         payload: input.payload,
         result: input.result,
       },
