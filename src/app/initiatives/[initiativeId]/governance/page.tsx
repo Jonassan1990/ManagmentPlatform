@@ -5,20 +5,28 @@ import {
   SubmitPreStudyButton,
 } from "@/components/governance/governance-forms";
 import {
-  ApprovalStatusList,
   ChangesRequestedBanner,
-  DecisionPackagePanel,
-  EvidenceCompletenessPanel,
   GateReadinessPanel,
   SubmissionSummaryPanel,
-  humanize,
-  statusToneClass,
 } from "@/components/governance/governance-panels";
+import {
+  DecisionContextPanel,
+  DecisionOutcomeSummary,
+  DisclosureSection,
+  EvidenceTable,
+  GovernanceNextActionSlot,
+  LifecycleClarityPanel,
+  ReviewSummary,
+  buildGovernanceDecisionContext,
+  describeGovernanceNextAction,
+} from "@/components/governance/governance-workspace";
 import {
   InitiativeTabs,
   LifecycleRail,
 } from "@/components/initiative/workspace";
-import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Breadcrumbs, Panel } from "@/components/ui/page";
+import { evidenceSummary } from "@/modules/governance/application/governance-presentation";
 import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
 import { parseReturnContext } from "@/modules/navigation/return-context";
 import { evaluatePreStudyReadiness } from "@/modules/initiative/application/readiness-policy";
@@ -67,6 +75,9 @@ export default async function GovernancePage({
   const evidenceEntries = latestSubmission?.evidencePackage?.entries ?? [];
   const approvalRequests = latestSubmission?.approvalRequests ?? [];
   const decisionPackage = latestSubmission?.decisionPackage ?? null;
+  const relatedDecision =
+    item.decisions.find((d) => d.gateId === activeGate?.id) ?? null;
+  const evidence = evidenceSummary(evidenceEntries);
 
   const preStudyReadiness = evaluatePreStudyReadiness({
     demand: item.demand,
@@ -98,6 +109,47 @@ export default async function GovernancePage({
       .concat(pilotGate?.submissions ?? [])
       .find((s) => s.status === "CHANGES_REQUESTED") ?? null;
 
+  const openBlocking = item.decisions.flatMap((d) =>
+    (d.conditions ?? []).filter(
+      (c) => c.requiredBeforeProgression && c.status === "OPEN",
+    ),
+  );
+
+  const decisionOwnerName =
+    typeof item.businessOwnerName === "string" && item.businessOwnerName.trim()
+      ? item.businessOwnerName.trim()
+      : null;
+
+  const context = buildGovernanceDecisionContext({
+    referenceKey: item.referenceKey,
+    title: item.title,
+    currentStage: item.currentStage,
+    gateType: activeGate?.gateType,
+    submissionStatus: latestSubmission?.status,
+    revision: latestSubmission?.revision,
+    decisionOwnerName,
+    changesRequested: Boolean(changesRequested),
+    openBlockingConditions: openBlocking.length,
+  });
+
+  const nextAction = describeGovernanceNextAction({
+    initiativeId: item.id,
+    currentStage: item.currentStage,
+    canSubmitFresh,
+    preStudyReady: preStudyReadiness.ready,
+    changesRequested: Boolean(changesRequested),
+    submissionStatus: latestSubmission?.status,
+    openBlockingConditions: openBlocking.length,
+  });
+
+  const hasActiveSubmission = Boolean(
+    latestSubmission &&
+      (latestSubmission.status === "IN_REVIEW" ||
+        latestSubmission.status === "SUBMITTED" ||
+        latestSubmission.status === "APPROVALS_COMPLETE" ||
+        latestSubmission.status === "CHANGES_REQUESTED"),
+  );
+
   return (
     <div>
       <Breadcrumbs
@@ -109,12 +161,33 @@ export default async function GovernancePage({
           returnContext,
         })}
       />
-      <PageHeader
-        title={item.title}
-        description={`${item.referenceKey} · Governance — evidence, pending approvals, and decision status. GO does not auto-create PoC/Pilot/Project.`}
-      />
+
+      <header className="mb-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+          Governance workspace · {item.referenceKey}
+        </p>
+        <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
+          {item.title}
+        </h1>
+        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
+          Evidence, approvals, and decisions for this initiative. GO does not
+          auto-create PoC, Pilot, or Project.
+        </p>
+      </header>
+
       <div className="mb-5">
-        <LifecycleRail current={item.currentStage} />
+        <LifecycleRail
+          current={item.currentStage}
+          premium={{
+            currentStage: item.currentStage,
+            hasActiveSubmission,
+            submissionStatus: latestSubmission?.status ?? null,
+            hasPreStudyGoDecision: item.decisions.some(
+              (d) => d.outcome === "GO" || d.outcome === "CONDITIONAL_GO",
+            ),
+            openBlockingConditions: openBlocking.length,
+          }}
+        />
       </div>
       <InitiativeTabs
         initiativeId={item.id}
@@ -127,108 +200,163 @@ export default async function GovernancePage({
         preserveQuery={query}
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Panel>
-          <p className="text-sm text-[var(--muted)]">What needs approval?</p>
-          <p className="mt-1 text-sm font-medium">
-            {activeGate
-              ? humanize(activeGate.gateType)
-              : item.currentStage === "PRE_STUDY"
-                ? "Pre-study gate (not submitted)"
-                : "No active gate"}
-          </p>
-        </Panel>
-        <Panel>
-          <p className="text-sm text-[var(--muted)]">Blocking?</p>
-          <p
-            className={`mt-1 text-sm font-medium ${
-              changesRequested ||
-              latestSubmission?.status === "IN_REVIEW" ||
-              latestSubmission?.status === "APPROVALS_COMPLETE"
-                ? "text-[var(--warning)]"
-                : "text-[var(--muted)]"
-            }`}
-          >
-            {changesRequested
-              ? "Changes requested — revise before progressing"
-              : latestSubmission?.status === "APPROVALS_COMPLETE"
-                ? "Approvals complete — decision required"
-                : latestSubmission?.status === "IN_REVIEW"
-                  ? "Awaiting required approvals"
-                  : "Nothing blocking governance right now"}
-          </p>
-        </Panel>
-        <Panel>
-          <p className="text-sm text-[var(--muted)]">Gate status</p>
-          <p
-            className={`mt-1 text-sm font-medium ${statusToneClass(
-              activeGate?.status ?? "NONE",
-            )}`}
-          >
-            {activeGate ? humanize(activeGate.status) : "Not started"}
-          </p>
-        </Panel>
+      <div className="mb-4 space-y-4">
+        <DecisionContextPanel context={context} />
+
+        <GovernanceNextActionSlot action={nextAction}>
+          {canSubmitFresh ? (
+            <SubmitPreStudyButton
+              initiativeId={item.id}
+              expectedInitiativeVersion={item.version}
+              disabled={!preStudyReadiness.ready}
+              capabilities={capabilities}
+            />
+          ) : null}
+          {changesRequested ? (
+            <ReviseSubmissionButton
+              previousSubmissionId={changesRequested.id}
+              initiativeId={item.id}
+              capabilities={capabilities}
+            />
+          ) : null}
+        </GovernanceNextActionSlot>
+
+        {changesRequested ? (
+          <ChangesRequestedBanner revision={changesRequested.revision} />
+        ) : null}
       </div>
 
-      {changesRequested ? (
-        <div className="mb-4">
-          <ChangesRequestedBanner
-            revision={changesRequested.revision}
-            onRevise={
-              <ReviseSubmissionButton
-                previousSubmissionId={changesRequested.id}
-                initiativeId={item.id}
-                capabilities={capabilities}
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-3">
+          <DisclosureSection
+            id="governance-evidence"
+            title="Evidence"
+            summary={evidence.label}
+            defaultOpen={evidenceEntries.length > 0 || canSubmitFresh}
+            badge={
+              <StatusBadge
+                status={
+                  evidence.total === 0
+                    ? "unavailable"
+                    : evidence.missing === 0
+                      ? "completed"
+                      : "at-risk"
+                }
+                label={
+                  evidence.total === 0
+                    ? "None"
+                    : evidence.missing === 0
+                      ? "Complete"
+                      : `${evidence.missing} missing`
+                }
+                size="compact"
               />
             }
-          />
-        </div>
-      ) : null}
+          >
+            {(item.currentStage === "PRE_STUDY" ||
+              activeGate?.gateType === "PRE_STUDY_GATE") && (
+              <div className="mb-4">
+                <GateReadinessPanel
+                  title="Pre-study readiness"
+                  ready={preStudyReadiness.ready}
+                  items={preStudyReadiness.items.map((i) => ({
+                    key: i.key,
+                    label: i.label,
+                    status: i.status,
+                    detail: i.detail,
+                  }))}
+                />
+              </div>
+            )}
+            {gateWorkspace.pocReadiness ? (
+              <div className="mb-4">
+                <GateReadinessPanel
+                  title="PoC readiness"
+                  ready={gateWorkspace.pocReadiness.ready}
+                  items={gateWorkspace.pocReadiness.items.map((i) => ({
+                    key: i.key,
+                    label: i.label,
+                    ok: i.ok,
+                    detail: i.detail,
+                  }))}
+                />
+              </div>
+            ) : null}
+            {gateWorkspace.pilotReadiness ? (
+              <div className="mb-4">
+                <GateReadinessPanel
+                  title="Pilot readiness"
+                  ready={gateWorkspace.pilotReadiness.ready}
+                  items={gateWorkspace.pilotReadiness.items.map((i) => ({
+                    key: i.key,
+                    label: i.label,
+                    ok: i.ok,
+                    detail: i.detail,
+                  }))}
+                />
+              </div>
+            ) : null}
+            <EvidenceTable entries={evidenceEntries} />
+          </DisclosureSection>
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-4">
-          {item.currentStage === "PRE_STUDY" ||
-          activeGate?.gateType === "PRE_STUDY_GATE" ? (
-            <GateReadinessPanel
-              title="Pre-study readiness"
-              ready={preStudyReadiness.ready}
-              items={preStudyReadiness.items.map((i) => ({
-                key: i.key,
-                label: i.label,
-                status: i.status,
-                detail: i.detail,
-              }))}
+          <DisclosureSection
+            id="governance-review"
+            title="Review"
+            summary={
+              approvalRequests.length === 0
+                ? "No approval requests"
+                : `${approvalRequests.filter((r) => r.status === "PENDING" && !r.record).length} pending · ${approvalRequests.filter((r) => r.status !== "PENDING" || r.record).length} completed`
+            }
+            defaultOpen={
+              latestSubmission?.status === "IN_REVIEW" ||
+              latestSubmission?.status === "APPROVALS_COMPLETE"
+            }
+          >
+            <ReviewSummary requests={approvalRequests} />
+            {latestSubmission?.status === "IN_REVIEW" ? (
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                Reviewers act from{" "}
+                <Link
+                  href="/approvals"
+                  className="text-[#087f78] underline"
+                >
+                  My Approvals
+                </Link>
+                . Outcomes are immutable.
+              </p>
+            ) : null}
+          </DisclosureSection>
+
+          <DisclosureSection
+            id="governance-decision"
+            title="Decision"
+            summary={
+              relatedDecision
+                ? `Recorded · ${relatedDecision.outcome.replaceAll("_", " ")}`
+                : decisionPackage
+                  ? "Package ready — awaiting formal outcome"
+                  : "No decision package yet"
+            }
+            defaultOpen={
+              latestSubmission?.status === "APPROVALS_COMPLETE" ||
+              Boolean(relatedDecision)
+            }
+          >
+            <DecisionOutcomeSummary
+              decisionPackage={decisionPackage}
+              decision={
+                relatedDecision
+                  ? {
+                      outcome: relatedDecision.outcome,
+                      decidedAt: relatedDecision.decidedAt,
+                      rationale: relatedDecision.rationale,
+                      conditions: relatedDecision.conditions,
+                    }
+                  : null
+              }
+              historyHref={`/initiatives/${item.id}/decisions`}
             />
-          ) : null}
-
-          {gateWorkspace.pocReadiness ? (
-            <GateReadinessPanel
-              title="PoC readiness"
-              ready={gateWorkspace.pocReadiness.ready}
-              items={gateWorkspace.pocReadiness.items.map((i) => ({
-                key: i.key,
-                label: i.label,
-                ok: i.ok,
-                detail: i.detail,
-              }))}
-            />
-          ) : null}
-
-          {gateWorkspace.pilotReadiness ? (
-            <GateReadinessPanel
-              title="Pilot readiness"
-              ready={gateWorkspace.pilotReadiness.ready}
-              items={gateWorkspace.pilotReadiness.items.map((i) => ({
-                key: i.key,
-                label: i.label,
-                ok: i.ok,
-                detail: i.detail,
-              }))}
-            />
-          ) : null}
-
-          <EvidenceCompletenessPanel entries={evidenceEntries} />
-          <ApprovalStatusList requests={approvalRequests} />
+          </DisclosureSection>
         </div>
 
         <div className="space-y-4">
@@ -245,89 +373,50 @@ export default async function GovernancePage({
                 : null
             }
           />
-          <DecisionPackagePanel
-            decisionPackage={decisionPackage}
-            submissionHref={
-              latestSubmission
-                ? `/initiatives/${item.id}/decisions`
-                : undefined
+          <LifecycleClarityPanel
+            hasPoC={Boolean(item.poc)}
+            hasPilot={Boolean(item.pilot)}
+            hasProject={Boolean(item.project)}
+            latestOutcome={relatedDecision?.outcome}
+            projectHref={
+              item.project ? `/initiatives/${item.id}/project` : null
             }
           />
           <Panel>
-            <h2 className="mb-2 font-medium">Next action</h2>
-            {canSubmitFresh ? (
-              <SubmitPreStudyButton
-                initiativeId={item.id}
-                expectedInitiativeVersion={item.version}
-                disabled={!preStudyReadiness.ready}
-                capabilities={capabilities}
-              />
-            ) : item.currentStage === "PRE_STUDY" && !preStudyReadiness.ready ? (
-              <p className="text-sm text-[var(--muted)]">
-                Complete pre-study readiness blockers before submitting for
-                governance.{" "}
-                <Link
-                  href={`/initiatives/${item.id}/pre-study`}
-                  className="text-[var(--accent)] underline"
-                >
-                  Open pre-study
-                </Link>
-              </p>
-            ) : item.currentStage === "POC" ? (
-              <p className="text-sm text-[var(--muted)]">
-                Manage PoC evidence and submission from the{" "}
+            <h2 className="mb-2 font-[family-name:var(--font-display)] text-base text-[var(--ink)]">
+              Related workspaces
+            </h2>
+            <ul className="space-y-2 text-sm">
+              <li>
                 <Link
                   href={`/initiatives/${item.id}/poc`}
-                  className="text-[var(--accent)] underline"
+                  className="text-[#087f78] underline"
                 >
                   PoC workspace
                 </Link>
-                .
-              </p>
-            ) : item.currentStage === "PILOT" ? (
-              <p className="text-sm text-[var(--muted)]">
-                Manage Pilot evidence and submission from the{" "}
+              </li>
+              <li>
                 <Link
                   href={`/initiatives/${item.id}/pilot`}
-                  className="text-[var(--accent)] underline"
+                  className="text-[#087f78] underline"
                 >
                   Pilot workspace
                 </Link>
-                .
-              </p>
-            ) : latestSubmission?.status === "APPROVALS_COMPLETE" ? (
-              <p className="text-sm text-[var(--muted)]">
-                Approvals are complete.{" "}
+              </li>
+              <li>
                 <Link
                   href={`/initiatives/${item.id}/decisions`}
-                  className="text-[var(--accent)] underline"
+                  className="text-[#087f78] underline"
                 >
-                  Record the decision
+                  Decision workspace
                 </Link>
-                .
-              </p>
-            ) : latestSubmission?.status === "IN_REVIEW" ? (
-              <p className="text-sm text-[var(--muted)]">
-                Waiting for required authorities. Reviewers see this under{" "}
-                <Link href="/approvals" className="text-[var(--accent)] underline">
+              </li>
+              <li>
+                <Link href="/approvals" className="text-[#087f78] underline">
                   My Approvals
                 </Link>
-                .
-              </p>
-            ) : (
-              <p className="text-sm text-[var(--muted)]">
-                No governance action required in the current state.
-              </p>
-            )}
-          </Panel>
-          <Panel>
-            <h2 className="mb-2 font-medium">After approval</h2>
-            <p className="text-sm text-[var(--muted)]">
-              When all required approvals are complete, an authorized decision
-              maker records the gate outcome. For Pilot gates that includes
-              Scale, Extend pilot, Conditional scale, Stop, or Hold. Conditional
-              outcomes require closed conditions before progression.
-            </p>
+              </li>
+            </ul>
           </Panel>
         </div>
       </div>

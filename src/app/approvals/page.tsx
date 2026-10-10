@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApprovalDecisionForm } from "@/components/governance/governance-forms";
-import { humanize, statusToneClass } from "@/components/governance/governance-panels";
+import { ApprovalTaskCardHeader } from "@/components/governance/governance-workspace";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -54,45 +55,78 @@ export default async function ApprovalsPage() {
         />
       ) : (
         <div className="space-y-4">
-          {requests.map((request) => (
-            <Panel key={request.id}>
-              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm text-[var(--muted)]">
-                    {request.submission.initiative.referenceKey} ·{" "}
-                    {humanize(request.submission.gate.gateType)}
-                  </p>
-                  <h2 className="font-[family-name:var(--font-display)] text-xl">
-                    {request.submission.initiative.title}
-                  </h2>
-                  <p className="mt-1 text-sm">
-                    Review: <span className="font-medium">{request.label}</span>
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    Revision {request.submission.revision} ·{" "}
-                    <span className={statusToneClass(request.status)}>
-                      {humanize(request.status)}
-                    </span>
-                  </p>
+          {requests.map((request) => {
+            const caps =
+              capsByOrg[request.submission.initiative.organizationId];
+            const canReview = caps?.canReviewApprovals !== false;
+
+            return (
+              <Panel key={request.id}>
+                <ApprovalTaskCardHeader
+                  referenceKey={request.submission.initiative.referenceKey}
+                  title={request.submission.initiative.title}
+                  gateType={request.submission.gate.gateType}
+                  reviewLabel={request.label}
+                  revision={request.submission.revision}
+                  status={request.status}
+                  initiativeId={request.submission.initiativeId}
+                />
+
+                <div className="mb-4 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-md border border-[var(--line)] px-3 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      What requires review
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-[var(--ink)]">
+                      {request.label}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-[var(--line)] px-3 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      Evidence summary
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--ink)]">
+                      Frozen on revision {request.submission.revision}.{" "}
+                      <Link
+                        href={`/initiatives/${request.submission.initiativeId}/governance`}
+                        className="text-[#087f78] underline"
+                      >
+                        Inspect evidence in gate workspace
+                      </Link>
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-[var(--line)] px-3 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      Allowed action
+                    </p>
+                    <div className="mt-1">
+                      {canReview ? (
+                        <StatusBadge
+                          status="pending"
+                          label="Approve / Reject / Request changes"
+                          size="compact"
+                        />
+                      ) : (
+                        <StatusBadge
+                          status="blocked"
+                          label="Read-only — no approval permission"
+                          size="compact"
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <Link
-                  href={`/initiatives/${request.submission.initiativeId}/governance`}
-                  className="inline-flex min-h-11 items-center text-sm text-[var(--accent)] underline"
-                >
-                  Open gate workspace
-                </Link>
-              </div>
-              <ApprovalDecisionForm
-                approvalRequestId={request.id}
-                expectedVersion={request.version}
-                initiativeId={request.submission.initiativeId}
-                label={request.label}
-                capabilities={
-                  capsByOrg[request.submission.initiative.organizationId]
-                }
-              />
-            </Panel>
-          ))}
+
+                <ApprovalDecisionForm
+                  approvalRequestId={request.id}
+                  expectedVersion={request.version}
+                  initiativeId={request.submission.initiativeId}
+                  label={request.label}
+                  capabilities={caps}
+                />
+              </Panel>
+            );
+          })}
         </div>
       )}
     </div>

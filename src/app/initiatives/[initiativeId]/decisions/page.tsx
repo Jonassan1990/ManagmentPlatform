@@ -12,11 +12,15 @@ import {
   humanize,
   statusToneClass,
 } from "@/components/governance/governance-panels";
+import { LifecycleClarityPanel } from "@/components/governance/governance-workspace";
 import {
   InitiativeTabs,
   LifecycleRail,
+  NextActionPanel,
 } from "@/components/initiative/workspace";
-import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Breadcrumbs, EmptyState, Panel } from "@/components/ui/page";
+import { mapDecisionOutcomeBadge } from "@/modules/governance/application/governance-presentation";
 import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
 import { parseReturnContext } from "@/modules/navigation/return-context";
 import { createServices } from "@/server/container";
@@ -124,6 +128,8 @@ export default async function InitiativeDecisionsPage({
               }
             : null;
 
+  const latestBadge = mapDecisionOutcomeBadge(latestDecision?.outcome);
+
   return (
     <div>
       <Breadcrumbs
@@ -135,10 +141,18 @@ export default async function InitiativeDecisionsPage({
           returnContext,
         })}
       />
-      <PageHeader
-        title={item.title}
-        description={`${item.referenceKey} · Decision package and log`}
-      />
+      <header className="mb-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+          Decision workspace · {item.referenceKey}
+        </p>
+        <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
+          {item.title}
+        </h1>
+        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
+          Decision package, allowed outcomes, conditions, and immutable history.
+          Recommendation text is informational only.
+        </p>
+      </header>
       <div className="mb-5">
         <LifecycleRail current={item.currentStage} />
       </div>
@@ -153,33 +167,63 @@ export default async function InitiativeDecisionsPage({
         preserveQuery={query}
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <Panel>
-          <p className="text-sm text-[var(--muted)]">Decision required?</p>
-          <p
-            className={`mt-1 text-sm font-medium ${
-              focus ? "text-[var(--warning)]" : "text-[var(--muted)]"
-            }`}
-          >
-            {focus
-              ? `${humanize(focus.gate.gateType)} · revision ${focus.submission.revision}`
-              : "No package is waiting for a decision"}
-          </p>
-        </Panel>
-        <Panel>
-          <p className="text-sm text-[var(--muted)]">Open conditions</p>
-          <p
-            className={`mt-1 text-sm font-medium ${
-              openConditions.length > 0
-                ? "text-[var(--danger)]"
-                : "text-[var(--muted)]"
-            }`}
-          >
-            {openConditions.length === 0
-              ? "None"
-              : `${openConditions.length} open`}
-          </p>
-        </Panel>
+      <div className="mb-4 space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Panel>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Decision required?
+            </p>
+            <p
+              className={`mt-1 text-sm font-medium ${
+                focus ? "text-[var(--warning)]" : "text-[var(--muted)]"
+              }`}
+            >
+              {focus
+                ? `${humanize(focus.gate.gateType)} · revision ${focus.submission.revision}`
+                : "No package is waiting for a decision"}
+            </p>
+          </Panel>
+          <Panel>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Latest outcome
+            </p>
+            <div className="mt-1">
+              <StatusBadge
+                status={latestBadge.status}
+                label={latestBadge.label}
+                size="compact"
+              />
+            </div>
+          </Panel>
+          <Panel>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Open conditions
+            </p>
+            <p
+              className={`mt-1 text-sm font-medium ${
+                openConditions.length > 0
+                  ? "text-[var(--danger)]"
+                  : "text-[var(--muted)]"
+              }`}
+            >
+              {openConditions.length === 0
+                ? "None"
+                : `${openConditions.length} open`}
+            </p>
+          </Panel>
+        </div>
+
+        {nextAction ? (
+          <NextActionPanel
+            label={nextAction.label}
+            detail={nextAction.hint}
+            blocked={nextAction.href === "#conditions"}
+            href={nextAction.href === "#conditions" ? null : nextAction.href}
+            ctaLabel={
+              nextAction.href === "#conditions" ? null : nextAction.label
+            }
+          />
+        ) : null}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
@@ -234,42 +278,43 @@ export default async function InitiativeDecisionsPage({
         </div>
 
         <div className="space-y-4">
+          <LifecycleClarityPanel
+            hasPoC={Boolean(item.poc)}
+            hasPilot={Boolean(item.pilot)}
+            hasProject={Boolean(item.project)}
+            latestOutcome={latestDecision?.outcome}
+            canCreatePoC={
+              latestGateType === "PRE_STUDY_GATE" &&
+              (latestDecision?.outcome === "GO" ||
+                latestDecision?.outcome === "CONDITIONAL_GO") &&
+              conditionsClear &&
+              !item.poc
+            }
+            canCreatePilot={
+              latestGateType === "POC_GATE" &&
+              (latestDecision?.outcome === "GO" ||
+                latestDecision?.outcome === "CONDITIONAL_GO") &&
+              conditionsClear &&
+              !item.pilot
+            }
+            canConvertProject={
+              latestGateType === "PILOT_GATE" &&
+              (latestDecision?.outcome === "SCALE" ||
+                latestDecision?.outcome === "CONDITIONAL_SCALE") &&
+              conditionsClear &&
+              !item.project
+            }
+            projectHref={
+              item.project ? `/initiatives/${item.id}/project` : null
+            }
+          />
           <Panel>
-            <h2 className="mb-2 font-medium">What happens after?</h2>
-            {nextAction ? (
-              <div className="mb-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-3">
-                <p className="text-sm text-[var(--muted)]">{nextAction.hint}</p>
-                <Link
-                  href={nextAction.href}
-                  className="mt-3 inline-block rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
-                >
-                  {nextAction.label}
-                </Link>
-                {nextAction.href === overviewHref &&
-                latestGateType === "POC_GATE" ? (
-                  <Link
-                    href={`/initiatives/${item.id}/poc`}
-                    className="mt-2 ml-3 inline-block text-sm text-[var(--accent)] underline"
-                  >
-                    Or open PoC workspace
-                  </Link>
-                ) : null}
-                {nextAction.href.endsWith("/pilot") ? (
-                  <Link
-                    href={overviewHref}
-                    className="mt-2 ml-3 inline-block text-sm text-[var(--accent)] underline"
-                  >
-                    Or open overview
-                  </Link>
-                ) : null}
-              </div>
-            ) : (
-              <p className="mb-3 text-sm text-[var(--muted)]">
-                {latestDecision
-                  ? "No further create/convert step is waiting on this decision."
-                  : "Record a decision to unlock the next lifecycle step."}
-              </p>
-            )}
+            <h2 className="mb-2 font-medium">Allowed outcomes</h2>
+            <p className="mb-3 text-sm text-[var(--muted)]">
+              {latestDecision
+                ? "History below is immutable. Further create/convert steps stay manual."
+                : "Record a decision to unlock the next lifecycle step."}
+            </p>
             <ul className="space-y-2 text-sm text-[var(--muted)]">
               <li>
                 <span className={statusToneClass("GO")}>Go</span> — proceed
@@ -306,6 +351,30 @@ export default async function InitiativeDecisionsPage({
                 cancel the initiative.
               </li>
             </ul>
+            <div className="mt-3 flex flex-wrap gap-3 text-sm">
+              <Link
+                href={`/initiatives/${item.id}/governance`}
+                className="text-[#087f78] underline"
+              >
+                Open governance
+              </Link>
+              {latestGateType === "POC_GATE" || item.poc ? (
+                <Link
+                  href={`/initiatives/${item.id}/poc`}
+                  className="text-[#087f78] underline"
+                >
+                  Open PoC
+                </Link>
+              ) : null}
+              {latestGateType === "PILOT_GATE" || item.pilot ? (
+                <Link
+                  href={`/initiatives/${item.id}/pilot`}
+                  className="text-[#087f78] underline"
+                >
+                  Open Pilot
+                </Link>
+              ) : null}
+            </div>
           </Panel>
 
           <div id="conditions">

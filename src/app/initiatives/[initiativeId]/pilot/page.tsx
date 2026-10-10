@@ -6,6 +6,11 @@ import {
   statusToneClass,
 } from "@/components/governance/governance-panels";
 import {
+  ExperimentSummaryGrid,
+  LifecycleClarityPanel,
+  RecommendationVsDecisionCallout,
+} from "@/components/governance/governance-workspace";
+import {
   InitiativeTabs,
   LifecycleRail,
 } from "@/components/initiative/workspace";
@@ -20,7 +25,9 @@ import {
   TransitionPilotButtons,
   UpdatePilotForm,
 } from "@/components/pilot/pilot-forms";
-import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Breadcrumbs, EmptyState, Panel } from "@/components/ui/page";
+import { mapDecisionOutcomeBadge } from "@/modules/governance/application/governance-presentation";
 import { buildInitiativeTrail } from "@/modules/navigation/breadcrumbs";
 import { parseReturnContext } from "@/modules/navigation/return-context";
 import {
@@ -118,6 +125,8 @@ export default async function PilotPage({
       ? evaluatePilotStartReadiness(pilot, criteria)
       : null;
 
+  const scaleBadge = mapDecisionOutcomeBadge(scaleDecision?.outcome);
+
   return (
     <div>
       <Breadcrumbs
@@ -129,10 +138,18 @@ export default async function PilotPage({
           returnContext,
         })}
       />
-      <PageHeader
-        title={item.title}
-        description={`${item.referenceKey} · Pilot`}
-      />
+      <header className="mb-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+          Pilot workspace · {item.referenceKey}
+        </p>
+        <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
+          {item.title}
+        </h1>
+        <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
+          Pilot evaluation and scale readiness. SCALE does not auto-create a
+          Project — conversion is an explicit action.
+        </p>
+      </header>
       <div className="mb-5">
         <LifecycleRail current={item.currentStage} />
       </div>
@@ -147,23 +164,7 @@ export default async function PilotPage({
         preserveQuery={query}
       />
 
-      <Panel className="mb-4">
-        <h2 className="text-sm font-medium">Keep these distinct</h2>
-        <ul className="mt-2 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-3">
-          <li>
-            <strong className="text-[var(--ink)]">Operational evaluation</strong>
-            — pilot objectives, criteria, and observed results.
-          </li>
-          <li>
-            <strong className="text-[var(--ink)]">Recommendation</strong>
-            — scale / extend / stop proposal from the pilot team.
-          </li>
-          <li>
-            <strong className="text-[var(--ink)]">Formal decision</strong>
-            — SCALE does not auto-create a Project; conversion is separate.
-          </li>
-        </ul>
-      </Panel>
+      <RecommendationVsDecisionCallout surface="pilot" />
 
       {!pilot ? (
         <div className="space-y-4">
@@ -203,33 +204,106 @@ export default async function PilotPage({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Panel>
-              <p className="text-sm text-[var(--muted)]">Pilot status</p>
-              <p className={`mt-1 font-medium ${statusToneClass(pilot.status)}`}>
-                {humanize(pilot.status)}
-              </p>
-            </Panel>
-            <Panel>
-              <p className="text-sm text-[var(--muted)]">Success criteria</p>
-              <p className="mt-1 font-medium">
-                {criteria.length} total ·{" "}
-                {criteria.filter((c) => c.required).length} required
-              </p>
-            </Panel>
-            <Panel>
-              <p className="text-sm text-[var(--muted)]">Ready for decision?</p>
-              <p
-                className={`mt-1 font-medium ${
-                  gateWorkspace.pilotReadiness?.ready
-                    ? "text-[var(--ok)]"
-                    : "text-[var(--danger)]"
-                }`}
-              >
-                {gateWorkspace.pilotReadiness?.ready ? "Yes" : "Not yet"}
-              </p>
-            </Panel>
-          </div>
+          <ExperimentSummaryGrid
+            items={[
+              {
+                label: "Pilot status",
+                value: (
+                  <span className={statusToneClass(pilot.status)}>
+                    {humanize(pilot.status)}
+                  </span>
+                ),
+              },
+              {
+                label: "Owner / team",
+                value: pilot.ownerName?.trim() || "Not set",
+                hint: pilot.resourceNotes?.trim()
+                  ? "See resource notes below"
+                  : undefined,
+              },
+              {
+                label: "Target users / sites",
+                value:
+                  [pilot.targetUsers, pilot.siteOrArea]
+                    .filter((v) => v?.trim())
+                    .join(" · ") || "Not set",
+              },
+              {
+                label: "Success criteria / KPIs",
+                value: `${criteria.length} total · ${criteria.filter((c) => c.required).length} required`,
+              },
+              {
+                label: "Costs",
+                value:
+                  pilot.estimatedCost != null || pilot.actualCost != null
+                    ? `Est. ${pilot.estimatedCost ?? "—"} / Actual ${pilot.actualCost ?? "—"} ${pilot.currencyCode}`
+                    : "Not set",
+              },
+              {
+                label: "Scale recommendation",
+                value:
+                  pilot.businessFindings?.trim() ||
+                  pilot.operationalFindings?.trim()
+                    ? "Findings recorded"
+                    : "Not recorded yet",
+                hint: "Operational — not the formal SCALE decision",
+              },
+              {
+                label: "Formal rollout decision",
+                value: (
+                  <StatusBadge
+                    status={scaleBadge.status}
+                    label={scaleBadge.label}
+                    size="compact"
+                  />
+                ),
+              },
+              {
+                label: "Lessons learned",
+                value: pilot.lessonsLearned?.trim()
+                  ? "Captured"
+                  : "Not recorded yet",
+              },
+            ]}
+          />
+
+          <Panel>
+            <h2 className="font-[family-name:var(--font-display)] text-lg text-[var(--ink)]">
+              Pilot scope
+            </h2>
+            <dl className="mt-3 grid gap-3 text-sm lg:grid-cols-2">
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Objective
+                </dt>
+                <dd className="mt-1 text-[var(--ink)]">{pilot.objective}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Scope
+                </dt>
+                <dd className="mt-1 text-[var(--ink)]">{pilot.scope}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Out of scope
+                </dt>
+                <dd className="mt-1 text-[var(--ink)]">
+                  {pilot.outOfScope?.trim() || "Not set"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Planned dates
+                </dt>
+                <dd className="mt-1 text-[var(--ink)]">
+                  {pilot.plannedStart || pilot.plannedEnd
+                    ? `${pilot.plannedStart ? new Date(pilot.plannedStart).toISOString().slice(0, 10) : "—"} → ${pilot.plannedEnd ? new Date(pilot.plannedEnd).toISOString().slice(0, 10) : "—"}`
+                    : "Not set"}
+                </dd>
+              </div>
+            </dl>
+          </Panel>
 
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-4">
@@ -429,6 +503,16 @@ export default async function PilotPage({
                   </p>
                 )}
               </Panel>
+              <LifecycleClarityPanel
+                hasPoC={Boolean(item.poc)}
+                hasPilot={Boolean(item.pilot)}
+                hasProject={Boolean(item.project)}
+                latestOutcome={scaleDecision?.outcome}
+                canConvertProject={canConvert}
+                projectHref={
+                  item.project ? `/initiatives/${item.id}/project` : null
+                }
+              />
               <Panel>
                 <h2 className="mb-2 font-medium">After scale decision</h2>
                 {item.project ? (
@@ -453,6 +537,20 @@ export default async function PilotPage({
                     blocking conditions), convert to a Project from here.
                   </p>
                 )}
+                <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                  <Link
+                    href={`/initiatives/${item.id}/governance`}
+                    className="text-[#087f78] underline"
+                  >
+                    Open governance
+                  </Link>
+                  <Link
+                    href={`/initiatives/${item.id}/decisions`}
+                    className="text-[#087f78] underline"
+                  >
+                    Open decisions
+                  </Link>
+                </div>
               </Panel>
             </div>
           </div>
