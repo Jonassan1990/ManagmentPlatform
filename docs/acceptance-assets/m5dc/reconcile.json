@@ -1,0 +1,128 @@
+{
+  "milestone": "M5D-C",
+  "generatedAt": "2026-10-10T12:58:25.716Z",
+  "seed": {
+    "milestone": "M5D-C",
+    "generatedAt": "2026-10-10T12:58:24.738Z",
+    "startingMainHint": "ecaa3ec",
+    "organizationId": "4e1248d4-3d02-45ac-8022-0237cd8980be",
+    "organizationName": "M2E Capacity Org",
+    "principalId": "f796fe09-b948-4eb6-9fcd-0770990ab453",
+    "piId": "511de761-64d0-4c7c-91f5-8a10d18f5bd4",
+    "piReference": "PI-M2E-CAP",
+    "piName": "M2E Capacity PI Q1",
+    "piStatus": "PLANNING",
+    "currentRevisionId": "6c1c4c4c-412b-4e0f-b713-f6a4b6cee614",
+    "draftScenarioIds": [
+      "f7a5675a-d990-4d50-a266-1c03e82009e9"
+    ],
+    "draftScenarioLabels": [
+      "M5DC Alt Staffing"
+    ],
+    "teamCount": 2,
+    "iterationCount": 2,
+    "paths": {
+      "board": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/board",
+      "capacity": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/capacity",
+      "compare": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/compare",
+      "review": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/review",
+      "baseline": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/baseline",
+      "portfolio": "/portfolio",
+      "portfolioCapacity": "/portfolio/capacity",
+      "piList": "/pi"
+    }
+  },
+  "checks": [
+    {
+      "id": "capacity.team-slots-present",
+      "ok": true,
+      "detail": "teamSlotCount=4 participatingTeams=2"
+    },
+    {
+      "id": "capacity.available-committed-finite",
+      "ok": true,
+      "detail": "available=480 committed=210"
+    },
+    {
+      "id": "capacity.remaining-equals-available-minus-committed",
+      "ok": true,
+      "detail": "remaining=270"
+    },
+    {
+      "id": "capacity.shared-resource-percent-policy",
+      "ok": true,
+      "detail": "resource=e1e7b6e6 teams=2 summed=80.0"
+    },
+    {
+      "id": "capacity.no-naive-double-count",
+      "ok": true,
+      "detail": "percent-adjusted 80.0 vs naive100 160.0"
+    },
+    {
+      "id": "isolation.current-exists",
+      "ok": true,
+      "detail": "6c1c4c4c-412b-4e0f-b713-f6a4b6cee614"
+    },
+    {
+      "id": "isolation.draft-scenario-exists",
+      "ok": true,
+      "detail": "drafts=1"
+    },
+    {
+      "id": "isolation.allocations-keyed-by-revision",
+      "ok": true,
+      "detail": "currentAllocs=2 draftAllocs=2"
+    },
+    {
+      "id": "portfolio.current-only-state",
+      "ok": true,
+      "detail": "state=ready"
+    },
+    {
+      "id": "portfolio.no-draft-kpi-leakage",
+      "ok": true,
+      "detail": "portfolioCommitted=210 boardCurrentCommitted=210 drift=0.000"
+    },
+    {
+      "id": "conflicts.explanations-present-or-empty",
+      "ok": true,
+      "detail": "count=2"
+    },
+    {
+      "id": "conflicts.have-messages",
+      "ok": true,
+      "detail": "BLOCKER:TEAM_OVERLOAD,BLOCKER:RESOURCE_OVERLOAD"
+    },
+    {
+      "id": "readiness.classification-known",
+      "ok": true,
+      "detail": "NOT_READY"
+    },
+    {
+      "id": "scenarios.list-includes-current",
+      "ok": true,
+      "detail": "count=2"
+    },
+    {
+      "id": "approval.preview-version-bound-fields",
+      "ok": true,
+      "detail": "state=NO_PROMOTION version=1"
+    },
+    {
+      "id": "baseline.preview-separate-from-approval",
+      "ok": true,
+      "detail": "canBaseline=false reasons=2"
+    },
+    {
+      "id": "promotion.preview-atomicity-surface",
+      "ok": true,
+      "detail": "canPromote=false"
+    }
+  ],
+  "summary": {
+    "passed": 17,
+    "failed": 0,
+    "total": 17
+  },
+  "verdict": "PASS"
+}

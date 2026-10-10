@@ -1,0 +1,18 @@
+PASS capacity.team-slots-present teamSlotCount=4 participatingTeams=2
+PASS capacity.available-committed-finite available=480 committed=210
+PASS capacity.remaining-equals-available-minus-committed remaining=270
+PASS capacity.shared-resource-percent-policy resource=e1e7b6e6 teams=2 summed=80.0
+PASS capacity.no-naive-double-count percent-adjusted 80.0 vs naive100 160.0
+PASS isolation.current-exists 6c1c4c4c-412b-4e0f-b713-f6a4b6cee614
+PASS isolation.draft-scenario-exists drafts=1
+PASS isolation.allocations-keyed-by-revision currentAllocs=2 draftAllocs=2
+PASS portfolio.current-only-state state=ready
+PASS portfolio.no-draft-kpi-leakage portfolioCommitted=210 boardCurrentCommitted=210 drift=0.000
+PASS conflicts.explanations-present-or-empty count=2
+PASS conflicts.have-messages BLOCKER:TEAM_OVERLOAD,BLOCKER:RESOURCE_OVERLOAD
+PASS readiness.classification-known NOT_READY
+PASS scenarios.list-includes-current count=2
+PASS approval.preview-version-bound-fields state=NO_PROMOTION version=1
+PASS baseline.preview-separate-from-approval canBaseline=false reasons=2
+PASS promotion.preview-atomicity-surface canPromote=false
+VERDICT PASS 17/17

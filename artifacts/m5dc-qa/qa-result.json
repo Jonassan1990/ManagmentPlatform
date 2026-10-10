@@ -1,0 +1,307 @@
+{
+  "milestone": "M5D-C",
+  "base": "http://127.0.0.1:43154",
+  "generatedAt": "2026-10-10T12:58:25.739Z",
+  "startingMainHint": "ecaa3ec",
+  "seed": {
+    "milestone": "M5D-C",
+    "generatedAt": "2026-10-10T12:58:24.738Z",
+    "startingMainHint": "ecaa3ec",
+    "organizationId": "4e1248d4-3d02-45ac-8022-0237cd8980be",
+    "organizationName": "M2E Capacity Org",
+    "principalId": "f796fe09-b948-4eb6-9fcd-0770990ab453",
+    "piId": "511de761-64d0-4c7c-91f5-8a10d18f5bd4",
+    "piReference": "PI-M2E-CAP",
+    "piName": "M2E Capacity PI Q1",
+    "piStatus": "PLANNING",
+    "currentRevisionId": "6c1c4c4c-412b-4e0f-b713-f6a4b6cee614",
+    "draftScenarioIds": [
+      "f7a5675a-d990-4d50-a266-1c03e82009e9"
+    ],
+    "draftScenarioLabels": [
+      "M5DC Alt Staffing"
+    ],
+    "teamCount": 2,
+    "iterationCount": 2,
+    "paths": {
+      "board": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/board",
+      "capacity": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/capacity",
+      "compare": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/compare",
+      "review": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/review",
+      "baseline": "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/baseline",
+      "portfolio": "/portfolio",
+      "portfolioCapacity": "/portfolio/capacity",
+      "piList": "/pi"
+    }
+  },
+  "reconcileSummary": {
+    "passed": 17,
+    "failed": 0,
+    "total": 17
+  },
+  "reconcileVerdict": "PASS",
+  "journeys": [
+    {
+      "journey": "pi-entry",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "plan-board-teams-allocation",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "capacity-workspace",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "scenario-isolation-ui",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "compare",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "review-lifecycle-chrome",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "select-semantics",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "apply-consequence",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "approve-version-bound",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "baseline-immutability",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "empty-unavailable-states",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "conflict-explanations",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "portfolio-current-only",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "context-preservation",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "authorized-manager",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "authorized-viewer",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "mobile-usability",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": {
+        "mobileOverflow": 0,
+        "mobileBoardOverflow": 0,
+        "mobileWorkflow": true
+      }
+    },
+    {
+      "journey": "desktop-capacity",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    }
+  ],
+  "lifecycleMatrix": {
+    "pi": {
+      "entry": true
+    },
+    "allocation": {
+      "board": true,
+      "teams": true,
+      "formsOrEditable": true
+    },
+    "capacity": {
+      "readable": true
+    },
+    "compare": {
+      "page": true,
+      "deltas": true
+    },
+    "review": {
+      "workflow": true
+    },
+    "portfolio": {
+      "readable": true
+    }
+  },
+  "acceptanceMatrix": {
+    "correctCapacityValues": {
+      "browser": true,
+      "reconcile": true
+    },
+    "noSharedResourceDoubleCounting": {
+      "reconcile": true
+    },
+    "currentScenarioIsolation": {
+      "browser": true,
+      "reconcile": true
+    },
+    "promotionAtomicity": {
+      "browserConsequenceCopy": true,
+      "integration": "pi-scenario-promotion-m3d + pi-m3d-acceptance"
+    },
+    "versionBoundApproval": {
+      "browser": true,
+      "reconcile": true
+    },
+    "baselineImmutability": {
+      "browser": true,
+      "integration": "pi-plan-approval-m3d + pi-m3d-acceptance"
+    },
+    "emptyUnavailableStates": {
+      "browser": true
+    },
+    "correctConflictExplanations": {
+      "browser": true,
+      "reconcile": true
+    },
+    "noDraftKpiLeakage": {
+      "browser": true,
+      "reconcile": true
+    },
+    "contextPreservation": {
+      "browser": true
+    },
+    "authorizedPlanningActions": {
+      "manager": true,
+      "viewer": true
+    },
+    "keyboardAccessibility": {
+      "tabFocus": true,
+      "mainLandmark": true
+    },
+    "desktopMobileUsability": {
+      "mobileOverflow": 0,
+      "mobileBoardOverflow": 0,
+      "mobileWorkflow": true
+    }
+  },
+  "roleMatrix": {
+    "manager": {
+      "status": "PASS"
+    },
+    "viewer": {
+      "status": "PASS"
+    }
+  },
+  "usability": {
+    "findCurrentPlan": {
+      "steps": 0,
+      "path": "Active plan / Current plan in planning context header"
+    },
+    "findCapacity": {
+      "steps": 0,
+      "path": "Capacity tab / KPI strip"
+    },
+    "findNextAction": {
+      "steps": 0,
+      "path": "Next planning action card on Review"
+    }
+  },
+  "a11y": {
+    "focusTag": "A",
+    "mainLandmark": true
+  },
+  "performance": {
+    "/pi": {
+      "navMs": 1457
+    },
+    "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/board": {
+      "navMs": 1111
+    },
+    "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/capacity": {
+      "navMs": 1163
+    },
+    "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/compare": {
+      "navMs": 843
+    },
+    "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/review": {
+      "navMs": 1539
+    },
+    "/pi/511de761-64d0-4c7c-91f5-8a10d18f5bd4/baseline": {
+      "navMs": 1153
+    },
+    "/portfolio/capacity?organizationId=4e1248d4-3d02-45ac-8022-0237cd8980be&piId=511de761-64d0-4c7c-91f5-8a10d18f5bd4": {
+      "navMs": 1144
+    }
+  },
+  "defects": [],
+  "steps": [
+    {
+      "step": "reconcile.service-level",
+      "status": "PASS",
+      "detail": {
+        "passed": 17,
+        "failed": 0,
+        "total": 17
+      }
+    },
+    {
+      "step": "login.dev-auth",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:43154/"
+    },
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "a11y.keyboard-tab",
+      "status": "PASS",
+      "detail": {
+        "focusTag": "A"
+      }
+    },
+    {
+      "step": "a11y.main-landmark",
+      "status": "PASS"
+    }
+  ],
+  "verdict": "PASS",
+  "summary": {
+    "journeysPass": 18,
+    "journeysFail": 0,
+    "journeysTotal": 18,
+    "reconcile": {
+      "passed": 17,
+      "failed": 0,
+      "total": 17
+    }
+  }
+}

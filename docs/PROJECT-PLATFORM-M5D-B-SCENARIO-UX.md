@@ -125,7 +125,7 @@ Technical keys (`CURRENT`, `PROMOTED`, `CURRENT_EDITED`) remain in persistence, 
 
 ## 8. M5D-C handoff
 
-**M5D-C** may deepen portfolio / management surfaces that consume approved baselines. Do not reopen:
+**M5D-C** (see [M5D Final Acceptance](./PROJECT-PLATFORM-M5D-FINAL-ACCEPTANCE.md)) verifies the full PI → Portfolio journey. Do not reopen:
 
 - Promotion atomicity or approval fingerprint binding
 - Baseline immutability / append-only versioning
