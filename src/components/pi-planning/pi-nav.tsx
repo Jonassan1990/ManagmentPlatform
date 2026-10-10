@@ -23,7 +23,7 @@ export type PiTabKey =
 
 const TABS: { key: PiTabKey; label: string; href: (id: string) => string }[] = [
   { key: "overview", label: "Overview", href: (id) => `/pi/${id}` },
-  { key: "board", label: "Planning board", href: (id) => `/pi/${id}/board` },
+  { key: "board", label: "Plan board", href: (id) => `/pi/${id}/board` },
   {
     key: "compare",
     label: "Compare",

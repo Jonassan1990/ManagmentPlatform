@@ -102,7 +102,7 @@ describe("M4D-A ScenarioPanel board UX", () => {
     const context = screen.getByRole("region", { name: "Planning context" });
     expect(context).toBeInTheDocument();
     expect(
-      within(context).getAllByText("CURRENT plan").length,
+      within(context).getAllByText("Current plan").length,
     ).toBeGreaterThan(0);
     expect(within(context).getByText(/PI · Planning/i)).toBeInTheDocument();
     expect(
@@ -110,9 +110,9 @@ describe("M4D-A ScenarioPanel board UX", () => {
     ).toBeInTheDocument();
 
     const list = screen.getByRole("list", { name: "Scenario list" });
-    expect(within(list).getByText("CURRENT")).toBeInTheDocument();
+    expect(within(list).getAllByText("Current plan").length).toBeGreaterThan(0);
     expect(within(list).getByText("Alt staffing")).toBeInTheDocument();
-    expect(within(list).getByText("Selected for review")).toBeInTheDocument();
+    expect(within(list).getByText("Selected scenario")).toBeInTheDocument();
   });
 
   it("keeps Compare/Review visible while collapsing manage scenarios on CURRENT", () => {
@@ -171,8 +171,8 @@ describe("M4D-A ScenarioPanel board UX", () => {
     await user.click(toggle);
 
     expect(
-      screen.getByText(/require planning permission/i),
-    ).toBeInTheDocument();
+      screen.getAllByText(/require planning permission/i).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Create scenario" })).toBeDisabled();
     expect(
       screen.getByRole("link", { name: "Compare scenarios" }),
@@ -279,7 +279,7 @@ describe("ScenarioModeBanner clarity", () => {
         }}
       />,
     );
-    expect(screen.getByText(/Selected for review/i)).toBeInTheDocument();
+    expect(screen.getByText(/Selected scenario/i)).toBeInTheDocument();
     expect(
       screen.getByText(/does not mean the plan is approved/i),
     ).toBeInTheDocument();

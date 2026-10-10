@@ -19,9 +19,11 @@ describe("M4B-C status adapters", () => {
   });
 
   it("preserves scenario lifecycle distinctions", () => {
-    expect(mapScenarioStatusBadge("SELECTED").label).toBe("Selected for review");
-    expect(mapScenarioStatusBadge("PROMOTED").label).toBe("Promoted");
-    expect(mapScenarioStatusBadge("ACTIVE_PLAN").label).toBe("CURRENT plan");
+    expect(mapScenarioStatusBadge("SELECTED").label).toBe("Selected scenario");
+    expect(mapScenarioStatusBadge("PROMOTED").label).toBe(
+      "Applied to current plan",
+    );
+    expect(mapScenarioStatusBadge("ACTIVE_PLAN").label).toBe("Current plan");
     expect(mapScenarioStatusBadge("DRAFT").status).toBe("draft");
   });
 

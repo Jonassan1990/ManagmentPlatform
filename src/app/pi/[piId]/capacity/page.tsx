@@ -1,11 +1,19 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CapacityPanels } from "@/components/pi-planning/capacity-panels";
-import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
-import { Breadcrumbs, PageHeader } from "@/components/ui/page";
+import { PiTabs } from "@/components/pi-planning/pi-nav";
+import {
+  CapacityKpiStrip,
+  PiPlanningContextHeader,
+} from "@/components/pi-planning/pi-planning-workspace";
+import { Breadcrumbs } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
 import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
-import { parseReturnContext } from "@/modules/navigation/return-context";
+import {
+  appendPreservedQuery,
+  parseReturnContext,
+} from "@/modules/navigation/return-context";
+import { summarizeCapacityFromViews } from "@/modules/pi-planning/application/pi-planning-presentation";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +34,16 @@ export default async function PiCapacityPage({
 
   let pi;
   let views;
+  let conflicts: { severity: string }[] = [];
   try {
     pi = await planning.getProgramIncrement(principal, piId);
     views = await planning.getCapacityViews(principal, piId);
+    try {
+      const overview = await planning.getPiOverview(principal, piId);
+      conflicts = overview.conflicts ?? [];
+    } catch {
+      conflicts = [];
+    }
   } catch {
     notFound();
   }
@@ -60,6 +75,14 @@ export default async function PiCapacityPage({
     ];
   }
 
+  const capacity = summarizeCapacityFromViews({
+    teams: views.teams,
+    blockerConflictCount: conflicts.filter((c) => c.severity === "BLOCKER")
+      .length,
+  });
+
+  const boardHref = appendPreservedQuery(`/pi/${piId}/board`, query);
+
   return (
     <div>
       <Breadcrumbs
@@ -71,19 +94,41 @@ export default async function PiCapacityPage({
           returnContext,
         })}
       />
-      <PageHeader
-        title="Capacity"
-        description={`${pi.name} · ${piStatusLabel(pi.status)} — change planning commitments by iteration. For portfolio-wide resource coordination, open Portfolio Capacity.`}
-        actions={
-          <Link
-            href={`/portfolio/capacity?organizationId=${pi.organizationId}&piId=${piId}`}
-            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-          >
-            Portfolio Capacity
-          </Link>
-        }
+      <PiPlanningContextHeader
+        piReference={pi.referenceKey}
+        piName={pi.name}
+        piStatus={pi.status}
+        startDate={pi.startDate}
+        endDate={pi.endDate}
+        teamCount={views.teams.length}
+        revision={{
+          isCurrent: true,
+          label: "Current plan",
+          key: "CURRENT",
+          status: "ACTIVE_PLAN",
+        }}
+        capacity={capacity}
+        canAllocate={capabilities.canAllocatePi}
+        capacityHref={null}
+        compareHref={appendPreservedQuery(`/pi/${piId}/compare`, query)}
       />
+      <div className="mb-4">
+        <Link
+          href={boardHref}
+          className="inline-flex min-h-11 items-center text-sm text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        >
+          Open plan board
+        </Link>
+        <span className="mx-2 text-[var(--muted)]">·</span>
+        <Link
+          href={`/portfolio/capacity?organizationId=${pi.organizationId}&piId=${piId}`}
+          className="inline-flex min-h-11 items-center text-sm text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        >
+          Portfolio Capacity
+        </Link>
+      </div>
       <PiTabs piId={piId} active="capacity" preserveQuery={query} />
+      <CapacityKpiStrip capacity={capacity} />
       <CapacityPanels
         piId={piId}
         iterations={pi.iterations.map((it) => ({
