@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import { IdentityService } from "@/modules/identity-access/application/identity-service";
+import { validateOidcSignInClaims } from "@/modules/identity-access/application/oidc-claims";
 import { verifyTempAuthCredentials } from "@/modules/identity-access/application/temp-auth-credentials";
 import { TEMP_AUTH_PROVIDER_ID } from "@/modules/identity-access/application/temp-auth-constants";
 import { prisma } from "@/server/db";
@@ -178,19 +179,39 @@ function buildAuthConfig(): NextAuthConfig {
         if (account.provider !== "oidc" || !authEnv) {
           return false;
         }
-        const issuerRaw =
-          account.issuer ??
-          (typeof profile?.iss === "string" ? profile.iss : null) ??
-          authEnv.OIDC_ISSUER;
-        const subjectRaw =
-          account.providerAccountId ??
-          (typeof profile?.sub === "string" ? profile.sub : null);
-        if (
-          typeof issuerRaw !== "string" ||
-          !issuerRaw ||
-          typeof subjectRaw !== "string" ||
-          !subjectRaw
-        ) {
+        const issuerCandidate =
+          typeof account.issuer === "string"
+            ? account.issuer
+            : typeof profile?.iss === "string"
+              ? profile.iss
+              : null;
+        const subjectCandidate =
+          typeof account.providerAccountId === "string"
+            ? account.providerAccountId
+            : typeof profile?.sub === "string"
+              ? profile.sub
+              : null;
+        const audClaim =
+          profile && "aud" in profile
+            ? (profile as { aud?: unknown }).aud
+            : undefined;
+        const audienceRaw: string | string[] | undefined =
+          typeof audClaim === "string"
+            ? audClaim
+            : Array.isArray(audClaim) &&
+                audClaim.every((v): v is string => typeof v === "string")
+              ? audClaim
+              : undefined;
+
+        const claims = validateOidcSignInClaims({
+          expectedIssuer: authEnv.OIDC_ISSUER,
+          expectedAudience: authEnv.OIDC_CLIENT_ID,
+          issuer: issuerCandidate,
+          subject: subjectCandidate,
+          audience: audienceRaw,
+        });
+        if (!claims.ok) {
+          console.warn("[oidc] sign-in rejected:", claims.reason);
           return false;
         }
 
@@ -207,8 +228,8 @@ function buildAuthConfig(): NextAuthConfig {
             ? (profile as { preferred_username: string }).preferred_username
             : null;
         const principal = await identity.resolveOrCreateFromOidc({
-          issuer: issuerRaw,
-          subject: subjectRaw,
+          issuer: claims.issuer,
+          subject: claims.subject,
           email: typeof profile?.email === "string" ? profile.email : null,
           displayName:
             typeof profile?.name === "string" ? profile.name : preferred,
@@ -232,25 +253,43 @@ function buildAuthConfig(): NextAuthConfig {
           if (principalId) {
             token.principalId = principalId;
           } else {
-            const issuerRaw =
-              account.issuer ??
-              (typeof profile?.iss === "string" ? profile.iss : null) ??
-              authEnv.OIDC_ISSUER;
-            const subjectRaw = account.providerAccountId;
-            if (
-              typeof issuerRaw === "string" &&
-              issuerRaw &&
-              typeof subjectRaw === "string" &&
-              subjectRaw
-            ) {
+            const issuerCandidate =
+              typeof account.issuer === "string"
+                ? account.issuer
+                : typeof profile?.iss === "string"
+                  ? profile.iss
+                  : null;
+            const subjectCandidate =
+              typeof account.providerAccountId === "string"
+                ? account.providerAccountId
+                : null;
+            const audClaim =
+              profile && "aud" in profile
+                ? (profile as { aud?: unknown }).aud
+                : undefined;
+            const audienceRaw: string | string[] | undefined =
+              typeof audClaim === "string"
+                ? audClaim
+                : Array.isArray(audClaim) &&
+                    audClaim.every((v): v is string => typeof v === "string")
+                  ? audClaim
+                  : undefined;
+            const claims = validateOidcSignInClaims({
+              expectedIssuer: authEnv.OIDC_ISSUER,
+              expectedAudience: authEnv.OIDC_CLIENT_ID,
+              issuer: issuerCandidate,
+              subject: subjectCandidate,
+              audience: audienceRaw,
+            });
+            if (claims.ok) {
               const identity = new IdentityService(
                 prisma,
                 new AuthorizationService(prisma),
                 new AuditService(prisma),
               );
               const principal = await identity.resolveOrCreateFromOidc({
-                issuer: issuerRaw,
-                subject: subjectRaw,
+                issuer: claims.issuer,
+                subject: claims.subject,
                 email:
                   typeof profile?.email === "string" ? profile.email : null,
                 displayName:

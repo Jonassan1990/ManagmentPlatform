@@ -22,3 +22,20 @@ export const expireRoleBindingInputSchema = z.object({
   bindingId: uuidSchema,
   effectiveTo: z.coerce.date().optional().nullable(),
 });
+
+/**
+ * Explicit OIDC → Principal link (R1-B cutover).
+ * Never uses email as the identity key. Requires PLATFORM ROLE_MANAGE.
+ */
+export const linkOidcIdentityInputSchema = z.object({
+  targetPrincipalId: uuidSchema,
+  issuer: z.string().url().max(500),
+  subject: z.string().min(1).max(500),
+  emailSnapshot: z.string().email().max(320).optional().nullable(),
+  displayNameSnapshot: z.string().max(200).optional().nullable(),
+  /**
+   * Operator acknowledgement that this is an intentional link
+   * (not automatic merge by email/display name).
+   */
+  confirmExplicitLink: z.literal(true),
+});

@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "crypto";
 import { PrismaClient, ScopeType } from "@prisma/client";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AppError } from "@/modules/shared/errors";
-import { ROLE_KEYS } from "@/modules/shared/permissions";
+import { PERMISSIONS, ROLE_KEYS } from "@/modules/shared/permissions";
 import type { Principal } from "../domain/types";
 import { AuthorizationService } from "./authorization-service";
 import { getBootstrapSetupToken } from "@/server/env";
@@ -19,6 +19,16 @@ export type TempAuthIdentityInput = {
   principalId: string;
   username: string;
   displayName?: string | null;
+};
+
+export type LinkOidcIdentityInput = {
+  targetPrincipalId: string;
+  issuer: string;
+  subject: string;
+  emailSnapshot?: string | null;
+  displayNameSnapshot?: string | null;
+  /** Must be true — blocks accidental calls that omit operator intent. */
+  confirmExplicitLink: true;
 };
 
 const BOOTSTRAP_KEY = "default";
@@ -283,6 +293,178 @@ export class IdentityService {
       displayName: input.displayName ?? principal.displayName,
       email: principal.email ?? undefined,
       source: "temp",
+    };
+  }
+
+  /**
+   * Explicit, auditable link of an OIDC (issuer, subject) to an existing Principal.
+   *
+   * Cutover use case: attach enterprise SSO to the temporary owner Principal so
+   * RoleBindings and audit history remain on the same Principal id.
+   *
+   * Rules:
+   * - Actor must hold PLATFORM ROLE_MANAGE (authentication ≠ authorization).
+   * - Never matches or merges by email / display name.
+   * - Refuses if (issuer, subject) is already bound to a different Principal.
+   * - Refuses if target Principal already has a different subject for the same issuer.
+   * - Does not grant RoleBindings.
+   * - Does not delete or alter TEMP_AUTH ExternalIdentity rows.
+   */
+  async linkOidcIdentityToPrincipal(
+    actor: Principal,
+    input: LinkOidcIdentityInput,
+  ): Promise<{ principalId: string; externalIdentityId: string; created: boolean }> {
+    if (input.confirmExplicitLink !== true) {
+      throw new AppError(
+        "VALIDATION",
+        "Explicit confirmation is required to link an OIDC identity.",
+      );
+    }
+
+    await this.authz.assertCan(actor, PERMISSIONS.ROLE_MANAGE, {
+      type: "PLATFORM",
+    });
+
+    const issuer = input.issuer.trim().replace(/\/+$/, "");
+    const subject = input.subject.trim();
+    const targetPrincipalId = input.targetPrincipalId.trim();
+    if (!issuer || !subject || !targetPrincipalId) {
+      throw new AppError(
+        "VALIDATION",
+        "issuer, subject, and targetPrincipalId are required.",
+      );
+    }
+    if (issuer === TEMP_AUTH_ISSUER) {
+      throw new AppError(
+        "VALIDATION",
+        "Cannot link the temporary-auth issuer through the OIDC link procedure.",
+      );
+    }
+
+    const target = await this.db.principal.findUnique({
+      where: { id: targetPrincipalId },
+      include: {
+        externalIdentities: {
+          where: { issuer },
+        },
+      },
+    });
+    if (!target) {
+      throw new AppError("NOT_FOUND", "Target Principal not found.");
+    }
+
+    const existing = await this.db.externalIdentity.findUnique({
+      where: { issuer_subject: { issuer, subject } },
+    });
+
+    if (existing && existing.principalId !== targetPrincipalId) {
+      await this.audit.record({
+        actorPrincipalId: actor.id,
+        actionType: "identity.oidc.link",
+        subjectType: "Principal",
+        subjectId: targetPrincipalId,
+        payload: {
+          reason: "identity_conflict_other_principal",
+          issuer,
+          subjectPresent: true,
+        },
+        result: "denied",
+      });
+      throw new AppError(
+        "CONFLICT",
+        "This OIDC identity is already linked to a different Principal.",
+      );
+    }
+
+    const sameIssuerOtherSubject = target.externalIdentities.find(
+      (ei) => ei.subject !== subject,
+    );
+    if (sameIssuerOtherSubject && !existing) {
+      await this.audit.record({
+        actorPrincipalId: actor.id,
+        actionType: "identity.oidc.link",
+        subjectType: "Principal",
+        subjectId: targetPrincipalId,
+        payload: {
+          reason: "principal_already_has_issuer_subject",
+          issuer,
+          subjectPresent: true,
+        },
+        result: "denied",
+      });
+      throw new AppError(
+        "CONFLICT",
+        "Target Principal already has a different subject for this issuer.",
+      );
+    }
+
+    if (existing && existing.principalId === targetPrincipalId) {
+      await this.db.externalIdentity.update({
+        where: { id: existing.id },
+        data: {
+          emailSnapshot: input.emailSnapshot ?? existing.emailSnapshot,
+          displayNameSnapshot:
+            input.displayNameSnapshot ?? existing.displayNameSnapshot,
+        },
+      });
+      await this.audit.record({
+        actorPrincipalId: actor.id,
+        actionType: "identity.oidc.link",
+        subjectType: "ExternalIdentity",
+        subjectId: existing.id,
+        payload: {
+          issuer,
+          subjectPresent: true,
+          targetPrincipalId,
+          created: false,
+        },
+        result: "success",
+      });
+      return {
+        principalId: targetPrincipalId,
+        externalIdentityId: existing.id,
+        created: false,
+      };
+    }
+
+    const created = await this.db.externalIdentity.create({
+      data: {
+        issuer,
+        subject,
+        principalId: targetPrincipalId,
+        emailSnapshot: input.emailSnapshot ?? null,
+        displayNameSnapshot: input.displayNameSnapshot ?? null,
+      },
+    });
+
+    if (input.emailSnapshot || input.displayNameSnapshot) {
+      await this.db.principal.update({
+        where: { id: targetPrincipalId },
+        data: {
+          email: input.emailSnapshot ?? target.email,
+          displayName: input.displayNameSnapshot ?? target.displayName,
+        },
+      });
+    }
+
+    await this.audit.record({
+      actorPrincipalId: actor.id,
+      actionType: "identity.oidc.link",
+      subjectType: "ExternalIdentity",
+      subjectId: created.id,
+      payload: {
+        issuer,
+        subjectPresent: true,
+        targetPrincipalId,
+        created: true,
+      },
+      result: "success",
+    });
+
+    return {
+      principalId: targetPrincipalId,
+      externalIdentityId: created.id,
+      created: true,
     };
   }
 

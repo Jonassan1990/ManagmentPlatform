@@ -6,6 +6,7 @@ import { createServices } from "@/server/container";
 import {
   assignRoleBindingInputSchema,
   expireRoleBindingInputSchema,
+  linkOidcIdentityInputSchema,
 } from "@/modules/identity-access/application/schemas";
 
 export type ActionResult<T = unknown> =
@@ -50,6 +51,20 @@ export async function expireRoleBindingAction(
     if (result.organizationId) {
       revalidatePath(`/organization/${result.organizationId}/access`);
     }
+    return result;
+  });
+}
+
+/** Explicit OIDC identity link (PLATFORM ROLE_MANAGE). Never merges by email. */
+export async function linkOidcIdentityAction(
+  input: unknown,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { authz, identity } = createServices();
+    const principal = await authz.requirePrincipal();
+    const parsed = linkOidcIdentityInputSchema.parse(input);
+    const result = await identity.linkOidcIdentityToPrincipal(principal, parsed);
+    revalidatePath("/setup/link-oidc");
     return result;
   });
 }
