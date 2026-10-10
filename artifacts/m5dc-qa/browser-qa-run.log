@@ -1,0 +1,24 @@
+PASS reconcile.service-level { passed: 17, failed: 0, total: 17 }
+PASS login.dev-auth http://127.0.0.1:43154/
+PASS login 
+PASS journey:pi-entry 
+PASS journey:plan-board-teams-allocation 
+PASS journey:capacity-workspace 
+PASS journey:scenario-isolation-ui 
+PASS journey:compare 
+PASS journey:review-lifecycle-chrome 
+PASS journey:select-semantics 
+PASS journey:apply-consequence 
+PASS journey:approve-version-bound 
+PASS journey:baseline-immutability 
+PASS journey:empty-unavailable-states 
+PASS journey:conflict-explanations 
+PASS journey:portfolio-current-only 
+PASS journey:context-preservation 
+PASS journey:authorized-manager 
+PASS journey:authorized-viewer 
+PASS a11y.keyboard-tab { focusTag: 'A' }
+PASS a11y.main-landmark 
+PASS journey:mobile-usability { mobileOverflow: 0, mobileBoardOverflow: 0, mobileWorkflow: true }
+PASS journey:desktop-capacity 
+VERDICT PASS 18/18 journeys outDir=/tmp/m5dc-qa-durable files=22
