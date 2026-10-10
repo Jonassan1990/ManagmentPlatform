@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-10-10T07:41:33.779Z",
+  "base": "http://localhost:43148",
+  "timings": {
+    "home": 1173,
+    "portfolio": 1112,
+    "explorer": 900,
+    "health": 809,
+    "capacity": 967,
+    "pi-board": 934,
+    "pi-review": 1039,
+    "initiatives": 884,
+    "organization": 864
+  }
+}
