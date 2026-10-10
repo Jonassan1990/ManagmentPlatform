@@ -12,7 +12,7 @@
 | Starting / reviewed `origin/main` SHA (full) | `f5e9b21394952ef3abe5bdab67fdb41c4b8e57e6` |
 | Minimum ancestor required | `f5e9b21` — **verified** |
 | Branch | `cursor/v1-release-review-60bb` |
-| Pull request | [#85](https://github.com/Jonassan1990/ManagmentPlatform/pull/85) — **OPEN** (Vercel check **failure**: rate-limited; not merged per “successful checks” rule) |
+| Pull request | [#85](https://github.com/Jonassan1990/ManagmentPlatform/pull/85) — **MERGED** (`a981dbe`) after Vercel check recovered to success |
 | M5-FINAL reference | [PROJECT-PLATFORM-M5-FINAL-ACCEPTANCE.md](./PROJECT-PLATFORM-M5-FINAL-ACCEPTANCE.md) |
 
 ---
@@ -308,10 +308,15 @@ Minimum checklist (all required unless explicitly waived in writing by Product O
 4. Proceed to **R1-RECOVERY-B** for OIDC/ops — **not** in this phase.
 5. Keep V1 release decision **NO GO** until OIDC, backups/alerts, and authenticated Production acceptance are independently satisfied.
 
-### 14.8 Recovery-A verdict
+### 14.8 Recovery-A outcome (post-clear)
+
+At ~18:38Z a subsequent docs push on PR #85 received a **successful** Vercel Preview (`1e4f6fe`). PR #85 was merged normally (no check override).
 
 | Field | Value |
 |---|---|
-| R1-RECOVERY-A STATUS | **BLOCKED** |
-| Blocker | Vercel build rate limit still active; PR #85 cannot merge green |
-| V1 release decision | Unchanged: **NO GO** |
+| R1-RECOVERY-A STATUS | **PASS** (deployment recovery) |
+| Merged PR | [#85](https://github.com/Jonassan1990/ManagmentPlatform/pull/85) → `a981dbeab14b2d36722f4aa7509e436d92a44598` |
+| Production deployment SHA | `a981dbeab14b2d36722f4aa7509e436d92a44598` (GitHub deployment id `6985249494`, state **success**) |
+| Production URL | `https://managmentplatform.vercel.app` |
+| Health | `GET /api/health` → ok / database ok / `oidcConfigured:false` / `tempAuthConfigured:true` |
+| V1 release decision | Unchanged: **NO GO** (OIDC, backups, alerts, authenticated Production acceptance still open) |
