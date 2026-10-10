@@ -1,23 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AppError, toErrorPayload } from "@/modules/shared/errors";
 import { createServices } from "@/server/container";
+import { runAction, type ActionResult } from "@/server/action-runner";
 
-export type ActionResult<T = unknown> =
-  | { ok: true; data: T }
-  | { ok: false; error: { code: string; message: string; details?: unknown } };
+export type { ActionResult };
 
 async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
-  try {
-    const data = await fn();
-    return { ok: true, data };
-  } catch (error) {
-    if (!(error instanceof AppError)) {
-      console.error(error);
-    }
-    return { ok: false, error: toErrorPayload(error) };
-  }
+  return runAction("server_action", fn);
 }
 
 function revalidatePilot(initiativeId: string) {

@@ -13,6 +13,7 @@ import {
   ownershipGrantsPermission,
   type OwnershipRelationship,
 } from "./relationship-policy";
+import { logger } from "@/server/logger";
 import { TEMP_AUTH_ISSUER } from "./temp-auth-constants";
 
 export class AuthorizationService {
@@ -235,6 +236,11 @@ export class AuthorizationService {
       return;
     }
 
+    logger.warn("authz.denied", {
+      permission,
+      scopeType: scope.type,
+      principalId: principal.id,
+    });
     throw new AppError(
       "FORBIDDEN",
       `Missing permission '${permission}' for the requested scope.`,

@@ -1,0 +1,61 @@
+# Copy to .github/workflows/prisma-migrate-production.yml with a token that has
+# the `workflow` scope. Do not enable on push. Requires GitHub Environment
+# `production-migrate` with required reviewers and secrets DATABASE_URL + DIRECT_URL
+# for prisma-postgres-cinnabar-engine only.
+
+name: Prisma migrate (production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: 'Type production to target the production database'
+        required: true
+        type: string
+
+concurrency:
+  group: prisma-migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: migrate deploy
+    runs-on: ubuntu-latest
+    environment: production-migrate
+    if: ${{ inputs.confirm_production == 'production' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Pre-status (sanitized)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${DATABASE_URL:-}"
+          test -n "${DIRECT_URL:-}"
+          echo "$DATABASE_URL" | grep -q 'db.prisma.io' || {
+            echo 'Refusing migrate: DATABASE_URL host is not db.prisma.io'
+            exit 1
+          }
+          npx prisma migrate status 2>&1 | sed -E 's#postgres(ql)?://[^@]+@#postgres://***@#g'
+      - name: Migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          set -euo pipefail
+          npx prisma migrate deploy 2>&1 | sed -E 's#postgres(ql)?://[^@]+@#postgres://***@#g'
+      - name: Post-status (sanitized)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          set -euo pipefail
+          npx prisma migrate status 2>&1 | sed -E 's#postgres(ql)?://[^@]+@#postgres://***@#g'

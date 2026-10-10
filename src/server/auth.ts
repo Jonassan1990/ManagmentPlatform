@@ -14,6 +14,7 @@ import {
   isOidcConfigured,
   resolveAuthSecret,
 } from "@/server/env";
+import { logger } from "@/server/logger";
 
 declare module "next-auth" {
   interface Session {
@@ -122,10 +123,9 @@ function buildAuthConfig(): NextAuthConfig {
               principalId: principal.id,
             };
           } catch (error) {
-            console.error(
-              "[temp-auth] identity resolution failed (fail closed)",
-            );
-            void error;
+            logger.error("auth.temp_identity_failed", {
+              reason: error instanceof Error ? error.name : "unknown",
+            });
             return null;
           }
         },
@@ -211,7 +211,7 @@ function buildAuthConfig(): NextAuthConfig {
           audience: audienceRaw,
         });
         if (!claims.ok) {
-          console.warn("[oidc] sign-in rejected:", claims.reason);
+          logger.warn("auth.oidc_signin_rejected", { reason: claims.reason });
           return false;
         }
 

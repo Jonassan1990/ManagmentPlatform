@@ -45,7 +45,11 @@ Recommended approach:
 
 Do not rely on `db push` in production.
 
-Do **not** run migrations on application startup. Prefer a protected manual `workflow_dispatch` job (GitHub Environment `production-migrate`) as specified in [PROJECT-PLATFORM-R1-A-PRODUCTION-DB-RECOVERY.md](./PROJECT-PLATFORM-R1-A-PRODUCTION-DB-RECOVERY.md).
+Do **not** run migrations on application startup. Prefer a protected manual `workflow_dispatch` job (GitHub Environment `production-migrate`) as specified in [PROJECT-PLATFORM-R1-A-PRODUCTION-DB-RECOVERY.md](./PROJECT-PLATFORM-R1-A-PRODUCTION-DB-RECOVERY.md). Workflow template: [docs/ops/prisma-migrate-production.workflow.yml](./ops/prisma-migrate-production.workflow.yml). Operations readiness: [PROJECT-PLATFORM-R1-C-OPERATIONS-READINESS.md](./PROJECT-PLATFORM-R1-C-OPERATIONS-READINESS.md).
+
+### Health
+
+`GET /api/health` — public liveness/readiness (app + DB ping + auth configuration booleans only). Returns 503 when the database is unreachable. Safe for uptime monitors; does not expose secrets.
 
 ## Auth in production
 
