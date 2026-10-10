@@ -67,18 +67,18 @@ Captured under `artifacts/m5bb-qa/` during browser QA:
 
 ## 5. UX measurements (structural — not a user study)
 
-Measured as **interaction steps from first Home paint** (no invented study scores):
+Measured as **interaction steps from first Home paint** on fixture `http://127.0.0.1:43152` (Org Admin / manager mode). No invented user-study scores.
 
-| Goal | Target path | Steps |
+| Goal | Observed path (browser QA) | Steps |
 |---|---|---|
-| Create Initiative | Quick Start → Create Initiative | **1 click** (when authorized) |
-| Open PI Planning | Quick Start → Open PI Planning **or** Current PI → Continue planning | **1 click** |
-| Find assigned work | My Work list (employee/mixed) | **0 clicks** (visible on first screen for employee/mixed) |
-| Locate blocked Project | Needs Attention KPI or Priority items / Active Projects row | **1 click** to drill-down |
-| First-screen clarity | Manager: Attention + Quick Start above fold on desktop 1280×800 | Attention + Quick Start visible without scroll on typical laptop |
-| Control density | Quick Start ≤ ~6–9 authorized cards; KPI strip ≤ 6 preferred metrics | Avoids dense technical metric grids from M4 Home |
+| Create Initiative | Quick Start → Create Initiative → `/initiatives/new` | **1 click** |
+| Open PI Planning | Quick Start → Open PI Planning → `/pi` | **1 click** |
+| Find assigned work | My Work section (employee/mixed) / manager: no linked Resource empty state | **0 clicks** to see status |
+| Locate blocked / attention | Needs Attention “Blocked / at risk” → `/portfolio/health` | **1 click** |
+| First-screen clarity (1280×800) | Welcome + org/role chips + Needs Attention + Quick Start header | Visible without scroll |
+| Mobile (390×844) | Single column; no horizontal overflow | PASS |
 
-**30-second target:** A signed-in user sees welcome context, mode chip, and either Needs Attention (manager) or My Work (employee) plus Quick Start destinations within the first viewport.
+**30-second target:** Signed-in managers see attention signals and Quick Start on the first viewport; Create Initiative / PI Planning are one click.
 
 ---
 
