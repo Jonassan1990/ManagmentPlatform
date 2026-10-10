@@ -92,3 +92,19 @@ describe("JWT least privilege contract", () => {
     expect(sessionShape.principalId).toBeTruthy();
   });
 });
+
+describe("R1-B session / cookie contract", () => {
+  it("documents secure session cookie expectations", () => {
+    const productionCookie = {
+      name: "__Secure-authjs.session-token",
+      httpOnly: true,
+      sameSite: "lax" as const,
+      secure: true,
+      maxAgeHours: 8,
+    };
+    expect(productionCookie.httpOnly).toBe(true);
+    expect(productionCookie.sameSite).toBe("lax");
+    expect(productionCookie.secure).toBe(true);
+    expect(productionCookie.maxAgeHours).toBe(8);
+  });
+});

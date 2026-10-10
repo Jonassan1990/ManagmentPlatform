@@ -83,6 +83,20 @@ Use `DIRECT_URL` for migration connectivity when the runtime URL is pooled.
 6. Create the organization; grant org admin roles to other principals as needed.
 7. Remove or rotate `BOOTSTRAP_SETUP_TOKEN` after successful consumption (token is already single-use via `BootstrapConsumption`).
 
+## OIDC cutover from temporary owner (R1-B / ADR-028)
+
+While `TEMP_AUTH_*` remains configured, SSO and temporary credentials can coexist.
+
+1. Configure `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` (and `AUTH_URL` / `AUTH_SECRET`).
+2. Verify SSO login for the intended administrator.
+3. **Preserve the temporary owner Principal** (do not delete it; do not auto-merge by email).
+4. Explicit link (recommended for continuity): sign in as PLATFORM admin → `/setup/link-oidc` → attach IdP `(issuer, subject)` to `TEMP_AUTH_PRINCIPAL_ID`.
+   - Alternative: assign RoleBindings to the new OIDC Principal without linking.
+5. Verify RoleBindings, authorized navigation, logout, and session expiry.
+6. Only then remove `TEMP_AUTH_*` from Production and retire the Credentials provider in a **separate** controlled change.
+
+See [PROJECT-PLATFORM-R1-B-OIDC-CUTOVER.md](./PROJECT-PLATFORM-R1-B-OIDC-CUTOVER.md).
+
 ## Failure modes
 
 | Symptom | Likely cause |
