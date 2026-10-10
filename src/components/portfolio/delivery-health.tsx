@@ -269,7 +269,7 @@ export function DeliveryHealthAttentionList({
                 departmentId,
                 healthFocus: null,
               })}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Clear health focus
             </Link>
@@ -285,7 +285,7 @@ export function DeliveryHealthAttentionList({
                 ? `&deliveryHealth=${healthFocus}&kind=PROJECT`
                 : "&kind=PROJECT&deliveryHealth=AT_RISK"
             }`}
-            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             Open in explorer
           </Link>
@@ -412,7 +412,7 @@ function AttentionRowDesktop({
       <td className="py-3 pr-3">
         <Link
           href={projectHref}
-          className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           {row.referenceKey}
         </Link>
@@ -451,13 +451,13 @@ function AttentionRowDesktop({
         <div className="flex flex-col gap-1">
           <Link
             href={explainHref}
-            className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             Explain
           </Link>
           <Link
             href={projectHref}
-            className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             {projectTarget.label.startsWith("Open project")
               ? "Open project"
@@ -490,7 +490,7 @@ function AttentionRowMobile({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href={projectHref}
-          className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           {row.referenceKey} · {row.name}
         </Link>
@@ -510,13 +510,13 @@ function AttentionRowMobile({
       <div className="mt-2 flex flex-wrap gap-3 text-sm">
         <Link
           href={explainHref}
-          className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           Explain health
         </Link>
         <Link
           href={projectHref}
-          className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           Open project
         </Link>
@@ -569,13 +569,13 @@ export function DeliveryHealthExplanation({
           <div className="flex flex-wrap gap-2">
             <Link
               href={projectHref}
-              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Open project
             </Link>
             <Link
               href={hubHref}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Health hub
             </Link>
@@ -584,7 +584,7 @@ export function DeliveryHealthExplanation({
                 `/portfolio?organizationId=${organizationId}`,
                 ret,
               )}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Portfolio
             </Link>

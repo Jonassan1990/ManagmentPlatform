@@ -71,16 +71,16 @@ export function ScenarioPromotionPanel({
 
   const shellClass = embedded
     ? "space-y-4 p-3 sm:p-4"
-    : "mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]";
+    : "mb-6 space-y-4 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]";
 
   return (
     <section className={shellClass} aria-label="Scenario promotion">
       {embedded ? null : (
       <div>
-        <h2 className="text-sm font-semibold text-[#102a43]">
+        <h2 className="text-sm font-semibold text-[var(--sidebar)]">
           Apply selected scenario to current plan
         </h2>
-        <p className="mt-1 text-xs text-[#74848e]">
+        <p className="mt-1 text-xs text-[var(--muted)]">
           Replaces current plan allocations with the selected scenario. This does
           not approve the PI or create an immutable baseline.
         </p>
@@ -95,7 +95,7 @@ export function ScenarioPromotionPanel({
       {success ? <Alert tone="success">{success}</Alert> : null}
 
       {!selected ? (
-        <p className="text-sm text-[#74848e]">
+        <p className="text-sm text-[var(--muted)]">
           Select a scenario for review above before applying it.
         </p>
       ) : (
@@ -126,7 +126,7 @@ export function ScenarioPromotionPanel({
 
           {preview.readiness && preview.readiness.blockers.length > 0 ? (
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#d65d57]">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-error)]">
                 Blocking conditions
               </h3>
               <ul className="list-disc space-y-1 pl-5">
@@ -139,7 +139,7 @@ export function ScenarioPromotionPanel({
 
           {preview.readiness && preview.readiness.warnings.length > 0 ? (
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#e3a640]">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-warning)]">
                 Warnings
               </h3>
               <ul className="list-disc space-y-1 pl-5">
@@ -212,7 +212,7 @@ export function ScenarioPromotionPanel({
           />
 
           {!canReview ? (
-            <p className="text-xs text-[#74848e]">
+            <p className="text-xs text-[var(--muted)]">
               Applying a scenario requires review permission.
             </p>
           ) : null}
@@ -232,9 +232,9 @@ function PreviewMetric({
   hours: number;
 }) {
   return (
-    <div className="rounded-[11px] border border-[#e2e8eb] bg-[#f8fafb] p-3">
-      <p className="text-[11px] text-[#74848e]">{label}</p>
-      <p className="text-lg font-extrabold tracking-tight text-[#102a43] tabular-nums">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg)] p-3">
+      <p className="text-[11px] text-[var(--muted)]">{label}</p>
+      <p className="text-lg font-extrabold tracking-tight text-[var(--sidebar)] tabular-nums">
         {count} alloc · {formatHours(hours)}
       </p>
     </div>

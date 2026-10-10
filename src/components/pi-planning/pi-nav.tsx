@@ -71,7 +71,7 @@ export function PiTabs({
             key={tab.key}
             href={href}
             aria-current={isActive ? "page" : undefined}
-            className={`inline-flex min-h-11 shrink-0 items-center rounded-md px-3 py-1.5 text-sm whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+            className={`inline-flex min-h-11 shrink-0 items-center rounded-md px-3 py-1.5 text-sm whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] ${
               isActive
                 ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"

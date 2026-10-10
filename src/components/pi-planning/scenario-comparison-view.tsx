@@ -44,21 +44,21 @@ function CompareKpiCard({
 }) {
   const bar =
     tone === "critical"
-      ? "bg-[#d65d57]"
+      ? "bg-[var(--color-error)]"
       : tone === "warn"
-        ? "bg-[#e3a640]"
+        ? "bg-[var(--color-warning)]"
         : tone === "teal"
-          ? "bg-[#087f78]"
-          : "bg-[#5b8def]";
+          ? "bg-[var(--color-accent)]"
+          : "bg-[var(--color-info)]";
   return (
-    <div className="relative overflow-hidden rounded-[11px] border border-[#e2e8eb] bg-white p-[14px_17px] shadow-[0_7px_22px_#1b33440a]">
+    <div className="relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]">
       <div className={`absolute inset-y-0 left-0 w-1 ${bar}`} aria-hidden />
       <p className="text-[11px] text-[var(--muted)]">{label}</p>
-      <p className="my-[3px] text-[22px] font-extrabold tracking-[-0.04em] text-[#102a43] tabular-nums sm:text-[27px]">
+      <p className="my-[3px] text-[22px] font-extrabold tracking-[-0.04em] text-[var(--sidebar)] tabular-nums sm:text-[27px]">
         {value}
       </p>
       {delta ? (
-        <p className="text-[10px] tabular-nums text-[#829099]">{delta}</p>
+        <p className="text-[10px] tabular-nums text-[var(--muted)]">{delta}</p>
       ) : null}
     </div>
   );
@@ -73,15 +73,15 @@ function RevisionHeader({
 }) {
   return (
     <div className="space-y-1">
-      <p className="font-semibold text-[#102a43]">
+      <p className="font-semibold text-[var(--sidebar)]">
         {scenarioRevisionLabel(revision)}
       </p>
       {isReference ? (
-        <span className="inline-block rounded bg-[#087f78]/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#087f78]">
+        <span className="inline-block rounded bg-[var(--color-accent)]/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--color-accent)]">
           Reference
         </span>
       ) : (
-        <span className="text-[10px] text-[#829099]">vs reference</span>
+        <span className="text-[10px] text-[var(--muted)]">vs reference</span>
       )}
     </div>
   );
@@ -117,9 +117,9 @@ function WorkItemDiffTable({ rows }: { rows: WorkItemAllocationDiff[] }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.workItemId} className="border-b border-[#e2e8eb]/70">
+            <tr key={row.workItemId} className="border-b border-[var(--line)]/70">
               <td className="py-2 pr-3 align-top">
-                <span className="font-medium text-[#102a43]">
+                <span className="font-medium text-[var(--sidebar)]">
                   {row.workItemReferenceKey ?? row.workItemId.slice(0, 8)}
                 </span>
                 {row.workItemTitle ? (
@@ -129,7 +129,7 @@ function WorkItemDiffTable({ rows }: { rows: WorkItemAllocationDiff[] }) {
               <td className="py-2 pr-3 align-top text-xs uppercase text-[var(--muted)]">
                 {row.change.replaceAll("_", " ")}
               </td>
-              <td className="py-2 align-top text-xs text-[#102a43]">
+              <td className="py-2 align-top text-xs text-[var(--sidebar)]">
                 <WorkItemSideSummary diff={row} />
               </td>
             </tr>
@@ -175,20 +175,20 @@ function ConflictList({
       {conflicts.slice(0, 25).map((c, i) => (
         <li
           key={`${c.type}-${c.subjectId}-${i}`}
-          className="rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+          className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
         >
           <span
             className={`mr-2 text-[10px] font-semibold uppercase ${
               c.severity === "BLOCKER"
-                ? "text-[#d65d57]"
+                ? "text-[var(--color-error)]"
                 : c.severity === "WARNING"
-                  ? "text-[#e3a640]"
+                  ? "text-[var(--color-warning)]"
                   : "text-[var(--muted)]"
             }`}
           >
             {c.severity}
           </span>
-          <span className="text-[#102a43]">{c.message}</span>
+          <span className="text-[var(--sidebar)]">{c.message}</span>
         </li>
       ))}
       {conflicts.length > 25 ? (
@@ -286,21 +286,21 @@ export function ScenarioComparisonView({
   return (
     <div className="space-y-6">
       <div
-        className="rounded-md border border-[#087f78]/30 bg-[#087f78]/5 px-3 py-2 text-sm text-[#102a43]"
+        className="rounded-md border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 px-3 py-2 text-sm text-[var(--sidebar)]"
         role="status"
       >
         Read-only comparison — no promotion, approval, or edits. Capacity inputs
         are shared live across scenarios; only allocations differ per revision.
       </div>
 
-      <section className="rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]">
+      <section className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-[#102a43]">
+          <h2 className="text-sm font-semibold text-[var(--sidebar)]">
             Select scenarios ({COMPARE_MIN_REVISIONS}–{COMPARE_MAX_REVISIONS})
           </h2>
           <Link
             href={boardHref}
-            className="text-sm text-[#087f78] hover:underline"
+            className="text-sm text-[var(--color-accent)] hover:underline"
           >
             Back to planning board
           </Link>
@@ -328,7 +328,7 @@ export function ScenarioComparisonView({
                 return (
                   <li
                     key={s.id}
-                    className="flex flex-wrap items-center gap-3 rounded-md border border-[#e2e8eb] px-3 py-2"
+                    className="flex flex-wrap items-center gap-3 rounded-md border border-[var(--line)] px-3 py-2"
                   >
                     <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
                       <input
@@ -424,7 +424,7 @@ function ComparisonResults({
             return (
               <div
                 key={col.revisionId}
-                className="space-y-3 rounded-[11px] border border-[#e2e8eb] bg-[#f8fafb] p-4"
+                className="space-y-3 rounded-lg border border-[var(--line)] bg-[var(--bg)] p-4"
               >
                 <RevisionHeader revision={rev} isReference={isRef} />
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -549,7 +549,7 @@ function ComparisonResults({
           <p className="text-sm text-[var(--muted)]">No team rows to show.</p>
         ) : (
           <div
-            className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white"
+            className="overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)]"
             role="region"
             aria-label="Team capacity comparison. Scroll horizontally on small screens."
             tabIndex={0}
@@ -559,7 +559,7 @@ function ComparisonResults({
                 Team capacity comparison by scenario revision
               </caption>
               <thead>
-                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[var(--muted)]">
+                <tr className="border-b border-[var(--line)] bg-[var(--bg)] text-[11px] uppercase text-[var(--muted)]">
                   <th scope="col" className="p-3 font-medium">
                     Team
                   </th>
@@ -574,7 +574,7 @@ function ComparisonResults({
                 {comparison.byTeam.map((row) => (
                   <tr
                     key={`${row.teamId}-${row.iterationId}`}
-                    className="border-b border-[#e2e8eb]/60"
+                    className="border-b border-[var(--line)]/60"
                   >
                     <td className="p-3 align-top">
                       <span className="font-medium">{row.teamName}</span>
@@ -605,7 +605,7 @@ function ComparisonResults({
                             {col.overloaded ? " · overloaded" : ""}
                           </p>
                           <div
-                            className="mt-1 h-1.5 w-full max-w-[8rem] overflow-hidden rounded-full bg-[#e2e8eb]"
+                            className="mt-1 h-1.5 w-full max-w-[8rem] overflow-hidden rounded-full bg-[var(--line)]"
                             role="img"
                             aria-label={`Utilization ${formatUtilizationPercent(
                               col.utilization != null
@@ -648,7 +648,7 @@ function ComparisonResults({
           <p className="text-sm text-[var(--muted)]">No project rows.</p>
         ) : (
           <div
-            className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white"
+            className="overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)]"
             role="region"
             tabIndex={0}
             aria-label="Project commitments comparison"
@@ -658,7 +658,7 @@ function ComparisonResults({
                 Project committed hours by revision versus reference
               </caption>
               <thead>
-                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[var(--muted)]">
+                <tr className="border-b border-[var(--line)] bg-[var(--bg)] text-[11px] uppercase text-[var(--muted)]">
                   <th scope="col" className="p-3 font-medium">
                     Project
                   </th>
@@ -676,7 +676,7 @@ function ComparisonResults({
                 {comparison.byProject.map((row) => (
                   <tr
                     key={row.projectId}
-                    className="border-b border-[#e2e8eb]/60"
+                    className="border-b border-[var(--line)]/60"
                   >
                     <td className="p-3">
                       <span className="font-medium">{row.projectName}</span>
@@ -727,7 +727,7 @@ function ComparisonResults({
           </p>
         ) : (
           <div
-            className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white"
+            className="overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)]"
             role="region"
             tabIndex={0}
             aria-label="Resource allocation comparison"
@@ -737,7 +737,7 @@ function ComparisonResults({
                 Resource load hours by revision
               </caption>
               <thead>
-                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[var(--muted)]">
+                <tr className="border-b border-[var(--line)] bg-[var(--bg)] text-[11px] uppercase text-[var(--muted)]">
                   <th scope="col" className="p-3 font-medium">
                     Resource
                   </th>
@@ -752,7 +752,7 @@ function ComparisonResults({
                 {comparison.byResource.map((row) => (
                   <tr
                     key={`${row.resourceId}-${row.iterationId}`}
-                    className="border-b border-[#e2e8eb]/60"
+                    className="border-b border-[var(--line)]/60"
                   >
                     <td className="p-3">{row.resourceName}</td>
                     {comparison.revisions.map((rev) => {
@@ -781,7 +781,7 @@ function ComparisonResults({
                             {formatHours(col.committedHours)} /{" "}
                             {formatHours(col.availableHours)}
                           </p>
-                          <div className="mt-1 h-1.5 w-full max-w-[8rem] overflow-hidden rounded-full bg-[#e2e8eb]">
+                          <div className="mt-1 h-1.5 w-full max-w-[8rem] overflow-hidden rounded-full bg-[var(--line)]">
                             <div
                               className={`h-full ${utilizationBarClass(col.band)}`}
                               style={{ width: `${pct}%` }}
@@ -811,15 +811,15 @@ function ComparisonResults({
         </p>
         <div className="grid gap-6 lg:grid-cols-3">
           <div>
-            <h3 className="mb-2 text-sm font-medium text-[#102a43]">Added</h3>
+            <h3 className="mb-2 text-sm font-medium text-[var(--sidebar)]">Added</h3>
             <WorkItemDiffTable rows={comparison.allocationChanges.added} />
           </div>
           <div>
-            <h3 className="mb-2 text-sm font-medium text-[#102a43]">Removed</h3>
+            <h3 className="mb-2 text-sm font-medium text-[var(--sidebar)]">Removed</h3>
             <WorkItemDiffTable rows={comparison.allocationChanges.removed} />
           </div>
           <div>
-            <h3 className="mb-2 text-sm font-medium text-[#102a43]">
+            <h3 className="mb-2 text-sm font-medium text-[var(--sidebar)]">
               Modified
             </h3>
             <WorkItemDiffTable rows={comparison.allocationChanges.changed} />
@@ -840,7 +840,7 @@ function ComparisonResults({
             return (
               <div
                 key={bucket.revisionId}
-                className="rounded-[11px] border border-[#e2e8eb] bg-white p-4"
+                className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <h3 className="mb-2 text-sm font-medium">
                   Only on {rev ? scenarioRevisionLabel(rev) : bucket.revisionId}
@@ -849,7 +849,7 @@ function ComparisonResults({
               </div>
             );
           })}
-          <div className="rounded-[11px] border border-[#e2e8eb] bg-white p-4">
+          <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4">
             <h3 className="mb-2 text-sm font-medium">Only on reference</h3>
             <ConflictList conflicts={comparison.conflicts.onlyOnReference} />
           </div>
@@ -858,7 +858,7 @@ function ComparisonResults({
 
       <p className="text-xs text-[var(--muted)]">
         Compared at {new Date(comparison.asOf).toLocaleString()} · PI{" "}
-        <Link href={`/pi/${piId}/board`} className="text-[#087f78] underline">
+        <Link href={`/pi/${piId}/board`} className="text-[var(--color-accent)] underline">
           {piId.slice(0, 8)}…
         </Link>
       </p>

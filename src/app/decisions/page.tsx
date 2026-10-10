@@ -60,7 +60,7 @@ export default async function DecisionsInboxPage() {
             <Panel key={submission.id}>
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+                  <p className="ds-eyebrow text-[10px]">
                     Decision task · {submission.initiative.referenceKey}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-xl text-[var(--ink)]">
@@ -81,7 +81,7 @@ export default async function DecisionsInboxPage() {
                 <div className="flex flex-col items-end gap-2">
                   <Link
                     href={`/initiatives/${submission.initiativeId}/decisions`}
-                    className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] underline"
+                    className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] underline"
                   >
                     Open decision workspace
                   </Link>

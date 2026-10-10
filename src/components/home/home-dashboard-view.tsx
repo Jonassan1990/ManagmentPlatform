@@ -50,7 +50,7 @@ function SectionShell({
     <section aria-labelledby={id} className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+          <p className="ds-eyebrow text-[10px]">
             {eyebrow}
           </p>
           <h2
@@ -138,7 +138,7 @@ function KpiCard({
       : tone === "attention"
         ? "bg-[var(--color-warning)]"
         : tone === "teal"
-          ? "bg-[#087f78]"
+          ? "bg-[var(--color-accent)]"
           : "bg-[var(--color-primary)]";
 
   const body = (
@@ -150,7 +150,7 @@ function KpiCard({
         {metric.value}
       </p>
       {metric.href ? (
-        <p className="mt-2 text-xs font-medium text-[#087f78]">Open →</p>
+        <p className="mt-2 text-xs font-medium text-[var(--color-accent)]">Open →</p>
       ) : null}
     </>
   );
@@ -197,8 +197,8 @@ function QuickStartCard({
       href={homeHref(action.href, organizationId)}
       className={
         emphasized
-          ? "flex min-h-11 flex-col justify-center rounded-lg border border-[#087f78]/35 bg-[#e7f4f2] px-4 py-3 text-[var(--ink)] shadow-sm transition-colors hover:border-[#087f78] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-          : "flex min-h-11 flex-col justify-center rounded-lg border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-[var(--ink)] transition-colors hover:border-[#91b8b3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          ? "flex min-h-11 flex-col justify-center rounded-lg border border-[var(--color-accent)]/35 bg-[var(--accent-soft)] px-4 py-3 text-[var(--ink)] shadow-sm transition-colors hover:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+          : "flex min-h-11 flex-col justify-center rounded-lg border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-[var(--ink)] transition-colors hover:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
       }
     >
       <span className="text-sm font-semibold">{action.label}</span>
@@ -234,7 +234,7 @@ function MyWorkRow({
         </div>
         <Link
           href={homeHref(item.href, organizationId)}
-          className="mt-1 inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="mt-1 inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           {item.referenceKey ? `${item.referenceKey} · ` : null}
           {item.title}
@@ -258,7 +258,7 @@ function WelcomeHeader({ dash }: { dash: HomeDashboardResponse }) {
 
   return (
     <header className="mb-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+      <p className="ds-eyebrow text-[10px]">
         Home
       </p>
       <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
@@ -274,7 +274,7 @@ function WelcomeHeader({ dash }: { dash: HomeDashboardResponse }) {
           </span>
         ) : null}
         {roleLabel ? (
-          <span className="inline-flex min-h-9 items-center rounded-md border border-[#087f78]/25 bg-[#e7f4f2] px-3 text-xs font-medium text-[#08756e]">
+          <span className="inline-flex min-h-9 items-center rounded-md border border-[var(--color-accent)]/25 bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--color-accent)]">
             {roleLabel}
           </span>
         ) : null}
@@ -385,7 +385,7 @@ function NeedsAttentionSection({
         section.drillDown[0] ? (
           <Link
             href={homeHref(section.drillDown[0].href, organizationId)}
-            className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             {section.drillDown[0].label}
           </Link>
@@ -466,7 +466,7 @@ function NeedsAttentionSection({
                 <div className="min-w-0">
                   <Link
                     href={homeHref(item.href, organizationId)}
-                    className="inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    className="inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   >
                     {item.label}
                   </Link>
@@ -511,7 +511,7 @@ function MyWorkSection({
     ) : section.drillDown[0] ? (
       <Link
         href={homeHref(section.drillDown[0].href, organizationId)}
-        className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] hover:underline"
+        className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
       >
         {section.drillDown[0].label}
       </Link>
@@ -589,7 +589,7 @@ function PortfolioSummarySection({
               `/portfolio?organizationId=${organizationId}`,
               organizationId,
             )}
-            className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             Open Portfolio
           </Link>
@@ -657,7 +657,7 @@ function ActiveProjectsSection({
             section.drillDown[0] ? (
               <Link
                 href={homeHref(section.drillDown[0].href, organizationId)}
-                className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] hover:underline"
+                className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 {section.drillDown[0].label}
               </Link>
@@ -697,7 +697,7 @@ function ActiveProjectsSection({
                 >
                   <Link
                     href={homeHref(row.href, organizationId)}
-                    className="inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    className="inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   >
                     {row.referenceKey} · {row.name}
                   </Link>
@@ -754,7 +754,7 @@ function CurrentPiSection({
             section.drillDown[0] ? (
               <Link
                 href={homeHref(section.drillDown[0].href, organizationId)}
-                className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] hover:underline"
+                className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 {section.drillDown[0].label}
               </Link>
@@ -762,10 +762,10 @@ function CurrentPiSection({
           }
         />
       ) : (
-        <Panel className="border-[#087f78]/25 bg-[#e7f4f2]/40">
+        <Panel className="border-[var(--color-accent)]/25 bg-[var(--accent-soft)]/40">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#08756e]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">
                 {section.pi.status}
               </p>
               <h3 className="mt-1 font-[family-name:var(--font-display)] text-lg text-[var(--ink)]">
@@ -783,7 +783,7 @@ function CurrentPiSection({
             </div>
             <Link
               href={homeHref(section.pi.href, organizationId)}
-              className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-4 text-sm font-medium text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-4 text-sm font-medium text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Continue planning
             </Link>
@@ -824,7 +824,7 @@ function ResourceCapacitySection({
         section.drillDown[0] ? (
           <Link
             href={homeHref(section.drillDown[0].href, organizationId)}
-            className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             {section.drillDown[0].label}
           </Link>

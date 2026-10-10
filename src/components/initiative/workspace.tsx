@@ -70,7 +70,7 @@ export function InitiativeHeader({
     <header className="mb-5 space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+          <p className="ds-eyebrow text-[10px]">
             Initiative · {referenceKey}
           </p>
           <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
@@ -214,7 +214,7 @@ export function LifecycleRail({
             aria-current={stage.state === "current" ? "step" : undefined}
             className={`rounded-md border px-3 py-1.5 ${
               stage.state === "current"
-                ? "border-[#087f78] bg-[var(--accent-soft)] text-[#087f78]"
+                ? "border-[var(--color-accent)] bg-[var(--accent-soft)] text-[var(--color-accent)]"
                 : stage.state === "completed"
                   ? "border-[var(--line)] text-[var(--ok)]"
                   : stage.state === "blocked"
@@ -232,7 +232,7 @@ export function LifecycleRail({
         <li className="rounded-md border border-[var(--line)] px-3 py-1.5 text-[var(--muted)]">
           <Link
             href="/pi"
-            className="hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             ○ PI Planning
           </Link>
@@ -278,10 +278,10 @@ export function NextActionPanel({
       className={`rounded-[var(--radius-md)] border-2 px-4 py-4 sm:px-5 ${
         blocked
           ? "border-[var(--danger)] bg-red-50/60"
-          : "border-[#087f78]/50 bg-[var(--accent-soft)]/50"
+          : "border-[var(--color-accent)]/50 bg-[var(--accent-soft)]/50"
       }`}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+      <p className="ds-eyebrow text-[10px]">
         Next action
       </p>
       <h2
@@ -300,7 +300,7 @@ export function NextActionPanel({
         {href && ctaLabel ? (
           <Link
             href={href}
-            className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-4 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-4 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             {ctaLabel}
           </Link>
@@ -470,7 +470,7 @@ export function ActivityHistoryPreview({
         </div>
         <Link
           href={historyHref}
-          className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           Full history
         </Link>
@@ -540,14 +540,14 @@ export function InitiativeTabs({
             key={group.id}
             className={`min-w-0 ${
               group.emphasizesCurrentStage
-                ? "rounded-[var(--radius-md)] border border-[#087f78]/40 bg-[var(--accent-soft)]/40 px-2 py-1.5"
+                ? "rounded-[var(--radius-md)] border border-[var(--color-accent)]/40 bg-[var(--accent-soft)]/40 px-2 py-1.5"
                 : ""
             }`}
           >
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
               {group.label}
               {group.emphasizesCurrentStage ? (
-                <span className="ml-1 text-[#087f78]">· current</span>
+                <span className="ml-1 text-[var(--color-accent)]">· current</span>
               ) : null}
             </p>
             <div className="flex flex-wrap gap-1 border-b border-[var(--line)] lg:border-b-0">
@@ -565,9 +565,9 @@ export function InitiativeTabs({
                     key={key}
                     href={href}
                     aria-current={isActive ? "page" : undefined}
-                    className={`inline-flex min-h-11 items-center border-b-2 px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+                    className={`inline-flex min-h-11 items-center border-b-2 px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] ${
                       isActive
-                        ? "border-[#087f78] font-medium text-[#087f78]"
+                        ? "border-[var(--color-accent)] font-medium text-[var(--color-accent)]"
                         : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"
                     }`}
                   >

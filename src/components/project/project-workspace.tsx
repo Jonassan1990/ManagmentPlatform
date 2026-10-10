@@ -65,7 +65,7 @@ export function ProjectHeader({
     <header className="mb-5 space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+          <p className="ds-eyebrow text-[10px]">
             Project · {projectReference}
           </p>
           <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
@@ -107,7 +107,7 @@ export function ProjectHeader({
           <dd className="mt-0.5 text-sm text-[var(--ink)]">
             <Link
               href={`/initiatives/${initiativeId}`}
-              className="font-medium text-[#087f78] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="font-medium text-[var(--color-accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               {initiativeReference}
             </Link>
@@ -268,7 +268,7 @@ export function ManagementAttentionPanel({
               </div>
               <a
                 href={`#${item.hrefAnchor}`}
-                className="inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] underline"
+                className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] underline"
               >
                 Jump
               </a>
@@ -328,7 +328,7 @@ export function ProjectSectionNav({
         <a
           key={s.id}
           href={`#${s.id}`}
-          className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 text-sm text-[var(--muted)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 text-sm text-[var(--muted)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           {s.label}
         </a>

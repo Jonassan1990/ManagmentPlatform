@@ -89,7 +89,7 @@ export default async function ApprovalsPage() {
                       Frozen on revision {request.submission.revision}.{" "}
                       <Link
                         href={`/initiatives/${request.submission.initiativeId}/governance`}
-                        className="text-[#087f78] underline"
+                        className="text-[var(--color-accent)] underline"
                       >
                         Inspect evidence in gate workspace
                       </Link>

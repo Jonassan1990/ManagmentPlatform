@@ -160,7 +160,7 @@ export function PortfolioExplorerFilters({
         </div>
         <Link
           href={resetHref}
-          className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           Reset filters
         </Link>
@@ -338,7 +338,7 @@ export function PortfolioExplorerFilters({
         <div className="flex items-end md:col-span-2 xl:col-span-4">
           <button
             type="submit"
-            className="min-h-11 rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="min-h-11 rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             Apply filters
           </button>
@@ -375,7 +375,7 @@ export function PortfolioExplorerResults({
           action={
             <Link
               href={`/portfolio/explorer?organizationId=${filters.organizationId}`}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Reset filters
             </Link>
@@ -537,7 +537,7 @@ export function PortfolioExplorerResults({
                 href={buildExplorerHref(filters, {
                   page: String(result.page - 1),
                 })}
-                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Previous
               </Link>
@@ -551,7 +551,7 @@ export function PortfolioExplorerResults({
                 href={buildExplorerHref(filters, {
                   page: String(result.page + 1),
                 })}
-                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Next
               </Link>

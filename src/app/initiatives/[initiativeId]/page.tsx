@@ -362,7 +362,7 @@ export default async function InitiativeOverviewPage({
                   `/initiatives/${item.id}/project`,
                   query,
                 )}
-                className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Open Project workspace
               </Link>
@@ -382,7 +382,7 @@ export default async function InitiativeOverviewPage({
               <li>
                 <Link
                   href={tabHref(item.id, "demand", query)}
-                  className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  className="text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                 >
                   Discovery · Demand
                 </Link>
@@ -390,7 +390,7 @@ export default async function InitiativeOverviewPage({
               <li>
                 <Link
                   href={tabHref(item.id, "requirements", query)}
-                  className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  className="text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                 >
                   Discovery · Requirements
                 </Link>
@@ -399,7 +399,7 @@ export default async function InitiativeOverviewPage({
                 <li>
                   <Link
                     href={tabHref(item.id, "governance", query)}
-                    className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    className="text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   >
                     Governance
                   </Link>
@@ -409,7 +409,7 @@ export default async function InitiativeOverviewPage({
                 <li>
                   <Link
                     href={tabHref(item.id, "poc", query)}
-                    className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    className="text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   >
                     Validation · PoC
                   </Link>
@@ -419,7 +419,7 @@ export default async function InitiativeOverviewPage({
                 <li>
                   <Link
                     href={tabHref(item.id, "pilot", query)}
-                    className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    className="text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   >
                     Validation · Pilot
                   </Link>
@@ -429,7 +429,7 @@ export default async function InitiativeOverviewPage({
                 <li>
                   <Link
                     href={tabHref(item.id, "project", query)}
-                    className="text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    className="text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   >
                     Delivery · Project
                   </Link>

@@ -27,7 +27,7 @@ export default async function HomePage() {
             action={
               <Link
                 href="/login"
-                className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-4 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition-[filter] duration-[var(--transition-fast)] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Sign in
               </Link>
@@ -55,7 +55,7 @@ export default async function HomePage() {
           action={
             <Link
               href="/organization/setup"
-              className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-4 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition-[filter] duration-[var(--transition-fast)] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Set up organization
             </Link>

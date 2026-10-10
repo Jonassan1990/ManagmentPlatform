@@ -96,16 +96,16 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#087f78]">
+      <p className="ds-eyebrow text-[10px]">
         {level}
       </p>
       <h2
         id={id}
-        className="font-[family-name:var(--font-display)] text-xl text-[#102a43]"
+        className="font-[family-name:var(--font-display)] text-xl text-[var(--sidebar)]"
       >
         {title}
       </h2>
-      <p className="mt-1 max-w-3xl text-sm text-[#74848e]">{description}</p>
+      <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">{description}</p>
     </div>
   );
 }
@@ -138,20 +138,20 @@ function KpiCard({
 }) {
   const bar =
     tone === "critical"
-      ? "bg-[#d65d57]"
+      ? "bg-[var(--color-error)]"
       : tone === "warn"
-        ? "bg-[#e3a640]"
+        ? "bg-[var(--color-warning)]"
         : tone === "blue"
-          ? "bg-[#5b8def]"
-          : "bg-[#087f78]";
+          ? "bg-[var(--color-info)]"
+          : "bg-[var(--color-accent)]";
   return (
-    <div className="relative overflow-hidden rounded-[11px] border border-[#e2e8eb] bg-white p-[14px_17px] shadow-[0_7px_22px_#1b33440a]">
+    <div className="relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]">
       <div className={`absolute inset-y-0 left-0 w-1 ${bar}`} aria-hidden />
-      <p className="text-[11px] text-[#74848e]">{label}</p>
-      <p className="my-[3px] text-[27px] font-extrabold tracking-[-0.04em] text-[#102a43] tabular-nums">
+      <p className="text-[11px] text-[var(--muted)]">{label}</p>
+      <p className="my-[3px] text-[27px] font-extrabold tracking-[-0.04em] text-[var(--sidebar)] tabular-nums">
         {value}
       </p>
-      {note ? <p className="text-[10px] text-[#829099]">{note}</p> : null}
+      {note ? <p className="text-[10px] text-[var(--muted)]">{note}</p> : null}
     </div>
   );
 }
@@ -175,7 +175,7 @@ function ScopeForm({
     <form
       method="get"
       action="/portfolio/capacity"
-      className="flex max-w-full flex-wrap items-end gap-3 overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]"
+      className="flex max-w-full flex-wrap items-end gap-3 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]"
       aria-label="Capacity scope filters"
     >
       <label className="min-w-0 flex-1 basis-full text-sm sm:basis-[12rem] sm:flex-none">
@@ -183,7 +183,7 @@ function ScopeForm({
         <select
           name="organizationId"
           defaultValue={organizationId}
-          className="min-h-11 w-full max-w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
         >
           {organizations.map((o) => (
             <option key={o.id} value={o.id}>
@@ -197,7 +197,7 @@ function ScopeForm({
         <select
           name="departmentId"
           defaultValue={departmentId ?? ""}
-          className="min-h-11 w-full max-w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
         >
           <option value="">All visible</option>
           {departments.map((d) => (
@@ -212,7 +212,7 @@ function ScopeForm({
         <select
           name="piId"
           defaultValue={piId ?? ""}
-          className="min-h-11 w-full max-w-full rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
           aria-label="Select Program Increment"
         >
           <option value="">Select a PI…</option>
@@ -225,7 +225,7 @@ function ScopeForm({
       </label>
       <button
         type="submit"
-        className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+        className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
       >
         Apply
       </button>
@@ -270,17 +270,17 @@ function DepartmentCard({
   const projectLegend = open ? collectProjectLegend(card) : [];
   return (
     <article
-      className={`overflow-hidden rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a] ${
-        open ? "ring-1 ring-[#087f78]/30" : ""
+      className={`overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)] ${
+        open ? "ring-1 ring-[var(--color-accent)]/30" : ""
       }`}
       data-department-id={card.departmentId}
     >
       <div className="flex items-start justify-between gap-3 px-[17px] pb-3 pt-[15px]">
         <div>
-          <div className="text-sm font-bold text-[#102a43]">
+          <div className="text-sm font-bold text-[var(--sidebar)]">
             {card.departmentName}
           </div>
-          <div className="mt-[3px] text-[10px] text-[#74848e]">
+          <div className="mt-[3px] text-[10px] text-[var(--muted)]">
             {card.teamCount} team{card.teamCount === 1 ? "" : "s"} ·{" "}
             {card.resourceCount} resource
             {card.resourceCount === 1 ? "" : "s"}
@@ -288,30 +288,30 @@ function DepartmentCard({
         </div>
         <div className="flex gap-[15px] text-right">
           <div>
-            <strong className="block text-[17px] text-[#102a43] tabular-nums">
+            <strong className="block text-[17px] text-[var(--sidebar)] tabular-nums">
               {formatCapacityHours(card.availableHours)}h
             </strong>
-            <span className="text-[9px] uppercase tracking-wide text-[#74848e]">
+            <span className="text-[9px] uppercase tracking-wide text-[var(--muted)]">
               Available
             </span>
           </div>
           <div>
-            <strong className="block text-[17px] text-[#102a43] tabular-nums">
+            <strong className="block text-[17px] text-[var(--sidebar)] tabular-nums">
               {formatCapacityHours(card.committedHours)}h
             </strong>
-            <span className="text-[9px] uppercase tracking-wide text-[#74848e]">
+            <span className="text-[9px] uppercase tracking-wide text-[var(--muted)]">
               Committed
             </span>
           </div>
           <div>
             <strong
               className={`block text-[17px] tabular-nums ${
-                card.overloadCount > 0 ? "text-[#d65d57]" : "text-[#102a43]"
+                card.overloadCount > 0 ? "text-[var(--color-error)]" : "text-[var(--sidebar)]"
               }`}
             >
               {card.overloadCount}
             </strong>
-            <span className="text-[9px] uppercase tracking-wide text-[#74848e]">
+            <span className="text-[9px] uppercase tracking-wide text-[var(--muted)]">
               Overloaded
             </span>
           </div>
@@ -326,7 +326,7 @@ function DepartmentCard({
       </div>
       <button
         type="button"
-        className="flex min-h-11 w-full items-center justify-between border-t border-[#e2e8eb] bg-[#fbfcfc] px-4 py-[10px] text-left text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+        className="flex min-h-11 w-full items-center justify-between border-t border-[var(--line)] bg-[var(--bg)] px-4 py-[10px] text-left text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         aria-expanded={open}
         aria-controls={`dept-panel-${card.departmentId}`}
         id={`dept-toggle-${card.departmentId}`}
@@ -348,7 +348,7 @@ function DepartmentCard({
       </button>
       {open ? (
         <div
-          className="border-t border-[#e2e8eb] px-4 pb-[10px] pt-1"
+          className="border-t border-[var(--line)] px-4 pb-[10px] pt-1"
           id={`dept-panel-${card.departmentId}`}
           role="region"
           aria-labelledby={`dept-toggle-${card.departmentId}`}
@@ -361,7 +361,7 @@ function DepartmentCard({
               id={`team-${team.teamId}`}
             >
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                <p className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#102a43]">
+                <p className="flex flex-wrap items-center gap-2 text-xs font-bold text-[var(--sidebar)]">
                   {team.teamName}
                   <StatusBadge
                     status={bandToStatus(team.band)}
@@ -369,7 +369,7 @@ function DepartmentCard({
                     size="compact"
                   />
                 </p>
-                <p className="text-[10px] text-[#74848e]">
+                <p className="text-[10px] text-[var(--muted)]">
                   {formatCapacityHours(team.committedHours)}h /{" "}
                   {formatCapacityHours(team.availableHours)}h ·{" "}
                   {formatUtilizationPct(team.utilization)}
@@ -383,14 +383,14 @@ function DepartmentCard({
                   showPercent
                 />
               </div>
-              <div className="hidden grid-cols-[145px_minmax(120px,1fr)_48px_93px] gap-2.5 px-0 py-2 text-[9px] uppercase tracking-wide text-[#98a5ad] sm:grid">
+              <div className="hidden grid-cols-[145px_minmax(120px,1fr)_48px_93px] gap-2.5 px-0 py-2 text-[9px] uppercase tracking-wide text-[var(--muted)] sm:grid">
                 <div>Resource</div>
                 <div>Project commitments</div>
                 <div className="text-right">Util</div>
                 <div>Capacity status</div>
               </div>
               {team.resources.length === 0 ? (
-                <p className="py-2 text-[11px] text-[#74848e]">
+                <p className="py-2 text-[11px] text-[var(--muted)]">
                   No resources visible for this team in the current scope.
                 </p>
               ) : (
@@ -416,21 +416,21 @@ function DepartmentCard({
                   return (
                     <div
                       key={`${r.resourceId}:${r.teamId}`}
-                      className="grid grid-cols-1 gap-2 border-t border-[#edf1f2] py-[9px] sm:grid-cols-[145px_minmax(120px,1fr)_48px_93px] sm:items-center sm:gap-2.5"
+                      className="grid grid-cols-1 gap-2 border-t border-[var(--bg)] py-[9px] sm:grid-cols-[145px_minmax(120px,1fr)_48px_93px] sm:items-center sm:gap-2.5"
                       data-resource-id={r.resourceId}
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <div
-                          className="grid h-[27px] w-[27px] shrink-0 place-items-center rounded-full bg-[#e8f0f4] text-[9px] font-extrabold text-[#31556c]"
+                          className="grid h-[27px] w-[27px] shrink-0 place-items-center rounded-full bg-[var(--bg)] text-[9px] font-extrabold text-[var(--ink)]"
                           aria-hidden
                         >
                           {initials(r.resourceName)}
                         </div>
                         <div className="min-w-0">
-                          <div className="truncate text-[10px] font-bold text-[#344b59]">
+                          <div className="truncate text-[10px] font-bold text-[var(--ink)]">
                             {r.resourceName}
                           </div>
-                          <div className="text-[9px] text-[#89969e]">
+                          <div className="text-[9px] text-[var(--muted)]">
                             {r.teamName} · membership{" "}
                             {formatCapacityHours(r.membershipAllocationPercent)}
                             %
@@ -439,7 +439,7 @@ function DepartmentCard({
                       </div>
                       <div>
                         <div
-                          className="flex h-[18px] overflow-hidden rounded bg-[#f0f3f4]"
+                          className="flex h-[18px] overflow-hidden rounded bg-[var(--bg)]"
                           role="img"
                           aria-label={stackLabel}
                           title={stackLabel}
@@ -460,16 +460,16 @@ function DepartmentCard({
                                 <i
                                   className={`block h-full min-w-[2px] ${
                                     rTone === "over"
-                                      ? "bg-[#d65d57]"
+                                      ? "bg-[var(--color-error)]"
                                       : rTone === "high"
-                                        ? "bg-[#e3a640]"
-                                        : "bg-[#087f78]"
+                                        ? "bg-[var(--color-warning)]"
+                                        : "bg-[var(--color-accent)]"
                                   }`}
                                   style={{ width: `${bar.committedPct}%` }}
                                 />
                               ) : null}
                         </div>
-                        <p className="mt-0.5 text-[9px] text-[#89969e]">
+                        <p className="mt-0.5 text-[9px] text-[var(--muted)]">
                           {formatCapacityHours(r.committedHours)}h committed ·{" "}
                           {formatCapacityHours(r.remainingHours)}h remaining
                           {stack.length > 0
@@ -480,10 +480,10 @@ function DepartmentCard({
                       <div
                         className={`text-right text-[10px] font-extrabold ${
                           rTone === "over"
-                            ? "text-[#d65d57]"
+                            ? "text-[var(--color-error)]"
                             : rTone === "high"
-                              ? "text-[#af7418]"
-                              : "text-[#418a67]"
+                              ? "text-[var(--color-warning)]"
+                              : "text-[var(--color-success)]"
                         }`}
                       >
                         {formatUtilizationPct(r.utilization)}
@@ -503,7 +503,7 @@ function DepartmentCard({
           ))}
           {projectLegend.length > 0 ? (
             <div
-              className="mt-3 flex flex-wrap gap-3 px-0.5 text-[9px] text-[#73828b]"
+              className="mt-3 flex flex-wrap gap-3 px-0.5 text-[9px] text-[var(--muted)]"
               data-testid="capacity-project-legend"
               aria-label="Project commitment legend"
             >
@@ -522,7 +522,7 @@ function DepartmentCard({
               ))}
             </div>
           ) : null}
-          <p className="mt-3 text-[9px] text-[#73828b]">
+          <p className="mt-3 text-[9px] text-[var(--muted)]">
             Stacked bars show real CURRENT project commitment hours against
             available capacity from capacity-policy. Shared Resources use
             membership % from the canonical policy — full capacity is not
@@ -738,10 +738,10 @@ export function PortfolioCapacityDashboard({
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#087f78]">
+          <p className="ds-eyebrow text-[10px]">
             Resource Planning · {organizationName}
           </p>
-          <p className="mt-1 max-w-3xl text-sm text-[#74848e]">
+          <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
             Department, team, and resource capacity on the current plan —
             not a second Portfolio dashboard or Resource ledger. Hours come
             from capacity-policy; stacked bars use real project commitments;
@@ -754,13 +754,13 @@ export function PortfolioCapacityDashboard({
               `/portfolio?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               returnInput,
             )}
-            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-white px-3 py-2 text-sm font-semibold text-[#425968] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             Portfolio
           </Link>
           <Link
             href={openPiHref}
-            className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-3 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+            className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
             {openPiTarget === "/pi" ? "PI Planning" : "Open PI Planning"}
           </Link>
@@ -778,20 +778,20 @@ export function PortfolioCapacityDashboard({
           title="Planning context"
           description="Selected PI, planning period, CURRENT revision, and baseline comparison — never draft scenarios."
         />
-        <div className="rounded-[11px] border border-[#e2e8eb] bg-white p-4 text-sm shadow-[0_7px_22px_#1b33440a]">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 text-sm shadow-[var(--shadow-md)]">
           {!piId ? (
-            <p role="status" className="text-[#74848e]">
+            <p role="status" className="text-[var(--muted)]">
               No PI selected — choose a Program Increment to load capacity. An
               explicit selection is never overridden.
             </p>
           ) : !capacity ? (
-            <p role="status" className="text-[#74848e]">
+            <p role="status" className="text-[var(--muted)]">
               {capacityError
                 ? "Capacity could not be loaded for the selected Program Increment."
                 : "Capacity data was not returned for the selected Program Increment."}
             </p>
           ) : capacity.capacity.state === "no_pi_selected" ? (
-            <p role="status" className="text-[#74848e]">
+            <p role="status" className="text-[var(--muted)]">
               {capacity.capacity.reason}
             </p>
           ) : capacity.capacity.state === "unavailable" ? (
@@ -801,13 +801,13 @@ export function PortfolioCapacityDashboard({
           ) : ready ? (
             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div>
-                <dt className="text-[10px] uppercase tracking-wide text-[#74848e]">
+                <dt className="text-[10px] uppercase tracking-wide text-[var(--muted)]">
                   Selected PI
                 </dt>
                 <dd className="mt-1 flex flex-wrap items-center gap-2">
                   <Link
                     href={selectedPiMetaHref}
-                    className="font-semibold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                    className="font-semibold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   >
                     {ready.meta.referenceKey} · {ready.meta.name}
                   </Link>
@@ -822,10 +822,10 @@ export function PortfolioCapacityDashboard({
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-wide text-[#74848e]">
+                <dt className="text-[10px] uppercase tracking-wide text-[var(--muted)]">
                   Planning period
                 </dt>
-                <dd className="mt-1 font-semibold text-[#102a43]">
+                <dd className="mt-1 font-semibold text-[var(--sidebar)]">
                   {formatPlanningPeriod(
                     ready.meta.startDate,
                     ready.meta.endDate,
@@ -833,11 +833,11 @@ export function PortfolioCapacityDashboard({
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-wide text-[#74848e]">
+                <dt className="text-[10px] uppercase tracking-wide text-[var(--muted)]">
                   CURRENT revision
                 </dt>
                 <dd className="mt-1">
-                  <strong className="text-[#102a43]">
+                  <strong className="text-[var(--sidebar)]">
                     {ready.meta.revision.key} v{ready.meta.revision.version}
                   </strong>
                   <StatusBadge
@@ -846,23 +846,23 @@ export function PortfolioCapacityDashboard({
                     size="compact"
                     className="ml-2"
                   />
-                  <p className="mt-0.5 text-[10px] text-[#74848e]">
+                  <p className="mt-0.5 text-[10px] text-[var(--muted)]">
                     Authoritative commitments — not draft scenarios
                   </p>
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-wide text-[#74848e]">
+                <dt className="text-[10px] uppercase tracking-wide text-[var(--muted)]">
                   Baseline comparison
                 </dt>
                 <dd className="mt-1">
                   {ready.baselineComparison.available ? (
                     <>
-                      <strong className="text-[#102a43]">
+                      <strong className="text-[var(--sidebar)]">
                         Approved baseline v
                         {ready.baselineComparison.versionNumber}
                       </strong>
-                      <p className="mt-0.5 text-[10px] text-[#74848e]">
+                      <p className="mt-0.5 text-[10px] text-[var(--muted)]">
                         Live{" "}
                         {formatCapacityHours(
                           ready.baselineComparison.liveCommittedHours,
@@ -879,13 +879,13 @@ export function PortfolioCapacityDashboard({
                       </p>
                     </>
                   ) : (
-                    <span className="text-[#74848e]">
+                    <span className="text-[var(--muted)]">
                       Unavailable — {ready.baselineComparison.reason}
                     </span>
                   )}
                 </dd>
               </div>
-              <div className="text-[11px] text-[#74848e] sm:col-span-2 xl:col-span-4">
+              <div className="text-[11px] text-[var(--muted)] sm:col-span-2 xl:col-span-4">
                 As of {new Date(capacity.asOf).toLocaleString()} · Source{" "}
                 {ready.meta.source.replace(/_/g, " ")}
               </div>
@@ -967,7 +967,7 @@ export function PortfolioCapacityDashboard({
               status={bandToStatus(ready.totals.band)}
               label={`Portfolio ${capacityStatusLabel(ready.totals.band)}`}
             />
-            <p className="text-[11px] text-[#74848e]">
+            <p className="text-[11px] text-[var(--muted)]">
               Hierarchy controls: {controlCount} (team, overloaded-only, search)
             </p>
           </div>
@@ -987,18 +987,18 @@ export function PortfolioCapacityDashboard({
             description="Overloaded teams, capacity shortages, planning conflicts, missing capacity data, and coordination signals that need action."
           />
           <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
-              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
-                <h3 className="text-sm font-bold text-[#102a43]">
+            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+              <div className="border-b border-[var(--line)] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Overloaded teams
                 </h3>
-                <p className="mt-1 text-[10px] text-[#74848e]">
+                <p className="mt-1 text-[10px] text-[var(--muted)]">
                   Jump into the department hierarchy without leaving this page
                 </p>
               </div>
               <div className="px-4 py-3">
                 {uniqueOverloadedTeams.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[#74848e]">
+                  <p role="status" className="text-[11px] text-[var(--muted)]">
                     No overloaded teams in this scope.
                   </p>
                 ) : (
@@ -1006,13 +1006,13 @@ export function PortfolioCapacityDashboard({
                     {uniqueOverloadedTeams.map((t) => (
                       <li
                         key={t.teamId}
-                        className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf1f2] py-2 last:border-0"
+                        className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--bg)] py-2 last:border-0"
                       >
                         <div>
-                          <p className="text-[11px] font-bold text-[#102a43]">
+                          <p className="text-[11px] font-bold text-[var(--sidebar)]">
                             {t.teamName}
                           </p>
-                          <p className="text-[9px] text-[#89969e]">
+                          <p className="text-[9px] text-[var(--muted)]">
                             {formatCapacityHours(t.committedHours)}h /{" "}
                             {formatCapacityHours(t.availableHours)}h ·{" "}
                             {formatUtilizationPct(t.utilization)}
@@ -1026,7 +1026,7 @@ export function PortfolioCapacityDashboard({
                           />
                           <button
                             type="button"
-                            className="min-h-11 rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            className="min-h-11 rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                             onClick={() => {
                               setOverloadedOnly(true);
                               expandDepartment(t.departmentId, t.teamId);
@@ -1042,12 +1042,12 @@ export function PortfolioCapacityDashboard({
               </div>
             </article>
 
-            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
-              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
-                <h3 className="text-sm font-bold text-[#102a43]">
+            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+              <div className="border-b border-[var(--line)] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Shortages &amp; data gaps
                 </h3>
-                <p className="mt-1 text-[10px] text-[#74848e]">
+                <p className="mt-1 text-[10px] text-[var(--muted)]">
                   Near-limit / negative remaining · missing capacity inputs
                 </p>
               </div>
@@ -1062,12 +1062,12 @@ export function PortfolioCapacityDashboard({
                       "Some resources lack capacityHoursPerWeek; treated as 0 hours, not unavailable."}
                   </Alert>
                 ) : (
-                  <p role="status" className="text-[11px] text-[#74848e]">
+                  <p role="status" className="text-[11px] text-[var(--muted)]">
                     No missing capacity inputs reported.
                   </p>
                 )}
                 {shortageTeams.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[#74848e]">
+                  <p role="status" className="text-[11px] text-[var(--muted)]">
                     No capacity shortages (near or overload) in returned teams.
                   </p>
                 ) : (
@@ -1079,13 +1079,13 @@ export function PortfolioCapacityDashboard({
                       >
                         <button
                           type="button"
-                          className="min-h-11 text-left font-semibold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                          className="min-h-11 text-left font-semibold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                           onClick={() =>
                             expandDepartment(t.departmentId, t.teamId)
                           }
                         >
                           {t.teamName}
-                          <span className="ml-1 font-normal text-[#89969e]">
+                          <span className="ml-1 font-normal text-[var(--muted)]">
                             · {t.iterationName}
                           </span>
                         </button>
@@ -1102,14 +1102,14 @@ export function PortfolioCapacityDashboard({
             </article>
 
             <article
-              className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a] lg:col-span-2"
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)] lg:col-span-2"
               data-testid="capacity-conflict-explanations"
             >
-              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
-                <h3 className="text-sm font-bold text-[#102a43]">
+              <div className="border-b border-[var(--line)] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Planning conflicts
                 </h3>
-                <p className="mt-1 text-[10px] text-[#74848e]">
+                <p className="mt-1 text-[10px] text-[var(--muted)]">
                   What conflicts, who is affected, which iteration, severity, and
                   the next authorized navigation — from the existing conflict
                   engine only
@@ -1117,47 +1117,47 @@ export function PortfolioCapacityDashboard({
               </div>
               <div className="px-4 py-3">
                 {conflictExplanations.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[#74848e]">
+                  <p role="status" className="text-[11px] text-[var(--muted)]">
                     No conflicts.
                   </p>
                 ) : (
                   conflictExplanations.map((ex, idx) => (
                     <div
                       key={`${ex.type}-${ex.affected}-${idx}`}
-                      className="border-b border-[#edf1f2] py-3 last:border-0"
+                      className="border-b border-[var(--bg)] py-3 last:border-0"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-bold text-[#394f5c]">
+                          <p className="text-[11px] font-bold text-[var(--ink)]">
                             {ex.headline}
                           </p>
-                          <p className="mt-1 text-[10px] text-[#526572]">
+                          <p className="mt-1 text-[10px] text-[var(--muted)]">
                             {ex.what}
                           </p>
                           <dl className="mt-2 grid grid-cols-1 gap-1 text-[10px] sm:grid-cols-3">
                             <div>
-                              <dt className="uppercase tracking-wide text-[#98a5ad]">
+                              <dt className="uppercase tracking-wide text-[var(--muted)]">
                                 Affected
                               </dt>
-                              <dd className="font-semibold text-[#102a43]">
+                              <dd className="font-semibold text-[var(--sidebar)]">
                                 {ex.affected}
                               </dd>
                             </div>
                             <div>
-                              <dt className="uppercase tracking-wide text-[#98a5ad]">
+                              <dt className="uppercase tracking-wide text-[var(--muted)]">
                                 Iteration / PI
                               </dt>
-                              <dd className="font-semibold text-[#102a43]">
+                              <dd className="font-semibold text-[var(--sidebar)]">
                                 {ex.iterationHint ??
                                   ready.meta.referenceKey ??
                                   "—"}
                               </dd>
                             </div>
                             <div>
-                              <dt className="uppercase tracking-wide text-[#98a5ad]">
+                              <dt className="uppercase tracking-wide text-[var(--muted)]">
                                 Type
                               </dt>
-                              <dd className="font-semibold text-[#102a43]">
+                              <dd className="font-semibold text-[var(--sidebar)]">
                                 {ex.type.replace(/_/g, " ")}
                               </dd>
                             </div>
@@ -1181,7 +1181,7 @@ export function PortfolioCapacityDashboard({
                         ex.teamId ? (
                           <button
                             type="button"
-                            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                             onClick={() =>
                               expandDepartment(ex.departmentId!, ex.teamId)
                             }
@@ -1191,14 +1191,14 @@ export function PortfolioCapacityDashboard({
                         ) : ex.actionKind === "open_dependencies" ? (
                           <Link
                             href={dependenciesHref}
-                            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                           >
                             {ex.actionLabel}
                           </Link>
                         ) : ex.actionKind === "open_pi_board" ? (
                           <Link
                             href={boardHref}
-                            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                           >
                             {ex.actionLabel}
                           </Link>
@@ -1226,18 +1226,18 @@ export function PortfolioCapacityDashboard({
             description="Authorized available capacity, PlanningDependencies, and project commitments that need coordination. Sibling departments outside your scope are never loaded."
           />
           <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
-              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
-                <h3 className="text-sm font-bold text-[#102a43]">
+            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+              <div className="border-b border-[var(--line)] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Departments with available capacity
                 </h3>
-                <p className="mt-1 text-[10px] text-[#74848e]">
+                <p className="mt-1 text-[10px] text-[var(--muted)]">
                   Remaining hours &gt; 0 in your authorized capacity response
                 </p>
               </div>
               <div className="px-4 py-3">
                 {availableDepts.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[#74848e]">
+                  <p role="status" className="text-[11px] text-[var(--muted)]">
                     No departments with remaining capacity in the returned
                     scope.
                   </p>
@@ -1246,13 +1246,13 @@ export function PortfolioCapacityDashboard({
                     {availableDepts.map((d) => (
                       <li
                         key={d.departmentId}
-                        className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf1f2] py-2 last:border-0"
+                        className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--bg)] py-2 last:border-0"
                       >
                         <div>
-                          <p className="text-[11px] font-bold text-[#102a43]">
+                          <p className="text-[11px] font-bold text-[var(--sidebar)]">
                             {d.departmentName}
                           </p>
-                          <p className="text-[9px] text-[#89969e]">
+                          <p className="text-[9px] text-[var(--muted)]">
                             {formatCapacityHours(d.remainingHours)}h remaining ·{" "}
                             {formatCapacityHours(d.committedHours)}h /{" "}
                             {formatCapacityHours(d.availableHours)}h
@@ -1266,7 +1266,7 @@ export function PortfolioCapacityDashboard({
                           />
                           <button
                             type="button"
-                            className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#fbfcfc] px-3 py-1.5 text-[11px] font-bold text-[#087f78] hover:bg-[#f0f7f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                             onClick={() => expandDepartment(d.departmentId)}
                           >
                             Open department
@@ -1280,16 +1280,16 @@ export function PortfolioCapacityDashboard({
             </article>
 
             <article
-              className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]"
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]"
               data-testid="capacity-dependencies-panel"
             >
-              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
+              <div className="border-b border-[var(--line)] px-4 py-[14px]">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-bold text-[#102a43]">
+                    <h3 className="text-sm font-bold text-[var(--sidebar)]">
                       Planning dependencies
                     </h3>
-                    <p className="mt-1 text-[10px] text-[#74848e]">
+                    <p className="mt-1 text-[10px] text-[var(--muted)]">
                       Existing PlanningDependency records — status, severity,
                       owner, required-by
                     </p>
@@ -1297,7 +1297,7 @@ export function PortfolioCapacityDashboard({
                   {piIdForNav ? (
                     <Link
                       href={dependenciesHref}
-                      className="inline-flex min-h-11 items-center rounded-md bg-[#087f78] px-3 py-1.5 text-[11px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                      className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-[11px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                     >
                       Open PI dependencies
                     </Link>
@@ -1311,7 +1311,7 @@ export function PortfolioCapacityDashboard({
                       {dependencies.reason}
                     </Alert>
                     {dependencies.openCount != null ? (
-                      <p className="text-[11px] text-[#526572]">
+                      <p className="text-[11px] text-[var(--muted)]">
                         Portfolio snapshot counts in your scope:{" "}
                         <strong>{dependencies.openCount}</strong> open ·{" "}
                         <strong>{dependencies.criticalCount ?? 0}</strong>{" "}
@@ -1321,7 +1321,7 @@ export function PortfolioCapacityDashboard({
                     ) : null}
                   </div>
                 ) : dependencies.rows.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[#74848e]">
+                  <p role="status" className="text-[11px] text-[var(--muted)]">
                     No PlanningDependencies in this organization.
                   </p>
                 ) : (
@@ -1329,7 +1329,7 @@ export function PortfolioCapacityDashboard({
                     {dependencies.rows.slice(0, 12).map((dep) => (
                       <li
                         key={dep.id}
-                        className="border-b border-[#edf1f2] py-2 last:border-0"
+                        className="border-b border-[var(--bg)] py-2 last:border-0"
                         data-dependency-id={dep.id}
                       >
                         <div className="flex flex-wrap items-center gap-2">
@@ -1343,25 +1343,25 @@ export function PortfolioCapacityDashboard({
                             label={dep.criticality}
                             size="compact"
                           />
-                          <span className="text-[10px] font-bold text-[#102a43]">
+                          <span className="text-[10px] font-bold text-[var(--sidebar)]">
                             {dep.type.replace(/_/g, " ")}
                           </span>
                         </div>
-                        <p className="mt-1 text-[10px] text-[#526572]">
-                          <span className="font-semibold text-[#394f5c]">
+                        <p className="mt-1 text-[10px] text-[var(--muted)]">
+                          <span className="font-semibold text-[var(--ink)]">
                             {dep.sourceLabel}
                           </span>
                           {" → "}
-                          <span className="font-semibold text-[#394f5c]">
+                          <span className="font-semibold text-[var(--ink)]">
                             {dep.targetLabel}
                           </span>
                         </p>
-                        <p className="mt-0.5 text-[9px] text-[#89969e]">
+                        <p className="mt-0.5 text-[9px] text-[var(--muted)]">
                           Owner: {dep.ownerName ?? "Unassigned"} · Needed by:{" "}
                           {formatNeededBy(dep.neededByDate)}
                         </p>
                         {dep.description ? (
-                          <p className="mt-0.5 text-[9px] text-[#74848e]">
+                          <p className="mt-0.5 text-[9px] text-[var(--muted)]">
                             {dep.description}
                           </p>
                         ) : null}
@@ -1373,14 +1373,14 @@ export function PortfolioCapacityDashboard({
                             return commitment ? (
                               <Link
                                 href={commitment.href}
-                                className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                                className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                               >
                                 Open source project
                               </Link>
                             ) : (
                               <Link
                                 href={dependenciesHref}
-                                className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                                className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                               >
                                 View on PI dependencies
                               </Link>
@@ -1389,7 +1389,7 @@ export function PortfolioCapacityDashboard({
                         ) : (
                           <Link
                             href={dependenciesHref}
-                            className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[#087f78] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                            className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                           >
                             View on PI dependencies
                           </Link>
@@ -1399,7 +1399,7 @@ export function PortfolioCapacityDashboard({
                   </ul>
                 )}
                 {dependencies.state === "ready" ? (
-                  <p className="mt-3 text-[10px] text-[#74848e]">
+                  <p className="mt-3 text-[10px] text-[var(--muted)]">
                     {dependencies.openCount} open · {dependencies.criticalCount}{" "}
                     critical/high (authorized org list — not a new reporting
                     permission)
@@ -1445,7 +1445,7 @@ export function PortfolioCapacityDashboard({
                       );
                     }
                   }}
-                  className="min-h-11 w-full rounded-md border border-[#e2e8eb] px-3 py-2 sm:w-[12rem]"
+                  className="min-h-11 w-full rounded-md border border-[var(--line)] px-3 py-2 sm:w-[12rem]"
                   aria-label="Filter by team"
                 >
                   <option value="">All teams</option>
@@ -1456,7 +1456,7 @@ export function PortfolioCapacityDashboard({
                   ))}
                 </select>
               </label>
-              <label className="flex min-h-11 items-center gap-2 text-sm text-[#526572]">
+              <label className="flex min-h-11 items-center gap-2 text-sm text-[var(--muted)]">
                 <input
                   type="checkbox"
                   checked={overloadedOnly}
@@ -1478,7 +1478,7 @@ export function PortfolioCapacityDashboard({
                 Overloaded only
               </label>
               <input
-                className="min-h-11 w-full rounded-md border border-[#e2e8eb] px-3 py-2 sm:w-[210px]"
+                className="min-h-11 w-full rounded-md border border-[var(--line)] px-3 py-2 sm:w-[210px]"
                 placeholder="Search departments or people"
                 aria-label="Search departments or people"
                 value={search}
@@ -1531,19 +1531,19 @@ export function PortfolioCapacityDashboard({
           )}
 
           <div className="mt-4 grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a]">
-              <div className="border-b border-[#e2e8eb] px-4 py-[14px]">
-                <h3 className="text-sm font-bold text-[#102a43]">
+            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+              <div className="border-b border-[var(--line)] px-4 py-[14px]">
+                <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Project commitments
                 </h3>
-                <p className="mt-1 text-[10px] text-[#74848e]">
+                <p className="mt-1 text-[10px] text-[var(--muted)]">
                   Hours from WorkAllocations on the CURRENT revision — not draft
                   scenarios
                 </p>
               </div>
               <div className="px-4 py-3">
                 {ready.projectCommitments.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[#74848e]">
+                  <p role="status" className="text-[11px] text-[var(--muted)]">
                     Zero committed hours — no project allocations on this
                     revision.
                   </p>
@@ -1551,25 +1551,25 @@ export function PortfolioCapacityDashboard({
                   ready.projectCommitments.map((p) => (
                     <div
                       key={p.projectId}
-                      className="grid grid-cols-[1fr_auto] gap-2 border-b border-[#edf1f2] py-2 last:border-0"
+                      className="grid grid-cols-[1fr_auto] gap-2 border-b border-[var(--bg)] py-2 last:border-0"
                     >
                       <div>
                         <Link
                           href={p.href}
-                          className="text-[10px] font-bold text-[#087f78] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                          className="text-[10px] font-bold text-[var(--color-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                         >
                           {p.referenceKey} · {p.name}
                         </Link>
-                        <p className="mt-0.5 text-[9px] text-[#89969e]">
+                        <p className="mt-0.5 text-[9px] text-[var(--muted)]">
                           {p.workItemCount} work item
                           {p.workItemCount === 1 ? "" : "s"} ·{" "}
                           {p.allocationCount} allocation
                           {p.allocationCount === 1 ? "" : "s"}
                         </p>
                       </div>
-                      <div className="text-right text-[10px] font-bold text-[#102a43]">
+                      <div className="text-right text-[10px] font-bold text-[var(--sidebar)]">
                         {formatCapacityHours(p.committedHours)}h
-                        <small className="block text-[8px] font-normal text-[#74848e]">
+                        <small className="block text-[8px] font-normal text-[var(--muted)]">
                           committed
                         </small>
                       </div>
@@ -1579,11 +1579,11 @@ export function PortfolioCapacityDashboard({
               </div>
             </article>
 
-            <article className="rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]">
-              <h3 className="text-sm font-bold text-[#102a43]">
+            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]">
+              <h3 className="text-sm font-bold text-[var(--sidebar)]">
                 Shared resource policy
               </h3>
-              <p className="mt-2 text-[11px] leading-relaxed text-[#74848e]">
+              <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
                 A Resource participating in multiple teams must not have full
                 capacity counted independently in each team. Available hours
                 already reflect membership allocation percent from the canonical
@@ -1593,7 +1593,7 @@ export function PortfolioCapacityDashboard({
                 commitments panel.
               </p>
               {ready.resources.total > ready.resources.rows.length ? (
-                <p className="mt-3 text-[11px] text-[#74848e]">
+                <p className="mt-3 text-[11px] text-[var(--muted)]">
                   Showing {ready.resources.rows.length} of{" "}
                   {ready.resources.total} resource-iteration rows (bounded page
                   from M2E-A).
@@ -1606,13 +1606,13 @@ export function PortfolioCapacityDashboard({
 
       {!piId && pis.length > 0 ? (
         <div
-          className="rounded-[11px] border border-[#e2e8eb] bg-white p-4"
+          className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4"
           data-testid="capacity-pi-chips"
         >
-          <p className="mb-2 text-sm font-semibold text-[#102a43]">
+          <p className="mb-2 text-sm font-semibold text-[var(--sidebar)]">
             Available Program Increments
           </p>
-          <p className="mb-3 text-[11px] text-[#74848e]">
+          <p className="mb-3 text-[11px] text-[var(--muted)]">
             Active, upcoming, and completed PIs you are authorized to see.
             Selecting one never overrides a later explicit choice.
           </p>
@@ -1621,7 +1621,7 @@ export function PortfolioCapacityDashboard({
               <li key={p.piId}>
                 <button
                   type="button"
-                  className="inline-flex min-h-11 items-center rounded-md border border-[#e2e8eb] bg-[#f3f6f7] px-3 py-1.5 text-xs font-semibold text-[#087f78] hover:border-[#087f78] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f78]"
+                  className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] hover:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                   onClick={() =>
                     router.push(
                       capacityHref({

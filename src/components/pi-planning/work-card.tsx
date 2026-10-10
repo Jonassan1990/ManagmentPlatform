@@ -98,7 +98,7 @@ export function WorkCard({
       {onToggleExpand ? (
         <button
           type="button"
-          className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           onClick={onToggleExpand}
           aria-expanded={expanded}
           aria-label={

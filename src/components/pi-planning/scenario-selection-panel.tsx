@@ -115,7 +115,7 @@ export function ScenarioSelectionPanel({
 
   const shellClass = embedded
     ? "space-y-4 p-3 sm:p-4"
-    : "mb-6 space-y-4 rounded-[11px] border border-[#e2e8eb] bg-white p-4 shadow-[0_7px_22px_#1b33440a]";
+    : "mb-6 space-y-4 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]";
 
   return (
     <section className={shellClass} aria-label="Scenario selection">
@@ -123,10 +123,10 @@ export function ScenarioSelectionPanel({
         <div>
           {embedded ? null : (
             <>
-          <h2 className="text-sm font-semibold text-[#102a43]">
+          <h2 className="text-sm font-semibold text-[var(--sidebar)]">
             Scenario selection
           </h2>
-          <p className="mt-1 text-xs text-[#74848e]">
+          <p className="mt-1 text-xs text-[var(--muted)]">
             Choose one preferred draft for review. This is not approval and does
             not change current plan allocations.
           </p>
@@ -135,14 +135,14 @@ export function ScenarioSelectionPanel({
         </div>
         <Link
           href={compareHref ?? `/pi/${piId}/compare`}
-          className="text-xs text-[#087f78] hover:underline"
+          className="text-xs text-[var(--color-accent)] hover:underline"
         >
           Compare scenarios
         </Link>
       </div>
 
       <div
-        className="rounded-md border border-[#087f78]/30 bg-[#087f78]/5 px-3 py-2 text-sm text-[#102a43]"
+        className="rounded-md border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 px-3 py-2 text-sm text-[var(--sidebar)]"
         role="status"
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -156,7 +156,7 @@ export function ScenarioSelectionPanel({
               />
             </>
           ) : (
-            <span className="text-[#74848e]">· none selected</span>
+            <span className="text-[var(--muted)]">· none selected</span>
           )}
         </div>
       </div>
@@ -206,7 +206,7 @@ export function ScenarioSelectionPanel({
 
           {readiness.blockers.length > 0 ? (
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#d65d57]">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-error)]">
                 Blocking conditions
               </h3>
               <ul className="list-disc space-y-1 pl-5 text-sm">
@@ -219,7 +219,7 @@ export function ScenarioSelectionPanel({
 
           {readiness.warnings.length > 0 ? (
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#e3a640]">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-warning)]">
                 Warnings
               </h3>
               <ul className="list-disc space-y-1 pl-5 text-sm">
@@ -231,13 +231,13 @@ export function ScenarioSelectionPanel({
           ) : null}
 
           {readiness.dataQuality.notes.length > 0 ? (
-            <p className="text-xs text-[#74848e]">
+            <p className="text-xs text-[var(--muted)]">
               Data quality: {readiness.dataQuality.notes.join(" ")}
             </p>
           ) : null}
 
           {readiness.freshness && readiness.freshness.signals.length > 0 ? (
-            <p className="text-xs text-[#74848e]">
+            <p className="text-xs text-[var(--muted)]">
               Shared inputs may have changed since scenario creation (
               {readiness.freshness.signals.length} signal
               {readiness.freshness.signals.length === 1 ? "" : "s"}).
@@ -246,11 +246,11 @@ export function ScenarioSelectionPanel({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-3 border-t border-[#e2e8eb] pt-4">
+      <div className="flex flex-wrap items-end gap-3 border-t border-[var(--line)] pt-4">
         <label className="text-sm">
-          <span className="mb-1 block text-[#74848e]">Scenario</span>
+          <span className="mb-1 block text-[var(--muted)]">Scenario</span>
           <select
-            className="min-w-[14rem] rounded-md border border-[#e2e8eb] bg-white px-3 py-2"
+            className="min-w-[14rem] rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
             value={pickId}
             onChange={(e) => setPickId(e.target.value)}
             disabled={!canReview || pending || eligible.length === 0}
@@ -301,12 +301,12 @@ export function ScenarioSelectionPanel({
           Clear selection
         </SecondaryButton>
         {pending ? (
-          <span className="text-xs text-[#74848e]">Working…</span>
+          <span className="text-xs text-[var(--muted)]">Working…</span>
         ) : null}
       </div>
 
       {!canReview ? (
-        <p className="text-xs text-[#74848e]">
+        <p className="text-xs text-[var(--muted)]">
           Viewers can inspect readiness; selecting a scenario requires PI review
           permission.
         </p>
@@ -314,13 +314,13 @@ export function ScenarioSelectionPanel({
 
       {history.length > 0 ? (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#74848e]">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Selection history
           </h3>
-          <ul className="space-y-1 text-xs text-[#102a43]">
+          <ul className="space-y-1 text-xs text-[var(--sidebar)]">
             {history.slice(0, 8).map((h) => (
               <li key={h.id}>
-                <span className="text-[#74848e]">
+                <span className="text-[var(--muted)]">
                   {new Date(h.createdAt).toLocaleString()}
                 </span>{" "}
                 · {h.actionType.replace("pi.scenario.", "")}
@@ -335,10 +335,10 @@ export function ScenarioSelectionPanel({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="relative overflow-hidden rounded-[11px] border border-[#e2e8eb] bg-[#f8fafb] p-3">
-      <div className="absolute inset-y-0 left-0 w-1 bg-[#087f78]" aria-hidden />
-      <p className="text-[11px] text-[#74848e]">{label}</p>
-      <p className="text-lg font-extrabold tracking-tight text-[#102a43] tabular-nums">
+    <div className="relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg)] p-3">
+      <div className="absolute inset-y-0 left-0 w-1 bg-[var(--color-accent)]" aria-hidden />
+      <p className="text-[11px] text-[var(--muted)]">{label}</p>
+      <p className="text-lg font-extrabold tracking-tight text-[var(--sidebar)] tabular-nums">
         {value}
       </p>
     </div>

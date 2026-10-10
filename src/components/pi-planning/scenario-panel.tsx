@@ -357,14 +357,14 @@ export function ScenarioPanel({
             {scenarios.length >= 2 ? (
               <Link
                 href={compareHref()}
-                className="rounded-[var(--radius-md)] border border-[var(--line)] px-2.5 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="rounded-[var(--radius-md)] border border-[var(--line)] px-2.5 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 Compare scenarios
               </Link>
             ) : null}
             <Link
               href={reviewHref()}
-              className="rounded-[var(--radius-md)] border border-[var(--line)] px-2.5 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="rounded-[var(--radius-md)] border border-[var(--line)] px-2.5 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             >
               Review
             </Link>
@@ -388,7 +388,7 @@ export function ScenarioPanel({
                 <Link
                   href={hrefFor(s.id, s.isCurrent)}
                   aria-current={active ? "true" : undefined}
-                  className={`inline-flex max-w-full items-center gap-1.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+                  className={`inline-flex max-w-full items-center gap-1.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] ${
                     active
                       ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]"
                       : "border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--surface)]"
@@ -417,7 +417,7 @@ export function ScenarioPanel({
         <div className="mt-3 border-t border-[var(--line)] pt-3">
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] px-1 py-1 text-left text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] px-1 py-1 text-left text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             aria-expanded={manageOpen}
             aria-controls={manageId}
             onClick={() => setManageOpen((o) => !o)}
@@ -674,7 +674,7 @@ export function ScenarioPanel({
                             {s.status === "DRAFT" ? (
                               <button
                                 type="button"
-                                className="text-xs text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                                className="text-xs text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                                 disabled={!canAllocate || pending}
                                 title={permissionTitle(canAllocate)}
                                 onClick={() =>
@@ -692,7 +692,7 @@ export function ScenarioPanel({
                             {s.status === "READY_FOR_REVIEW" ? (
                               <button
                                 type="button"
-                                className="text-xs text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                                className="text-xs text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                                 disabled={!canAllocate || pending}
                                 title={permissionTitle(canAllocate)}
                                 onClick={() =>
@@ -709,7 +709,7 @@ export function ScenarioPanel({
                             ) : null}
                             <button
                               type="button"
-                              className="min-h-9 text-xs text-[var(--danger)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                              className="min-h-9 text-xs text-[var(--danger)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                               disabled={!canAllocate || pending}
                               title={permissionTitle(canAllocate)}
                               onClick={() => {
