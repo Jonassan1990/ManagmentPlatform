@@ -182,3 +182,24 @@ textarea:disabled,
   font-size: var(--text-xs);
   margin-top: var(--space-1);
 }
+
+/* M5E-B — print-friendly management reports */
+@media print {
+  header,
+  nav[aria-label="Primary"],
+  aside,
+  [data-testid="reports-filters"],
+  [data-testid="report-export-csv"],
+  [data-testid="report-print"] {
+    display: none !important;
+  }
+
+  [data-testid="reports-preview"] {
+    break-inside: avoid;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
