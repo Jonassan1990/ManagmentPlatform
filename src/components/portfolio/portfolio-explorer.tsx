@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fieldClassName } from "@/components/ui/forms";
 import { EmptyState, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -158,19 +159,25 @@ export function PortfolioExplorerFilters({
         </div>
         <Link
           href={resetHref}
-          className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+          className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
         >
           Reset filters
         </Link>
       </div>
-      <form method="get" className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <form
+        method="get"
+        role="search"
+        aria-label="Portfolio explorer filters"
+        className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+      >
         <label className="block text-sm md:col-span-2">
           <span className="text-[var(--muted)]">Search title or reference</span>
           <input
             name="q"
+            type="search"
             defaultValue={filters.q ?? ""}
             placeholder="e.g. M2B-1 or modernization"
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           />
         </label>
         <label className="block text-sm">
@@ -178,7 +185,7 @@ export function PortfolioExplorerFilters({
           <select
             name="organizationId"
             defaultValue={filters.organizationId}
-            className="mt-1 block w-full rounded-md border border-[var(--line)] bg-white px-3 py-2"
+            className={`mt-1 block min-h-11 ${fieldClassName}`}
           >
             {organizations.map((org) => (
               <option key={org.id} value={org.id}>
@@ -330,9 +337,9 @@ export function PortfolioExplorerFilters({
         <div className="flex items-end md:col-span-2 xl:col-span-4">
           <button
             type="submit"
-            className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+            className="min-h-11 rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
-            Apply
+            Apply filters
           </button>
         </div>
       </form>
@@ -396,16 +403,35 @@ export function PortfolioExplorerResults({
         {/* Desktop table */}
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[880px] text-left text-sm">
+            <caption className="sr-only">
+              Portfolio explorer results
+            </caption>
             <thead className="border-b border-[var(--line)] text-[var(--muted)]">
               <tr>
-                <th className="py-2 pr-3 font-medium">Type</th>
-                <th className="py-2 pr-3 font-medium">Reference</th>
-                <th className="py-2 pr-3 font-medium">Title</th>
-                <th className="py-2 pr-3 font-medium">Status</th>
-                <th className="py-2 pr-3 font-medium">Department</th>
-                <th className="py-2 pr-3 font-medium">Owner</th>
-                <th className="py-2 pr-3 font-medium">Delivery</th>
-                <th className="py-2 font-medium">Updated</th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  Type
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  Reference
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  Title
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  Status
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  Department
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  Owner
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  Delivery
+                </th>
+                <th scope="col" className="py-2 font-medium">
+                  Updated
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--line)]">

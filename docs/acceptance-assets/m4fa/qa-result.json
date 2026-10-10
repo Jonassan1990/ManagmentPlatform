@@ -1,0 +1,45 @@
+{
+  "milestone": "M4F-A",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-10T06:20:58.861Z",
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "skip-to-main",
+      "status": "PASS",
+      "detail": {
+        "skipFocused": true,
+        "mainFocused": true
+      }
+    },
+    {
+      "step": "mobile-nav-initial-focus",
+      "status": "PASS",
+      "detail": {
+        "navFocus": "A"
+      }
+    },
+    {
+      "step": "explorer-search-apply",
+      "status": "PASS"
+    },
+    {
+      "step": "pi-tabs-focusable",
+      "status": "PASS",
+      "detail": {
+        "piTabsVisible": true
+      }
+    },
+    {
+      "step": "capacity-inspect-keyboard",
+      "status": "PASS"
+    }
+  ],
+  "focusTrail": [
+    "Review"
+  ],
+  "verdict": "PASS"
+}

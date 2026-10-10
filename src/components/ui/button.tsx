@@ -66,6 +66,7 @@ export function Button({
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-[filter,background-color,opacity] duration-[var(--transition-fast)]",
         "disabled:cursor-not-allowed disabled:opacity-60",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]",
         variantClass[variant],
         sizeClass[size],
         className,

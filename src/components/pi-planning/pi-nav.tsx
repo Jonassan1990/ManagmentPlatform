@@ -58,8 +58,9 @@ export function PiTabs({
   return (
     <nav
       aria-label="PI sections"
-      className="mb-6 flex flex-wrap gap-2 border-b border-[var(--line)] pb-3"
+      className="mb-6 -mx-1 overflow-x-auto border-b border-[var(--line)] pb-3"
     >
+      <div className="flex min-w-max flex-nowrap gap-2 px-1">
       {TABS.map((tab) => {
         const isActive = tab.key === active;
         const href = preserveQuery
@@ -70,7 +71,7 @@ export function PiTabs({
             key={tab.key}
             href={href}
             aria-current={isActive ? "page" : undefined}
-            className={`min-h-9 rounded-md px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+            className={`inline-flex min-h-11 shrink-0 items-center rounded-md px-3 py-1.5 text-sm whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
               isActive
                 ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -80,6 +81,7 @@ export function PiTabs({
           </Link>
         );
       })}
+      </div>
     </nav>
   );
 }
