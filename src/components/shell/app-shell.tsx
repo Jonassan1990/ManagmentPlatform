@@ -104,7 +104,7 @@ export function AppShell({
             <p className="font-[family-name:var(--font-display)] text-lg tracking-tight text-white">
               Management Platform
             </p>
-            <p className="text-xs text-white/60">Workflow navigation</p>
+            <p className="text-xs text-white/75">Workflow navigation</p>
           </div>
         </div>
         <nav className="space-y-1 p-3" aria-label="Primary">
@@ -245,14 +245,14 @@ function NavGroupBlock({
             {group.label}
           </Link>
         ) : (
-          <span className="min-w-0 flex-1 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/55">
+          <span className="min-w-0 flex-1 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80">
             {group.label}
           </span>
         )}
         {hasChildren ? (
           <button
             type="button"
-            className="min-h-11 min-w-11 rounded-md px-2 text-white/70 hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="min-h-11 min-w-11 rounded-md px-2 text-white/85 hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             aria-expanded={expanded}
             aria-controls={panelId}
             aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}

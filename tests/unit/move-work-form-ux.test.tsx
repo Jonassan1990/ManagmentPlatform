@@ -60,8 +60,8 @@ describe("M4D-A allocation form UX", () => {
     expect(
       screen.getByRole("form", { name: "Move allocation" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Target iteration")).toBeInTheDocument();
-    expect(screen.getByLabelText("Target team")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Target iteration/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Target team/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onDone).toHaveBeenCalledTimes(1);
@@ -116,9 +116,9 @@ describe("M4D-A allocation form UX", () => {
       screen.getByRole("form", { name: "Allocate work item" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/estimate 12h/i)).toBeInTheDocument();
-    expect(screen.getByLabelText("Iteration")).toBeDisabled();
-    expect(screen.getByLabelText("Team")).toBeDisabled();
-    expect(screen.getByLabelText("Planned hours")).toBeDisabled();
+    expect(screen.getByLabelText(/Iteration/)).toBeDisabled();
+    expect(screen.getByLabelText(/^Team/)).toBeDisabled();
+    expect(screen.getByLabelText(/Planned hours/)).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Save allocation" }),
     ).toBeDisabled();

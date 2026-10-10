@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CAPACITY_BAND_LABELS } from "@/components/portfolio/metric";
 import { Alert } from "@/components/ui/alert";
 import { CapacityBar } from "@/components/ui/capacity-bar";
+import { LiveRegion } from "@/components/ui/live-region";
 import { EmptyState } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { StatusBadgeVariant } from "@/components/ui/status-badge";
@@ -1411,6 +1412,16 @@ export function PortfolioCapacityDashboard({
               />
             </div>
           </div>
+
+          <LiveRegion
+            message={
+              cards.length === 0
+                ? "No participating departments for this PI."
+                : filtered.length === 0
+                  ? "No departments match the current capacity filters."
+                  : `Showing ${filtered.length} of ${cards.length} department${cards.length === 1 ? "" : "s"} in the capacity hierarchy.`
+            }
+          />
 
           {cards.length === 0 ? (
             <EmptyState

@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/components/ui/cn";
 import { Button } from "@/components/ui/button";
+import { LiveRegion } from "@/components/ui/live-region";
 
 export type DataTableColumn<T> = {
   id: string;
@@ -59,6 +60,22 @@ export function DataTable<T>({
   caption,
   className,
 }: DataTableProps<T>) {
+  const [sortAnnounce, setSortAnnounce] = useState("");
+
+  useEffect(() => {
+    if (!sort) {
+      setSortAnnounce("");
+      return;
+    }
+    const col = columns.find((c) => c.id === sort.columnId);
+    const header = col?.header ?? sort.columnId;
+    setSortAnnounce(
+      `Table sorted by ${header}, ${
+        sort.direction === "asc" ? "ascending" : "descending"
+      }. ${rows.length} row${rows.length === 1 ? "" : "s"} shown.`,
+    );
+  }, [sort, columns, rows.length]);
+
   if (error) {
     return (
       <div
@@ -110,8 +127,21 @@ export function DataTable<T>({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <table className="w-full min-w-[36rem] border-collapse text-sm">
+      <LiveRegion message={sortAnnounce} />
+      <div
+        className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]"
+        role="region"
+        aria-label={
+          caption
+            ? `${caption}. Scroll horizontally to see all columns.`
+            : "Data table. Scroll horizontally to see all columns."
+        }
+        tabIndex={0}
+      >
+        <p className="sr-only md:hidden">
+          This table scrolls horizontally on small screens.
+        </p>
+        <table className="w-full min-w-[28rem] border-collapse text-sm sm:min-w-[36rem]">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)] text-left">
@@ -147,7 +177,7 @@ export function DataTable<T>({
                     {col.sortable && onSortChange ? (
                       <button
                         type="button"
-                        className="inline-flex min-h-10 items-center gap-1 rounded-sm px-1 hover:text-[var(--color-primary)]"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-sm px-1 hover:text-[var(--color-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                         aria-label={
                           active
                             ? `${col.header}, sorted ${
@@ -215,7 +245,11 @@ export function DataTable<T>({
         </table>
       </div>
       {pagination ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[var(--color-text-secondary)]">
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 text-sm text-[var(--color-text-secondary)]"
+          role="status"
+          aria-live="polite"
+        >
           <span>
             Page {pagination.page} of {pageCount} · {pagination.total} rows
           </span>
