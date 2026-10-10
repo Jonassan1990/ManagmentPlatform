@@ -132,9 +132,9 @@ Browser QA verdict: **PASS** (`scripts/m4fd-browser-qa.mjs`, report in `docs/acc
 |---|---|
 | typecheck | **PASS** |
 | lint | **PASS** (0 errors; 3 pre-existing warnings) |
-| unit | **PASS** — 49+ files / **295** tests |
+| unit | **PASS** — 49 files / **294** tests |
 | integration | **PASS** — **190** tests |
-| build | _(run)_ |
+| build | **PASS** |
 | browser QA | **PASS** — cross-module + 5 viewports + viewer org RO |
 
 ---
