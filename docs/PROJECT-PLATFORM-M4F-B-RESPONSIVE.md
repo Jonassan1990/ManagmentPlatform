@@ -138,8 +138,8 @@ Unit count at verification: **287** tests PASS.
 | typecheck | **PASS** |
 | lint | **PASS** (0 errors; 2 pre-existing warnings) |
 | unit | **PASS** — 47 files / 287 tests |
-| integration | _(in progress / at merge)_ |
-| build | _(in progress / at merge)_ |
+| integration | **PASS** — 190 tests |
+| build | **PASS** |
 
 ---
 
