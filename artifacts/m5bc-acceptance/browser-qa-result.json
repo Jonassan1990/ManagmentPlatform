@@ -1,0 +1,389 @@
+{
+  "milestone": "M5B-C",
+  "base": "http://127.0.0.1:43152",
+  "generatedAt": "2026-10-10T10:39:57.467Z",
+  "fixture": {
+    "database": "management_platform_m3d_qa",
+    "organizationId": "f6b317a2-839d-413b-9aa1-2ea4e006f486",
+    "organizationName": "M2E Capacity Org",
+    "piId": "c9cf896f-8a37-43de-aefe-c3af32bcfc78",
+    "principalId": "f796fe09-b948-4eb6-9fcd-0770990ab453"
+  },
+  "journeys": [
+    {
+      "journey": "manager-home",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "quick-start",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "attention-navigation",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "portfolio-kpi-drilldown",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "http://127.0.0.1:43152/portfolio"
+    },
+    {
+      "journey": "current-pi",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "http://127.0.0.1:43152/pi"
+    },
+    {
+      "journey": "resource-capacity",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "http://127.0.0.1:43152/portfolio/capacity?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486"
+    },
+    {
+      "journey": "desktop",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "tablet",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "mobile",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "employee-home",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "my-work-navigation",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "/initiatives/f37a9842-179d-4d54-b66f-69641557b23f?tab=project&from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486"
+    },
+    {
+      "journey": "mixed-home",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "viewer-home",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "no-linked-resource-home",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "multi-org-scope",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "warning or org context present"
+    },
+    {
+      "journey": "empty-unavailable",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "{\"hasUnavailableOrEmpty\":true}"
+    }
+  ],
+  "personas": [
+    {
+      "persona": "manager",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "attention=true create=1 ms=1347"
+    },
+    {
+      "persona": "employee",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "myWork=true createHidden=true"
+    },
+    {
+      "persona": "mixed",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "myWork=true attention=true create=true initLabels=1"
+    },
+    {
+      "persona": "viewer",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "createHidden=true"
+    },
+    {
+      "persona": "no-linked-resource",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "manager without Resource link"
+    }
+  ],
+  "usability": {
+    "findCreateInitiative": {
+      "steps": 1,
+      "path": "Home → Quick Start → Create Initiative"
+    },
+    "locateBlockedProject": {
+      "steps": 1,
+      "path": "Home → Needs Attention → Delivery health"
+    },
+    "openPiPlanning": {
+      "steps": 1,
+      "path": "Home → Quick Start / Current PI → PI Planning"
+    },
+    "inspectCapacity": {
+      "steps": 1,
+      "path": "Home → Resource Capacity → PI & capacity"
+    },
+    "findGovernance": {
+      "steps": 1,
+      "path": "Home → Governance / Approvals link"
+    },
+    "openAssignedProject": {
+      "steps": 1,
+      "path": "Home → My Work item"
+    },
+    "findMyWork": {
+      "steps": 0,
+      "path": "Visible on first paint (employee)"
+    },
+    "firstScreenClarity": {
+      "manager": "Welcome + Needs Attention + Quick Start on first viewport (desktop)",
+      "employee": "My Work prominent before manager KPI density",
+      "mixed": "Attention and My Work coexist without role switcher"
+    }
+  },
+  "a11y": [
+    {
+      "label": "desktop-manager",
+      "h1Count": 1,
+      "headingSample": [
+        {
+          "tag": "H1",
+          "text": "Welcome, TempOwner"
+        },
+        {
+          "tag": "H2",
+          "text": "Needs Attention"
+        },
+        {
+          "tag": "H3",
+          "text": "Priority items"
+        },
+        {
+          "tag": "H2",
+          "text": "Quick Start"
+        },
+        {
+          "tag": "H2",
+          "text": "Portfolio Summary"
+        },
+        {
+          "tag": "H2",
+          "text": "Active Projects"
+        },
+        {
+          "tag": "H2",
+          "text": "Current PI"
+        },
+        {
+          "tag": "H3",
+          "text": "Nothing here yet"
+        },
+        {
+          "tag": "H2",
+          "text": "Resource Capacity"
+        },
+        {
+          "tag": "H3",
+          "text": "Nothing here yet"
+        },
+        {
+          "tag": "H2",
+          "text": "My Work"
+        },
+        {
+          "tag": "H3",
+          "text": "No linked work identity"
+        }
+      ],
+      "focusableCount": 41,
+      "focusAfterTab": {
+        "tag": "A",
+        "outline": "solid",
+        "outlineWidth": "2px",
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(27, 51, 68, 0.04) 0px 7px 22px 0px"
+      },
+      "issues": []
+    },
+    {
+      "label": "mobile-manager",
+      "h1Count": 1,
+      "headingSample": [
+        {
+          "tag": "H1",
+          "text": "Welcome, TempOwner"
+        },
+        {
+          "tag": "H2",
+          "text": "Needs Attention"
+        },
+        {
+          "tag": "H3",
+          "text": "Priority items"
+        },
+        {
+          "tag": "H2",
+          "text": "Quick Start"
+        },
+        {
+          "tag": "H2",
+          "text": "Portfolio Summary"
+        },
+        {
+          "tag": "H2",
+          "text": "Active Projects"
+        },
+        {
+          "tag": "H2",
+          "text": "Current PI"
+        },
+        {
+          "tag": "H3",
+          "text": "Nothing here yet"
+        },
+        {
+          "tag": "H2",
+          "text": "Resource Capacity"
+        },
+        {
+          "tag": "H3",
+          "text": "Nothing here yet"
+        },
+        {
+          "tag": "H2",
+          "text": "My Work"
+        },
+        {
+          "tag": "H3",
+          "text": "No linked work identity"
+        }
+      ],
+      "focusableCount": 41,
+      "focusAfterTab": {
+        "tag": "A",
+        "outline": "solid",
+        "outlineWidth": "2px",
+        "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(27, 51, 68, 0.04) 0px 7px 22px 0px"
+      },
+      "issues": []
+    }
+  ],
+  "performance": {
+    "homeLoadTimingsMs": [
+      {
+        "persona": "manager",
+        "ms": 1347
+      },
+      {
+        "persona": "manager-tablet",
+        "ms": 1216
+      },
+      {
+        "persona": "manager-mobile",
+        "ms": 1186
+      },
+      {
+        "persona": "employee",
+        "ms": 1170
+      },
+      {
+        "persona": "mixed",
+        "ms": 1100
+      },
+      {
+        "persona": "viewer",
+        "ms": 1089
+      },
+      {
+        "persona": "no-linked-resource",
+        "ms": 1114
+      },
+      {
+        "persona": "multi-org",
+        "ms": 1306
+      }
+    ],
+    "medianMs": 1186,
+    "note": "domcontentloaded → main/h1/h2 ready; single getHomeDashboardAction server composition"
+  },
+  "steps": [
+    {
+      "step": "login.dev-auth-session",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:43152/"
+    },
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "usability.create-initiative-visible",
+      "status": "PASS"
+    },
+    {
+      "step": "quickstart.create-initiative",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:43152/initiatives/new?from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486"
+    },
+    {
+      "step": "attention.nav",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:43152/portfolio/health?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486"
+    },
+    {
+      "step": "a11y.desktop-manager",
+      "status": "PASS",
+      "detail": "h1=1 focusables=41 issues=none"
+    },
+    {
+      "step": "layout.desktop-no-h-overflow",
+      "status": "PASS",
+      "detail": "{\"scrollWidth\":1280,\"clientWidth\":1280,\"overflow\":false}"
+    },
+    {
+      "step": "layout.tablet-no-h-overflow",
+      "status": "PASS"
+    },
+    {
+      "step": "a11y.mobile-manager",
+      "status": "PASS",
+      "detail": "h1=1 focusables=41 issues=none"
+    },
+    {
+      "step": "layout.mobile-no-h-overflow",
+      "status": "PASS"
+    },
+    {
+      "step": "mywork.nav",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:43152/initiatives/f37a9842-179d-4d54-b66f-69641557b23f?tab=project&from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486"
+    },
+    {
+      "step": "multi-org.scope-signal",
+      "status": "PASS"
+    }
+  ],
+  "verdict": "PASS"
+}

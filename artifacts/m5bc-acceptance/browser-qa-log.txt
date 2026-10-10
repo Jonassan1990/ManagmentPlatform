@@ -1,0 +1,37 @@
+M5B-C Home Browser QA
+base: http://127.0.0.1:43152
+generatedAt: 2026-10-10T10:39:57.467Z
+verdict: PASS
+PASS	login.dev-auth-session	http://127.0.0.1:43152/
+PASS	login	
+PASS	usability.create-initiative-visible	
+PASS	quickstart.create-initiative	http://127.0.0.1:43152/initiatives/new?from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486
+PASS	attention.nav	http://127.0.0.1:43152/portfolio/health?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486
+PASS	a11y.desktop-manager	h1=1 focusables=41 issues=none
+PASS	layout.desktop-no-h-overflow	{"scrollWidth":1280,"clientWidth":1280,"overflow":false}
+PASS	layout.tablet-no-h-overflow	
+PASS	a11y.mobile-manager	h1=1 focusables=41 issues=none
+PASS	layout.mobile-no-h-overflow	
+PASS	mywork.nav	http://127.0.0.1:43152/initiatives/f37a9842-179d-4d54-b66f-69641557b23f?tab=project&from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486
+PASS	multi-org.scope-signal	
+PASS	persona:manager	attention=true create=1 ms=1347
+PASS	persona:employee	myWork=true createHidden=true
+PASS	persona:mixed	myWork=true attention=true create=true initLabels=1
+PASS	persona:viewer	createHidden=true
+PASS	persona:no-linked-resource	manager without Resource link
+PASS	journey:manager-home	
+PASS	journey:quick-start	
+PASS	journey:attention-navigation	
+PASS	journey:portfolio-kpi-drilldown	http://127.0.0.1:43152/portfolio
+PASS	journey:current-pi	http://127.0.0.1:43152/pi
+PASS	journey:resource-capacity	http://127.0.0.1:43152/portfolio/capacity?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486
+PASS	journey:desktop	
+PASS	journey:tablet	
+PASS	journey:mobile	
+PASS	journey:employee-home	
+PASS	journey:my-work-navigation	/initiatives/f37a9842-179d-4d54-b66f-69641557b23f?tab=project&from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486
+PASS	journey:mixed-home	
+PASS	journey:viewer-home	
+PASS	journey:no-linked-resource-home	
+PASS	journey:multi-org-scope	warning or org context present
+PASS	journey:empty-unavailable	{"hasUnavailableOrEmpty":true}
