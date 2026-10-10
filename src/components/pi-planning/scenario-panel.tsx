@@ -27,6 +27,10 @@ import {
   appendPreservedQuery,
   PI_CONTEXT_QUERY_KEYS,
 } from "@/modules/navigation/return-context";
+import {
+  describeEditability,
+  scenarioChipLabel,
+} from "@/modules/pi-planning/application/pi-planning-presentation";
 
 type Caps = Partial<PrincipalCapabilities>;
 
@@ -81,10 +85,10 @@ export function ScenarioModeBanner({
   const badge = scenarioBadgeFor(revision);
   if (revision.isCurrent) {
     return (
-      <Alert tone="info" title="Planning revision" live="polite" className="mb-4">
-        Viewing the authoritative <strong>CURRENT</strong> plan
+      <Alert tone="info" title="Current plan" live="polite" className="mb-4">
+        Viewing the authoritative <strong>current plan</strong>
         {revision.label ? ` — ${revision.label}` : ""}. Scenario drafts do not
-        change this plan until promoted.
+        change this plan until you apply one in Review.
       </Alert>
     );
   }
@@ -102,12 +106,12 @@ export function ScenarioModeBanner({
       </span>
       <span className="mt-1 block text-[var(--color-text)]">
         {readOnly
-          ? "Read-only for this status — reopen a draft to edit allocations. CURRENT is unchanged."
-          : "Edits apply only to this draft scenario — CURRENT is unchanged."}
+          ? "Read-only for this status — reopen a draft to edit allocations. The current plan is unchanged."
+          : "Edits apply only to this draft scenario — the current plan is unchanged."}
       </span>
       {(revision.status === "SELECTED" || revision.status === "PROMOTED") && (
         <span className="mt-1 block text-xs text-[var(--color-text-secondary)]">
-          Selected / promoted does not mean the plan is approved.
+          Selected or applied does not mean the plan is approved.
         </span>
       )}
     </Alert>
@@ -128,6 +132,7 @@ export function ScenarioPanel({
   capabilities,
   boardHrefBase,
   preserveQuery,
+  showPlanningContext = true,
 }: {
   piId: string;
   piStatus?: string;
@@ -141,6 +146,8 @@ export function ScenarioPanel({
   preserveQuery?:
     | URLSearchParams
     | Record<string, string | string[] | undefined>;
+  /** When false, only the scenario switcher / manage disclosure is shown (parent supplies header). */
+  showPlanningContext?: boolean;
 }) {
   const router = useRouter();
   const manageId = useId();
@@ -235,6 +242,7 @@ export function ScenarioPanel({
   return (
     <div className="mb-6 space-y-3">
       {/* A. Planning context */}
+      {showPlanningContext ? (
       <section
         aria-label="Planning context"
         className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-3 sm:px-4"
@@ -257,7 +265,7 @@ export function ScenarioPanel({
                   status={revBadge.status}
                   label={
                     viewingCurrent
-                      ? "CURRENT plan"
+                      ? "Current plan"
                       : revBadge.label
                   }
                   size="compact"
@@ -275,11 +283,13 @@ export function ScenarioPanel({
             </div>
             {revision ? (
               <p className="text-xs text-[var(--muted)]">
-                {viewingCurrent
-                  ? "Allocations here update CURRENT. Create a scenario to explore alternatives."
-                  : revision.status === "DRAFT"
-                    ? "Draft scenario — edits stay isolated until promotion."
-                    : "This revision is not editable as a draft. Selected or promoted is not plan approval."}
+                {
+                  describeEditability({
+                    isCurrent: revision.isCurrent,
+                    status: revision.status,
+                    canAllocate,
+                  }).detail
+                }
               </p>
             ) : null}
           </div>
@@ -306,7 +316,7 @@ export function ScenarioPanel({
                 {capacitySummary!.blockerConflictCount} blocker conflict
                 {capacitySummary!.blockerConflictCount === 1 ? "" : "s"} on this
                 revision. Review Dependencies or overloaded cells before
-                promoting.
+                applying a scenario.
               </Alert>
             ) : null}
             {(capacitySummary?.overloadSlots ?? 0) > 0 &&
@@ -319,26 +329,28 @@ export function ScenarioPanel({
             {revision &&
             !revision.isCurrent &&
             revision.status !== "DRAFT" ? (
-              <Alert tone="info" title="Read-only revision" live="polite">
+              <Alert tone="info" title="Read-only scenario" live="polite">
                 Viewing a non-draft scenario. Allocation edits are disabled.
               </Alert>
             ) : null}
           </div>
         ) : null}
       </section>
+      ) : null}
 
-      {/* C. Scenario management (selector always visible; admin disclosed) */}
+      {/* C. Scenarios (selector always visible; admin disclosed) */}
       <section
-        aria-label="Scenario management"
+        aria-label="Scenarios"
         className="rounded-[var(--radius-md)] border border-[var(--line)] px-3 py-3 sm:px-4"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-[var(--ink)]">
-              Active revision
+              Scenarios
             </h2>
             <p className="text-xs text-[var(--muted)]">
-              Switch plans without leaving the board.
+              Switch the current plan or a draft scenario without leaving the
+              board.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -383,7 +395,7 @@ export function ScenarioPanel({
                   }`}
                 >
                   <span className="truncate font-medium">
-                    {s.isCurrent ? "CURRENT" : s.label ?? s.key}
+                    {scenarioChipLabel(s)}
                   </span>
                   <StatusBadge
                     status={badge.status}
@@ -421,7 +433,7 @@ export function ScenarioPanel({
               {!canAllocate ? (
                 <p className="text-xs text-[var(--muted)]" role="status">
                   Scenario create and lifecycle actions require planning
-                  permission. You can still switch revisions and open Compare /
+                  permission. You can still switch plans and open Compare /
                   Review.
                 </p>
               ) : null}
@@ -445,11 +457,11 @@ export function ScenarioPanel({
                     });
                   }}
                 >
-                  <p className="text-xs font-medium">Create from CURRENT</p>
+                  <p className="text-xs font-medium">Create from current plan</p>
                   <FormField
                     label="Scenario name"
                     htmlFor="scenario-create-label"
-                    hint="Starts as a DRAFT copy of CURRENT."
+                    hint="Starts as a draft copy of the current plan."
                   >
                     <input
                       id="scenario-create-label"
@@ -740,7 +752,7 @@ export function ScenarioPanel({
           title="Archive scenario?"
           description={
             archiveTarget
-              ? `Archive “${archiveTarget.label}”. It will leave the active scenario list. CURRENT, SELECTED, and approvals are unchanged. Archiving is reversible only by creating a new scenario.`
+              ? `Archive “${archiveTarget.label}”. It will leave the active scenario list. The current plan, selected scenario, and approvals are unchanged. Archiving is reversible only by creating a new scenario.`
               : "Archive this scenario."
           }
           confirmLabel="Archive scenario"

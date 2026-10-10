@@ -1,11 +1,16 @@
 import { notFound, redirect } from "next/navigation";
 import { PlanningBoard } from "@/components/pi-planning/planning-board";
-import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
+import { PiTabs } from "@/components/pi-planning/pi-nav";
+import { PiPlanningContextHeader } from "@/components/pi-planning/pi-planning-workspace";
 import { ScenarioPanel } from "@/components/pi-planning/scenario-panel";
-import { Breadcrumbs, PageHeader } from "@/components/ui/page";
+import { Breadcrumbs } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
 import { buildPiTrail } from "@/modules/navigation/breadcrumbs";
-import { parseReturnContext } from "@/modules/navigation/return-context";
+import {
+  appendPreservedQuery,
+  parseReturnContext,
+} from "@/modules/navigation/return-context";
+import { summarizeCapacityFromViews } from "@/modules/pi-planning/application/pi-planning-presentation";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -66,23 +71,34 @@ export default async function PiBoardPage({
   const readOnlyScenario =
     !board.revision.isCurrent && board.revision.status !== "DRAFT";
 
-  const teamSlots = board.capacityViews.teams;
-  const availableHours = teamSlots.reduce(
-    (sum, t) => sum + t.effectiveCapacityHours,
-    0,
-  );
-  const committedHours = teamSlots.reduce(
-    (sum, t) => sum + t.plannedLoadHours,
-    0,
-  );
-  const capacitySummary = {
-    availableHours: teamSlots.length === 0 ? null : availableHours,
-    committedHours,
-    overloadSlots: teamSlots.filter((t) => t.band === "overload").length,
+  const capacity = summarizeCapacityFromViews({
+    teams: board.capacityViews.teams,
     blockerConflictCount: board.conflicts.filter((c) => c.severity === "BLOCKER")
       .length,
-    teamSlotCount: teamSlots.length,
+  });
+
+  const capacitySummary = {
+    availableHours: capacity.availableHours,
+    committedHours: capacity.committedHours,
+    overloadSlots: capacity.overloadSlots,
+    blockerConflictCount: capacity.blockerConflictCount,
+    teamSlotCount: capacity.teamSlotCount,
   };
+
+  const currentId = scenarios.find((s) => s.isCurrent)?.id;
+  const other =
+    (!board.revision.isCurrent ? board.revision.id : undefined) ??
+    scenarios.find((s) => !s.isCurrent)?.id;
+  const comparePath =
+    currentId && other
+      ? `/pi/${piId}/compare?revs=${encodeURIComponent(`${currentId},${other}`)}&ref=${encodeURIComponent(currentId)}`
+      : `/pi/${piId}/compare`;
+  const compareHref = appendPreservedQuery(comparePath, query, [
+    "from",
+    "fromOrg",
+    "organizationId",
+  ]);
+  const capacityHref = appendPreservedQuery(`/pi/${piId}/capacity`, query);
 
   return (
     <div>
@@ -91,17 +107,30 @@ export default async function PiBoardPage({
           piId,
           referenceKey: board.pi.referenceKey,
           name: board.pi.name,
-          leaf: "Board",
+          leaf: "Plan board",
           returnContext,
         })}
       />
-      <PageHeader
-        title="Planning board"
-        description={`${board.pi.name} · ${piStatusLabel(board.pi.status)} — allocate work across teams and iterations. Drag cards or use Allocate / Move forms.`}
+      <PiPlanningContextHeader
+        piReference={board.pi.referenceKey}
+        piName={board.pi.name}
+        piStatus={board.pi.status}
+        startDate={board.pi.startDate}
+        endDate={board.pi.endDate}
+        teamCount={board.capacityViews.teams.length}
+        revision={{
+          isCurrent: board.revision.isCurrent,
+          label: board.revision.label,
+          key: board.revision.key,
+          status: board.revision.status,
+        }}
+        capacity={capacity}
+        canAllocate={capabilities.canAllocatePi}
+        capacityHref={capacityHref}
+        compareHref={scenarios.length >= 2 ? compareHref : null}
       />
       <PiTabs piId={piId} active="board" preserveQuery={query} />
 
-      {/* A + C: context + compact scenario management (workspace follows) */}
       <ScenarioPanel
         piId={piId}
         piStatus={board.pi.status}
@@ -126,10 +155,10 @@ export default async function PiBoardPage({
         capacitySummary={capacitySummary}
         capabilities={capabilities}
         preserveQuery={query}
+        showPlanningContext={false}
       />
 
-      {/* B: Planning workspace */}
-      <section aria-label="Planning workspace">
+      <section aria-label="Plan board">
         <PlanningBoard
           piId={piId}
           revisionId={board.revision.id}

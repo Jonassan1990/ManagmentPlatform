@@ -42,11 +42,11 @@ export function mapScenarioStatusBadge(status: string): StatusBadgeMapping {
     case "READY_FOR_REVIEW":
       return { status: "pending", label: "Ready for review" };
     case "SELECTED":
-      return { status: "pending", label: "Selected for review" };
+      return { status: "pending", label: "Selected scenario" };
     case "PROMOTED":
-      return { status: "approved", label: "Promoted" };
+      return { status: "approved", label: "Applied to current plan" };
     case "ACTIVE_PLAN":
-      return { status: "in-progress", label: "CURRENT plan" };
+      return { status: "in-progress", label: "Current plan" };
     case "ARCHIVED":
       return { status: "archived", label: "Archived" };
     default:
