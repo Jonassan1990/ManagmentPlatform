@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import fs from "fs";
 import path from "node:path";
 
-const base = process.env.QA_BASE_URL ?? "http://127.0.0.1:43155";
+const base = process.env.QA_BASE_URL ?? "http://localhost:43155";
 const pass = fs
   .readFileSync(process.env.QA_PASS_FILE ?? "/tmp/m3dd-qa-pass.txt", "utf8")
   .trim();
@@ -40,6 +40,13 @@ function run(cmd, args, env = {}) {
     throw new Error(`${cmd} ${args.join(" ")} failed`);
   }
   return r.stdout;
+}
+
+// Clear stale persona snapshots so restore cannot rebind deleted orgs.
+try {
+  fs.unlinkSync(path.join(outDir, "persona-state.json"));
+} catch {
+  /* ignore */
 }
 
 run("npx", ["tsx", "scripts/m5ea-seed-browser.mts"], {
@@ -124,12 +131,15 @@ async function login(page) {
   await page.goto(`${base}/login`, { waitUntil: "networkidle" });
   await page.fill('input[name="username"]', "owner");
   await page.fill('input[name="password"]', pass);
-  await Promise.all([
-    page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 25000,
-    }),
-    page.getByRole("button", { name: /Sign in/i }).click(),
-  ]);
+  await page.getByRole("button", { name: /Sign in/i }).click();
+  await page.waitForURL((url) => !url.pathname.includes("/login"), {
+    timeout: 25000,
+  });
+  // Temp-auth can land on access-not-configured if bindings were wiped —
+  // surface that clearly rather than continuing silently.
+  if (page.url().includes("access-not-configured")) {
+    throw new Error(`login landed on access-not-configured: ${page.url()}`);
+  }
 }
 
 async function shot(page, name) {
@@ -256,9 +266,13 @@ try {
   step("11-contextual-nav", piLink, { detail: { piLink, projLink } });
 
   if (piLink) {
-    await page.getByRole("link", { name: /Open PI Planning|PI Planning/i }).first().click();
+    await page
+      .getByRole("link", { name: /Open PI Planning|PI Planning/i })
+      .first()
+      .click();
     await page.waitForTimeout(1000);
-    const onPi = page.url().includes("/pi/");
+    // Accept PI workspace (`/pi/{id}…`) or PI Planning list (`/pi`).
+    const onPi = /\/pi(\/|$|\?)/.test(new URL(page.url()).pathname);
     step("12-nav-to-pi", onPi, { detail: page.url() });
     await softGoto(page, capacityUrl);
   } else {

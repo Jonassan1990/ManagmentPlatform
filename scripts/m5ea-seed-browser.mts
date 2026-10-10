@@ -26,13 +26,29 @@ async function ensureCapacityOrg() {
   await db.principal.upsert({
     where: { id: principalId },
     create: { id: principalId, displayName: "M5EA QA Actor" },
-    update: {},
+    update: { displayName: "M5EA QA Actor" },
   });
 
   let org = await db.organization.findFirst({
     where: { name: "M2E Capacity Org" },
   });
-  if (!org) {
+  // Always re-run M2E seed when org is missing OR principal has no active
+  // org-admin binding (integration suites may truncate mid-session).
+  const adminRole = await db.roleDefinition.findFirst({
+    where: { key: "organization.admin" },
+  });
+  const activeAdmin = adminRole
+    ? await db.roleBinding.findFirst({
+        where: {
+          principalId,
+          roleDefinitionId: adminRole.id,
+          effectiveTo: null,
+          organizationId: org?.id ?? undefined,
+        },
+      })
+    : null;
+
+  if (!org || !activeAdmin) {
     const m2e = spawnSync("node", ["scripts/seed-m2e-capacity-ui.mjs"], {
       cwd: process.cwd(),
       env: {
