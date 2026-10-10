@@ -309,6 +309,7 @@ export function PortfolioDashboardView({
   healthAttention,
   healthFocus,
   healthError,
+  canCreateInitiative = false,
 }: {
   snapshot: PortfolioSnapshot;
   organizationName: string;
@@ -318,6 +319,8 @@ export function PortfolioDashboardView({
   healthAttention?: DeliveryHealthAttentionResult | null;
   healthFocus?: string | null;
   healthError?: string | null;
+  /** When false, hide create CTA for viewers / read-only principals. */
+  canCreateInitiative?: boolean;
 }) {
   const initiatives = snapshot.initiatives;
   const projects = snapshot.projects;
@@ -524,12 +527,14 @@ export function PortfolioDashboardView({
           title="No portfolio activity in this scope"
           description="There are no non-archived initiatives or projects visible under your current organization and department scope."
           action={
-            <Link
-              href="/initiatives/new"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
-            >
-              Create an initiative
-            </Link>
+            canCreateInitiative ? (
+              <Link
+                href="/initiatives/new"
+                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+              >
+                Create an initiative
+              </Link>
+            ) : undefined
           }
         />
       ) : null}

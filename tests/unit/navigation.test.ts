@@ -112,6 +112,50 @@ describe("M4C-A navigation filtering", () => {
     );
   });
 
+  it("hides Access and Approvals for portfolio-manager-shaped capabilities", () => {
+    const portfolioMgr: NavResolveContext = {
+      capabilities: {
+        canViewApprovals: false,
+        canViewDecisions: false,
+        canManageGovernancePolicy: false,
+        canManageAccess: false,
+        canViewPi: true,
+        canCreatePi: false,
+        canViewInitiatives: true,
+        canCreateInitiative: true,
+      },
+      organizationId: "org-1",
+      activePiId: null,
+    };
+    const groups = resolveNavGroups("/", portfolioMgr);
+    expect(groups.find((g) => g.id === "governance")).toBeUndefined();
+    const org = groups.find((g) => g.id === "organization")!;
+    expect(org.items.some((i) => i.id === "org-access")).toBe(false);
+    expect(listVisibleHrefs(portfolioMgr)).toContain("/initiatives/new");
+  });
+
+  it("keeps PI list but not create for team-manager-shaped capabilities", () => {
+    const teamMgr: NavResolveContext = {
+      capabilities: {
+        canViewApprovals: false,
+        canViewDecisions: false,
+        canManageGovernancePolicy: false,
+        canManageAccess: false,
+        canViewPi: true,
+        canCreatePi: false,
+        canViewInitiatives: true,
+        canCreateInitiative: false,
+      },
+      organizationId: "org-1",
+      activePiId: null,
+    };
+    const groups = resolveNavGroups("/", teamMgr);
+    const pi = groups.find((g) => g.id === "pi-planning")!;
+    expect(pi.items.some((i) => i.id === "pi-list")).toBe(true);
+    expect(pi.items.some((i) => i.id === "pi-create")).toBe(false);
+    expect(groups.find((g) => g.id === "governance")).toBeUndefined();
+  });
+
   it("does not invent broken global PI contextual routes", () => {
     const hrefs = listVisibleHrefs(fullCtx);
     for (const bad of [

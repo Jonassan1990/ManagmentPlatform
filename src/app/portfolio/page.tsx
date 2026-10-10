@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/page";
 import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
 import type { DeliveryHealthClassification } from "@/modules/portfolio/domain/types";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -229,6 +230,11 @@ export default async function PortfolioPage({
           }
           healthFocus={healthFocus}
           healthError={healthError}
+          canCreateInitiative={await authz.hasPermissionInOrganization(
+            principal,
+            PERMISSIONS.INITIATIVE_CREATE,
+            organizationId,
+          )}
         />
       )}
     </div>

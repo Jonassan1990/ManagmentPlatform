@@ -12,6 +12,10 @@ export type ShellNavContext = {
  * Resolve shell navigation visibility by OR-ing permissions across
  * organizations the principal can list. Does not grant access — only
  * decides whether a nav destination is offered.
+ *
+ * Uses organization-local RoleBinding permission presence (any scope depth)
+ * so Section/Department/Team managers still see Initiatives / PI destinations
+ * they are authorized to open at their scope. Server assertCan remains authoritative.
  */
 export async function resolveShellNavContext(
   authz: AuthorizationService,
@@ -50,9 +54,8 @@ export async function resolveShellNavContext(
   let accessOrgId: string | null = null;
 
   for (const organizationId of organizationIds) {
-    const scope = { type: "ORGANIZATION" as const, organizationId };
     const check = (p: (typeof PERMISSIONS)[keyof typeof PERMISSIONS]) =>
-      authz.can(principal, p, scope);
+      authz.hasPermissionInOrganization(principal, p, organizationId);
 
     const [
       approvals,

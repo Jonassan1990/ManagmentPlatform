@@ -262,6 +262,32 @@ export class AuthorizationService {
     }
   }
 
+  /**
+   * Presentation helper for shell/nav capability flags.
+   * True when an active RoleBinding in the organization includes the permission,
+   * regardless of SECTION/DEPARTMENT/TEAM vs ORGANIZATION binding depth.
+   * Does not replace assertCan — child scopes still cannot authorize ancestor writes.
+   */
+  async hasPermissionInOrganization(
+    principal: Principal,
+    permission: Permission,
+    organizationId: string,
+  ): Promise<boolean> {
+    await this.ensureBootstrapBinding(principal.id);
+    const now = new Date();
+    const bindings = await this.db.roleBinding.findMany({
+      where: {
+        principalId: principal.id,
+        organizationId,
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+      },
+      include: { roleDefinition: true },
+    });
+    return bindings.some((b) =>
+      b.roleDefinition.permissions.includes(permission),
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Role / binding administration (ROLE_MANAGE)
   // ---------------------------------------------------------------------------
