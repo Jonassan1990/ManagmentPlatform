@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CreateResourceForm } from "@/components/organization/org-forms";
+import { Alert } from "@/components/ui/alert";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
 import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createOrganizationService } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,12 @@ export default async function ResourcesPage({
   } catch {
     notFound();
   }
+
+  const canManage = await authz.can(
+    principal,
+    PERMISSIONS.ORG_STRUCTURE_MANAGE,
+    { type: "ORGANIZATION", organizationId },
+  );
 
   const teams =
     hierarchy?.sections.flatMap((section) =>
@@ -61,7 +69,7 @@ export default async function ResourcesPage({
                 <li key={resource.id} className="py-2">
                   <Link
                     href={`/organization/${org.id}/resources/${resource.id}`}
-                    className="font-medium hover:text-[var(--accent)]"
+                    className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
                   >
                     {resource.name}
                   </Link>
@@ -75,7 +83,17 @@ export default async function ResourcesPage({
           )}
         </Panel>
         <Panel>
-          <CreateResourceForm organizationId={org.id} teams={teams} />
+          {canManage ? (
+            <CreateResourceForm organizationId={org.id} teams={teams} />
+          ) : (
+            <>
+              <h2 className="mb-3 font-medium">Create resource</h2>
+              <Alert tone="info" live="polite">
+                Creating resources requires organization structure manage
+                permission.
+              </Alert>
+            </>
+          )}
         </Panel>
       </div>
     </div>

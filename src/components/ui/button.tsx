@@ -33,8 +33,9 @@ const variantClass: Record<ButtonVariant, string> = {
 };
 
 const sizeClass: Record<ButtonSize, string> = {
-  sm: "min-h-9 px-3 py-1.5 text-xs",
-  md: "min-h-10 px-4 py-2 text-sm",
+  // WCAG 2.2 AA 2.5.5 / 2.5.8: interactive controls meet ≥44×44 CSS px target.
+  sm: "min-h-11 px-3 py-1.5 text-xs",
+  md: "min-h-11 px-4 py-2 text-sm",
   lg: "min-h-11 px-5 py-2.5 text-sm",
 };
 

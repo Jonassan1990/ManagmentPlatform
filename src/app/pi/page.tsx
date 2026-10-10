@@ -131,16 +131,37 @@ export default async function PiListPage() {
         </div>
       ) : (
         <Panel>
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto"
+            role="region"
+            tabIndex={0}
+            aria-label="Program increments table"
+          >
             <table className="w-full min-w-[720px] text-left text-sm">
+              <caption className="sr-only">
+                Program increments with reference, organization, status, and
+                dates
+              </caption>
               <thead className="border-b border-[var(--line)] text-[var(--muted)]">
                 <tr>
-                  <th className="py-2 pr-3 font-medium">Reference</th>
-                  <th className="py-2 pr-3 font-medium">Name</th>
-                  <th className="py-2 pr-3 font-medium">Organization</th>
-                  <th className="py-2 pr-3 font-medium">Status</th>
-                  <th className="py-2 pr-3 font-medium">Dates</th>
-                  <th className="py-2 font-medium">Iterations</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Reference
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Name
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Organization
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Status
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Dates
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Iterations
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">

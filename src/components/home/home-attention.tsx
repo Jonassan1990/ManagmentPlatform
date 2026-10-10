@@ -50,7 +50,7 @@ export function HomeAttentionPanel({
         </div>
         <Link
           href={healthHref}
-          className="min-h-9 text-sm font-medium text-[var(--color-primary)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-primary)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
         >
           Open delivery health
         </Link>
@@ -115,7 +115,7 @@ export function HomeAttentionPanel({
                       from: "home",
                       organizationId,
                     })}
-                    className="font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                    className="inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
                   >
                     {row.referenceKey} · {row.name}
                   </Link>

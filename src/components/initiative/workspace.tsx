@@ -174,7 +174,7 @@ export function InitiativeTabs({
                     key={key}
                     href={href}
                     aria-current={isActive ? "page" : undefined}
-                    className={`border-b-2 px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+                    className={`inline-flex min-h-11 items-center border-b-2 px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
                       isActive
                         ? "border-[var(--accent)] font-medium text-[var(--accent)]"
                         : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"

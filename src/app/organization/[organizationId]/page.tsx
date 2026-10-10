@@ -5,8 +5,10 @@ import {
   CreateSectionForm,
   EditOrganizationForm,
 } from "@/components/organization/org-forms";
+import { Alert } from "@/components/ui/alert";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
 import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createOrganizationService } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +30,12 @@ export default async function OrganizationDetailPage({
     notFound();
   }
   if (!hierarchy) notFound();
+
+  const canManage = await authz.can(
+    principal,
+    PERMISSIONS.ORG_STRUCTURE_MANAGE,
+    { type: "ORGANIZATION", organizationId },
+  );
 
   const allTeams = hierarchy.sections.flatMap((section) =>
     section.departments.flatMap((department) =>
@@ -56,13 +64,13 @@ export default async function OrganizationDetailPage({
           <div className="flex flex-wrap gap-2">
             <Link
               href={`/organization/${hierarchy.id}/access`}
-              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 text-sm"
             >
               Access & roles
             </Link>
             <Link
               href={`/organization/${hierarchy.id}/governance-policy`}
-              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 text-sm"
             >
               Governance policy
             </Link>
@@ -76,7 +84,10 @@ export default async function OrganizationDetailPage({
             <h2 className="mb-3 font-medium">Hierarchy</h2>
             {hierarchy.sections.length === 0 ? (
               <p className="text-sm text-[var(--muted)]">
-                No sections yet. Create the first section to continue.
+                No sections yet.
+                {canManage
+                  ? " Create the first section to continue."
+                  : " Organization structure manage permission is required to add sections."}
               </p>
             ) : (
               <ul className="space-y-4">
@@ -84,7 +95,7 @@ export default async function OrganizationDetailPage({
                   <li key={section.id}>
                     <Link
                       href={`/organization/${hierarchy.id}/sections/${section.id}`}
-                      className="font-medium text-[var(--accent)]"
+                      className="inline-flex min-h-11 items-center font-medium text-[var(--accent)]"
                     >
                       Section · {section.name}
                     </Link>
@@ -98,7 +109,7 @@ export default async function OrganizationDetailPage({
                           <li key={department.id}>
                             <Link
                               href={`/organization/${hierarchy.id}/departments/${department.id}`}
-                              className="text-sm font-medium"
+                              className="inline-flex min-h-11 items-center text-sm font-medium"
                             >
                               Department · {department.name}
                             </Link>
@@ -107,7 +118,7 @@ export default async function OrganizationDetailPage({
                                 <li key={team.id}>
                                   <Link
                                     href={`/organization/${hierarchy.id}/teams/${team.id}`}
-                                    className="text-sm text-[var(--muted)] hover:text-[var(--ink)]"
+                                    className="inline-flex min-h-11 items-center text-sm text-[var(--muted)] hover:text-[var(--ink)]"
                                   >
                                     Team · {team.name}
                                   </Link>
@@ -129,7 +140,7 @@ export default async function OrganizationDetailPage({
               <h2 className="font-medium">Resources</h2>
               <Link
                 href={`/organization/${hierarchy.id}/resources`}
-                className="text-sm text-[var(--accent)]"
+                className="inline-flex min-h-11 items-center text-sm text-[var(--accent)]"
               >
                 View all
               </Link>
@@ -145,7 +156,7 @@ export default async function OrganizationDetailPage({
                   <li key={resource.id} className="py-2">
                     <Link
                       href={`/organization/${hierarchy.id}/resources/${resource.id}`}
-                      className="font-medium hover:text-[var(--accent)]"
+                      className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
                     >
                       {resource.name}
                     </Link>
@@ -166,27 +177,39 @@ export default async function OrganizationDetailPage({
         </div>
 
         <div className="space-y-4">
-          <Panel>
-            <h2 className="mb-3 font-medium">Edit organization</h2>
-            <EditOrganizationForm
-              id={hierarchy.id}
-              name={hierarchy.name}
-              description={hierarchy.description}
-              version={hierarchy.version}
-            />
-          </Panel>
-          <Panel>
-            <CreateSectionForm organizationId={hierarchy.id} />
-          </Panel>
-          <Panel>
-            <CreateResourceForm
-              organizationId={hierarchy.id}
-              teams={allTeams}
-            />
-          </Panel>
+          {canManage ? (
+            <>
+              <Panel>
+                <h2 className="mb-3 font-medium">Edit organization</h2>
+                <EditOrganizationForm
+                  id={hierarchy.id}
+                  name={hierarchy.name}
+                  description={hierarchy.description}
+                  version={hierarchy.version}
+                />
+              </Panel>
+              <Panel>
+                <CreateSectionForm organizationId={hierarchy.id} />
+              </Panel>
+              <Panel>
+                <CreateResourceForm
+                  organizationId={hierarchy.id}
+                  teams={allTeams}
+                />
+              </Panel>
+            </>
+          ) : (
+            <Panel>
+              <h2 className="mb-3 font-medium">Structure changes</h2>
+              <Alert tone="info" live="polite">
+                This view is read-only for your account. Organization structure
+                manage permission is required to edit the organization or add
+                sections and resources.
+              </Alert>
+            </Panel>
+          )}
         </div>
       </div>
-
-      </div>
+    </div>
   );
 }

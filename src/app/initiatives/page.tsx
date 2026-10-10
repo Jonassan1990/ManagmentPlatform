@@ -85,7 +85,7 @@ export default async function InitiativesPage({
           canCreate ? (
             <Link
               href="/initiatives/new"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-medium text-white"
             >
               New initiative
             </Link>
@@ -139,7 +139,7 @@ export default async function InitiativesPage({
             canCreate ? (
               <Link
                 href="/initiatives/new"
-                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-medium text-white"
               >
                 Create initiative
               </Link>
@@ -148,17 +148,39 @@ export default async function InitiativesPage({
         />
       ) : (
         <Panel>
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto"
+            role="region"
+            tabIndex={0}
+            aria-label="Initiatives table"
+          >
             <table className="w-full min-w-[720px] text-left text-sm">
+              <caption className="sr-only">
+                Initiatives with reference, stage, owner, and attention
+              </caption>
               <thead className="border-b border-[var(--line)] text-[var(--muted)]">
                 <tr>
-                  <th className="py-2 pr-3 font-medium">Reference</th>
-                  <th className="py-2 pr-3 font-medium">Title</th>
-                  <th className="py-2 pr-3 font-medium">Department</th>
-                  <th className="py-2 pr-3 font-medium">Stage</th>
-                  <th className="py-2 pr-3 font-medium">Owner</th>
-                  <th className="py-2 pr-3 font-medium">Attention</th>
-                  <th className="py-2 font-medium">Updated</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Reference
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Title
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Department
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Stage
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Owner
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Attention
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Updated
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
@@ -220,7 +242,7 @@ function FilterChip({
   return (
     <Link
       href={href}
-      className={`rounded-md border px-3 py-1 ${
+      className={`inline-flex min-h-11 items-center rounded-md border px-3 ${
         active
           ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
           : "border-[var(--line)] text-[var(--muted)]"

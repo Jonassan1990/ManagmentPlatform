@@ -52,7 +52,7 @@ function CompareKpiCard({
   return (
     <div className="relative overflow-hidden rounded-[11px] border border-[#e2e8eb] bg-white p-[14px_17px] shadow-[0_7px_22px_#1b33440a]">
       <div className={`absolute inset-y-0 left-0 w-1 ${bar}`} aria-hidden />
-      <p className="text-[11px] text-[#74848e]">{label}</p>
+      <p className="text-[11px] text-[var(--muted)]">{label}</p>
       <p className="my-[3px] text-[22px] font-extrabold tracking-[-0.04em] text-[#102a43] tabular-nums sm:text-[27px]">
         {value}
       </p>
@@ -122,10 +122,10 @@ function WorkItemDiffTable({ rows }: { rows: WorkItemAllocationDiff[] }) {
                   {row.workItemReferenceKey ?? row.workItemId.slice(0, 8)}
                 </span>
                 {row.workItemTitle ? (
-                  <p className="text-xs text-[#74848e]">{row.workItemTitle}</p>
+                  <p className="text-xs text-[var(--muted)]">{row.workItemTitle}</p>
                 ) : null}
               </td>
-              <td className="py-2 pr-3 align-top text-xs uppercase text-[#74848e]">
+              <td className="py-2 pr-3 align-top text-xs uppercase text-[var(--muted)]">
                 {row.change.replaceAll("_", " ")}
               </td>
               <td className="py-2 align-top text-xs text-[#102a43]">
@@ -153,7 +153,7 @@ function WorkItemSideSummary({ diff }: { diff: WorkItemAllocationDiff }) {
               {side.teamId ? " · team set" : ""}
             </>
           ) : (
-            <span className="text-[#74848e]">Not allocated</span>
+            <span className="text-[var(--muted)]">Not allocated</span>
           )}
         </li>
       ))}
@@ -182,7 +182,7 @@ function ConflictList({
                 ? "text-[#d65d57]"
                 : c.severity === "WARNING"
                   ? "text-[#e3a640]"
-                  : "text-[#74848e]"
+                  : "text-[var(--muted)]"
             }`}
           >
             {c.severity}
@@ -191,7 +191,7 @@ function ConflictList({
         </li>
       ))}
       {conflicts.length > 25 ? (
-        <li className="text-xs text-[#74848e]">
+        <li className="text-xs text-[var(--muted)]">
           + {conflicts.length - 25} more conflicts
         </li>
       ) : null}
@@ -340,7 +340,7 @@ export function ScenarioComparisonView({
                       <span>{scenarioOptionLabel(s)}</span>
                     </label>
                     {checked ? (
-                      <label className="flex items-center gap-1 text-xs text-[#74848e]">
+                      <label className="flex items-center gap-1 text-xs text-[var(--muted)]">
                         <input
                           type="radio"
                           name="compare-reference"
@@ -356,7 +356,7 @@ export function ScenarioComparisonView({
               })}
             </ul>
             {!canCompare ? (
-              <p className="mt-3 text-sm text-[#74848e]">
+              <p className="mt-3 text-sm text-[var(--muted)]">
                 Pick at least {COMPARE_MIN_REVISIONS} scenarios, then metrics
                 load automatically.
               </p>
@@ -520,7 +520,7 @@ function ComparisonResults({
       <section aria-labelledby="compare-teams-heading">
         <h2
           id="compare-teams-heading"
-          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#74848e]"
+          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]"
         >
           Team capacity
         </h2>
@@ -538,7 +538,7 @@ function ComparisonResults({
                 Team capacity comparison by scenario revision
               </caption>
               <thead>
-                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[#74848e]">
+                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[var(--muted)]">
                   <th scope="col" className="p-3 font-medium">
                     Team
                   </th>
@@ -564,7 +564,7 @@ function ComparisonResults({
                       );
                       if (!col) {
                         return (
-                          <td key={rev.id} className="p-3 text-[#74848e]">
+                          <td key={rev.id} className="p-3 text-[var(--muted)]">
                             —
                           </td>
                         );
@@ -575,7 +575,7 @@ function ComparisonResults({
                             {formatHours(col.committedHours)} /{" "}
                             {formatHours(col.availableHours)}
                           </p>
-                          <p className="text-xs text-[#74848e]">
+                          <p className="text-xs text-[var(--muted)]">
                             {formatUtilizationPercent(
                               col.utilization != null
                                 ? col.utilization * 100
@@ -619,24 +619,36 @@ function ComparisonResults({
       <section aria-labelledby="compare-projects-heading">
         <h2
           id="compare-projects-heading"
-          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#74848e]"
+          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]"
         >
           Project commitments
         </h2>
         {comparison.byProject.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">No project rows.</p>
         ) : (
-          <div className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white">
+          <div
+            className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white"
+            role="region"
+            tabIndex={0}
+            aria-label="Project commitments comparison"
+          >
             <table className="w-full min-w-[36rem] text-left text-sm">
+              <caption className="sr-only">
+                Project committed hours by revision versus reference
+              </caption>
               <thead>
-                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[#74848e]">
-                  <th className="p-3 font-medium">Project</th>
+                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[var(--muted)]">
+                  <th scope="col" className="p-3 font-medium">
+                    Project
+                  </th>
                   {comparison.revisions.map((r) => (
-                    <th key={r.id} className="p-3 font-medium">
+                    <th key={r.id} scope="col" className="p-3 font-medium">
                       Committed
                     </th>
                   ))}
-                  <th className="p-3 font-medium">Δ vs ref</th>
+                  <th scope="col" className="p-3 font-medium">
+                    Δ vs ref
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -647,7 +659,7 @@ function ComparisonResults({
                   >
                     <td className="p-3">
                       <span className="font-medium">{row.projectName}</span>
-                      <span className="ml-1 text-xs text-[#74848e]">
+                      <span className="ml-1 text-xs text-[var(--muted)]">
                         {row.projectReferenceKey}
                       </span>
                     </td>
@@ -684,7 +696,7 @@ function ComparisonResults({
       <section aria-labelledby="compare-resources-heading">
         <h2
           id="compare-resources-heading"
-          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#74848e]"
+          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]"
         >
           Resource allocation
         </h2>
@@ -693,13 +705,23 @@ function ComparisonResults({
             No resource rows (may be hidden by authorization scope).
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white">
+          <div
+            className="overflow-x-auto rounded-[11px] border border-[#e2e8eb] bg-white"
+            role="region"
+            tabIndex={0}
+            aria-label="Resource allocation comparison"
+          >
             <table className="w-full min-w-[36rem] text-left text-sm">
+              <caption className="sr-only">
+                Resource load hours by revision
+              </caption>
               <thead>
-                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[#74848e]">
-                  <th className="p-3 font-medium">Resource</th>
+                <tr className="border-b border-[#e2e8eb] bg-[#f8fafb] text-[11px] uppercase text-[var(--muted)]">
+                  <th scope="col" className="p-3 font-medium">
+                    Resource
+                  </th>
                   {comparison.revisions.map((r) => (
-                    <th key={r.id} className="p-3 font-medium">
+                    <th key={r.id} scope="col" className="p-3 font-medium">
                       Load
                     </th>
                   ))}
@@ -758,11 +780,11 @@ function ComparisonResults({
       <section aria-labelledby="compare-work-items-heading">
         <h2
           id="compare-work-items-heading"
-          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#74848e]"
+          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]"
         >
           Work item allocation changes
         </h2>
-        <p className="mb-3 text-xs text-[#74848e]">
+        <p className="mb-3 text-xs text-[var(--muted)]">
           {comparison.allocationChanges.unchangedCount} allocations unchanged
           across selected revisions.
         </p>
@@ -787,7 +809,7 @@ function ComparisonResults({
       <section aria-labelledby="compare-conflicts-heading">
         <h2
           id="compare-conflicts-heading"
-          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#74848e]"
+          className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]"
         >
           Conflict differences
         </h2>
@@ -813,7 +835,7 @@ function ComparisonResults({
         </div>
       </section>
 
-      <p className="text-xs text-[#74848e]">
+      <p className="text-xs text-[var(--muted)]">
         Compared at {new Date(comparison.asOf).toLocaleString()} · PI{" "}
         <Link href={`/pi/${piId}/board`} className="text-[#087f78] underline">
           {piId.slice(0, 8)}…

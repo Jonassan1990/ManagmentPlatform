@@ -4,8 +4,10 @@ import {
   CreateTeamForm,
   EditDepartmentForm,
 } from "@/components/organization/org-forms";
+import { Alert } from "@/components/ui/alert";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
 import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createOrganizationService } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +33,12 @@ export default async function DepartmentPage({
   } catch {
     notFound();
   }
+
+  const canManage = await authz.can(
+    principal,
+    PERMISSIONS.ORG_STRUCTURE_MANAGE,
+    { type: "ORGANIZATION", organizationId },
+  );
 
   return (
     <div>
@@ -60,7 +68,7 @@ export default async function DepartmentPage({
                 <li key={team.id} className="py-2">
                   <Link
                     href={`/organization/${org.id}/teams/${team.id}`}
-                    className="font-medium hover:text-[var(--accent)]"
+                    className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
                   >
                     {team.name}
                   </Link>
@@ -70,18 +78,31 @@ export default async function DepartmentPage({
           )}
         </Panel>
         <div className="space-y-4">
-          <Panel>
-            <h2 className="mb-3 font-medium">Edit department</h2>
-            <EditDepartmentForm
-              id={department.id}
-              name={department.name}
-              description={department.description}
-              version={department.version}
-            />
-          </Panel>
-          <Panel>
-            <CreateTeamForm departmentId={department.id} />
-          </Panel>
+          {canManage ? (
+            <>
+              <Panel>
+                <h2 className="mb-3 font-medium">Edit department</h2>
+                <EditDepartmentForm
+                  id={department.id}
+                  name={department.name}
+                  description={department.description}
+                  version={department.version}
+                />
+              </Panel>
+              <Panel>
+                <CreateTeamForm departmentId={department.id} />
+              </Panel>
+            </>
+          ) : (
+            <Panel>
+              <h2 className="mb-3 font-medium">Structure changes</h2>
+              <Alert tone="info" live="polite">
+                This department is read-only for your account. Organization
+                structure manage permission is required to edit departments or
+                add teams.
+              </Alert>
+            </Panel>
+          )}
         </div>
       </div>
     </div>
