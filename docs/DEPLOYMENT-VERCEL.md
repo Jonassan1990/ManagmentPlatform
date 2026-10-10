@@ -45,6 +45,8 @@ Recommended approach:
 
 Do not rely on `db push` in production.
 
+Do **not** run migrations on application startup. Prefer a protected manual `workflow_dispatch` job (GitHub Environment `production-migrate`) as specified in [PROJECT-PLATFORM-R1-A-PRODUCTION-DB-RECOVERY.md](./PROJECT-PLATFORM-R1-A-PRODUCTION-DB-RECOVERY.md).
+
 ## Auth in production
 
 OIDC is implemented (Phase 6, ADR-018 / ADR-019). See [PRODUCTION-AUTH-RUNBOOK.md](./PRODUCTION-AUTH-RUNBOOK.md).
