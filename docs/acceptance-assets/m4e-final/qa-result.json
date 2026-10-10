@@ -1,0 +1,162 @@
+{
+  "milestone": "M4E-FINAL",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-10T00:07:51.869Z",
+  "principal": "owner (Org Admin temp-auth)",
+  "startingMainHint": "74dee1e",
+  "journeys": {
+    "A": {
+      "status": "PASS",
+      "attentionHome": true,
+      "levels": true,
+      "healthSummary": true,
+      "stepsToBlocked": 1,
+      "projectReached": true,
+      "url": "http://localhost:43148/portfolio/explorer?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&deliveryHealth=BLOCKED&kind=PROJECT"
+    },
+    "B": {
+      "status": "PASS",
+      "orgPreserved": true,
+      "filterFeedback": true,
+      "returnContext": true,
+      "initiativeCount": 12
+    },
+    "C": {
+      "status": "PASS",
+      "hubOk": true,
+      "evidenceOk": true,
+      "url": "http://localhost:43148/portfolio/health?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&healthFocus=AT_RISK"
+    },
+    "D": {
+      "status": "PASS",
+      "capSections": true,
+      "currentLabel": true,
+      "teamExpanded": true,
+      "resourceVisible": true,
+      "commitmentVisible": true
+    },
+    "E": {
+      "status": "PASS",
+      "conflicts": true,
+      "deps": true,
+      "cross": true,
+      "destOk": true,
+      "url": "http://localhost:43148/pi/c9cf896f-8a37-43de-aefe-c3af32bcfc78?from=capacity&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486&fromPi=c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+    },
+    "F": {
+      "status": "PASS",
+      "onPi": true,
+      "backToCapacity": true,
+      "url": "http://localhost:43148/portfolio/capacity?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&piId=c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+    }
+  },
+  "performance": {
+    "homeMs": 1989,
+    "portfolioMs": 1033,
+    "explorerMs": 936,
+    "healthMs": 879,
+    "capacityMs": 1078,
+    "piBoardMs": 200
+  },
+  "a11y": {
+    "focusAfterTab": "A",
+    "statusLabelsPresent": true
+  },
+  "metrics": {
+    "msToBlockedHub": 933,
+    "stepsToBlocked": 1,
+    "fixtureOrg": "f6b317a2-839d-413b-9aa1-2ea4e006f486",
+    "fixturePi": "c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+  },
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "journey-A",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "attentionHome": true,
+        "levels": true,
+        "healthSummary": true,
+        "stepsToBlocked": 1,
+        "projectReached": true,
+        "url": "http://localhost:43148/portfolio/explorer?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&deliveryHealth=BLOCKED&kind=PROJECT"
+      }
+    },
+    {
+      "step": "journey-B",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "orgPreserved": true,
+        "filterFeedback": true,
+        "returnContext": true,
+        "initiativeCount": 12
+      }
+    },
+    {
+      "step": "journey-C",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "hubOk": true,
+        "evidenceOk": true,
+        "url": "http://localhost:43148/portfolio/health?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&healthFocus=AT_RISK"
+      }
+    },
+    {
+      "step": "journey-D",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "capSections": true,
+        "currentLabel": true,
+        "teamExpanded": true,
+        "resourceVisible": true,
+        "commitmentVisible": true
+      }
+    },
+    {
+      "step": "journey-E",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "conflicts": true,
+        "deps": true,
+        "cross": true,
+        "destOk": true,
+        "url": "http://localhost:43148/pi/c9cf896f-8a37-43de-aefe-c3af32bcfc78?from=capacity&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486&fromPi=c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+      }
+    },
+    {
+      "step": "journey-F",
+      "status": "PASS",
+      "detail": {
+        "status": "PASS",
+        "onPi": true,
+        "backToCapacity": true,
+        "url": "http://localhost:43148/portfolio/capacity?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&piId=c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+      }
+    },
+    {
+      "step": "a11y-keyboard-focus",
+      "status": "PASS",
+      "detail": {
+        "focusTag": "A",
+        "badges": true
+      }
+    },
+    {
+      "step": "mobile-layouts",
+      "status": "PASS",
+      "detail": {
+        "overflowPortfolio": 0,
+        "overflowCapacity": 3
+      }
+    }
+  ],
+  "verdict": "PASS"
+}
