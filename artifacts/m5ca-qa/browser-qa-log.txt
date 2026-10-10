@@ -1,0 +1,17 @@
+M5C-A Browser QA
+verdict: PASS
+PASS	new-initiative	missingOwnerHint=true
+PASS	requirements-stage	
+PASS	pre-study-stage	Complete Pre-study until readiness is READY
+PASS	governance-ready-context	Governance step visible in lifecycle spine
+PASS	converted-project	
+PASS	viewer-mode	
+PASS	owner-mode	
+PASS	missing-ownership	
+PASS	tablet	
+PASS	mobile	
+PASS	desktop	
+PASS	login.dev-auth	http://127.0.0.1:43152/
+PASS	login	
+PASS	open-project-nav	http://127.0.0.1:43152/initiatives/f37a9842-179d-4d54-b66f-69641557b23f/project
+PASS	context-preservation	/initiatives/49fa8f3f-780f-485f-9c95-32adb150e374/demand?from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486

@@ -1,0 +1,132 @@
+{
+  "milestone": "M5C-A",
+  "base": "http://127.0.0.1:43152",
+  "generatedAt": "2026-10-10T11:03:34.813Z",
+  "seed": {
+    "generatedAt": "2026-10-10T11:03:34.806Z",
+    "organizationId": "f6b317a2-839d-413b-9aa1-2ea4e006f486",
+    "organizationName": "M2E Capacity Org",
+    "departmentId": "805efbca-cc27-4779-b85b-953daee3d10d",
+    "ownerResourceId": "e37a3245-5925-40dc-93ee-0baa074147c4",
+    "initiatives": {
+      "demand": {
+        "id": "ad0573be-b1c6-4a5b-b472-b6c5a84db8e1",
+        "referenceKey": "INIT-M5CA-DEMAND"
+      },
+      "requirements": {
+        "id": "49fa8f3f-780f-485f-9c95-32adb150e374",
+        "referenceKey": "INIT-M5CA-REQ"
+      },
+      "preStudy": {
+        "id": "57d1046c-f7d6-433c-b2fb-b1ab828c73ca",
+        "referenceKey": "INIT-M5CA-PRE"
+      },
+      "project": {
+        "id": "f37a9842-179d-4d54-b66f-69641557b23f",
+        "referenceKey": "INIT-PRJ-M2E-HEAVY"
+      }
+    }
+  },
+  "journeys": [
+    {
+      "journey": "new-initiative",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "missingOwnerHint=true"
+    },
+    {
+      "journey": "requirements-stage",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "pre-study-stage",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "Complete Pre-study until readiness is READY"
+    },
+    {
+      "journey": "governance-ready-context",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED",
+      "detail": "Governance step visible in lifecycle spine"
+    },
+    {
+      "journey": "converted-project",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "viewer-mode",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "owner-mode",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "missing-ownership",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "tablet",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "mobile",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    },
+    {
+      "journey": "desktop",
+      "status": "PASS",
+      "evidence": "BROWSER VERIFIED"
+    }
+  ],
+  "usability": {
+    "identifyStage": {
+      "steps": 0,
+      "path": "Lifecycle progress on first paint"
+    },
+    "findOwner": {
+      "steps": 0,
+      "path": "Initiative header Business owner"
+    },
+    "identifyNextAction": {
+      "steps": 0,
+      "path": "Next action panel above fold"
+    },
+    "openProject": {
+      "steps": 1,
+      "path": "Overview → Open Project workspace"
+    },
+    "controlDensity": "Header meta + lifecycle + next action + situation; secondary panels progressive",
+    "navigationClarity": "Grouped tabs Overview/Discovery/Governance/Validation/Delivery/History"
+  },
+  "steps": [
+    {
+      "step": "login.dev-auth",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:43152/"
+    },
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "open-project-nav",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:43152/initiatives/f37a9842-179d-4d54-b66f-69641557b23f/project"
+    },
+    {
+      "step": "context-preservation",
+      "status": "PASS",
+      "detail": "/initiatives/49fa8f3f-780f-485f-9c95-32adb150e374/demand?from=home&fromOrg=f6b317a2-839d-413b-9aa1-2ea4e006f486"
+    }
+  ],
+  "verdict": "PASS"
+}
