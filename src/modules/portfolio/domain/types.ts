@@ -521,6 +521,16 @@ export type PortfolioPiTeamCapacityRow = {
   iterationName: string;
 } & PortfolioCapacityHours;
 
+/** Real WorkAllocation → Project hours for stacked commitment bars (M5E-A). */
+export type PortfolioPiResourceProjectSegment = {
+  projectId: string;
+  initiativeId: string;
+  referenceKey: string;
+  name: string;
+  href: string;
+  committedHours: number;
+};
+
 export type PortfolioPiResourceCapacityRow = {
   resourceId: string;
   resourceName: string;
@@ -528,6 +538,11 @@ export type PortfolioPiResourceCapacityRow = {
   iterationId: string;
   /** Membership allocation % — not committed project load. */
   membershipAllocationPercent: number;
+  /**
+   * Per-project committed hours on this resource×team×iteration from CURRENT
+   * WorkAllocation rows. Empty when no project load. Not FTE / workstream %.
+   */
+  projectSegments: PortfolioPiResourceProjectSegment[];
 } & PortfolioCapacityHours;
 
 export type PortfolioPiProjectCommitmentRow = {

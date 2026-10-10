@@ -133,6 +133,24 @@ function readyCapacity(
           teamId: TEAM,
           iterationId: "it-1",
           membershipAllocationPercent: 50,
+          projectSegments: [
+            {
+              projectId: "proj-1",
+              initiativeId: "init-1",
+              referenceKey: "PRJ-1",
+              name: "Core delivery",
+              href: "/initiatives/init-1/project",
+              committedHours: 35,
+            },
+            {
+              projectId: "proj-2",
+              initiativeId: "init-2",
+              referenceKey: "PRJ-2",
+              name: "Support lane",
+              href: "/initiatives/init-2/project",
+              committedHours: 15,
+            },
+          ],
           ...hours(40, 50, "overload"),
         },
         {
@@ -141,6 +159,16 @@ function readyCapacity(
           teamId: TEAM2,
           iterationId: "it-1",
           membershipAllocationPercent: 50,
+          projectSegments: [
+            {
+              projectId: "proj-1",
+              initiativeId: "init-1",
+              referenceKey: "PRJ-1",
+              name: "Core delivery",
+              href: "/initiatives/init-1/project",
+              committedHours: 20,
+            },
+          ],
           ...hours(40, 20, "ok"),
         },
       ],
@@ -312,6 +340,26 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
     expect(screen.getByText(/PRJ-1 · Core delivery/i)).toBeTruthy();
     expect(screen.getByText("60h")).toBeTruthy();
+  });
+
+  it("M5E-A: renders stacked project bars and legend from real hours", () => {
+    render(<PortfolioCapacityDashboard {...baseProps} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /View .* team/i }),
+    );
+    expect(
+      screen.getAllByLabelText(/Project commitments:/i).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByTestId("capacity-project-legend")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("capacity-project-legend")).getByText(
+        /PRJ-1 · Core delivery/i,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(/Resource Planning · Acme Org/i)).toBeTruthy();
+    expect(
+      screen.getByText(/No FTE or workstream percentages/i),
+    ).toBeTruthy();
   });
 
   it("handles no PI selected with PI chips", () => {

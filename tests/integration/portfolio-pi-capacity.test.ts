@@ -512,6 +512,20 @@ describe("M2E-A capacity hours", () => {
     expect(sharedRows.length).toBeGreaterThan(0);
     expect(sharedRows[0]!.membershipAllocationPercent).toBe(50);
 
+    // M5E-A: per-resource project segments from CURRENT WorkAllocation hours.
+    const withSegments = overview.capacity.resources.rows.filter(
+      (r) => r.projectSegments.length > 0,
+    );
+    expect(withSegments.length).toBeGreaterThan(0);
+    const segHours = withSegments[0]!.projectSegments.reduce(
+      (n, s) => n + s.committedHours,
+      0,
+    );
+    expect(segHours).toBeGreaterThan(0);
+    expect(segHours).toBeLessThanOrEqual(
+      withSegments[0]!.committedHours + 0.001,
+    );
+
     expect(overview.capacity.conflicts.length).toBeGreaterThan(0);
     expect(
       overview.capacity.conflicts.some((c) => c.type.includes("OVERLOAD")),

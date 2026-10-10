@@ -30,6 +30,7 @@ import type {
   PortfolioPiListItem,
   PortfolioPiListResult,
   PortfolioPiProjectCommitmentRow,
+  PortfolioPiResourceProjectSegment,
   PortfolioPiStatus,
   PortfolioPiTeamCapacityRow,
   PortfolioQueryScopeApplied,
@@ -392,6 +393,26 @@ export class PortfolioPiCapacityQueryService {
       MAX_PAGE,
       Math.max(1, input.resourcePageSize ?? DEFAULT_PAGE),
     );
+    // Project commitments + per-resource segments from the same CURRENT allocations.
+    let projectCommitments: PortfolioPiProjectCommitmentRow[] = [];
+    let resourceProjectSegments = new Map<
+      string,
+      PortfolioPiResourceProjectSegment[]
+    >();
+    if (
+      input.includeProjectCommitments !== false ||
+      includeResources
+    ) {
+      const loaded = await this.loadAllocationProjectBreakdown(
+        revision.id,
+        teamIdSet,
+      );
+      if (input.includeProjectCommitments !== false) {
+        projectCommitments = loaded.commitments;
+      }
+      resourceProjectSegments = loaded.byResourceTeamIteration;
+    }
+
     const resourceRowsAll = includeResources
       ? resourcesScoped.map((r) => ({
           resourceId: r.resourceId,
@@ -399,6 +420,10 @@ export class PortfolioPiCapacityQueryService {
           teamId: r.teamId,
           iterationId: r.iterationId,
           membershipAllocationPercent: r.allocationPercent,
+          projectSegments:
+            resourceProjectSegments.get(
+              `${r.resourceId}:${r.teamId}:${r.iterationId}`,
+            ) ?? [],
           ...hoursSummary(r.effectiveCapacityHours, r.plannedLoadHours),
         }))
       : [];
@@ -416,15 +441,6 @@ export class PortfolioPiCapacityQueryService {
         resourcePage * resourcePageSize,
       ),
     };
-
-    // Project commitments from WorkAllocation → WorkItem → Project
-    let projectCommitments: PortfolioPiProjectCommitmentRow[] = [];
-    if (input.includeProjectCommitments !== false) {
-      projectCommitments = await this.loadProjectCommitments(
-        revision.id,
-        teamIdSet,
-      );
-    }
 
     // Conflicts via existing engine
     let conflicts: PortfolioPiConflictRow[] = [];
@@ -545,10 +561,17 @@ export class PortfolioPiCapacityQueryService {
     return { missingCapacityInputs: missing.length > 0, notes };
   }
 
-  private async loadProjectCommitments(
+  /**
+   * CURRENT revision WorkAllocation → Project breakdown for portfolio commitments
+   * and per-resource stacked bars (hours only — no invented FTE/workstream %).
+   */
+  private async loadAllocationProjectBreakdown(
     revisionId: string,
     teamIdSet: Set<string>,
-  ): Promise<PortfolioPiProjectCommitmentRow[]> {
+  ): Promise<{
+    commitments: PortfolioPiProjectCommitmentRow[];
+    byResourceTeamIteration: Map<string, PortfolioPiResourceProjectSegment[]>;
+  }> {
     const allocations = await this.db.workAllocation.findMany({
       where: {
         revisionId,
@@ -558,6 +581,9 @@ export class PortfolioPiCapacityQueryService {
         id: true,
         plannedHours: true,
         workItemId: true,
+        resourceId: true,
+        teamId: true,
+        iterationId: true,
         workItem: {
           select: {
             id: true,
@@ -590,6 +616,16 @@ export class PortfolioPiCapacityQueryService {
       }
     >();
 
+    type SegAgg = {
+      projectId: string;
+      initiativeId: string;
+      referenceKey: string;
+      name: string;
+      href: string;
+      committedHours: number;
+    };
+    const byKey = new Map<string, Map<string, SegAgg>>();
+
     for (const a of allocations) {
       const p = a.workItem.project;
       const row = map.get(p.id) ?? {
@@ -598,13 +634,48 @@ export class PortfolioPiCapacityQueryService {
         workItems: new Set<string>(),
         allocations: 0,
       };
-      row.hours += toHoursNumber(a.plannedHours);
+      const hours = toHoursNumber(a.plannedHours);
+      row.hours += hours;
       row.workItems.add(a.workItemId);
       row.allocations += 1;
       map.set(p.id, row);
+
+      if (!a.resourceId) continue;
+      const key = `${a.resourceId}:${a.teamId}:${a.iterationId}`;
+      let segMap = byKey.get(key);
+      if (!segMap) {
+        segMap = new Map();
+        byKey.set(key, segMap);
+      }
+      const existing = segMap.get(p.id);
+      if (existing) {
+        existing.committedHours += hours;
+      } else {
+        segMap.set(p.id, {
+          projectId: p.id,
+          initiativeId: p.initiativeId,
+          referenceKey: p.referenceKey,
+          name: p.name,
+          href: `/initiatives/${p.initiativeId}/project`,
+          committedHours: hours,
+        });
+      }
     }
 
-    return [...map.values()]
+    const byResourceTeamIteration = new Map<
+      string,
+      PortfolioPiResourceProjectSegment[]
+    >();
+    for (const [key, segMap] of byKey) {
+      byResourceTeamIteration.set(
+        key,
+        [...segMap.values()].sort(
+          (a, b) => b.committedHours - a.committedHours,
+        ),
+      );
+    }
+
+    const commitments = [...map.values()]
       .map((r) => ({
         projectId: r.project.id,
         initiativeId: r.project.initiativeId,
@@ -616,6 +687,8 @@ export class PortfolioPiCapacityQueryService {
         allocationCount: r.allocations,
       }))
       .sort((a, b) => b.committedHours - a.committedHours);
+
+    return { commitments, byResourceTeamIteration };
   }
 
   private async compareBaseline(

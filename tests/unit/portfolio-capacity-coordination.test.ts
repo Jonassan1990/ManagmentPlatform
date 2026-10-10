@@ -166,6 +166,7 @@ describe("portfolio capacity coordination (M4E-C)", () => {
         teamId: "t1",
         iterationId: "it-1",
         membershipAllocationPercent: 50,
+        projectSegments: [],
         ...hours(40, 50, "overload"),
       },
     ];

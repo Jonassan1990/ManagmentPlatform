@@ -31,12 +31,14 @@ import {
 import {
   bandTone,
   buildDepartmentCards,
+  buildProjectStackSegments,
   capacityStatusLabel,
   committedLoadBarPct,
   filterDepartmentCards,
   formatCapacityHours,
   formatUtilizationPct,
   initials,
+  type StackSegmentView,
 } from "./portfolio-capacity-model";
 
 function bandToStatus(
@@ -231,6 +233,31 @@ function ScopeForm({
   );
 }
 
+function collectProjectLegend(
+  card: ReturnType<typeof buildDepartmentCards>[number],
+): StackSegmentView[] {
+  const byProject = new Map<string, StackSegmentView>();
+  for (const team of card.teams) {
+    for (const r of team.resources) {
+      const stack = buildProjectStackSegments(
+        r.availableHours,
+        r.projectSegments,
+      );
+      for (const seg of stack) {
+        const existing = byProject.get(seg.projectId);
+        if (existing) {
+          existing.committedHours += seg.committedHours;
+        } else {
+          byProject.set(seg.projectId, { ...seg });
+        }
+      }
+    }
+  }
+  return [...byProject.values()].sort(
+    (a, b) => b.committedHours - a.committedHours,
+  );
+}
+
 function DepartmentCard({
   card,
   open,
@@ -240,6 +267,7 @@ function DepartmentCard({
   open: boolean;
   onToggle: () => void;
 }) {
+  const projectLegend = open ? collectProjectLegend(card) : [];
   return (
     <article
       className={`overflow-hidden rounded-[11px] border border-[#e2e8eb] bg-white shadow-[0_7px_22px_#1b33440a] ${
@@ -357,7 +385,7 @@ function DepartmentCard({
               </div>
               <div className="hidden grid-cols-[145px_minmax(120px,1fr)_48px_93px] gap-2.5 px-0 py-2 text-[9px] uppercase tracking-wide text-[#98a5ad] sm:grid">
                 <div>Resource</div>
-                <div>Committed load</div>
+                <div>Project commitments</div>
                 <div className="text-right">Util</div>
                 <div>Capacity status</div>
               </div>
@@ -368,10 +396,23 @@ function DepartmentCard({
               ) : (
                 team.resources.map((r) => {
                   const rTone = bandTone(r.band);
+                  const stack = buildProjectStackSegments(
+                    r.availableHours,
+                    r.projectSegments,
+                  );
                   const bar = committedLoadBarPct(
                     r.availableHours,
                     r.committedHours,
                   );
+                  const stackLabel =
+                    stack.length > 0
+                      ? `Project commitments: ${stack
+                          .map(
+                            (s) =>
+                              `${s.label} ${formatCapacityHours(s.committedHours)}h`,
+                          )
+                          .join("; ")}. Total ${formatCapacityHours(r.committedHours)} of ${formatCapacityHours(r.availableHours)} available hours.`
+                      : `Committed ${formatCapacityHours(r.committedHours)} of ${formatCapacityHours(r.availableHours)} available hours`;
                   return (
                     <div
                       key={`${r.resourceId}:${r.teamId}`}
@@ -400,29 +441,40 @@ function DepartmentCard({
                         <div
                           className="flex h-[18px] overflow-hidden rounded bg-[#f0f3f4]"
                           role="img"
-                          aria-label={`Committed ${formatCapacityHours(r.committedHours)} of ${formatCapacityHours(r.availableHours)} available hours`}
-                          title={
-                            bar.scale === "empty"
-                              ? "No available or committed hours"
-                              : `Committed ${formatCapacityHours(r.committedHours)}h / available ${formatCapacityHours(r.availableHours)}h`
-                          }
+                          aria-label={stackLabel}
+                          title={stackLabel}
                         >
-                          {bar.committedPct > 0 ? (
-                            <i
-                              className={`block h-full min-w-[2px] ${
-                                rTone === "over"
-                                  ? "bg-[#d65d57]"
-                                  : rTone === "high"
-                                    ? "bg-[#e3a640]"
-                                    : "bg-[#087f78]"
-                              }`}
-                              style={{ width: `${bar.committedPct}%` }}
-                            />
-                          ) : null}
+                          {stack.length > 0
+                            ? stack.map((seg) => (
+                                <i
+                                  key={seg.projectId}
+                                  className="block h-full min-w-[2px]"
+                                  style={{
+                                    width: `${seg.widthPct}%`,
+                                    background: seg.color,
+                                  }}
+                                  title={`${seg.label}: ${formatCapacityHours(seg.committedHours)}h`}
+                                />
+                              ))
+                            : bar.committedPct > 0 ? (
+                                <i
+                                  className={`block h-full min-w-[2px] ${
+                                    rTone === "over"
+                                      ? "bg-[#d65d57]"
+                                      : rTone === "high"
+                                        ? "bg-[#e3a640]"
+                                        : "bg-[#087f78]"
+                                  }`}
+                                  style={{ width: `${bar.committedPct}%` }}
+                                />
+                              ) : null}
                         </div>
                         <p className="mt-0.5 text-[9px] text-[#89969e]">
                           {formatCapacityHours(r.committedHours)}h committed ·{" "}
                           {formatCapacityHours(r.remainingHours)}h remaining
+                          {stack.length > 0
+                            ? ` · ${stack.length} project${stack.length === 1 ? "" : "s"}`
+                            : ""}
                         </p>
                       </div>
                       <div
@@ -449,12 +501,32 @@ function DepartmentCard({
               )}
             </div>
           ))}
+          {projectLegend.length > 0 ? (
+            <div
+              className="mt-3 flex flex-wrap gap-3 px-0.5 text-[9px] text-[#73828b]"
+              data-testid="capacity-project-legend"
+              aria-label="Project commitment legend"
+            >
+              {projectLegend.map((seg) => (
+                <span
+                  key={seg.projectId}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <span
+                    className="inline-block h-2 w-2 shrink-0 rounded-sm"
+                    style={{ background: seg.color }}
+                    aria-hidden
+                  />
+                  {seg.label} ({formatCapacityHours(seg.committedHours)}h)
+                </span>
+              ))}
+            </div>
+          ) : null}
           <p className="mt-3 text-[9px] text-[#73828b]">
-            Bars show committed load against available hours from
-            capacity-policy on the CURRENT revision. Shared Resources use
+            Stacked bars show real CURRENT project commitment hours against
+            available capacity from capacity-policy. Shared Resources use
             membership % from the canonical policy — full capacity is not
-            counted independently per team. Per-project stacked segments per
-            resource are not in the M2E-A contract — see Project commitments.
+            counted independently per team. No FTE or workstream percentages.
           </p>
         </div>
       ) : null}
@@ -667,11 +739,12 @@ export function PortfolioCapacityDashboard({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#087f78]">
-            Manager workspace · {organizationName}
+            Resource Planning · {organizationName}
           </p>
           <p className="mt-1 max-w-3xl text-sm text-[#74848e]">
-            Where resources are committed on the CURRENT planning revision —
-            not a second Portfolio dashboard. Hours come from capacity-policy;
+            Department, team, and resource capacity on the current plan —
+            not a second Portfolio dashboard or Resource ledger. Hours come
+            from capacity-policy; stacked bars use real project commitments;
             draft scenarios are never authoritative load.
           </p>
         </div>
@@ -1348,8 +1421,8 @@ export function PortfolioCapacityDashboard({
             <SectionHeading
               id="capacity-hierarchy"
               level="C · Hierarchy"
-              title="Department, team &amp; resource breakdown"
-              description="Expand a department to inspect teams and resources in your authorized scope. Shared Resources use membership % from capacity-policy — full capacity is not counted independently per team."
+              title="Department → team → resource"
+              description="Expand a department to inspect teams and resources in your authorized scope. Stacked bars show CURRENT project hours. Shared Resources use membership % from capacity-policy — full capacity is not counted independently per team."
             />
             <div
               className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
@@ -1515,9 +1588,9 @@ export function PortfolioCapacityDashboard({
                 capacity counted independently in each team. Available hours
                 already reflect membership allocation percent from the canonical
                 capacity-policy. This UI sums returned hours only — it does not
-                invent another aggregation formula. Per-project stacked segments
-                per resource are not in the M2E-A contract; use Project
-                commitments for CURRENT revision project load.
+                invent FTE or workstream percentages. Stacked bars use the same
+                CURRENT WorkAllocation → Project hours as the Project
+                commitments panel.
               </p>
               {ready.resources.total > ready.resources.rows.length ? (
                 <p className="mt-3 text-[11px] text-[#74848e]">

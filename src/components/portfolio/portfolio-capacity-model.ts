@@ -12,6 +12,7 @@ import type {
   PortfolioPiConflictRow,
   PortfolioPiDepartmentCapacityRow,
   PortfolioPiResourceCapacityRow,
+  PortfolioPiResourceProjectSegment,
   PortfolioPiTeamCapacityRow,
 } from "@/modules/portfolio/domain/types";
 
@@ -53,7 +54,82 @@ export type AggregatedResourceRow = {
   band: PortfolioCapacityHours["band"];
   /** Membership % is not project commitment — surfaced for transparency. */
   membershipAllocationPercent: number;
+  /** Summed CURRENT project commitment hours for stacked bars. */
+  projectSegments: PortfolioPiResourceProjectSegment[];
 };
+
+/** Stable palette for project stack segments (not workstream categories). */
+export const PROJECT_STACK_COLORS = [
+  "#087f78",
+  "#5b8def",
+  "#9272c7",
+  "#e3a640",
+  "#418a67",
+  "#d65d57",
+  "#a6bdc1",
+] as const;
+
+export function projectStackColor(projectId: string, index: number): string {
+  let hash = 0;
+  for (let i = 0; i < projectId.length; i++) {
+    hash = (hash * 31 + projectId.charCodeAt(i)) >>> 0;
+  }
+  return PROJECT_STACK_COLORS[(hash + index) % PROJECT_STACK_COLORS.length]!;
+}
+
+export type StackSegmentView = {
+  projectId: string;
+  label: string;
+  href: string;
+  committedHours: number;
+  widthPct: number;
+  color: string;
+};
+
+/**
+ * Build stacked bar segments from real project hours vs available capacity.
+ * Widths are hours/available (capped display); no invented FTE or workstream %.
+ */
+export function buildProjectStackSegments(
+  availableHours: number,
+  segments: PortfolioPiResourceProjectSegment[],
+): StackSegmentView[] {
+  if (segments.length === 0) return [];
+  const scale =
+    availableHours > 0
+      ? availableHours
+      : segments.reduce((s, g) => s + g.committedHours, 0);
+  if (scale <= 0) return [];
+  return segments.map((seg, index) => ({
+    projectId: seg.projectId,
+    label: `${seg.referenceKey} · ${seg.name}`,
+    href: seg.href,
+    committedHours: seg.committedHours,
+    widthPct: Math.max(
+      0,
+      Math.min(100, (seg.committedHours / scale) * 100),
+    ),
+    color: projectStackColor(seg.projectId, index),
+  }));
+}
+
+function mergeProjectSegments(
+  a: PortfolioPiResourceProjectSegment[],
+  b: PortfolioPiResourceProjectSegment[],
+): PortfolioPiResourceProjectSegment[] {
+  const map = new Map<string, PortfolioPiResourceProjectSegment>();
+  for (const seg of [...a, ...b]) {
+    const existing = map.get(seg.projectId);
+    if (existing) {
+      existing.committedHours += seg.committedHours;
+    } else {
+      map.set(seg.projectId, { ...seg });
+    }
+  }
+  return [...map.values()].sort(
+    (x, y) => y.committedHours - x.committedHours,
+  );
+}
 
 export type DepartmentCardModel = {
   departmentId: string;
@@ -160,11 +236,16 @@ export function aggregateResourcesByTeam(
         utilization: r.utilization,
         band: r.band,
         membershipAllocationPercent: r.membershipAllocationPercent,
+        projectSegments: [...(r.projectSegments ?? [])],
       });
       continue;
     }
     existing.availableHours += r.availableHours;
     existing.committedHours += r.committedHours;
+    existing.projectSegments = mergeProjectSegments(
+      existing.projectSegments,
+      r.projectSegments ?? [],
+    );
     const derived = hoursBand(existing.availableHours, existing.committedHours);
     existing.remainingHours = derived.remainingHours;
     existing.utilization = derived.utilization;
@@ -346,9 +427,8 @@ export function conflictSubjectLabel(
 }
 
 /**
- * Committed-load segment width for the stacked bar track.
- * Uses available as the 100% scale when > 0; otherwise scales to committed.
- * Does not invent project/workstream shares (M2E-A has no per-resource project segments).
+ * Committed-load segment width for the fallback bar track when no project
+ * segments exist. Uses available as the 100% scale when > 0.
  */
 export function committedLoadBarPct(
   availableHours: number,

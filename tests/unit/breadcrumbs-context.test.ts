@@ -108,8 +108,8 @@ describe("M4C-B static and dynamic breadcrumb generation", () => {
         fromPi: PI,
       }),
     });
-    expect(compare.map((c) => c.label)).toContain("PI & capacity");
-    expect(compare.find((c) => c.label === "PI & capacity")?.href).toContain(
+    expect(compare.map((c) => c.label)).toContain("Resource Planning");
+    expect(compare.find((c) => c.label === "Resource Planning")?.href).toContain(
       `piId=${PI}`,
     );
   });
