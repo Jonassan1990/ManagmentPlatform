@@ -1,8 +1,36 @@
 /**
  * M5C-B — Governance / PoC / Pilot presentation helpers.
  * Pure display mapping only — no domain rule or authorization changes.
+ * Safe for server and client imports (no "use client").
  */
 import type { StatusBadgeMapping } from "@/components/ui/status-adapters";
+
+export type DecisionOutcomeOption = {
+  value: string;
+  label: string;
+};
+
+export const PRE_STUDY_POC_OUTCOMES: DecisionOutcomeOption[] = [
+  { value: "GO", label: "Go" },
+  { value: "CONDITIONAL_GO", label: "Conditional go" },
+  { value: "NO_GO", label: "No-go" },
+  { value: "HOLD", label: "Hold" },
+];
+
+export const PILOT_GATE_OUTCOMES: DecisionOutcomeOption[] = [
+  { value: "SCALE", label: "Scale" },
+  { value: "EXTEND_PILOT", label: "Extend pilot" },
+  { value: "CONDITIONAL_SCALE", label: "Conditional scale" },
+  { value: "STOP", label: "Stop" },
+  { value: "HOLD", label: "Hold" },
+];
+
+/** Outcomes permitted for a gate — presentation helper only. */
+export function outcomesForGateType(
+  gateType: string | null | undefined,
+): DecisionOutcomeOption[] {
+  return gateType === "PILOT_GATE" ? PILOT_GATE_OUTCOMES : PRE_STUDY_POC_OUTCOMES;
+}
 
 export function humanizeGovernanceToken(value: string): string {
   if (!value) return "—";

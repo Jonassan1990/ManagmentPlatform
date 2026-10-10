@@ -132,7 +132,7 @@ Structural counts from browser QA on seeded fixtures (not user-study claims):
 | Steps to inspect evidence | 1–2 (scroll) | **1** — Evidence disclosure + table |
 | Steps to identify decision status | 2 (Decisions tab + log) | **0–1** — Decision Context / Latest outcome badge |
 | Steps to find next action | 1–2 (sidebar “Next action”) | **0** — `NextActionPanel` above fold |
-| Visible primary controls (pending gov) | Mixed submit/links without hierarchy | Count recorded in `artifacts/m5cb-qa/qa-result.json` |
+| Visible primary controls (pending gov) | Mixed submit/links without hierarchy | **23** interactive controls on pending governance (links + buttons) |
 | Navigation context | Tabs + crumbs | Tabs + crumbs + Related workspaces links |
 
 ---

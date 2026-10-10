@@ -3,8 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import {
   RecordDecisionForm,
   ResolveConditionForm,
-  outcomesForGateType,
 } from "@/components/governance/governance-forms";
+import { outcomesForGateType } from "@/modules/governance/application/governance-presentation";
 import {
   ApprovalStatusList,
   DecisionLogPanel,

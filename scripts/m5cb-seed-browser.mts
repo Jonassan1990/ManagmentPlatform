@@ -80,43 +80,28 @@ async function ensureActorBindings() {
 }
 
 async function deleteInitiativeTree(initiativeId: string) {
-  const gates = await db.governanceGate.findMany({
-    where: { initiativeId },
-    select: { id: true },
-  });
-  const gateIds = gates.map((g) => g.id);
-  const submissions = await db.governanceSubmission.findMany({
-    where: { gateId: { in: gateIds } },
-    select: { id: true },
-  });
-  const submissionIds = submissions.map((s) => s.id);
+  // FK-safe order aligned with integration resetDb, scoped to one initiative.
   await db.approvalRecord.deleteMany({
-    where: { request: { submissionId: { in: submissionIds } } },
+    where: { approvalRequest: { submission: { initiativeId } } },
   });
   await db.approvalRequest.deleteMany({
-    where: { submissionId: { in: submissionIds } },
+    where: { submission: { initiativeId } },
   });
   await db.evidenceEntry.deleteMany({
-    where: { package: { submissionId: { in: submissionIds } } },
+    where: { package: { submission: { initiativeId } } },
   });
   await db.decisionCondition.deleteMany({
-    where: { decision: { submissionId: { in: submissionIds } } },
+    where: { decision: { initiativeId } },
   });
-  await db.decisionRecord.deleteMany({
-    where: { OR: [{ submissionId: { in: submissionIds } }, { initiativeId }] },
-  });
+  await db.decisionRecord.deleteMany({ where: { initiativeId } });
   await db.evidencePackage.deleteMany({
-    where: { submissionId: { in: submissionIds } },
+    where: { submission: { initiativeId } },
   });
   await db.decisionPackage.deleteMany({
-    where: { submissionId: { in: submissionIds } },
+    where: { submission: { initiativeId } },
   });
-  await db.reviewSnapshot.deleteMany({
-    where: { submissionId: { in: submissionIds } },
-  });
-  await db.governanceSubmission.deleteMany({
-    where: { id: { in: submissionIds } },
-  });
+  await db.governanceSubmission.deleteMany({ where: { initiativeId } });
+  await db.reviewSnapshot.deleteMany({ where: { initiativeId } });
   await db.governanceGate.deleteMany({ where: { initiativeId } });
   await db.poCSuccessCriterion.deleteMany({
     where: { poc: { initiativeId } },
@@ -134,7 +119,12 @@ async function deleteInitiativeTree(initiativeId: string) {
   await db.projectClosure.deleteMany({ where: { project: { initiativeId } } });
   await db.project.deleteMany({ where: { initiativeId } });
   await db.requirementRelation.deleteMany({
-    where: { OR: [{ from: { initiativeId } }, { to: { initiativeId } }] },
+    where: {
+      OR: [
+        { fromRequirement: { initiativeId } },
+        { toRequirement: { initiativeId } },
+      ],
+    },
   });
   await db.acceptanceCriterion.deleteMany({
     where: { requirement: { initiativeId } },

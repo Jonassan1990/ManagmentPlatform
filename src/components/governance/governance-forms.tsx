@@ -24,36 +24,23 @@ import {
   permissionTitle,
   useActionForm,
 } from "@/components/ui/forms";
+import {
+  PRE_STUDY_POC_OUTCOMES,
+  PILOT_GATE_OUTCOMES,
+  outcomesForGateType,
+  type DecisionOutcomeOption,
+} from "@/modules/governance/application/governance-presentation";
 import { POC_STATUS_ORDER } from "@/modules/governance/application/poc-readiness-policy";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
 
 type Caps = Partial<PrincipalCapabilities>;
 
-export type DecisionOutcomeOption = {
-  value: string;
-  label: string;
+export type { DecisionOutcomeOption };
+export {
+  PRE_STUDY_POC_OUTCOMES,
+  PILOT_GATE_OUTCOMES,
+  outcomesForGateType,
 };
-
-export const PRE_STUDY_POC_OUTCOMES: DecisionOutcomeOption[] = [
-  { value: "GO", label: "Go" },
-  { value: "CONDITIONAL_GO", label: "Conditional go" },
-  { value: "NO_GO", label: "No-go" },
-  { value: "HOLD", label: "Hold" },
-];
-
-export const PILOT_GATE_OUTCOMES: DecisionOutcomeOption[] = [
-  { value: "SCALE", label: "Scale" },
-  { value: "EXTEND_PILOT", label: "Extend pilot" },
-  { value: "CONDITIONAL_SCALE", label: "Conditional scale" },
-  { value: "STOP", label: "Stop" },
-  { value: "HOLD", label: "Hold" },
-];
-
-export function outcomesForGateType(
-  gateType: string | null | undefined,
-): DecisionOutcomeOption[] {
-  return gateType === "PILOT_GATE" ? PILOT_GATE_OUTCOMES : PRE_STUDY_POC_OUTCOMES;
-}
 
 function optionalText(value: FormDataEntryValue | null): string | null {
   const text = String(value ?? "").trim();

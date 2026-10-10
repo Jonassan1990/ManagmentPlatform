@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  RecordDecisionForm,
-  outcomesForGateType,
-} from "@/components/governance/governance-forms";
+import { RecordDecisionForm } from "@/components/governance/governance-forms";
+import { outcomesForGateType } from "@/modules/governance/application/governance-presentation";
 import {
   ApprovalStatusList,
   DecisionPackagePanel,

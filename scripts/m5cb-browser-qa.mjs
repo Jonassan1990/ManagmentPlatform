@@ -114,6 +114,13 @@ function restorePersona() {
 }
 
 async function login(page) {
+  // Prefer DEV_AUTH: home is reachable without credentials when enabled.
+  await page.goto(`${base}/`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(400);
+  if (!page.url().includes("/login")) {
+    step("login.dev-auth", true, { detail: page.url() });
+    return;
+  }
   await page.goto(`${base}/login`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(400);
   if (!page.url().includes("/login")) {
@@ -227,11 +234,17 @@ try {
   });
   if ((await confirmBtn.count()) > 0) {
     await confirmBtn.first().click();
-    await page.waitForTimeout(300);
-    const dialogOk = await textHas(page, /Confirm|immutable|Cancel/i);
+    await page.waitForTimeout(400);
+    const dialogOk = await textHas(page, /Confirm|immutable/i);
     await shot(page, "04b-approval-confirm-dialog");
     step("approval-confirm-dialog", dialogOk);
-    await page.getByRole("button", { name: /^Cancel$/i }).click();
+    const cancel = page.getByRole("button", { name: /^Cancel$/i });
+    if ((await cancel.count()) > 0) {
+      await cancel.first().click();
+    } else {
+      await page.keyboard.press("Escape");
+    }
+    await page.waitForTimeout(200);
   } else {
     step("approval-confirm-dialog", false, { detail: "button missing" });
   }
@@ -257,11 +270,17 @@ try {
   });
   if ((await decideBtn.count()) > 0) {
     await decideBtn.first().click();
-    await page.waitForTimeout(300);
-    const dialogOk = await textHas(page, /Confirm decision|immutable|Cancel/i);
+    await page.waitForTimeout(400);
+    const dialogOk = await textHas(page, /Confirm decision|immutable/i);
     await shot(page, "05b-decision-confirm-dialog");
     step("decision-confirm-dialog", dialogOk);
-    await page.getByRole("button", { name: /^Cancel$/i }).click();
+    const cancel = page.getByRole("button", { name: /^Cancel$/i });
+    if ((await cancel.count()) > 0) {
+      await cancel.first().click();
+    } else {
+      await page.keyboard.press("Escape");
+    }
+    await page.waitForTimeout(200);
   } else {
     step("decision-confirm-dialog", false, { detail: "button missing" });
   }
