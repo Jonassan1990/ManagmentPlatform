@@ -12,7 +12,7 @@
 |---|---|
 | Starting `origin/main` SHA | `33f1d573df89b85ebcf8397d515d37b6cdfeacf1` (M5F-B / PR #82) |
 | Branch | `cursor/m5-final-acceptance-60bb` |
-| Final main SHA (post-merge) | *(filled after merge)* |
+| Final main SHA (post-merge) | `0d397e94a3fcbea56d0a5d0523074590606a41b5` |
 | Prerequisites | M5A–M5F merged & accepted on main (matrix §2) |
 | M4 UX baseline | **3.6 / 5** — [M4 Final](./PROJECT-PLATFORM-M4-FINAL-ACCEPTANCE.md) |
 | M5 design intent | [M5 Product Experience Design](./PROJECT-PLATFORM-M5-PRODUCT-EXPERIENCE-DESIGN.md) |
@@ -236,7 +236,7 @@ Same evidence-based synthesis as M4 Final: documented browser QA, reconcile, uni
 | R1-A production DB migrate | Previously **PASS** at older main tip — **re-verify** after M5 merges before release |
 | R1-B OIDC production | **Incomplete** — TEMP_AUTH remains recovery |
 | R1-C ops readiness | **PARTIAL** — backups/PITR/alerts **NOT VERIFIED**; migrate workflow not installed in CI |
-| Vercel Production | Deploys succeed for main merges; **≠** ops readiness |
+| Vercel Production | M5-FINAL Preview/Production hit **build rate limit** at merge (`Deployment rate limited — retry in 24 hours`); prior M5F Production (`33f1d57`) succeeded. **≠** ops readiness; re-deploy when quota resets |
 | Production smoke vs prod DB | **NOT RUN** in M5-FINAL |
 | Browser E2E in CI | Local scripts only; Vercel-only checks observed |
 
