@@ -115,6 +115,12 @@ async function applyPersona(name) {
     case "viewer":
       await bind("organization.viewer", "ORGANIZATION", orgId, orgId);
       break;
+    case "employee":
+    case "contributor":
+      // No dedicated ROLE_KEY for Employee/Contributor — organization.viewer
+      // is the read-scoped pack used for contributor usability smoke (M5F-B).
+      await bind("organization.viewer", "ORGANIZATION", orgId, orgId);
+      break;
     case "pi-planner":
       // Section manager pack includes PI allocate/review (not baseline).
       await bind("section.manager", "SECTION", sectionId, orgId);
