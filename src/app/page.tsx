@@ -83,8 +83,8 @@ function QuickLinkChip({
       href={href}
       className={
         primary
-          ? "rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
-          : "rounded-md border border-[var(--line)] px-3 py-2 text-sm"
+          ? "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 text-sm font-medium text-white"
+          : "inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 text-sm"
       }
     >
       {label}

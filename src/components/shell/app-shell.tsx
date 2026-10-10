@@ -92,6 +92,13 @@ export function AppShell({
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
       <RouteFocusMain />
+      {/* First focusable control in document order (WCAG 2.4.1 bypass). */}
+      <a
+        href="#main-content"
+        className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:block focus:h-auto focus:w-auto focus:overflow-visible focus:rounded-md focus:bg-[var(--surface)] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--ink)] focus:shadow-md focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+      >
+        Skip to main content
+      </a>
       <aside
         id={navId}
         ref={navPanelRef}
@@ -135,12 +142,6 @@ export function AppShell({
       ) : null}
 
       <div className="min-w-0" aria-hidden={open ? true : undefined}>
-        <a
-          href="#main-content"
-          className="sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:block focus:h-auto focus:w-auto focus:overflow-visible focus:rounded-md focus:bg-[var(--surface)] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] lg:left-[calc(240px+1rem)]"
-        >
-          Skip to main content
-        </a>
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[var(--line)] bg-[var(--surface)] px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button

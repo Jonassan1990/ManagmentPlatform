@@ -75,6 +75,25 @@ These describe product needs. Organizations may name roles differently.
 
 **Confirmed:** Do not implement product features that only work if a specific named role string exists, unless that string is configuration.
 
+### Product persona → system role pack mapping (M4F-D)
+
+Product journeys use personas that are **not** always 1:1 with `ROLE_KEYS`. Until dedicated packs exist, map as follows for acceptance and QA:
+
+| Product persona | System pack (`ROLE_KEYS`) | Notes |
+|---|---|---|
+| Org Admin | `organization.admin` | Full org administration |
+| Portfolio Manager | `portfolio.manager` | Delivery without role admin |
+| Section Manager | `section.manager` | Section-scoped structure + delivery |
+| Department Manager | `department.manager` | Department-scoped |
+| Team Manager | `team.manager` | Team membership/capacity |
+| Project Manager | `project.manager` | Project work items / milestones |
+| PI Planner | `section.manager` (interim) | Uses PI allocate/review permissions already in section pack; dedicated key deferred |
+| Governance Reviewer | `organization.admin` (interim) | Gate/decision authority packs; dedicated key deferred |
+| Viewer | `organization.viewer` | Read-only |
+| Unbound Principal | _(no bindings)_ | Shell fails closed |
+
+Do not hardcode these persona names in domain rules — they are UX/auth documentation only.
+
 ---
 
 ## 6. Authorization Boundaries

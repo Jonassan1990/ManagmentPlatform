@@ -1006,15 +1006,34 @@ export function PortfolioDashboardView({
               No ownership references in scope.
             </p>
           ) : (
-            <div className="mt-4 overflow-x-auto">
+            <div
+              className="mt-4 overflow-x-auto"
+              role="region"
+              tabIndex={0}
+              aria-label="Ownership references by resource"
+            >
               <table className="w-full min-w-[480px] text-left text-sm">
+                <caption className="sr-only">
+                  Ownership counts by resource across initiatives, projects,
+                  PoCs, and pilots
+                </caption>
                 <thead className="border-b border-[var(--line)] text-[var(--muted)]">
                   <tr>
-                    <th className="py-2 pr-3 font-medium">Resource</th>
-                    <th className="py-2 pr-3 font-medium">Initiatives</th>
-                    <th className="py-2 pr-3 font-medium">Projects</th>
-                    <th className="py-2 pr-3 font-medium">PoCs</th>
-                    <th className="py-2 font-medium">Pilots</th>
+                    <th scope="col" className="py-2 pr-3 font-medium">
+                      Resource
+                    </th>
+                    <th scope="col" className="py-2 pr-3 font-medium">
+                      Initiatives
+                    </th>
+                    <th scope="col" className="py-2 pr-3 font-medium">
+                      Projects
+                    </th>
+                    <th scope="col" className="py-2 pr-3 font-medium">
+                      PoCs
+                    </th>
+                    <th scope="col" className="py-2 font-medium">
+                      Pilots
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--line)]">

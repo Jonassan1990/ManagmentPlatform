@@ -8,7 +8,12 @@ import {
 } from "@/app/actions/pi-planning";
 import { Alert } from "@/components/ui/alert";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { PrimaryButton, permissionTitle } from "@/components/ui/forms";
+import {
+  FormField,
+  PrimaryButton,
+  fieldClassName,
+  permissionTitle,
+} from "@/components/ui/forms";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { mapApprovalStateBadge } from "@/components/ui/status-adapters";
 import { formatHours } from "@/components/pi-planning/pi-nav";
@@ -335,15 +340,19 @@ export function PlanApprovalPanel({
             </Alert>
           ) : null}
 
-          <label className="block text-sm">
-            <span className="text-xs text-[#74848e]">Label (optional)</span>
+          <FormField
+            label="Label (optional)"
+            htmlFor="baseline-label"
+            hint="Appears on the immutable baseline record."
+          >
             <input
-              className="mt-1 w-full rounded-md border border-[#e2e8eb] px-3 py-2"
+              id="baseline-label"
+              className={fieldClassName}
               value={baselineLabel}
               onChange={(e) => setBaselineLabel(e.target.value)}
               placeholder="e.g. Management freeze"
             />
-          </label>
+          </FormField>
 
           <PrimaryButton
             disabled={pending || baselineBlocked}

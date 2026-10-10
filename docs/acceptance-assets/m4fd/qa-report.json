@@ -1,0 +1,315 @@
+{
+  "milestone": "M4F-D",
+  "base": "http://localhost:43148",
+  "generatedAt": "2026-10-10T07:34:26.557Z",
+  "steps": [
+    {
+      "step": "login",
+      "status": "PASS"
+    },
+    {
+      "step": "route:home",
+      "status": "PASS",
+      "path": "/"
+    },
+    {
+      "step": "route:initiatives",
+      "status": "PASS",
+      "path": "/initiatives"
+    },
+    {
+      "step": "route:portfolio",
+      "status": "PASS",
+      "path": "/portfolio?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486"
+    },
+    {
+      "step": "route:capacity",
+      "status": "PASS",
+      "path": "/portfolio/capacity?organizationId=f6b317a2-839d-413b-9aa1-2ea4e006f486&piId=c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+    },
+    {
+      "step": "route:pi-board",
+      "status": "PASS",
+      "path": "/pi/c9cf896f-8a37-43de-aefe-c3af32bcfc78"
+    },
+    {
+      "step": "route:pi-review",
+      "status": "PASS",
+      "path": "/pi/c9cf896f-8a37-43de-aefe-c3af32bcfc78/review"
+    },
+    {
+      "step": "route:pi-compare",
+      "status": "PASS",
+      "path": "/pi/c9cf896f-8a37-43de-aefe-c3af32bcfc78/compare"
+    },
+    {
+      "step": "route:organization",
+      "status": "PASS",
+      "path": "/organization/f6b317a2-839d-413b-9aa1-2ea4e006f486"
+    },
+    {
+      "step": "route:approvals",
+      "status": "PASS",
+      "path": "/approvals"
+    },
+    {
+      "step": "initiatives-filter-chip-min-height",
+      "status": "PASS",
+      "height": 44
+    },
+    {
+      "step": "initiatives-table-caption",
+      "status": "PASS",
+      "caption": 1
+    },
+    {
+      "step": "org-admin-edit-visible",
+      "status": "PASS"
+    },
+    {
+      "step": "org-viewer-edit-hidden",
+      "status": "PASS"
+    },
+    {
+      "step": "org-viewer-readonly-notice",
+      "status": "PASS"
+    },
+    {
+      "step": "viewer-no-new-initiative",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-360-home",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-360-capacity",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-360-organization",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-360-pi-review",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-390-home",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-390-capacity",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-390-organization",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-390-pi-review",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-768-home",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-768-capacity",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-768-organization",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-768-pi-review",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-1024-home",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-1024-capacity",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-1024-organization",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-1024-pi-review",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-1440-home",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-1440-capacity",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-1440-organization",
+      "status": "PASS"
+    },
+    {
+      "step": "viewport-1440-pi-review",
+      "status": "PASS"
+    },
+    {
+      "step": "skip-link-focus",
+      "status": "PASS",
+      "focused": "Skip to main content"
+    }
+  ],
+  "viewports": [
+    {
+      "viewport": "360",
+      "samples": [
+        {
+          "route": "home",
+          "overflowX": false,
+          "scrollWidth": 360,
+          "clientWidth": 360
+        },
+        {
+          "route": "capacity",
+          "overflowX": false,
+          "scrollWidth": 360,
+          "clientWidth": 360
+        },
+        {
+          "route": "organization",
+          "overflowX": false,
+          "scrollWidth": 360,
+          "clientWidth": 360
+        },
+        {
+          "route": "pi-review",
+          "overflowX": false,
+          "scrollWidth": 360,
+          "clientWidth": 360
+        }
+      ]
+    },
+    {
+      "viewport": "390",
+      "samples": [
+        {
+          "route": "home",
+          "overflowX": false,
+          "scrollWidth": 390,
+          "clientWidth": 390
+        },
+        {
+          "route": "capacity",
+          "overflowX": false,
+          "scrollWidth": 390,
+          "clientWidth": 390
+        },
+        {
+          "route": "organization",
+          "overflowX": false,
+          "scrollWidth": 390,
+          "clientWidth": 390
+        },
+        {
+          "route": "pi-review",
+          "overflowX": false,
+          "scrollWidth": 390,
+          "clientWidth": 390
+        }
+      ]
+    },
+    {
+      "viewport": "768",
+      "samples": [
+        {
+          "route": "home",
+          "overflowX": false,
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "route": "capacity",
+          "overflowX": false,
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "route": "organization",
+          "overflowX": false,
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "route": "pi-review",
+          "overflowX": false,
+          "scrollWidth": 768,
+          "clientWidth": 768
+        }
+      ]
+    },
+    {
+      "viewport": "1024",
+      "samples": [
+        {
+          "route": "home",
+          "overflowX": false,
+          "scrollWidth": 1024,
+          "clientWidth": 1024
+        },
+        {
+          "route": "capacity",
+          "overflowX": false,
+          "scrollWidth": 1024,
+          "clientWidth": 1024
+        },
+        {
+          "route": "organization",
+          "overflowX": false,
+          "scrollWidth": 1024,
+          "clientWidth": 1024
+        },
+        {
+          "route": "pi-review",
+          "overflowX": false,
+          "scrollWidth": 1024,
+          "clientWidth": 1024
+        }
+      ]
+    },
+    {
+      "viewport": "1440",
+      "samples": [
+        {
+          "route": "home",
+          "overflowX": false,
+          "scrollWidth": 1440,
+          "clientWidth": 1440
+        },
+        {
+          "route": "capacity",
+          "overflowX": false,
+          "scrollWidth": 1440,
+          "clientWidth": 1440
+        },
+        {
+          "route": "organization",
+          "overflowX": false,
+          "scrollWidth": 1440,
+          "clientWidth": 1440
+        },
+        {
+          "route": "pi-review",
+          "overflowX": false,
+          "scrollWidth": 1440,
+          "clientWidth": 1440
+        }
+      ]
+    }
+  ],
+  "verdict": "PASS"
+}

@@ -2,6 +2,7 @@
 
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { useId, type ReactNode } from "react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 
@@ -159,12 +160,9 @@ export function ConfirmDialog({
       }
     >
       {error ? (
-        <p
-          role="alert"
-          className="rounded-[var(--radius-md)] border border-[var(--color-error)] bg-[var(--color-error-soft)] px-3 py-2 text-sm text-[var(--color-error)]"
-        >
+        <Alert tone="error" live="assertive">
           {error}
-        </p>
+        </Alert>
       ) : (
         <p className="text-sm text-[var(--color-text-secondary)]">
           Review the details above before continuing.

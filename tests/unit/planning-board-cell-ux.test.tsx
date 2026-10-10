@@ -171,4 +171,29 @@ describe("M4D-A PlanningBoard cell presentation", () => {
       screen.getAllByText(/No allocations in this cell/i).length,
     ).toBeGreaterThan(0);
   });
+
+  it("explains missing PI allocate permission near the board (M4F-D)", () => {
+    render(
+      <PlanningBoard
+        piId="pi-1"
+        revisionId="rev-1"
+        departments={[]}
+        iterations={[
+          {
+            id: "it-1",
+            name: "Sprint 1",
+            sequence: 1,
+            referenceKey: "IT-1",
+          },
+        ]}
+        backlog={[]}
+        capabilities={{ canAllocatePi: false }}
+      />,
+    );
+
+    expect(screen.getByTestId("board-allocate-permission")).toHaveTextContent(
+      /PI allocate permission is required/i,
+    );
+    expect(screen.queryByTestId("board-keyboard-hint")).not.toBeInTheDocument();
+  });
 });

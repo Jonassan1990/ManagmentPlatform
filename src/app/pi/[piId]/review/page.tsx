@@ -421,21 +421,27 @@ export default async function PiReviewPage({
             </Panel>
             <Panel>
               <h2 className="font-medium">Links</h2>
-              <ul className="mt-2 space-y-2 text-sm">
+              <ul className="mt-2 space-y-1 text-sm">
                 <li>
-                  <Link href={boardHref} className="text-[var(--accent)]">
+                  <Link
+                    href={boardHref}
+                    className="inline-flex min-h-11 items-center text-[var(--accent)]"
+                  >
                     Planning board
                   </Link>
                 </li>
                 <li>
-                  <Link href={compareHref} className="text-[var(--accent)]">
+                  <Link
+                    href={compareHref}
+                    className="inline-flex min-h-11 items-center text-[var(--accent)]"
+                  >
                     Compare scenarios
                   </Link>
                 </li>
                 <li>
                   <Link
                     href={`/pi/${piId}/capacity`}
-                    className="text-[var(--accent)]"
+                    className="inline-flex min-h-11 items-center text-[var(--accent)]"
                   >
                     Capacity
                   </Link>
@@ -443,13 +449,16 @@ export default async function PiReviewPage({
                 <li>
                   <Link
                     href={`/pi/${piId}/dependencies`}
-                    className="text-[var(--accent)]"
+                    className="inline-flex min-h-11 items-center text-[var(--accent)]"
                   >
                     Dependencies
                   </Link>
                 </li>
                 <li>
-                  <Link href={baselineHref} className="text-[var(--accent)]">
+                  <Link
+                    href={baselineHref}
+                    className="inline-flex min-h-11 items-center text-[var(--accent)]"
+                  >
                     Baseline history
                   </Link>
                 </li>

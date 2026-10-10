@@ -300,6 +300,15 @@ export function PlanningBoard({
         </p>
       ) : null}
 
+      {capabilities?.canAllocatePi === false && !readOnlyScenario ? (
+        <div data-testid="board-allocate-permission">
+          <Alert tone="info" live="polite">
+            PI allocate permission is required to move or allocate work on this
+            board. You can still inspect cards and capacity.
+          </Alert>
+        </div>
+      ) : null}
+
       {error ? <Alert>{error}</Alert> : null}
 
       {/* Mobile: list / drill-down */}

@@ -46,7 +46,7 @@ export default async function ApprovalsPage() {
           action={
             <Link
               href="/initiatives"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-medium text-white"
             >
               Browse initiatives
             </Link>
@@ -77,7 +77,7 @@ export default async function ApprovalsPage() {
                 </div>
                 <Link
                   href={`/initiatives/${request.submission.initiativeId}/governance`}
-                  className="text-sm text-[var(--accent)] underline"
+                  className="inline-flex min-h-11 items-center text-sm text-[var(--accent)] underline"
                 >
                   Open gate workspace
                 </Link>

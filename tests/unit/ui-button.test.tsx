@@ -36,4 +36,23 @@ describe("Button", () => {
     rerender(<Button variant="outline">O</Button>);
     expect(screen.getByRole("button", { name: "O" })).toBeTruthy();
   });
+
+  it("meets minimum touch target height for sm and md sizes (M4F-D)", () => {
+    const { rerender } = render(
+      <Button size="sm" variant="secondary">
+        Small
+      </Button>,
+    );
+    expect(screen.getByRole("button", { name: "Small" }).className).toMatch(
+      /min-h-11/,
+    );
+    rerender(
+      <Button size="md" variant="primary">
+        Medium
+      </Button>,
+    );
+    expect(screen.getByRole("button", { name: "Medium" }).className).toMatch(
+      /min-h-11/,
+    );
+  });
 });

@@ -69,15 +69,33 @@ export function CapacityPanels({
             No team capacity yet — add participating teams and resource memberships.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div
+            className="mt-4 overflow-x-auto"
+            role="region"
+            tabIndex={0}
+            aria-label="Team capacity by iteration"
+          >
             <table className="w-full min-w-[640px] text-left text-sm">
+              <caption className="sr-only">
+                Team capacity, load, and utilization by iteration
+              </caption>
               <thead className="border-b border-[var(--line)] text-[var(--muted)]">
                 <tr>
-                  <th className="py-2 pr-3 font-medium">Team</th>
-                  <th className="py-2 pr-3 font-medium">Iteration</th>
-                  <th className="py-2 pr-3 font-medium">Capacity</th>
-                  <th className="py-2 pr-3 font-medium">Load</th>
-                  <th className="py-2 font-medium">Utilization</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Team
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Iteration
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Capacity
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Load
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Utilization
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
@@ -116,16 +134,36 @@ export function CapacityPanels({
             weekly capacity hours.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div
+            className="mt-4 overflow-x-auto"
+            role="region"
+            tabIndex={0}
+            aria-label="Resource capacity by iteration"
+          >
             <table className="w-full min-w-[720px] text-left text-sm">
+              <caption className="sr-only">
+                Resource capacity, load, and utilization by iteration
+              </caption>
               <thead className="border-b border-[var(--line)] text-[var(--muted)]">
                 <tr>
-                  <th className="py-2 pr-3 font-medium">Resource</th>
-                  <th className="py-2 pr-3 font-medium">Iteration</th>
-                  <th className="py-2 pr-3 font-medium">Alloc %</th>
-                  <th className="py-2 pr-3 font-medium">Capacity</th>
-                  <th className="py-2 pr-3 font-medium">Load</th>
-                  <th className="py-2 font-medium">Utilization</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Resource
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Iteration
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Alloc %
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Capacity
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Load
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Utilization
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
