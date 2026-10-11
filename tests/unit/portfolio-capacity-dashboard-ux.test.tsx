@@ -360,7 +360,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
       ),
     ).toBeTruthy();
     expect(
-      screen.getByText(/Manager dashboard · Resource Management · Acme Org/i),
+      screen.getByText(/Manager dashboard · Acme Org/i),
     ).toBeTruthy();
     expect(
       screen.getByText(/not FTE or invented workstream %/i),

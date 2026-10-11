@@ -136,25 +136,28 @@ function KpiCard({
   value,
   note,
   tone = "default",
+  riseClass,
 }: {
   label: string;
   value: React.ReactNode;
   note?: string;
   tone?: "default" | "critical" | "warn" | "blue";
+  riseClass?: string;
 }) {
-  const bar =
+  const toneClass =
     tone === "critical"
-      ? "bg-[var(--color-error)]"
+      ? "critical"
       : tone === "warn"
-        ? "bg-[var(--color-warning)]"
+        ? "warn"
         : tone === "blue"
-          ? "bg-[var(--color-info)]"
-          : "bg-[var(--color-accent)]";
+          ? "info"
+          : "";
   return (
-    <div className="relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]">
-      <div className={`absolute inset-y-0 left-0 w-1 ${bar}`} aria-hidden />
-      <p className="text-[11px] text-[var(--muted)]">{label}</p>
-      <p className="my-[3px] text-[27px] font-extrabold tracking-[-0.04em] text-[var(--sidebar)] tabular-nums">
+    <div className={`tegel-rm-kpi ${toneClass} ${riseClass ?? ""}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">
+        {label}
+      </p>
+      <p className="my-[3px] font-[family-name:var(--font-display)] text-[28px] font-bold tracking-[-0.03em] text-[var(--scania-blue-800)] tabular-nums">
         {value}
       </p>
       {note ? <p className="text-[10px] text-[var(--muted)]">{note}</p> : null}
@@ -802,11 +805,11 @@ export function PortfolioCapacityDashboard({
       ) : null}
 
       <div
-        className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]"
+        className="tegel-rm grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]"
         data-testid="resource-management-workspace"
       >
         <aside
-          className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[var(--shadow-md)]"
+          className="tegel-rise rounded-[4px] border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[var(--shadow-md)]"
           aria-label="Resource Management workspace"
         >
           <p className="px-3 pb-1 pt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
@@ -817,9 +820,9 @@ export function PortfolioCapacityDashboard({
               <button
                 key={item.id}
                 type="button"
-                className={`mb-0.5 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${
+                className={`tegel-rm-nav-item mb-0.5 flex min-h-11 w-full items-center gap-2 rounded-[4px] px-3 py-2 text-left text-sm ${
                   workspaceView === item.id
-                    ? "bg-[var(--accent-soft)] font-bold text-[var(--color-accent)]"
+                    ? ""
                     : "text-[var(--muted)] hover:bg-[var(--bg)]"
                 } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]`}
                 aria-current={workspaceView === item.id ? "page" : undefined}
@@ -848,9 +851,9 @@ export function PortfolioCapacityDashboard({
               <button
                 key={item.id}
                 type="button"
-                className={`mb-0.5 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${
+                className={`tegel-rm-nav-item mb-0.5 flex min-h-11 w-full items-center gap-2 rounded-[4px] px-3 py-2 text-left text-sm ${
                   workspaceView === item.id
-                    ? "bg-[var(--accent-soft)] font-bold text-[var(--color-accent)]"
+                    ? ""
                     : "text-[var(--muted)] hover:bg-[var(--bg)]"
                 } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]`}
                 aria-current={workspaceView === item.id ? "page" : undefined}
@@ -874,12 +877,12 @@ export function PortfolioCapacityDashboard({
         </aside>
 
         <div className="min-w-0 space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="tegel-rise flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="ds-eyebrow text-[10px]">
-            Manager dashboard · Resource Management · {organizationName}
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--scania-blue-600)]">
+            Manager dashboard · {organizationName}
           </p>
-          <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--sidebar)]">
+          <h2 className="mt-1 font-[family-name:var(--font-display)] text-[1.75rem] font-bold tracking-tight text-[var(--scania-blue-800)]">
             Resource allocation overview
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
@@ -888,21 +891,19 @@ export function PortfolioCapacityDashboard({
             CURRENT project commitments — not FTE or invented workstream %.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href={appendReturnContext(
               `/portfolio/reports?organizationId=${organizationId}&type=resource_allocation${piId ? `&piId=${piId}` : ""}`,
               returnInput,
             )}
-            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+            aria-label="Export view"
+            className="inline-flex"
           >
-            ↧ Export view
+            <tds-button text="Export view" variant="secondary" size="md" />
           </Link>
-          <Link
-            href={boardHref}
-            className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-          >
-            ＋ Plan allocation
+          <Link href={boardHref} aria-label="Plan allocation" className="inline-flex">
+            <tds-button text="Plan allocation" variant="primary" size="md" />
           </Link>
         </div>
       </div>
@@ -917,6 +918,7 @@ export function PortfolioCapacityDashboard({
             label="Capacity allocated"
             value={managerKpis.capacityAllocatedPctLabel}
             note={managerKpis.capacityAllocatedNote}
+            riseClass="tegel-rise tegel-rise-delay-1"
             tone={
               ready?.totals.band === "overload"
                 ? "critical"
@@ -929,6 +931,7 @@ export function PortfolioCapacityDashboard({
             label="Overloaded resources"
             value={String(managerKpis.overloadedResources)}
             note={managerKpis.overloadedNote}
+            riseClass="tegel-rise tegel-rise-delay-2"
             tone={
               managerKpis.overloadedResources > 0 ? "critical" : "default"
             }
@@ -937,12 +940,14 @@ export function PortfolioCapacityDashboard({
             label="Cross-functional assignments"
             value={String(managerKpis.crossFunctionalAssignments)}
             note={managerKpis.crossFunctionalNote}
+            riseClass="tegel-rise tegel-rise-delay-3"
             tone="blue"
           />
           <KpiCard
             label="External dependencies"
             value={String(managerKpis.externalDependencies)}
             note={managerKpis.externalDependenciesNote}
+            riseClass="tegel-rise tegel-rise-delay-4"
             tone={
               managerKpis.externalDependenciesAttention > 0
                 ? "warn"

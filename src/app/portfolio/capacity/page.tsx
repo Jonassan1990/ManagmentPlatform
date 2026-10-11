@@ -282,7 +282,7 @@ export default async function PortfolioCapacityPage({
       />
       <PageHeader
         title="Resource Management"
-        description="Resource overview, allocation, cross-functional work, and department dependencies — CURRENT plan hours only. Stacked bars use real project commitments; no invented FTE."
+        description="Scania Tegel workspace — resource overview, allocation, cross-functional work, and department dependencies on the CURRENT plan."
       />
       <PortfolioCapacityDashboard
         organizationName={organizationName}

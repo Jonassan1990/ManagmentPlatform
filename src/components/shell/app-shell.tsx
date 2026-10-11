@@ -90,7 +90,7 @@ export function AppShell({
     (principal ? "Signed in" : null);
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
+    <div className="tegel-rm min-h-screen lg:grid lg:grid-cols-[252px_1fr]">
       <RouteFocusMain />
       {/* First focusable control in document order (WCAG 2.4.1 bypass). */}
       <a
@@ -102,16 +102,17 @@ export function AppShell({
       <aside
         id={navId}
         ref={navPanelRef}
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-[var(--sidebar)] text-[var(--sidebar-ink)] transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-[252px] transform bg-[var(--sidebar)] text-[var(--sidebar-ink)] shadow-[inset_-1px_0_0_rgb(255_255_255/0.06)] transition-transform lg:static lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center border-b border-white/10 px-5">
-          <div>
-            <p className="font-[family-name:var(--font-display)] text-lg tracking-tight text-white">
-              Management Platform
-            </p>
-            <p className="text-xs text-white/75">Workflow navigation</p>
+        <div className="flex h-[66px] items-center gap-3 border-b border-white/10 px-5">
+          <div className="tegel-shell-mark" aria-hidden>
+            M
+          </div>
+          <div className="tegel-shell-brand">
+            Management
+            <small>TEGEL · RESOURCE OPS</small>
           </div>
         </div>
         <nav className="space-y-1 p-3" aria-label="Primary">
@@ -141,13 +142,13 @@ export function AppShell({
         />
       ) : null}
 
-      <div className="min-w-0" aria-hidden={open ? true : undefined}>
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[var(--line)] bg-[var(--surface)] px-4 sm:px-6">
+      <div className="min-w-0 tegel-canvas" aria-hidden={open ? true : undefined}>
+        <header className="sticky top-0 z-20 flex h-[66px] items-center justify-between border-b border-[var(--line)] bg-[rgb(255_255_255/0.92)] px-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-3">
             <button
               ref={menuButtonRef}
               type="button"
-              className="min-h-11 rounded-md border border-[var(--line)] px-3 py-1.5 text-sm lg:hidden"
+              className="min-h-11 rounded-[4px] border border-[var(--line)] bg-white px-3 py-1.5 text-sm font-semibold text-[var(--ink)] lg:hidden"
               onClick={() => setOpen(true)}
               aria-label="Open navigation"
               aria-expanded={open}
@@ -155,32 +156,49 @@ export function AppShell({
             >
               Menu
             </button>
-            <p className="text-sm text-[var(--muted)]">Management workspace</p>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--scania-blue-600)]">
+                Scania Tegel
+              </p>
+              <p className="text-sm font-medium text-[var(--ink)]">
+                Management workspace
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {label ? (
               <>
                 <div className="hidden text-right sm:block">
-                  <p className="text-sm text-[var(--ink)]">{label}</p>
+                  <p className="text-sm font-semibold text-[var(--ink)]">
+                    {label}
+                  </p>
                   {principal?.email && principal.displayName ? (
                     <p className="text-xs text-[var(--muted)]">
                       {principal.email}
                     </p>
                   ) : null}
                 </div>
+                <div
+                  className="grid h-9 w-9 place-items-center rounded-full bg-[#d8dde5] text-xs font-bold text-[var(--scania-blue-800)]"
+                  aria-hidden
+                >
+                  {(label || "U")
+                    .split(/\s+/)
+                    .map((p) => p[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </div>
                 {principal?.source === "oidc" ? <SignOutButton /> : null}
                 {principal?.source === "dev" ? (
-                  <span className="rounded-md border border-[var(--line)] px-2 py-1 text-xs text-[var(--muted)]">
+                  <span className="rounded-[4px] border border-[var(--line)] bg-white px-2 py-1 text-xs font-semibold text-[var(--muted)]">
                     DEV
                   </span>
                 ) : null}
               </>
             ) : (
-              <Link
-                href="/login"
-                className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm hover:bg-black/5"
-              >
-                Sign in
+              <Link href="/login">
+                <tds-button text="Sign in" variant="primary" size="sm" />
               </Link>
             )}
           </div>
