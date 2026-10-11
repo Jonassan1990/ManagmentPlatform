@@ -74,7 +74,7 @@ async function wipeDemoArtifacts() {
     }).catch(() => undefined);
     await db.decisionRecord.deleteMany({ where: { initiativeId: { in: allInitIds } } }).catch(() => undefined);
     await db.evidenceEntry.deleteMany({
-      where: { evidencePackage: { submission: { initiativeId: { in: allInitIds } } } },
+      where: { package: { submission: { initiativeId: { in: allInitIds } } } },
     }).catch(() => undefined);
     await db.evidencePackage.deleteMany({
       where: { submission: { initiativeId: { in: allInitIds } } },
