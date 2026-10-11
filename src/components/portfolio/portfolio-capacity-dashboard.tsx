@@ -35,11 +35,17 @@ import {
   capacityStatusLabel,
   committedLoadBarPct,
   filterDepartmentCards,
+  flattenAggregatedResources,
   formatCapacityHours,
   formatUtilizationPct,
   initials,
   type StackSegmentView,
 } from "./portfolio-capacity-model";
+import {
+  RESOURCE_WORKSPACE_NAV,
+  summarizeManagerResourceKpis,
+  type ResourceWorkspaceView,
+} from "./resource-management-kpis";
 
 function bandToStatus(
   band: PortfolioCapacityHours["band"],
@@ -569,6 +575,8 @@ export function PortfolioCapacityDashboard({
   const [teamId, setTeamId] = useState("");
   const [overloadedOnly, setOverloadedOnly] = useState(false);
   const [openDepts, setOpenDepts] = useState<Set<string>>(new Set());
+  const [workspaceView, setWorkspaceView] =
+    useState<ResourceWorkspaceView>("overview");
 
   const selectedPi = pis.find((p) => p.piId === piId) ?? null;
   const ready =
@@ -610,6 +618,63 @@ export function PortfolioCapacityDashboard({
     );
   }, [ready]);
 
+  const aggregatedResources = useMemo(
+    () => flattenAggregatedResources(cards),
+    [cards],
+  );
+
+  const managerKpis = useMemo(() => {
+    if (!ready) return null;
+    return summarizeManagerResourceKpis({
+      availableHours: ready.totals.availableHours,
+      committedHours: ready.totals.committedHours,
+      utilization: ready.totals.utilization,
+      cards,
+      aggregatedResources,
+      dependencies,
+    });
+  }, [ready, cards, aggregatedResources, dependencies]);
+
+  const showOverviewChrome =
+    workspaceView === "overview" || workspaceView === "capacity-demand";
+  const showHierarchy =
+    workspaceView === "overview" ||
+    workspaceView === "allocation" ||
+    workspaceView === "cross-functional" ||
+    workspaceView === "capacity-demand";
+  const showDependenciesPanel =
+    workspaceView === "overview" || workspaceView === "dependencies";
+  const showCrossFunctionalOnly = workspaceView === "cross-functional";
+  const hierarchyCards = useMemo(() => {
+    if (!showCrossFunctionalOnly) return cards;
+    const counts = new Map<string, number>();
+    for (const r of aggregatedResources) {
+      counts.set(r.resourceId, (counts.get(r.resourceId) ?? 0) + 1);
+    }
+    const multiTeam = new Set(
+      [...counts.entries()].filter(([, n]) => n > 1).map(([id]) => id),
+    );
+    return cards
+      .map((c) => ({
+        ...c,
+        teams: c.teams
+          .map((t) => ({
+            ...t,
+            resources: t.resources.filter((r) => multiTeam.has(r.resourceId)),
+          }))
+          .filter((t) => t.resources.length > 0),
+      }))
+      .filter((c) => c.teams.length > 0)
+      .map((c) => ({
+        ...c,
+        resourceCount: c.teams.reduce((n, t) => n + t.resources.length, 0),
+        overloadCount: c.teams.reduce(
+          (n, t) => n + t.resources.filter((r) => r.band === "overload").length,
+          0,
+        ),
+      }));
+  }, [cards, aggregatedResources, showCrossFunctionalOnly]);
+
   const teamOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of cards) {
@@ -622,12 +687,12 @@ export function PortfolioCapacityDashboard({
 
   const filtered = useMemo(
     () =>
-      filterDepartmentCards(cards, {
+      filterDepartmentCards(hierarchyCards, {
         search,
         teamId: teamId || undefined,
         overloadedOnly,
       }),
-    [cards, search, teamId, overloadedOnly],
+    [hierarchyCards, search, teamId, overloadedOnly],
   );
 
   const uniqueOverloadedTeams = useMemo(() => {
@@ -736,38 +801,159 @@ export function PortfolioCapacityDashboard({
         </Alert>
       ) : null}
 
+      <div
+        className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]"
+        data-testid="resource-management-workspace"
+      >
+        <aside
+          className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[var(--shadow-md)]"
+          aria-label="Resource Management workspace"
+        >
+          <p className="px-3 pb-1 pt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            Workspace
+          </p>
+          {RESOURCE_WORKSPACE_NAV.filter((n) => n.group === "workspace").map(
+            (item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`mb-0.5 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${
+                  workspaceView === item.id
+                    ? "bg-[var(--accent-soft)] font-bold text-[var(--color-accent)]"
+                    : "text-[var(--muted)] hover:bg-[var(--bg)]"
+                } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]`}
+                aria-current={workspaceView === item.id ? "page" : undefined}
+                onClick={() => {
+                  if (item.id === "reports") {
+                    router.push(
+                      `/portfolio/reports?organizationId=${organizationId}`,
+                    );
+                    return;
+                  }
+                  setWorkspaceView(item.id);
+                }}
+              >
+                <span aria-hidden className="inline-block w-6">
+                  {item.icon}
+                </span>
+                {item.label}
+              </button>
+            ),
+          )}
+          <p className="mt-3 px-3 pb-1 pt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            Management
+          </p>
+          {RESOURCE_WORKSPACE_NAV.filter((n) => n.group === "management").map(
+            (item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`mb-0.5 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${
+                  workspaceView === item.id
+                    ? "bg-[var(--accent-soft)] font-bold text-[var(--color-accent)]"
+                    : "text-[var(--muted)] hover:bg-[var(--bg)]"
+                } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]`}
+                aria-current={workspaceView === item.id ? "page" : undefined}
+                onClick={() => {
+                  if (item.id === "reports") {
+                    router.push(
+                      `/portfolio/reports?organizationId=${organizationId}`,
+                    );
+                    return;
+                  }
+                  setWorkspaceView(item.id);
+                }}
+              >
+                <span aria-hidden className="inline-block w-6">
+                  {item.icon}
+                </span>
+                {item.label}
+              </button>
+            ),
+          )}
+        </aside>
+
+        <div className="min-w-0 space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="ds-eyebrow text-[10px]">
-            Resource Planning · {organizationName}
+            Manager dashboard · Resource Management · {organizationName}
           </p>
+          <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--sidebar)]">
+            Resource allocation overview
+          </h2>
           <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
-            Department, team, and resource capacity on the current plan —
-            not a second Portfolio dashboard or Resource ledger. Hours come
-            from capacity-policy; stacked bars use real project commitments;
-            draft scenarios are never authoritative load.
+            Select a department to see its people, workstream allocation and
+            capacity. Hours come from capacity-policy; stacked bars use real
+            CURRENT project commitments — not FTE or invented workstream %.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
             href={appendReturnContext(
-              `/portfolio?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
+              `/portfolio/reports?organizationId=${organizationId}&type=resource_allocation${piId ? `&piId=${piId}` : ""}`,
               returnInput,
             )}
             className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
-            Portfolio
+            ↧ Export view
           </Link>
           <Link
-            href={openPiHref}
+            href={boardHref}
             className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
           >
-            {openPiTarget === "/pi" ? "PI Planning" : "Open PI Planning"}
+            ＋ Plan allocation
           </Link>
         </div>
       </div>
 
+      {managerKpis ? (
+        <section
+          aria-label="Manager resource KPIs"
+          data-testid="manager-resource-kpis"
+          className="grid grid-cols-2 gap-[13px] xl:grid-cols-4"
+        >
+          <KpiCard
+            label="Capacity allocated"
+            value={managerKpis.capacityAllocatedPctLabel}
+            note={managerKpis.capacityAllocatedNote}
+            tone={
+              ready?.totals.band === "overload"
+                ? "critical"
+                : ready?.totals.band === "near"
+                  ? "warn"
+                  : "default"
+            }
+          />
+          <KpiCard
+            label="Overloaded resources"
+            value={String(managerKpis.overloadedResources)}
+            note={managerKpis.overloadedNote}
+            tone={
+              managerKpis.overloadedResources > 0 ? "critical" : "default"
+            }
+          />
+          <KpiCard
+            label="Cross-functional assignments"
+            value={String(managerKpis.crossFunctionalAssignments)}
+            note={managerKpis.crossFunctionalNote}
+            tone="blue"
+          />
+          <KpiCard
+            label="External dependencies"
+            value={String(managerKpis.externalDependencies)}
+            note={managerKpis.externalDependenciesNote}
+            tone={
+              managerKpis.externalDependenciesAttention > 0
+                ? "warn"
+                : "default"
+            }
+          />
+        </section>
+      ) : null}
+
       {/* ——— A. Planning Context ——— */}
+      {showOverviewChrome ? (
       <section
         aria-labelledby="capacity-planning-context"
         data-testid="capacity-planning-context"
@@ -893,9 +1079,10 @@ export function PortfolioCapacityDashboard({
           ) : null}
         </div>
       </section>
+      ) : null}
 
       {/* ——— B. Capacity Summary ——— */}
-      {ready ? (
+      {ready && showOverviewChrome ? (
         <section
           aria-labelledby="capacity-summary"
           data-testid="capacity-summary"
@@ -975,7 +1162,7 @@ export function PortfolioCapacityDashboard({
       ) : null}
 
       {/* ——— D. Management Attention (elevated before hierarchy for scan speed) ——— */}
-      {ready ? (
+      {ready && workspaceView === "overview" ? (
         <section
           aria-labelledby="capacity-management-attention"
           data-testid="capacity-management-attention"
@@ -1214,16 +1401,16 @@ export function PortfolioCapacityDashboard({
       ) : null}
 
       {/* ——— E. Cross-department coordination ——— */}
-      {ready ? (
+      {ready && showDependenciesPanel ? (
         <section
           aria-labelledby="capacity-cross-department"
           data-testid="capacity-cross-department"
         >
           <SectionHeading
             id="capacity-cross-department"
-            level="E · Cross-department"
-            title="Cross-department coordination"
-            description="Authorized available capacity, PlanningDependencies, and project commitments that need coordination. Sibling departments outside your scope are never loaded."
+            level="E · Department dependencies"
+            title="Dependencies on other departments"
+            description="Partner-team PlanningDependencies and available capacity in your authorized scope. Sibling departments outside your scope are never loaded."
           />
           <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
             <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
@@ -1412,7 +1599,7 @@ export function PortfolioCapacityDashboard({
       ) : null}
 
       {/* ——— C. Department / Team / Resource Breakdown ——— */}
-      {ready ? (
+      {ready && showHierarchy ? (
         <section
           aria-labelledby="capacity-hierarchy"
           data-testid="capacity-hierarchy"
@@ -1420,9 +1607,17 @@ export function PortfolioCapacityDashboard({
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
             <SectionHeading
               id="capacity-hierarchy"
-              level="C · Hierarchy"
-              title="Department → team → resource"
-              description="Expand a department to inspect teams and resources in your authorized scope. Stacked bars show CURRENT project hours. Shared Resources use membership % from capacity-policy — full capacity is not counted independently per team."
+              level="C · Department allocation"
+              title={
+                showCrossFunctionalOnly
+                  ? "Cross-functional resource allocation"
+                  : "Department allocation"
+              }
+              description={
+                showCrossFunctionalOnly
+                  ? "People shared across more than one team/workstream in the CURRENT plan. Membership % remains the capacity-policy split — not project load."
+                  : "Departments are grouped below. Expand any department to inspect individual resource allocation. Stacked bars show CURRENT project hours."
+              }
             />
             <div
               className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
@@ -1639,6 +1834,8 @@ export function PortfolioCapacityDashboard({
           </ul>
         </div>
       ) : null}
+        </div>
+      </div>
     </div>
   );
 }

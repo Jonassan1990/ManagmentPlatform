@@ -69,11 +69,12 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
       },
       {
         id: "portfolio-capacity",
-        label: "Resource Planning",
+        label: "Resource Management",
         href: "/portfolio/capacity",
         match: { type: "prefix", path: "/portfolio/capacity" },
         capability: "always",
-        description: "Capacity, utilization, and project commitments",
+        description:
+          "Resource overview, allocation, cross-functional work, and dependencies",
       },
       {
         id: "portfolio-reports",

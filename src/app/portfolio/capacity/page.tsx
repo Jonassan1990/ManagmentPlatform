@@ -77,11 +77,11 @@ export default async function PortfolioCapacityPage({
     return (
       <div>
         <Breadcrumbs
-          items={buildPortfolioTrail({ leaf: "Resource Planning" })}
+          items={buildPortfolioTrail({ leaf: "Resource Management" })}
         />
         <PageHeader
-          title="Resource Planning"
-          description="Department, team, and resource capacity with utilization, overload, and project commitments for the selected Program Increment."
+          title="Resource Management"
+          description="Resource overview, allocation plan, cross-functional work, and department dependencies for the selected Program Increment."
         />
         {orgListError ? (
           <Alert tone="danger">{orgListError}</Alert>
@@ -276,13 +276,13 @@ export default async function PortfolioCapacityPage({
     <div>
       <Breadcrumbs
         items={buildPortfolioTrail({
-          leaf: "Resource Planning",
+          leaf: "Resource Management",
           organizationId,
         })}
       />
       <PageHeader
-        title="Resource Planning"
-        description="Available, committed and remaining hours by department, team and resource — current plan (CURRENT revision). Stacked bars use real project commitment hours. Cross-department coordination uses authorized capacity, conflicts, and PlanningDependencies only."
+        title="Resource Management"
+        description="Resource overview, allocation, cross-functional work, and department dependencies — CURRENT plan hours only. Stacked bars use real project commitments; no invented FTE."
       />
       <PortfolioCapacityDashboard
         organizationName={organizationName}

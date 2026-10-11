@@ -101,7 +101,7 @@ export function buildHomeQuickLinks(input: {
     },
     {
       id: "capacity",
-      label: "Resource Planning",
+      label: "Resource Management",
       href: organizationId
         ? `/portfolio/capacity${orgQ}`
         : "/portfolio/capacity",

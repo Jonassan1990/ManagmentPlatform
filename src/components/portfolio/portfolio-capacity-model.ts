@@ -208,6 +208,15 @@ export function capacityStatusLabel(
  * Aggregate resource×iteration rows to resource×team for department cards.
  * Sums hours only — does not recompute capacity-policy.
  */
+/**
+ * Flatten department cards to resource×team rows (for cross-functional KPIs).
+ */
+export function flattenAggregatedResources(
+  cards: DepartmentCardModel[],
+): AggregatedResourceRow[] {
+  return cards.flatMap((c) => c.teams.flatMap((t) => t.resources));
+}
+
 export function aggregateResourcesByTeam(
   resources: PortfolioPiResourceCapacityRow[],
   teams: PortfolioPiTeamCapacityRow[],
