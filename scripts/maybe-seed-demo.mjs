@@ -43,4 +43,18 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
+console.log("[maybe-seed-demo] seeding Central Maintenance resource plan…");
+const cm = spawnSync(
+  "npx",
+  ["tsx", "scripts/seed-central-maintenance-resources.ts"],
+  {
+    stdio: "inherit",
+    env: process.env,
+    shell: process.platform === "win32",
+  },
+);
+if (cm.status !== 0) {
+  process.exit(cm.status ?? 1);
+}
+
 console.log("[maybe-seed-demo] seed complete");

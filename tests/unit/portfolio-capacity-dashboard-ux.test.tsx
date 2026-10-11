@@ -248,20 +248,23 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
   it("M4E-D: links Portfolio and PI Planning with org context; empty filter feedback", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
 
-    const portfolio = screen.getByRole("link", { name: /^Portfolio$/i });
-    expect(portfolio).toHaveAttribute(
+    const exportView = screen.getByRole("link", { name: /Export view/i });
+    expect(exportView).toHaveAttribute(
       "href",
-      expect.stringContaining(`/portfolio?organizationId=${ORG}`),
-    );
-    expect(portfolio).toHaveAttribute(
-      "href",
-      expect.stringContaining("from="),
+      expect.stringContaining(`/portfolio/reports?organizationId=${ORG}`),
     );
 
-    const piPlanning = screen.getByRole("link", {
-      name: /Open PI Planning|PI Planning/i,
+    const planAllocation = screen.getByRole("link", {
+      name: /Plan allocation/i,
     });
-    expect(piPlanning).toHaveAttribute("href", expect.stringContaining("/pi/"));
+    expect(planAllocation).toHaveAttribute(
+      "href",
+      expect.stringContaining("/pi/"),
+    );
+    expect(planAllocation).toHaveAttribute(
+      "href",
+      expect.stringContaining("/board"),
+    );
 
     fireEvent.change(
       screen.getByLabelText(/Search departments or people/i),
@@ -356,9 +359,16 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
         /PRJ-1 · Core delivery/i,
       ),
     ).toBeTruthy();
-    expect(screen.getByText(/Resource Planning · Acme Org/i)).toBeTruthy();
     expect(
-      screen.getByText(/No FTE or workstream percentages/i),
+      screen.getByText(/Manager dashboard · Resource Management · Acme Org/i),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/not FTE or invented workstream %/i),
+    ).toBeTruthy();
+    expect(screen.getByTestId("manager-resource-kpis")).toBeTruthy();
+    expect(screen.getByTestId("resource-management-workspace")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Resource overview/i }),
     ).toBeTruthy();
   });
 
