@@ -120,7 +120,83 @@ async function wipeDemoArtifacts() {
     await db.initiative.deleteMany({ where: { id: { in: allInitIds } } });
   }
 
-  await db.organization.deleteMany({ where: { name: "Nordic Demo Manufacturing" } });
+  const demoOrg = await db.organization.findFirst({
+    where: { name: "Nordic Demo Manufacturing" },
+    select: { id: true },
+  });
+  if (!demoOrg) return;
+
+  // Wipe CM / PI planning leftovers that are not DEMO-* project keyed.
+  const pis = await db.programIncrement.findMany({
+    where: { organizationId: demoOrg.id },
+    select: { id: true },
+  });
+  for (const pi of pis) {
+    const revs = await db.planningRevision.findMany({
+      where: { piId: pi.id },
+      select: { id: true },
+    });
+    const revIds = revs.map((r) => r.id);
+    if (revIds.length) {
+      await db.workAllocation.deleteMany({ where: { revisionId: { in: revIds } } });
+    }
+    const iters = await db.piIteration.findMany({
+      where: { piId: pi.id },
+      select: { id: true },
+    });
+    if (iters.length) {
+      await db.resourceAvailability.deleteMany({
+        where: { iterationId: { in: iters.map((i) => i.id) } },
+      });
+    }
+    await db.planningDependency.deleteMany({ where: { organizationId: demoOrg.id } });
+    await db.piParticipatingTeam.deleteMany({ where: { piId: pi.id } });
+    await db.piParticipatingDepartment.deleteMany({ where: { piId: pi.id } });
+    await db.planningRevision.deleteMany({ where: { piId: pi.id } });
+    await db.piIteration.deleteMany({ where: { piId: pi.id } });
+    await db.programIncrement.delete({ where: { id: pi.id } });
+  }
+
+  const remainingInits = await db.initiative.findMany({
+    where: { organizationId: demoOrg.id },
+    select: { id: true },
+  });
+  const remainingInitIds = remainingInits.map((i) => i.id);
+  if (remainingInitIds.length) {
+    const remainingProjects = await db.project.findMany({
+      where: { initiativeId: { in: remainingInitIds } },
+      select: { id: true },
+    });
+    const rpids = remainingProjects.map((p) => p.id);
+    if (rpids.length) {
+      await db.projectIssue.deleteMany({ where: { projectId: { in: rpids } } });
+      await db.projectWorkItem.deleteMany({ where: { projectId: { in: rpids } } });
+      await db.projectMilestone.deleteMany({ where: { projectId: { in: rpids } } });
+      await db.projectParticipatingDepartment.deleteMany({
+        where: { projectId: { in: rpids } },
+      });
+      await db.project.deleteMany({ where: { id: { in: rpids } } });
+    }
+    await db.demand.deleteMany({ where: { initiativeId: { in: remainingInitIds } } });
+    await db.lifecycleTransition.deleteMany({
+      where: { initiativeId: { in: remainingInitIds } },
+    });
+    await db.initiative.deleteMany({ where: { id: { in: remainingInitIds } } });
+  }
+
+  await db.resourceMembership.deleteMany({
+    where: { resource: { organizationId: demoOrg.id } },
+  });
+  await db.resource.deleteMany({ where: { organizationId: demoOrg.id } });
+  await db.roleBinding.deleteMany({ where: { organizationId: demoOrg.id } });
+  await db.team.deleteMany({
+    where: { department: { section: { organizationId: demoOrg.id } } },
+  });
+  await db.department.deleteMany({
+    where: { section: { organizationId: demoOrg.id } },
+  });
+  await db.section.deleteMany({ where: { organizationId: demoOrg.id } });
+  await db.organization.delete({ where: { id: demoOrg.id } });
 }
 
 async function main() {
