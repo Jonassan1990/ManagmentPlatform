@@ -4,6 +4,11 @@
  *
  * Usage:
  *   DEV_AUTH_PRINCIPAL_ID=<uuid> npx tsx scripts/seed-demo-showcase.ts
+ *   # Production / temp-owner:
+ *   TEMP_AUTH_PRINCIPAL_ID=<uuid> npx tsx scripts/seed-demo-showcase.ts
+ *
+ * Optional one-shot on Vercel production build:
+ *   DEMO_SEED_RUN=1 (build env) — see scripts/maybe-seed-demo.mjs
  */
 import { PrismaClient } from "@prisma/client";
 import { AuditService } from "@/modules/audit/application/audit-service";
@@ -12,6 +17,19 @@ import { AuthorizationService } from "@/modules/identity-access/application/auth
 const db = new PrismaClient();
 const authz = new AuthorizationService(db);
 const audit = new AuditService(db);
+
+function resolveActorPrincipalId(): string {
+  const actorId =
+    process.env.DEMO_SEED_PRINCIPAL_ID ||
+    process.env.TEMP_AUTH_PRINCIPAL_ID ||
+    process.env.DEV_AUTH_PRINCIPAL_ID;
+  if (!actorId) {
+    throw new Error(
+      "Set DEMO_SEED_PRINCIPAL_ID, TEMP_AUTH_PRINCIPAL_ID, or DEV_AUTH_PRINCIPAL_ID before seeding.",
+    );
+  }
+  return actorId;
+}
 
 async function wipeDemoArtifacts() {
   // Cascade-friendly order for demo-tagged rows
@@ -106,13 +124,14 @@ async function wipeDemoArtifacts() {
 }
 
 async function main() {
-  const actorId = process.env.DEV_AUTH_PRINCIPAL_ID;
-  if (!actorId) {
-    throw new Error("Set DEV_AUTH_PRINCIPAL_ID before seeding.");
-  }
+  const actorId = resolveActorPrincipalId();
   const actor = {
     id: actorId,
-    displayName: process.env.DEV_AUTH_DISPLAY_NAME || "Demo User",
+    displayName:
+      process.env.DEMO_SEED_DISPLAY_NAME ||
+      process.env.TEMP_AUTH_DISPLAY_NAME ||
+      process.env.DEV_AUTH_DISPLAY_NAME ||
+      "Demo User",
     source: "test" as const,
   };
 
