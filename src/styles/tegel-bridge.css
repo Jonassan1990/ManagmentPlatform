@@ -1,6 +1,8 @@
 /**
- * Bridge app semantic tokens → Scania Tegel (Scania brand mode).
- * Tegel stylesheet is imported first; this remaps our compatibility surface.
+ * WorkMesh-inspired Scania Tegel skin (CSS tokens + thin utilities).
+ * Pattern from Jonassan1990/projectmanagement: body.scania.tds-mode-light,
+ * navy topbar, blue-900 sidebar, .tegel-card, primary/secondary buttons.
+ * Tegel stylesheet loads first; this remaps app tokens and chrome.
  */
 
 html.scania,
@@ -9,42 +11,45 @@ html.scania,
 }
 
 :root {
-  /* Scania core (from Tegel) */
-  --scania-blue-800: #041e42;
-  --scania-blue-700: #0f3263;
-  --scania-blue-600: #16417f;
-  --scania-blue-500: #2058a8;
-  --scania-blue-400: #2a6ecf;
-  --scania-blue-50: #d8dde5;
-  --scania-grey-50: #f6f7f9;
-  --scania-grey-100: #edeff3;
+  /* Scania core — prefer Tegel --scania-color-* when present */
+  --scania-blue-900: var(--scania-color-blue-900, #001533);
+  --scania-blue-800: var(--scania-color-blue-800, #041e42);
+  --scania-blue-700: var(--scania-color-blue-700, #0f3263);
+  --scania-blue-600: var(--scania-color-blue-600, #16417f);
+  --scania-blue-500: var(--scania-color-blue-500, #2058a8);
+  --scania-blue-400: var(--scania-color-blue-400, #2a6ecf);
+  --scania-blue-50: var(--scania-color-blue-50, #d8dde5);
+  --scania-grey-50: var(--scania-color-grey-50, #f6f7f9);
+  --scania-grey-100: var(--scania-color-grey-100, #edeff3);
   --scania-grey-150: #e0e5eb;
-  --scania-grey-200: #d1d7e0;
-  --scania-green-300: #009e7e;
-  --scania-yellow-400: #eaad06;
-  --scania-red-400: #d1001b;
+  --scania-grey-200: var(--scania-color-grey-200, #d1d7e0);
+  --scania-grey-950: var(--scania-color-grey-950, #0e1013);
+  --scania-green-300: var(--scania-color-green-300, #009e7e);
+  --scania-yellow-400: var(--scania-color-yellow-400, #eaad06);
+  --scania-red-400: var(--scania-color-red-400, #d1001b);
+  --scania-red-700: var(--scania-color-red-700, #bf1d2d);
 
-  /* App chrome → Scania */
-  --sidebar: var(--scania-blue-800);
+  /* App chrome → Scania (WorkMesh sidebar = blue-900) */
+  --sidebar: var(--scania-blue-900);
   --sidebar-ink: #e8eef8;
-  --sidebar-active: var(--scania-blue-600);
-  --accent: var(--scania-blue-600);
+  --sidebar-active: var(--scania-blue-700);
+  --accent: var(--scania-blue-700);
   --accent-soft: #e8eef8;
 
   --bg: var(--scania-grey-50);
   --surface: #ffffff;
   --line: var(--scania-grey-200);
 
-  --ink: #0e1013;
+  --ink: var(--scania-grey-950);
   --muted: #4e5e75;
 
   --ok: #00664f;
   --warning: #975717;
   --danger: var(--scania-red-400);
 
-  --color-primary: var(--scania-blue-600);
+  --color-primary: var(--scania-blue-700);
   --color-primary-soft: #e8eef8;
-  --color-secondary: var(--scania-blue-800);
+  --color-secondary: var(--scania-blue-900);
   --color-accent: var(--scania-blue-500);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -79,22 +84,187 @@ html.scania,
   --status-at-risk-bg: #f9eec3;
   --status-at-risk-border: #f1c21b;
 
-  --font-family-sans: var(--font-tegel-sans), "Barlow", "Segoe UI", sans-serif;
-  --font-family-display: var(--font-tegel-display), "Barlow Condensed",
-    "Barlow", sans-serif;
+  /* WorkMesh font roles — Scania Sans when Tegel provides it; Barlow otherwise */
+  --app-font-body: var(
+    --scania-font-family-default,
+    var(--font-tegel-sans),
+    "Barlow",
+    Arial,
+    Helvetica,
+    sans-serif
+  );
+  --app-font-heading: var(
+    --scania-font-family-display,
+    var(--font-tegel-display),
+    "Barlow Condensed",
+    "Barlow",
+    Arial,
+    Helvetica,
+    sans-serif
+  );
+  --app-font-system: var(
+    --scania-font-family-semi-condensed,
+    var(--font-tegel-sans),
+    "Barlow",
+    Arial,
+    Helvetica,
+    sans-serif
+  );
+
+  --font-family-sans: var(--app-font-body);
+  --font-family-display: var(--app-font-heading);
 
   --radius-sm: 2px;
   --radius-md: 4px;
   --radius-lg: 4px;
   --radius-xl: 8px;
 
-  --shadow-sm: 0 1px 2px rgb(4 30 66 / 0.08);
-  --shadow-md: 0 10px 28px rgb(4 30 66 / 0.08);
+  --shadow-sm: 0 1px 2px rgb(0 21 51 / 0.08);
+  --shadow-md: 0 2px 8px rgb(0 21 51 / 0.08);
 }
 
-/* Premium Resource Management surface */
+body.scania,
+body.tds-mode-light {
+  background: var(--background, var(--bg));
+  color: var(--foreground, var(--ink));
+  font-family: var(--app-font-body);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+::selection {
+  background: rgba(15, 50, 99, 0.18);
+  color: #001533;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.scania-title {
+  font-family: var(--app-font-heading);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+nav,
+button,
+input,
+select,
+textarea,
+table,
+.font-system {
+  font-family: var(--app-font-system);
+}
+
+/* ── WorkMesh chrome utilities ───────────────────────────────────── */
+
+.scania-topbar {
+  background: var(--scania-blue-900);
+}
+
+.scania-grid-bg {
+  background-color: var(--scania-grey-50);
+  background-image:
+    linear-gradient(var(--scania-grey-100) 1px, transparent 1px),
+    linear-gradient(90deg, var(--scania-grey-100) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.tegel-card {
+  border: 1px solid var(--scania-grey-200);
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 21, 51, 0.08);
+}
+
+.tegel-card-section {
+  padding: 16px;
+}
+
+.tegel-card-divider {
+  border-top: 1px solid var(--scania-grey-100);
+}
+
+.input,
+.field-input {
+  width: 100%;
+  border: 1px solid var(--scania-grey-200);
+  border-radius: 4px;
+  background: #fff;
+  padding: 9px 11px;
+  color: var(--scania-grey-950);
+  font-family: var(--app-font-system);
+  font-weight: 600;
+  min-height: 40px;
+}
+
+.input:focus,
+.field-input:focus {
+  border-color: var(--scania-blue-500);
+  outline: 2px solid color-mix(in srgb, var(--scania-blue-500) 25%, transparent);
+  outline-offset: 1px;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border-radius: 4px;
+  padding: 9px 14px;
+  font-family: var(--app-font-system);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-button {
+  border: 1px solid var(--scania-blue-700);
+  background: var(--scania-blue-700);
+  color: #fff;
+}
+
+.primary-button:hover {
+  background: var(--scania-blue-800);
+}
+
+.secondary-button {
+  border: 1px solid var(--scania-grey-200);
+  background: #fff;
+  color: var(--scania-blue-800);
+}
+
+.secondary-button:hover {
+  background: var(--scania-grey-50);
+}
+
+.danger-button {
+  border: 1px solid var(--scania-red-700);
+  background: var(--scania-red-700);
+  color: #fff;
+}
+
+.danger-button:hover {
+  background: var(--scania-color-red-800, #a81a28);
+  border-color: var(--scania-color-red-800, #a81a28);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.danger-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Resource Management surface ─────────────────────────────────── */
+
 .tegel-rm {
-  --rm-navy: var(--scania-blue-800);
+  --rm-navy: var(--scania-blue-900);
   --rm-blue: var(--scania-blue-500);
   --rm-teal: var(--scania-green-300);
   --rm-amber: var(--scania-yellow-400);
@@ -105,10 +275,10 @@ html.scania,
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: 4px;
   background: var(--surface);
   padding: 1rem 1.1rem;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 2px 8px rgba(0, 21, 51, 0.08);
 }
 
 .tegel-rm-kpi::before {
@@ -116,7 +286,7 @@ html.scania,
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  background: var(--scania-blue-600);
+  background: var(--scania-blue-700);
 }
 
 .tegel-rm-kpi.warn::before {
@@ -138,52 +308,47 @@ html.scania,
 }
 
 .tegel-shell-mark {
-  width: 2.1rem;
-  height: 2.1rem;
-  border: 2px solid #70a8e8;
-  border-radius: 0.55rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
   display: grid;
   place-items: center;
-  color: #9ec4f0;
+  color: #fff;
   font-weight: 800;
   letter-spacing: -0.03em;
-  font-family: var(--font-family-display);
+  font-family: var(--app-font-heading);
+  font-size: 0.85rem;
 }
 
 .tegel-shell-brand {
-  font-size: 0.7rem;
-  font-weight: 750;
-  letter-spacing: 0.1em;
+  font-family: var(--app-font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #fff;
 }
 
 .tegel-shell-brand small {
   display: block;
-  color: #afc1cc;
+  color: rgba(255, 255, 255, 0.65);
   font-size: 0.58rem;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   font-weight: 500;
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
+  text-transform: uppercase;
 }
 
-/* Subtle industrial atmosphere on main canvas */
+/* Main canvas — WorkMesh grid atmosphere */
 .tegel-canvas {
-  background:
-    radial-gradient(
-      1200px 400px at 10% -10%,
-      rgb(42 110 207 / 0.08),
-      transparent 55%
-    ),
-    radial-gradient(
-      900px 360px at 100% 0%,
-      rgb(4 30 66 / 0.06),
-      transparent 50%
-    ),
-    var(--bg);
+  background-color: var(--scania-grey-50);
+  background-image:
+    linear-gradient(var(--scania-grey-100) 1px, transparent 1px),
+    linear-gradient(90deg, var(--scania-grey-100) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
-/* Motion: intentional presence */
 @keyframes tegel-rise {
   from {
     opacity: 0;
@@ -210,4 +375,10 @@ html.scania,
 }
 .tegel-rise-delay-4 {
   animation-delay: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tegel-rise {
+    animation: none;
+  }
 }

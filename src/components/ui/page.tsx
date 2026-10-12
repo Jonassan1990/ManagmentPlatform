@@ -79,7 +79,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
+        <h1 className="scania-title text-3xl tracking-tight text-[var(--scania-blue-900)]">
           {title}
         </h1>
         {description ? (
@@ -101,7 +101,7 @@ export function Panel({
 } & React.HTMLAttributes<HTMLElement>) {
   return (
     <section
-      className={`rounded-lg border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)] ${className}`}
+      className={`tegel-card p-5 ${className}`}
       {...rest}
     >
       {children}
@@ -120,7 +120,7 @@ export function EmptyState({
 }) {
   return (
     <Panel className="text-center">
-      <h2 className="font-[family-name:var(--font-display)] text-xl">{title}</h2>
+      <h2 className="scania-title text-xl text-[var(--scania-blue-900)]">{title}</h2>
       <p className="mx-auto mt-2 max-w-xl text-[var(--muted)]">{description}</p>
       {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </Panel>

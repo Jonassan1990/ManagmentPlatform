@@ -2,11 +2,12 @@
 
 import { signOut } from "next-auth/react";
 
+/** Topbar action — white-on-navy, WorkMesh-style. */
 export function SignOutButton() {
   return (
     <button
       type="button"
-      className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm hover:bg-black/5"
+      className="inline-flex items-center gap-1 rounded-[4px] px-2 py-1 text-xs text-white/80 hover:bg-white/10 hover:text-white"
       onClick={() => signOut({ callbackUrl: "/login" })}
     >
       Sign out

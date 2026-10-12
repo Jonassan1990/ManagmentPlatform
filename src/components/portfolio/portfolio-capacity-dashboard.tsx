@@ -107,7 +107,7 @@ function SectionHeading({
       </p>
       <h2
         id={id}
-        className="font-[family-name:var(--font-display)] text-xl text-[var(--sidebar)]"
+        className="scania-title text-xl text-[var(--scania-blue-900)]"
       >
         {title}
       </h2>
@@ -184,7 +184,7 @@ function ScopeForm({
     <form
       method="get"
       action="/portfolio/capacity"
-      className="flex max-w-full flex-wrap items-end gap-3 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]"
+      className="tegel-card flex max-w-full flex-wrap items-end gap-3 overflow-x-auto p-4"
       aria-label="Capacity scope filters"
     >
       <label className="min-w-0 flex-1 basis-full text-sm sm:basis-[12rem] sm:flex-none">
@@ -192,7 +192,7 @@ function ScopeForm({
         <select
           name="organizationId"
           defaultValue={organizationId}
-          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+          className="input min-h-11 w-full max-w-full"
         >
           {organizations.map((o) => (
             <option key={o.id} value={o.id}>
@@ -206,7 +206,7 @@ function ScopeForm({
         <select
           name="departmentId"
           defaultValue={departmentId ?? ""}
-          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+          className="input min-h-11 w-full max-w-full"
         >
           <option value="">All visible</option>
           {departments.map((d) => (
@@ -221,7 +221,7 @@ function ScopeForm({
         <select
           name="piId"
           defaultValue={piId ?? ""}
-          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+          className="input min-h-11 w-full max-w-full"
           aria-label="Select Program Increment"
         >
           <option value="">Select a PI…</option>
@@ -232,10 +232,7 @@ function ScopeForm({
           ))}
         </select>
       </label>
-      <button
-        type="submit"
-        className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-      >
+      <button type="submit" className="primary-button">
         Apply
       </button>
     </form>
@@ -279,14 +276,14 @@ function DepartmentCard({
   const projectLegend = open ? collectProjectLegend(card) : [];
   return (
     <article
-      className={`overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)] ${
-        open ? "ring-1 ring-[var(--color-accent)]/30" : ""
+      className={`tegel-card overflow-hidden ${
+        open ? "ring-1 ring-[var(--scania-blue-500)]/30" : ""
       }`}
       data-department-id={card.departmentId}
     >
       <div className="flex items-start justify-between gap-3 px-[17px] pb-3 pt-[15px]">
         <div>
-          <div className="text-sm font-bold text-[var(--sidebar)]">
+          <div className="scania-title text-sm text-[var(--scania-blue-900)]">
             {card.departmentName}
           </div>
           <div className="mt-[3px] text-[10px] text-[var(--muted)]">
@@ -809,7 +806,7 @@ export function PortfolioCapacityDashboard({
         data-testid="resource-management-workspace"
       >
         <aside
-          className="tegel-rise rounded-[4px] border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[var(--shadow-md)]"
+          className="tegel-card tegel-rise p-3"
           aria-label="Resource Management workspace"
         >
           <p className="px-3 pb-1 pt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
@@ -882,7 +879,7 @@ export function PortfolioCapacityDashboard({
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--scania-blue-600)]">
             Manager dashboard · {organizationName}
           </p>
-          <h2 className="mt-1 font-[family-name:var(--font-display)] text-[1.75rem] font-bold tracking-tight text-[var(--scania-blue-800)]">
+          <h2 className="scania-title mt-1 text-[1.75rem] tracking-tight text-[var(--scania-blue-900)]">
             Resource allocation overview
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
@@ -898,12 +895,12 @@ export function PortfolioCapacityDashboard({
               returnInput,
             )}
             aria-label="Export view"
-            className="inline-flex"
+            className="secondary-button"
           >
-            <tds-button text="Export view" variant="secondary" size="md" />
+            Export view
           </Link>
-          <Link href={boardHref} aria-label="Plan allocation" className="inline-flex">
-            <tds-button text="Plan allocation" variant="primary" size="md" />
+          <Link href={boardHref} aria-label="Plan allocation" className="primary-button">
+            Plan allocation
           </Link>
         </div>
       </div>
@@ -969,7 +966,7 @@ export function PortfolioCapacityDashboard({
           title="Planning context"
           description="Selected PI, planning period, CURRENT revision, and baseline comparison — never draft scenarios."
         />
-        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 text-sm shadow-[var(--shadow-md)]">
+        <div className="tegel-card p-4 text-sm">
           {!piId ? (
             <p role="status" className="text-[var(--muted)]">
               No PI selected — choose a Program Increment to load capacity. An
@@ -1179,7 +1176,7 @@ export function PortfolioCapacityDashboard({
             description="Overloaded teams, capacity shortages, planning conflicts, missing capacity data, and coordination signals that need action."
           />
           <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+            <article className="tegel-card">
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Overloaded teams
@@ -1234,7 +1231,7 @@ export function PortfolioCapacityDashboard({
               </div>
             </article>
 
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+            <article className="tegel-card">
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Shortages &amp; data gaps
@@ -1294,7 +1291,7 @@ export function PortfolioCapacityDashboard({
             </article>
 
             <article
-              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)] lg:col-span-2"
+              className="tegel-card lg:col-span-2"
               data-testid="capacity-conflict-explanations"
             >
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
@@ -1418,7 +1415,7 @@ export function PortfolioCapacityDashboard({
             description="Partner-team PlanningDependencies and available capacity in your authorized scope. Sibling departments outside your scope are never loaded."
           />
           <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+            <article className="tegel-card">
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Departments with available capacity
@@ -1472,7 +1469,7 @@ export function PortfolioCapacityDashboard({
             </article>
 
             <article
-              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]"
+              className="tegel-card"
               data-testid="capacity-dependencies-panel"
             >
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
@@ -1731,7 +1728,7 @@ export function PortfolioCapacityDashboard({
           )}
 
           <div className="mt-4 grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+            <article className="tegel-card">
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Project commitments
@@ -1779,7 +1776,7 @@ export function PortfolioCapacityDashboard({
               </div>
             </article>
 
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]">
+            <article className="tegel-card p-4">
               <h3 className="text-sm font-bold text-[var(--sidebar)]">
                 Shared resource policy
               </h3>
@@ -1806,7 +1803,7 @@ export function PortfolioCapacityDashboard({
 
       {!piId && pis.length > 0 ? (
         <div
-          className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4"
+          className="tegel-card p-4"
           data-testid="capacity-pi-chips"
         >
           <p className="mb-2 text-sm font-semibold text-[var(--sidebar)]">
