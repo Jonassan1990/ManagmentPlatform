@@ -47,5 +47,7 @@ describe("AppShell skip link (M4F-D)", () => {
     expect(skip).toHaveAttribute("href", "#main-content");
     const firstLink = container.querySelector("a[href]");
     expect(firstLink).toBe(skip);
+    // Temp / local / OIDC sessions all get Sign out (not OIDC-only).
+    expect(screen.getByRole("button", { name: /Sign out/i })).toBeInTheDocument();
   });
 });
