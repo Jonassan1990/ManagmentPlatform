@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CapacityBar } from "@/components/ui/capacity-bar";
 import { Alert } from "@/components/ui/alert";
+import { buttonClassName } from "@/components/ui/button";
 import { EmptyState, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type {
@@ -181,7 +182,7 @@ function ScopeBanner({
               `/portfolio/explorer?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               ret,
             )}
-            className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+            className={buttonClassName({ variant: "primary", size: "sm" })}
           >
             Open explorer
           </Link>
@@ -190,7 +191,7 @@ function ScopeBanner({
               `/portfolio/capacity?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               ret,
             )}
-            className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+            className={buttonClassName({ variant: "primary", size: "sm" })}
           >
             PI &amp; Capacity
           </Link>
@@ -199,7 +200,7 @@ function ScopeBanner({
               `/portfolio/health?organizationId=${orgId}${departmentId ? `&departmentId=${departmentId}` : ""}`,
               ret,
             )}
-            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+            className={buttonClassName({ variant: "secondary", size: "sm" })}
           >
             Delivery health
           </Link>

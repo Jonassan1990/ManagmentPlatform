@@ -4,21 +4,24 @@
  */
 
 .rm-clear {
-  --rm-navy: #102a43;
-  --rm-ink: #29404f;
-  --rm-muted: #74848e;
-  --rm-bg: #f3f6f7;
-  --rm-line: #e2e8eb;
-  --rm-teal: #087f78;
-  --rm-blue: #5b8def;
+  /* Tegel / Scania tokens — keep layout from CM mock, chrome from Tegel */
+  --rm-navy: var(--scania-blue-900, #001533);
+  --rm-ink: var(--scania-grey-950, #0e1013);
+  --rm-muted: #4e5e75;
+  --rm-bg: var(--scania-grey-50, #f6f7f9);
+  --rm-line: var(--scania-grey-200, #d1d7e0);
+  --rm-accent: var(--scania-blue-700, #0f3263);
+  --rm-teal: var(--scania-blue-700, #0f3263);
+  --rm-blue: var(--scania-blue-400, #2a6ecf);
   --rm-purple: #9272c7;
-  --rm-amber: #e3a640;
-  --rm-red: #d65d57;
-  --rm-green: #418a67;
-  --rm-pale: #eef2f3;
+  --rm-amber: var(--scania-yellow-400, #eaad06);
+  --rm-red: var(--scania-red-400, #d1001b);
+  --rm-green: #00664f;
+  --rm-pale: var(--scania-grey-100, #edeff3);
   color: var(--rm-ink);
   font-size: 14px;
   line-height: 1.45;
+  font-family: var(--app-font-body, inherit);
 }
 
 .rm-clear .rm-layout {
@@ -32,9 +35,9 @@
   flex-shrink: 0;
   background: #fff;
   border: 1px solid var(--rm-line);
-  border-radius: 11px;
+  border-radius: 4px;
   padding: 16px 12px;
-  box-shadow: 0 7px 22px #1b33440a;
+  box-shadow: 0 2px 8px rgba(0, 21, 51, 0.08);
   height: fit-content;
   position: sticky;
   top: 0.75rem;
@@ -52,24 +55,30 @@
   width: 100%;
   padding: 10px 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 4px;
   background: transparent;
   text-align: left;
   color: #526572;
   margin: 2px 0;
   min-height: 44px;
-  font: inherit;
+  font-family: var(--app-font-system, inherit);
+  font-size: 14px;
   cursor: pointer;
 }
 
 .rm-clear .rm-nav-item:hover {
-  background: #f2f7f7;
+  background: var(--scania-grey-50, #f6f7f9);
 }
 
 .rm-clear .rm-nav-item[aria-current="page"] {
-  background: #e7f4f2;
-  color: #08756e;
+  background: #e8eef8;
+  color: var(--rm-accent);
   font-weight: 700;
+}
+
+.rm-clear .rm-nav-item:focus-visible {
+  outline: 2px solid var(--scania-blue-400, #2a6ecf);
+  outline-offset: 2px;
 }
 
 .rm-clear .rm-nav-item span.icon {
@@ -92,11 +101,12 @@
 }
 
 .rm-clear .rm-eyebrow {
-  color: var(--rm-teal);
+  color: var(--rm-accent);
   font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  font-family: var(--app-font-system, inherit);
 }
 
 .rm-clear .rm-title {
@@ -106,6 +116,7 @@
   letter-spacing: -0.03em;
   font-weight: 800;
   line-height: 1.2;
+  font-family: var(--app-font-heading, inherit);
 }
 
 .rm-clear .rm-subtitle {
@@ -118,43 +129,15 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.rm-clear .rm-btn {
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: #fff;
-  border: 1px solid var(--rm-line);
-  border-radius: 7px;
-  padding: 9px 12px;
-  color: #425968;
-  font-weight: 650;
-  min-height: 40px;
-  text-decoration: none;
-  cursor: pointer;
 }
 
-.rm-clear .rm-btn:hover {
-  border-color: #91b8b3;
-}
-
-.rm-clear .rm-btn.primary {
-  background: var(--rm-teal);
-  border-color: var(--rm-teal);
-  color: #fff;
-}
-
-.rm-clear .rm-btn.primary:hover {
-  filter: brightness(0.95);
-}
-
+/* Cards reuse global .tegel-card; .rm-card is an alias for layout markup */
 .rm-clear .rm-card {
   background: #fff;
   border: 1px solid var(--rm-line);
-  border-radius: 11px;
-  box-shadow: 0 7px 22px #1b33440a;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 21, 51, 0.08);
 }
 
 .rm-clear .rm-kpis {
@@ -175,7 +158,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  background: var(--rm-teal);
+  background: var(--rm-accent);
 }
 
 .rm-clear .rm-kpi.warn::before {
@@ -215,7 +198,7 @@
 .rm-clear .rm-barline > i {
   height: 100%;
   display: block;
-  background: var(--rm-teal);
+  background: var(--rm-accent);
   border-radius: 5px;
 }
 
@@ -241,11 +224,21 @@
 .rm-clear .rm-search {
   width: 210px;
   max-width: 100%;
-  padding: 8px 10px;
+  /* Match shared .input / .tegel-field */
+  padding: 9px 11px;
   border: 1px solid var(--rm-line);
-  border-radius: 7px;
+  border-radius: 4px;
   background: #fff;
-  min-height: 40px;
+  min-height: 44px;
+  font-family: var(--app-font-system, inherit);
+  font-weight: 600;
+  color: var(--rm-ink);
+}
+
+.rm-clear .rm-search:focus {
+  border-color: var(--scania-blue-500, #2058a8);
+  outline: 2px solid color-mix(in srgb, var(--scania-blue-500, #2058a8) 25%, transparent);
+  outline-offset: 1px;
 }
 
 .rm-clear .rm-filters {
@@ -321,7 +314,7 @@
 .rm-clear .rm-util-track > i {
   height: 100%;
   display: block;
-  background: var(--rm-teal);
+  background: var(--rm-accent);
   border-radius: 8px;
 }
 .rm-clear .rm-util-track > i.high {
@@ -341,11 +334,12 @@
   width: 100%;
   border: 0;
   border-top: 1px solid var(--rm-line);
-  background: #fbfcfc;
+  background: var(--scania-grey-50, #f6f7f9);
   padding: 10px 16px;
-  color: var(--rm-teal);
+  color: var(--rm-accent);
   font-size: 11px;
   font-weight: 750;
+  font-family: var(--app-font-system, inherit);
   text-align: left;
   display: flex;
   justify-content: space-between;
@@ -354,7 +348,11 @@
   cursor: pointer;
 }
 .rm-clear .rm-dept-toggle:hover {
-  background: #f0f7f6;
+  background: #e8eef8;
+}
+.rm-clear .rm-dept-toggle:focus-visible {
+  outline: 2px solid var(--scania-blue-400, #2a6ecf);
+  outline-offset: -2px;
 }
 .rm-clear .rm-arrow {
   transition: transform 0.18s;
@@ -598,8 +596,8 @@
   color: #9b6b19;
 }
 .rm-clear .rm-badge.active {
-  background: #e7f4f2;
-  color: #08756e;
+  background: #e8eef8;
+  color: var(--rm-accent);
 }
 
 .rm-clear .rm-scope {
@@ -619,15 +617,24 @@
   color: var(--rm-muted);
   min-width: 10rem;
   flex: 1;
+  font-family: var(--app-font-system, inherit);
 }
 .rm-clear .rm-scope select {
-  min-height: 40px;
+  /* Shared Tegel field look */
+  min-height: 44px;
   border: 1px solid var(--rm-line);
-  border-radius: 7px;
-  padding: 8px 10px;
+  border-radius: 4px;
+  padding: 9px 11px;
   background: #fff;
   color: var(--rm-ink);
   font-weight: 600;
+  font-family: var(--app-font-system, inherit);
+  font-size: 14px;
+}
+.rm-clear .rm-scope select:focus {
+  border-color: var(--scania-blue-500, #2058a8);
+  outline: 2px solid color-mix(in srgb, var(--scania-blue-500, #2058a8) 25%, transparent);
+  outline-offset: 1px;
 }
 
 .rm-clear .rm-team-block {

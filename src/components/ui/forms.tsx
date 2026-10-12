@@ -111,9 +111,8 @@ export function FormField({
   );
 }
 
-/** Shared control chrome — uses compatibility CSS vars + design-token focus ring. */
-export const fieldClassName =
-  "w-full min-h-11 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] disabled:bg-[var(--color-disabled-bg)] disabled:text-[var(--color-disabled)]";
+/** Shared Tegel field chrome — same look as `.input` / `.tegel-field`. */
+export const fieldClassName = "tegel-field";
 
 /** Compatibility wrapper — prefer `Button variant="primary"` for new code. */
 export function PrimaryButton({

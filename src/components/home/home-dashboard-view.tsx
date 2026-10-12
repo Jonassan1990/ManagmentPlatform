@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { CapacityBar } from "@/components/ui/capacity-bar";
 import { Alert } from "@/components/ui/alert";
+import { buttonClassName } from "@/components/ui/button";
 import { Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { appendReturnContext } from "@/modules/navigation/return-context";
@@ -783,7 +784,7 @@ function CurrentPiSection({
             </div>
             <Link
               href={homeHref(section.pi.href, organizationId)}
-              className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-4 text-sm font-medium text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+              className={buttonClassName({ variant: "primary" })}
             >
               Continue planning
             </Link>

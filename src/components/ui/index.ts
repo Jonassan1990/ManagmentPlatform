@@ -4,8 +4,9 @@ export type {
   AlertTone,
   LegacyAlertTone,
 } from "@/components/ui/alert";
-export { Button } from "@/components/ui/button";
+export { Button, ButtonLink, buttonClassName } from "@/components/ui/button";
 export type {
+  ButtonLinkProps,
   ButtonProps,
   ButtonSize,
   ButtonVariant,

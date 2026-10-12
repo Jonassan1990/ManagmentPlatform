@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CAPACITY_BAND_LABELS } from "@/components/portfolio/metric";
 import { Alert } from "@/components/ui/alert";
-import { CapacityBar } from "@/components/ui/capacity-bar";
+import { Button, buttonClassName } from "@/components/ui/button";
 import { LiveRegion } from "@/components/ui/live-region";
 import { EmptyState } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -21,8 +21,6 @@ import type {
 } from "@/modules/portfolio/domain/types";
 import {
   availableCapacityDepartments,
-  criticalityToBadge,
-  dependencyStatusToBadge,
   explainConflict,
   formatNeededBy,
   isPiViewForbiddenMessage,
@@ -234,9 +232,9 @@ function ScopeForm({
           ))}
         </select>
       </label>
-      <button type="submit" className="primary-button">
+      <Button type="submit" variant="primary">
         Apply
-      </button>
+      </Button>
     </form>
   );
 }
@@ -448,7 +446,7 @@ function DepartmentCard({
                                         ? "#d65d57"
                                         : rTone === "high"
                                           ? "#e3a640"
-                                          : "#087f78",
+                                          : "var(--scania-blue-700, #0f3263)",
                                   }}
                                 />
                               ) : null}
@@ -854,12 +852,16 @@ export function PortfolioCapacityDashboard({
               returnInput,
             )}
             aria-label="Export view"
-            className="rm-btn"
+            className={buttonClassName({ variant: "secondary" })}
           >
-            ↧ &nbsp;Export view
+            Export view
           </Link>
-          <Link href={boardHref} aria-label="Plan allocation" className="rm-btn primary">
-            ＋ &nbsp;Plan allocation
+          <Link
+            href={boardHref}
+            aria-label="Plan allocation"
+            className={buttonClassName({ variant: "primary" })}
+          >
+            Plan allocation
           </Link>
         </div>
       </div>
@@ -1190,16 +1192,17 @@ export function PortfolioCapacityDashboard({
                             label="Over capacity"
                             size="compact"
                           />
-                          <button
+                          <Button
                             type="button"
-                            className="min-h-11 rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                            variant="secondary"
+                            size="sm"
                             onClick={() => {
                               setOverloadedOnly(true);
                               expandDepartment(t.departmentId, t.teamId);
                             }}
                           >
                             Inspect team
-                          </button>
+                          </Button>
                         </div>
                       </li>
                     ))}
@@ -1243,9 +1246,11 @@ export function PortfolioCapacityDashboard({
                         key={`${t.teamId}-${t.iterationId}`}
                         className="flex items-center justify-between gap-2 text-[10px]"
                       >
-                        <button
+                        <Button
                           type="button"
-                          className="min-h-11 text-left font-semibold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                          variant="ghost"
+                          size="sm"
+                          className="justify-start px-2"
                           onClick={() =>
                             expandDepartment(t.departmentId, t.teamId)
                           }
@@ -1254,7 +1259,7 @@ export function PortfolioCapacityDashboard({
                           <span className="ml-1 font-normal text-[var(--muted)]">
                             · {t.iterationName}
                           </span>
-                        </button>
+                        </Button>
                         <StatusBadge
                           status={bandToStatus(t.band)}
                           label={capacityStatusLabel(t.band)}
@@ -1345,26 +1350,33 @@ export function PortfolioCapacityDashboard({
                         {ex.actionKind === "expand_team" &&
                         ex.departmentId &&
                         ex.teamId ? (
-                          <button
+                          <Button
                             type="button"
-                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                            variant="secondary"
+                            size="sm"
                             onClick={() =>
                               expandDepartment(ex.departmentId!, ex.teamId)
                             }
                           >
                             {ex.actionLabel}
-                          </button>
+                          </Button>
                         ) : ex.actionKind === "open_dependencies" ? (
                           <Link
                             href={dependenciesHref}
-                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                            className={buttonClassName({
+                              variant: "secondary",
+                              size: "sm",
+                            })}
                           >
                             {ex.actionLabel}
                           </Link>
                         ) : ex.actionKind === "open_pi_board" ? (
                           <Link
                             href={boardHref}
-                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                            className={buttonClassName({
+                              variant: "secondary",
+                              size: "sm",
+                            })}
                           >
                             {ex.actionLabel}
                           </Link>
@@ -1702,7 +1714,7 @@ export function PortfolioCapacityDashboard({
                     {piIdForNav ? (
                       <Link
                         href={dependenciesHref}
-                        className="rm-btn"
+                        className={buttonClassName({ variant: "secondary" })}
                         style={{ marginTop: 10 }}
                       >
                         Open PI dependencies
@@ -1738,9 +1750,10 @@ export function PortfolioCapacityDashboard({
           <ul className="flex flex-wrap gap-2">
             {pis.slice(0, 12).map((p) => (
               <li key={p.piId}>
-                <button
+                <Button
                   type="button"
-                  className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] hover:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                  variant="secondary"
+                  size="sm"
                   onClick={() =>
                     router.push(
                       capacityHref({
@@ -1752,7 +1765,7 @@ export function PortfolioCapacityDashboard({
                   }
                 >
                   {p.referenceKey} · {p.lifecycle}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

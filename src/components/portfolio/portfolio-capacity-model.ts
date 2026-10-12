@@ -60,12 +60,12 @@ export type AggregatedResourceRow = {
 
 /** Stable palette for project stack segments (not workstream categories). */
 export const PROJECT_STACK_COLORS = [
-  "#087f78",
-  "#5b8def",
-  "#9272c7",
-  "#e3a640",
-  "#418a67",
-  "#d65d57",
+  "#0f3263",
+  "#2a6ecf",
+  "#16417f",
+  "#eaad06",
+  "#00664f",
+  "#d1001b",
   "#a6bdc1",
 ] as const;
 

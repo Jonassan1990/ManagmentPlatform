@@ -188,39 +188,30 @@ table,
   border-top: 1px solid var(--scania-grey-100);
 }
 
-.input,
-.field-input {
-  width: 100%;
-  border: 1px solid var(--scania-grey-200);
-  border-radius: 4px;
-  background: #fff;
-  padding: 9px 11px;
-  color: var(--scania-grey-950);
-  font-family: var(--app-font-system);
-  font-weight: 600;
-  min-height: 40px;
-}
-
-.input:focus,
-.field-input:focus {
-  border-color: var(--scania-blue-500);
-  outline: 2px solid color-mix(in srgb, var(--scania-blue-500) 25%, transparent);
-  outline-offset: 1px;
-}
-
 .primary-button,
 .secondary-button,
+.outline-button,
+.ghost-button,
 .danger-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   border-radius: 4px;
   padding: 9px 14px;
   font-family: var(--app-font-system);
   font-weight: 700;
+  font-size: 14px;
+  line-height: 1.25;
+  text-decoration: none;
   cursor: pointer;
+  box-sizing: border-box;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
 }
 
 .primary-button {
@@ -231,6 +222,8 @@ table,
 
 .primary-button:hover {
   background: var(--scania-blue-800);
+  border-color: var(--scania-blue-800);
+  color: #fff;
 }
 
 .secondary-button {
@@ -241,6 +234,28 @@ table,
 
 .secondary-button:hover {
   background: var(--scania-grey-50);
+  color: var(--scania-blue-800);
+}
+
+.outline-button {
+  border: 1px solid var(--scania-blue-700);
+  background: transparent;
+  color: var(--scania-blue-700);
+}
+
+.outline-button:hover {
+  background: #e8eef8;
+  color: var(--scania-blue-800);
+}
+
+.ghost-button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--scania-blue-800);
+}
+
+.ghost-button:hover {
+  background: var(--scania-grey-100);
 }
 
 .danger-button {
@@ -252,13 +267,71 @@ table,
 .danger-button:hover {
   background: var(--scania-color-red-800, #a81a28);
   border-color: var(--scania-color-red-800, #a81a28);
+  color: #fff;
 }
 
 .primary-button:disabled,
 .secondary-button:disabled,
-.danger-button:disabled {
+.outline-button:disabled,
+.ghost-button:disabled,
+.danger-button:disabled,
+.primary-button[aria-disabled="true"],
+.secondary-button[aria-disabled="true"],
+.outline-button[aria-disabled="true"],
+.ghost-button[aria-disabled="true"],
+.danger-button[aria-disabled="true"] {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.outline-button:focus-visible,
+.ghost-button:focus-visible,
+.danger-button:focus-visible {
+  outline: 2px solid var(--scania-blue-400);
+  outline-offset: 2px;
+}
+
+.tegel-btn-sm {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.tegel-btn-md {
+  min-height: 44px;
+  padding: 9px 14px;
+  font-size: 14px;
+}
+.tegel-btn-lg {
+  min-height: 44px;
+  padding: 11px 18px;
+  font-size: 14px;
+}
+
+/* Shared field chrome (alias of .input for FormField) */
+.tegel-field,
+.input,
+.field-input {
+  width: 100%;
+  border: 1px solid var(--scania-grey-200);
+  border-radius: 4px;
+  background: #fff;
+  padding: 9px 11px;
+  color: var(--scania-grey-950);
+  font-family: var(--app-font-system);
+  font-weight: 600;
+  font-size: 14px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.tegel-field:focus,
+.input:focus,
+.field-input:focus {
+  border-color: var(--scania-blue-500);
+  outline: 2px solid color-mix(in srgb, var(--scania-blue-500) 25%, transparent);
+  outline-offset: 1px;
 }
 
 /* ── Resource Management surface ─────────────────────────────────── */
