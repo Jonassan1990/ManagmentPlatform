@@ -161,27 +161,6 @@
   min-height: 40px;
 }
 
-.pi-plan .pi-filter-clear {
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--pi-accent);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.pi-plan .pi-filter-clear:hover {
-  background: var(--pi-soft);
-}
-
-.pi-plan .pi-filter-clear:focus-visible {
-  outline: 2px solid var(--scania-blue-400, #2a6ecf);
-  outline-offset: 2px;
-}
-
 /* ── Calendar overview ───────────────────────────────────────────── */
 
 .pi-plan .pi-cal {
@@ -687,23 +666,6 @@
 
 .pi-plan .pi-card-actions {
   margin-top: 8px;
-}
-
-.pi-plan .pi-card-actions button {
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--pi-accent);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.pi-plan .pi-card-actions button:hover {
-  text-decoration: underline;
 }
 
 .pi-plan .pi-card-details {

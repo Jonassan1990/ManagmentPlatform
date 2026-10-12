@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { buttonClassName } from "@/components/ui/button";
 import {
   TransitionPiButtons,
 } from "@/components/pi-planning/pi-forms";
@@ -119,7 +120,7 @@ export default async function PiOverviewPage({
         actions={
           <Link
             href={appendPreservedQuery(`/pi/${piId}/board`, query)}
-            className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+            className={buttonClassName({ variant: "primary" })}
           >
             Planning board
           </Link>

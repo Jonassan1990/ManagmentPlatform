@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { buttonClassName } from "@/components/ui/button";
 import {
   CreatePoCForm,
   CriterionForm,
@@ -166,7 +167,7 @@ export default async function PoCPage({
                       ? `/initiatives/${item.id}/decisions`
                       : `/initiatives/${item.id}/governance`
                   }
-                  className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                  className={buttonClassName({ variant: "primary" })}
                 >
                   {openBlocking.length > 0
                     ? "Resolve conditions"

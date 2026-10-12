@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { buttonClassName } from "@/components/ui/button";
 import {
   humanize,
   statusToneClass,
@@ -278,7 +279,7 @@ export default async function ProjectPage({
             action={
               <Link
                 href={`/initiatives/${item.id}/pilot`}
-                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                className={buttonClassName({ variant: "primary" })}
               >
                 Open Pilot workspace
               </Link>
@@ -698,7 +699,7 @@ export default async function ProjectPage({
                 </p>
                 <Link
                   href="/pi"
-                  className="mt-3 inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-medium text-white"
+                  className={buttonClassName({ variant: "primary", className: "mt-3" })}
                 >
                   Open PI Planning
                 </Link>

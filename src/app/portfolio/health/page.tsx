@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { buttonClassName } from "@/components/ui/button";
 import {
   getDeliveryHealthSummaryAction,
   getProjectDeliveryHealthAction,
@@ -91,7 +92,7 @@ export default async function PortfolioHealthPage({
             action={
               <Link
                 href="/organization/setup"
-                className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                className={buttonClassName({ variant: "primary" })}
               >
                 Set up organization
               </Link>
@@ -316,7 +317,7 @@ export default async function PortfolioHealthPage({
         ) : null}
         <button
           type="submit"
-          className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+          className={buttonClassName({ variant: "primary" })}
         >
           Apply
         </button>

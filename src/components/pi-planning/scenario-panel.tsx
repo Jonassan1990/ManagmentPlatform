@@ -12,7 +12,7 @@ import {
   reopenScenarioAction,
 } from "@/app/actions/pi-planning";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClassName } from "@/components/ui/button";
 import { CapacityBar } from "@/components/ui/capacity-bar";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import {
@@ -357,14 +357,20 @@ export function ScenarioPanel({
             {scenarios.length >= 2 ? (
               <Link
                 href={compareHref()}
-                className="rounded-[var(--radius-md)] border border-[var(--line)] px-2.5 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                className={buttonClassName({
+                  variant: "outline",
+                  size: "sm",
+                })}
               >
                 Compare scenarios
               </Link>
             ) : null}
             <Link
               href={reviewHref()}
-              className="rounded-[var(--radius-md)] border border-[var(--line)] px-2.5 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-[var(--surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+              className={buttonClassName({
+                variant: "secondary",
+                size: "sm",
+              })}
             >
               Review
             </Link>
@@ -674,7 +680,10 @@ export function ScenarioPanel({
                             {s.status === "DRAFT" ? (
                               <button
                                 type="button"
-                                className="text-xs text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                                className={buttonClassName({
+                                  variant: "ghost",
+                                  size: "sm",
+                                })}
                                 disabled={!canAllocate || pending}
                                 title={permissionTitle(canAllocate)}
                                 onClick={() =>
@@ -692,7 +701,10 @@ export function ScenarioPanel({
                             {s.status === "READY_FOR_REVIEW" ? (
                               <button
                                 type="button"
-                                className="text-xs text-[var(--accent)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                                className={buttonClassName({
+                                  variant: "ghost",
+                                  size: "sm",
+                                })}
                                 disabled={!canAllocate || pending}
                                 title={permissionTitle(canAllocate)}
                                 onClick={() =>
@@ -709,7 +721,11 @@ export function ScenarioPanel({
                             ) : null}
                             <button
                               type="button"
-                              className="min-h-9 text-xs text-[var(--danger)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                              className={buttonClassName({
+                                variant: "ghost",
+                                size: "sm",
+                                className: "text-[var(--danger)]",
+                              })}
                               disabled={!canAllocate || pending}
                               title={permissionTitle(canAllocate)}
                               onClick={() => {

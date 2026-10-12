@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { RecordDecisionForm } from "@/components/governance/governance-forms";
 import { outcomesForGateType } from "@/modules/governance/application/governance-presentation";
+import { buttonClassName } from "@/components/ui/button";
 import {
   ApprovalStatusList,
   DecisionPackagePanel,
@@ -48,7 +49,7 @@ export default async function DecisionsInboxPage() {
           action={
             <Link
               href="/initiatives"
-              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-medium text-white"
+              className={buttonClassName({ variant: "primary" })}
             >
               Browse initiatives
             </Link>

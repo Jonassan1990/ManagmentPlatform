@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { buttonClassName } from "@/components/ui/button";
 import {
   getDeliveryHealthSummaryAction,
   getPortfolioSnapshotAction,
@@ -82,7 +83,7 @@ export default async function PortfolioPage({
             action={
               <Link
                 href="/organization/setup"
-                className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition-[filter] duration-[var(--transition-fast)] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                className={buttonClassName({ variant: "primary" })}
               >
                 Set up organization
               </Link>
@@ -163,19 +164,19 @@ export default async function PortfolioPage({
           <div className="flex flex-wrap gap-2">
             <Link
               href={`/portfolio/explorer?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}&from=portfolio&fromOrg=${organizationId}${departmentId ? `&fromDept=${departmentId}` : ""}`}
-              className="secondary-button tegel-btn-sm"
+              className={buttonClassName({ variant: "secondary", size: "sm" })}
             >
               Explorer
             </Link>
             <Link
               href={`/portfolio/health?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}&from=portfolio&fromOrg=${organizationId}${departmentId ? `&fromDept=${departmentId}` : ""}`}
-              className="secondary-button tegel-btn-sm"
+              className={buttonClassName({ variant: "secondary", size: "sm" })}
             >
               Delivery health
             </Link>
             <Link
               href={`/portfolio/capacity?organizationId=${organizationId}${departmentId ? `&departmentId=${departmentId}` : ""}&from=portfolio&fromOrg=${organizationId}${departmentId ? `&fromDept=${departmentId}` : ""}`}
-              className="primary-button tegel-btn-sm"
+              className={buttonClassName({ variant: "primary", size: "sm" })}
             >
               PI &amp; capacity
             </Link>

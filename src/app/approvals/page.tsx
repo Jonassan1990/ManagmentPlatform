@@ -5,6 +5,7 @@ import { ApprovalTaskCardHeader } from "@/components/governance/governance-works
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { createServices } from "@/server/container";
+import { buttonClassName } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export default async function ApprovalsPage() {
           action={
             <Link
               href="/initiatives"
-              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-medium text-white"
+              className={buttonClassName({ variant: "primary" })}
             >
               Browse initiatives
             </Link>

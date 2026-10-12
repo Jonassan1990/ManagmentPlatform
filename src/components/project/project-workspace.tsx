@@ -5,6 +5,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Panel } from "@/components/ui/page";
 import { NextActionPanel } from "@/components/initiative/workspace";
+import { buttonClassName } from "@/components/ui/button";
 import {
   completionIndicatorLabel,
   humanizeProjectToken,
@@ -328,7 +329,7 @@ export function ProjectSectionNav({
         <a
           key={s.id}
           href={`#${s.id}`}
-          className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 text-sm text-[var(--muted)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+          className={buttonClassName({ variant: "secondary", size: "sm" })}
         >
           {s.label}
         </a>

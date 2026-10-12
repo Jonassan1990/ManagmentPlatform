@@ -266,7 +266,7 @@ export function PortfolioScopeControls({
         ) : null}
         <button
           type="submit"
-          className="min-h-10 rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+          className={buttonClassName({ variant: "primary" })}
         >
           Apply scope
         </button>
@@ -553,7 +553,7 @@ export function PortfolioDashboardView({
             canCreateInitiative ? (
               <Link
                 href="/initiatives/new"
-                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                className={buttonClassName({ variant: "primary" })}
               >
                 Create an initiative
               </Link>
@@ -692,7 +692,7 @@ export function PortfolioDashboardView({
             </div>
             <Link
               href={healthHubHref}
-              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+              className={buttonClassName({ variant: "primary", size: "sm" })}
             >
               Open delivery health
             </Link>

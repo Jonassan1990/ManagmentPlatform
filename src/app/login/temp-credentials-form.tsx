@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { TEMP_AUTH_PROVIDER_ID } from "@/modules/identity-access/application/temp-auth-constants";
+import { buttonClassName } from "@/components/ui/button";
 
 export function TempCredentialsForm({ callbackUrl }: { callbackUrl: string }) {
   const [pending, setPending] = useState(false);
@@ -65,7 +66,7 @@ export function TempCredentialsForm({ callbackUrl }: { callbackUrl: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+        className={buttonClassName({ variant: "primary" })}
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

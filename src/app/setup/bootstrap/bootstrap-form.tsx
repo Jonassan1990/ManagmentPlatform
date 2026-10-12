@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { consumeBootstrapAction } from "@/app/actions/bootstrap";
+import { buttonClassName } from "@/components/ui/button";
 
 export function BootstrapForm({ principalLabel }: { principalLabel: string }) {
   const router = useRouter();
@@ -52,7 +53,7 @@ export function BootstrapForm({ principalLabel }: { principalLabel: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+        className={buttonClassName({ variant: "primary" })}
       >
         {pending ? "Submitting…" : "Consume bootstrap token"}
       </button>
