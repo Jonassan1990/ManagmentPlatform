@@ -2,18 +2,13 @@
  * Repair drift when `_prisma_migrations` lists local_login_credentials as
  * applied but the table is missing (P2021 on Access / local login).
  * Idempotent — safe when the table already exists.
+ *
+ * Soft-skips on connection pressure so Vercel builds are not blocked.
  */
-import { spawnSync } from "node:child_process";
 import { writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-function sanitize(text) {
-  return String(text).replace(
-    /postgres(ql)?:\/\/[^@\s]+@/gi,
-    "postgres://***@",
-  );
-}
+import { runDbBuildStep } from "./db-build-utils.mjs";
 
 if (!process.env.DATABASE_URL || !process.env.DIRECT_URL) {
   console.log(
@@ -63,16 +58,19 @@ END $$;
 const sqlPath = join(tmpdir(), `ensure-local-login-${process.pid}.sql`);
 writeFileSync(sqlPath, sql, "utf8");
 
-console.log("[ensure-local-login] ensuring local_login_credentials table…");
-const result = spawnSync(
-  "npx",
-  ["prisma", "db", "execute", "--file", sqlPath, "--schema", "prisma/schema.prisma"],
-  {
-    encoding: "utf8",
-    env: process.env,
-    shell: process.platform === "win32",
-  },
-);
+const result = runDbBuildStep({
+  label: "ensure-local-login",
+  command: "npx",
+  args: [
+    "prisma",
+    "db",
+    "execute",
+    "--file",
+    sqlPath,
+    "--schema",
+    "prisma/schema.prisma",
+  ],
+});
 
 try {
   unlinkSync(sqlPath);
@@ -80,12 +78,13 @@ try {
   /* ignore */
 }
 
-const out = sanitize(`${result.stdout || ""}${result.stderr || ""}`);
-if (out.trim()) process.stdout.write(out.endsWith("\n") ? out : `${out}\n`);
-
-if (result.status !== 0) {
-  console.error("[ensure-local-login] failed");
-  process.exit(result.status ?? 1);
+if (result.ok) {
+  console.log("[ensure-local-login] ok");
+  process.exit(0);
 }
 
-console.log("[ensure-local-login] ok");
+if (!result.fatal) {
+  process.exit(0);
+}
+
+process.exit(result.status ?? 1);
