@@ -314,6 +314,7 @@ export function CreateLocalTestUserForm({
 
 export function LocalLoginsList({
   logins,
+  unavailable = false,
 }: {
   logins: {
     id: string;
@@ -323,11 +324,17 @@ export function LocalLoginsList({
     disabledAt: Date | string | null;
     createdAt: Date | string;
   }[];
+  unavailable?: boolean;
 }) {
   return (
     <div className="space-y-3">
       <h3 className="font-medium">Local test logins</h3>
-      {logins.length === 0 ? (
+      {unavailable ? (
+        <p className="text-sm text-[var(--muted)]">
+          Local login list is temporarily unavailable. Reload after the latest
+          deploy finishes applying database migrations.
+        </p>
+      ) : logins.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">
           No local test users yet. Create one to sign in as a second account.
         </p>

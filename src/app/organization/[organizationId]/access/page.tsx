@@ -39,12 +39,23 @@ export default async function OrganizationAccessPage({
   }
   if (!hierarchy) notFound();
 
-  const [roles, principals, bindings, localLogins] = await Promise.all([
+  const [roles, principals, bindings, localLoginsResult] = await Promise.all([
     authz.listRoleDefinitions(principal, organizationId),
     authz.listOrganizationPrincipals(principal, organizationId),
     authz.listRoleBindings(principal, organizationId),
-    identity.listLocalLogins(principal, organizationId),
+    identity.listLocalLogins(principal, organizationId).then(
+      (logins) => ({ ok: true as const, logins }),
+      (error: unknown) => ({
+        ok: false as const,
+        logins: [] as Awaited<
+          ReturnType<typeof identity.listLocalLogins>
+        >,
+        error,
+      }),
+    ),
   ]);
+  const localLogins = localLoginsResult.logins;
+  const localLoginsUnavailable = !localLoginsResult.ok;
 
   const sections = hierarchy.sections.map((s) => ({
     id: s.id,
@@ -98,7 +109,10 @@ export default async function OrganizationAccessPage({
           />
         </Panel>
         <Panel>
-          <LocalLoginsList logins={localLogins} />
+          <LocalLoginsList
+            logins={localLogins}
+            unavailable={localLoginsUnavailable}
+          />
         </Panel>
         <Panel>
           <AssignRoleBindingForm
