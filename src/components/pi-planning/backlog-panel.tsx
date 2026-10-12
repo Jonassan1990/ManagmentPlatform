@@ -8,6 +8,14 @@ import { BacklogCard, type BacklogItemData } from "./work-card";
 
 type Caps = Partial<PrincipalCapabilities>;
 
+export type BoardFilterState = {
+  departmentId: string;
+  projectId: string;
+  initiativeId: string;
+  type: string;
+  priority: string;
+};
+
 export function BacklogPanel({
   piId,
   revisionId,
@@ -30,18 +38,18 @@ export function BacklogPanel({
   }[];
   canAllocate: boolean;
   capabilities?: Caps;
-  filters: {
-    departmentId: string;
-    projectId: string;
-    type: string;
-    priority: string;
-  };
+  filters: BoardFilterState;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return items.filter((item) => {
       if (filters.projectId && item.project.id !== filters.projectId) return false;
+      if (
+        filters.initiativeId &&
+        item.project.initiative?.id !== filters.initiativeId
+      )
+        return false;
       if (filters.type && item.type !== filters.type) return false;
       if (filters.priority && item.priority !== filters.priority) return false;
       return true;
@@ -118,6 +126,7 @@ export function BacklogPanel({
 export function BoardFilters({
   departments,
   projects,
+  initiatives,
   types,
   priorities,
   value,
@@ -125,23 +134,18 @@ export function BoardFilters({
 }: {
   departments: { id: string; name: string }[];
   projects: { id: string; referenceKey: string; name: string }[];
+  initiatives: { id: string; referenceKey: string; name: string }[];
   types: string[];
   priorities: string[];
-  value: {
-    departmentId: string;
-    projectId: string;
-    type: string;
-    priority: string;
-  };
-  onChange: (next: {
-    departmentId: string;
-    projectId: string;
-    type: string;
-    priority: string;
-  }) => void;
+  value: BoardFilterState;
+  onChange: (next: BoardFilterState) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div
+      className="flex flex-wrap gap-2"
+      data-testid="pi-board-filters"
+      aria-label="Plan filters"
+    >
       <select
         aria-label="Filter by department"
         className={`${fieldClassName} w-auto min-w-[10rem]`}
@@ -152,6 +156,21 @@ export function BoardFilters({
         {departments.map((d) => (
           <option key={d.id} value={d.id}>
             {d.name}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="Filter by initiative"
+        className={`${fieldClassName} w-auto min-w-[10rem]`}
+        value={value.initiativeId}
+        onChange={(e) =>
+          onChange({ ...value, initiativeId: e.target.value, projectId: "" })
+        }
+      >
+        <option value="">All initiatives</option>
+        {initiatives.map((i) => (
+          <option key={i.id} value={i.id}>
+            {i.referenceKey} · {i.name}
           </option>
         ))}
       </select>

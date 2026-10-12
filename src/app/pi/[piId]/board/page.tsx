@@ -64,8 +64,18 @@ export default async function PiBoardPage({
     type: item.type,
     status: item.status,
     priority: item.priority,
-    estimateHours: item.estimateHours?.toString() ?? null,
-    project: item.project,
+    estimateHours:
+      typeof item.estimateHours === "string"
+        ? item.estimateHours
+        : item.estimateHours != null
+          ? String(item.estimateHours)
+          : null,
+    project: {
+      id: item.project.id,
+      referenceKey: item.project.referenceKey,
+      name: item.project.name,
+      initiative: item.project.initiative ?? null,
+    },
   }));
 
   const readOnlyScenario =
@@ -168,7 +178,25 @@ export default async function PiBoardPage({
             name: it.name,
             sequence: it.sequence,
             referenceKey: it.referenceKey,
+            startDate:
+              it.startDate instanceof Date
+                ? it.startDate.toISOString()
+                : String(it.startDate),
+            endDate:
+              it.endDate instanceof Date
+                ? it.endDate.toISOString()
+                : String(it.endDate),
           }))}
+          piStartDate={
+            board.pi.startDate instanceof Date
+              ? board.pi.startDate.toISOString()
+              : String(board.pi.startDate)
+          }
+          piEndDate={
+            board.pi.endDate instanceof Date
+              ? board.pi.endDate.toISOString()
+              : String(board.pi.endDate)
+          }
           backlog={backlog}
           capabilities={capabilities}
           readOnlyScenario={readOnlyScenario}
