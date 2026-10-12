@@ -4,6 +4,7 @@
  */
 import Link from "next/link";
 import type { InitiativeStage, InitiativeStatus } from "@prisma/client";
+import { buttonClassName } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Panel } from "@/components/ui/page";
 import { mapInitiativeStageBadge } from "@/components/ui/status-adapters";
@@ -300,7 +301,7 @@ export function NextActionPanel({
         {href && ctaLabel ? (
           <Link
             href={href}
-            className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-4 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+            className={buttonClassName({ variant: "primary" })}
           >
             {ctaLabel}
           </Link>

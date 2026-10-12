@@ -1,22 +1,26 @@
 import type { Metadata } from "next";
-import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
+import { Barlow, Barlow_Condensed } from "next/font/google";
 import { AuthenticatedShell } from "@/components/shell/authenticated-shell";
+import { TegelProvider } from "@/components/tegel/tegel-provider";
 import "./globals.css";
 
-const sourceSans = Source_Sans_3({
+/** Industrial companion fonts — Scania Sans is brand-restricted; Barlow tracks Tegel proportions. */
+const tegelSans = Barlow({
   subsets: ["latin"],
-  variable: "--font-source-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-tegel-sans",
 });
 
-const sourceSerif = Source_Serif_4({
+const tegelDisplay = Barlow_Condensed({
   subsets: ["latin"],
-  variable: "--font-source-serif",
+  weight: ["500", "600", "700"],
+  variable: "--font-tegel-display",
 });
 
 export const metadata: Metadata = {
   title: "Management Platform",
   description:
-    "Management, governance, portfolio, and PI Planning platform — Phase 6 production identity",
+    "Management, governance, portfolio, and PI Planning platform — Scania Tegel UI",
 };
 
 export default function RootLayout({
@@ -25,9 +29,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${sourceSans.variable} ${sourceSerif.variable} antialiased`}>
-        <AuthenticatedShell>{children}</AuthenticatedShell>
+    <html lang="en" className="scania">
+      <body
+        className={`scania tds-mode-light ${tegelSans.variable} ${tegelDisplay.variable} antialiased`}
+      >
+        <TegelProvider>
+          <AuthenticatedShell>{children}</AuthenticatedShell>
+        </TegelProvider>
       </body>
     </html>
   );

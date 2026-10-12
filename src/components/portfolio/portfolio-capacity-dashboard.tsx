@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CAPACITY_BAND_LABELS } from "@/components/portfolio/metric";
 import { Alert } from "@/components/ui/alert";
-import { CapacityBar } from "@/components/ui/capacity-bar";
+import { Button, buttonClassName } from "@/components/ui/button";
 import { LiveRegion } from "@/components/ui/live-region";
 import { EmptyState } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -21,8 +21,6 @@ import type {
 } from "@/modules/portfolio/domain/types";
 import {
   availableCapacityDepartments,
-  criticalityToBadge,
-  dependencyStatusToBadge,
   explainConflict,
   formatNeededBy,
   isPiViewForbiddenMessage,
@@ -39,6 +37,7 @@ import {
   formatCapacityHours,
   formatUtilizationPct,
   initials,
+  utilTrackWidthPct,
   type StackSegmentView,
 } from "./portfolio-capacity-model";
 import {
@@ -107,7 +106,7 @@ function SectionHeading({
       </p>
       <h2
         id={id}
-        className="font-[family-name:var(--font-display)] text-xl text-[var(--sidebar)]"
+        className="scania-title text-xl text-[var(--scania-blue-900)]"
       >
         {title}
       </h2>
@@ -136,28 +135,32 @@ function KpiCard({
   value,
   note,
   tone = "default",
+  barPct,
 }: {
   label: string;
   value: React.ReactNode;
   note?: string;
   tone?: "default" | "critical" | "warn" | "blue";
+  barPct?: number | null;
 }) {
-  const bar =
+  const toneClass =
     tone === "critical"
-      ? "bg-[var(--color-error)]"
+      ? "critical"
       : tone === "warn"
-        ? "bg-[var(--color-warning)]"
+        ? "warn"
         : tone === "blue"
-          ? "bg-[var(--color-info)]"
-          : "bg-[var(--color-accent)]";
+          ? "blue"
+          : "";
   return (
-    <div className="relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]">
-      <div className={`absolute inset-y-0 left-0 w-1 ${bar}`} aria-hidden />
-      <p className="text-[11px] text-[var(--muted)]">{label}</p>
-      <p className="my-[3px] text-[27px] font-extrabold tracking-[-0.04em] text-[var(--sidebar)] tabular-nums">
-        {value}
-      </p>
-      {note ? <p className="text-[10px] text-[var(--muted)]">{note}</p> : null}
+    <div className={`rm-card rm-kpi ${toneClass}`}>
+      <div className="rm-kpi-label">{label}</div>
+      <div className="rm-kpi-value">{value}</div>
+      {note ? <div className="rm-kpi-note">{note}</div> : null}
+      {barPct != null && Number.isFinite(barPct) ? (
+        <div className="rm-barline" aria-hidden>
+          <i style={{ width: `${Math.max(0, Math.min(100, barPct))}%` }} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -181,7 +184,7 @@ function ScopeForm({
     <form
       method="get"
       action="/portfolio/capacity"
-      className="flex max-w-full flex-wrap items-end gap-3 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]"
+      className="rm-card rm-scope"
       aria-label="Capacity scope filters"
     >
       <label className="min-w-0 flex-1 basis-full text-sm sm:basis-[12rem] sm:flex-none">
@@ -189,7 +192,7 @@ function ScopeForm({
         <select
           name="organizationId"
           defaultValue={organizationId}
-          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+          className="input min-h-11 w-full max-w-full"
         >
           {organizations.map((o) => (
             <option key={o.id} value={o.id}>
@@ -203,7 +206,7 @@ function ScopeForm({
         <select
           name="departmentId"
           defaultValue={departmentId ?? ""}
-          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+          className="input min-h-11 w-full max-w-full"
         >
           <option value="">All visible</option>
           {departments.map((d) => (
@@ -218,7 +221,7 @@ function ScopeForm({
         <select
           name="piId"
           defaultValue={piId ?? ""}
-          className="min-h-11 w-full max-w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+          className="input min-h-11 w-full max-w-full"
           aria-label="Select Program Increment"
         >
           <option value="">Select a PI…</option>
@@ -229,12 +232,9 @@ function ScopeForm({
           ))}
         </select>
       </label>
-      <button
-        type="submit"
-        className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-      >
+      <Button type="submit" variant="primary">
         Apply
-      </button>
+      </Button>
     </form>
   );
 }
@@ -274,178 +274,152 @@ function DepartmentCard({
   onToggle: () => void;
 }) {
   const projectLegend = open ? collectProjectLegend(card) : [];
+  const tone = bandTone(card.band);
+  const utilLabel =
+    card.utilization == null
+      ? "No load"
+      : `${formatUtilizationPct(card.utilization)} avg. load`;
+  const trackPct = utilTrackWidthPct(card.utilization);
+
   return (
     <article
-      className={`overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)] ${
-        open ? "ring-1 ring-[var(--color-accent)]/30" : ""
-      }`}
+      className={`rm-card rm-dept-card ${open ? "open" : ""}`}
       data-department-id={card.departmentId}
     >
-      <div className="flex items-start justify-between gap-3 px-[17px] pb-3 pt-[15px]">
+      <div className="rm-dept-top">
         <div>
-          <div className="text-sm font-bold text-[var(--sidebar)]">
-            {card.departmentName}
-          </div>
-          <div className="mt-[3px] text-[10px] text-[var(--muted)]">
+          <div className="rm-dept-name">{card.departmentName}</div>
+          <div className="rm-dept-sub">
             {card.teamCount} team{card.teamCount === 1 ? "" : "s"} ·{" "}
-            {card.resourceCount} resource
-            {card.resourceCount === 1 ? "" : "s"}
+            {formatCapacityHours(card.committedHours)}h of{" "}
+            {formatCapacityHours(card.availableHours)}h planned
           </div>
         </div>
-        <div className="flex gap-[15px] text-right">
-          <div>
-            <strong className="block text-[17px] text-[var(--sidebar)] tabular-nums">
-              {formatCapacityHours(card.availableHours)}h
-            </strong>
-            <span className="text-[9px] uppercase tracking-wide text-[var(--muted)]">
-              Available
-            </span>
+        <div className="rm-dept-metrics">
+          <div className="rm-metric">
+            <strong>{card.resourceCount}</strong>
+            <span>Resources</span>
           </div>
-          <div>
-            <strong className="block text-[17px] text-[var(--sidebar)] tabular-nums">
-              {formatCapacityHours(card.committedHours)}h
-            </strong>
-            <span className="text-[9px] uppercase tracking-wide text-[var(--muted)]">
-              Committed
-            </span>
-          </div>
-          <div>
-            <strong
-              className={`block text-[17px] tabular-nums ${
-                card.overloadCount > 0 ? "text-[var(--color-error)]" : "text-[var(--sidebar)]"
-              }`}
-            >
+          <div className="rm-metric">
+            <strong className={card.overloadCount > 0 ? "over" : undefined}>
               {card.overloadCount}
             </strong>
-            <span className="text-[9px] uppercase tracking-wide text-[var(--muted)]">
-              Overloaded
-            </span>
+            <span>Overloaded</span>
           </div>
         </div>
       </div>
-      <div className="px-[17px] pb-[13px]">
-        <CapacityBar
-          available={card.availableHours}
-          committed={card.committedHours}
-          unavailable={card.band === "none"}
-        />
+      <div className="rm-dept-util">
+        <div className="rm-util-track" aria-hidden>
+          <i
+            className={tone === "none" ? undefined : tone}
+            style={{ width: `${trackPct}%` }}
+          />
+        </div>
+        <div className="rm-util-label">{utilLabel}</div>
       </div>
       <button
         type="button"
-        className="flex min-h-11 w-full items-center justify-between border-t border-[var(--line)] bg-[var(--bg)] px-4 py-[10px] text-left text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+        className="rm-dept-toggle"
         aria-expanded={open}
         aria-controls={`dept-panel-${card.departmentId}`}
         id={`dept-toggle-${card.departmentId}`}
         onClick={onToggle}
       >
         <span>
-          {open ? "Hide" : "View"} {card.teamCount} team
-          {card.teamCount === 1 ? "" : "s"} &amp; resource allocation
+          {open ? "Hide" : "View"} {card.resourceCount} resource
+          {card.resourceCount === 1 ? "" : "s"} &amp; allocation
           {card.overloadCount > 0
             ? ` · ${card.overloadCount} overloaded`
             : ""}
         </span>
-        <span
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
-          aria-hidden
-        >
+        <span className="rm-arrow" aria-hidden>
           ⌄
         </span>
       </button>
-      {open ? (
-        <div
-          className="border-t border-[var(--line)] px-4 pb-[10px] pt-1"
-          id={`dept-panel-${card.departmentId}`}
-          role="region"
-          aria-labelledby={`dept-toggle-${card.departmentId}`}
-        >
-          {card.teams.map((team) => (
-            <div
-              key={team.teamId}
-              className="mt-3"
-              data-team-id={team.teamId}
-              id={`team-${team.teamId}`}
-            >
-              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                <p className="flex flex-wrap items-center gap-2 text-xs font-bold text-[var(--sidebar)]">
-                  {team.teamName}
-                  <StatusBadge
-                    status={bandToStatus(team.band)}
-                    label={capacityStatusLabel(team.band)}
-                    size="compact"
-                  />
-                </p>
-                <p className="text-[10px] text-[var(--muted)]">
-                  {formatCapacityHours(team.committedHours)}h /{" "}
-                  {formatCapacityHours(team.availableHours)}h ·{" "}
-                  {formatUtilizationPct(team.utilization)}
-                </p>
-              </div>
-              <div className="mb-2">
-                <CapacityBar
-                  available={team.availableHours}
-                  committed={team.committedHours}
-                  unavailable={team.band === "none"}
-                  showPercent
-                />
-              </div>
-              <div className="hidden grid-cols-[145px_minmax(120px,1fr)_48px_93px] gap-2.5 px-0 py-2 text-[9px] uppercase tracking-wide text-[var(--muted)] sm:grid">
-                <div>Resource</div>
-                <div>Project commitments</div>
-                <div className="text-right">Util</div>
-                <div>Capacity status</div>
-              </div>
-              {team.resources.length === 0 ? (
-                <p className="py-2 text-[11px] text-[var(--muted)]">
-                  No resources visible for this team in the current scope.
-                </p>
-              ) : (
-                team.resources.map((r) => {
-                  const rTone = bandTone(r.band);
-                  const stack = buildProjectStackSegments(
-                    r.availableHours,
-                    r.projectSegments,
-                  );
-                  const bar = committedLoadBarPct(
-                    r.availableHours,
-                    r.committedHours,
-                  );
-                  const stackLabel =
-                    stack.length > 0
-                      ? `Project commitments: ${stack
-                          .map(
-                            (s) =>
-                              `${s.label} ${formatCapacityHours(s.committedHours)}h`,
-                          )
-                          .join("; ")}. Total ${formatCapacityHours(r.committedHours)} of ${formatCapacityHours(r.availableHours)} available hours.`
-                      : `Committed ${formatCapacityHours(r.committedHours)} of ${formatCapacityHours(r.availableHours)} available hours`;
-                  return (
-                    <div
-                      key={`${r.resourceId}:${r.teamId}`}
-                      className="grid grid-cols-1 gap-2 border-t border-[var(--bg)] py-[9px] sm:grid-cols-[145px_minmax(120px,1fr)_48px_93px] sm:items-center sm:gap-2.5"
-                      data-resource-id={r.resourceId}
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        <div
-                          className="grid h-[27px] w-[27px] shrink-0 place-items-center rounded-full bg-[var(--bg)] text-[9px] font-extrabold text-[var(--ink)]"
-                          aria-hidden
-                        >
-                          {initials(r.resourceName)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate text-[10px] font-bold text-[var(--ink)]">
-                            {r.resourceName}
+      <div
+        className="rm-dept-resources"
+        id={`dept-panel-${card.departmentId}`}
+        role="region"
+        aria-labelledby={`dept-toggle-${card.departmentId}`}
+        hidden={!open}
+      >
+        {open ? (
+          <>
+            <div className="rm-resource-head">
+              <div>Resource</div>
+              <div>Project allocation</div>
+              <div style={{ textAlign: "right" }}>Load</div>
+              <div className="cap-col">Capacity status</div>
+            </div>
+            {card.teams.map((team) => (
+              <div
+                key={team.teamId}
+                className="rm-team-block"
+                data-team-id={team.teamId}
+                id={`team-${team.teamId}`}
+              >
+                <div className="rm-team-label">
+                  <span>
+                    {team.teamName}
+                    <span className="rm-person-role">
+                      {" "}
+                      · {formatCapacityHours(team.committedHours)}h /{" "}
+                      {formatCapacityHours(team.availableHours)}h
+                    </span>
+                  </span>
+                  <span className={`rm-capacity ${bandTone(team.band)}`}>
+                    {capacityStatusLabel(team.band)}
+                  </span>
+                </div>
+                {team.resources.length === 0 ? (
+                  <p className="rm-person-role" style={{ padding: "8px 0" }}>
+                    No resources visible for this team in the current scope.
+                  </p>
+                ) : (
+                  team.resources.map((r) => {
+                    const rTone = bandTone(r.band);
+                    const stack = buildProjectStackSegments(
+                      r.availableHours,
+                      r.projectSegments,
+                    );
+                    const bar = committedLoadBarPct(
+                      r.availableHours,
+                      r.committedHours,
+                    );
+                    const stackLabel =
+                      stack.length > 0
+                        ? `Project commitments: ${stack
+                            .map(
+                              (s) =>
+                                `${s.label} ${formatCapacityHours(s.committedHours)}h`,
+                            )
+                            .join("; ")}. Total ${formatCapacityHours(r.committedHours)} of ${formatCapacityHours(r.availableHours)} available hours.`
+                        : `Committed ${formatCapacityHours(r.committedHours)} of ${formatCapacityHours(r.availableHours)} available hours`;
+                    return (
+                      <div
+                        key={`${r.resourceId}:${r.teamId}`}
+                        className="rm-resource-row"
+                        data-resource-id={r.resourceId}
+                      >
+                        <div className="rm-person">
+                          <div className="rm-initials" aria-hidden>
+                            {initials(r.resourceName)}
                           </div>
-                          <div className="text-[9px] text-[var(--muted)]">
-                            {r.teamName} · membership{" "}
-                            {formatCapacityHours(r.membershipAllocationPercent)}
-                            %
+                          <div style={{ minWidth: 0 }}>
+                            <div className="rm-person-name">
+                              {r.resourceName}
+                            </div>
+                            <div className="rm-person-role">
+                              {r.teamName} · membership{" "}
+                              {formatCapacityHours(
+                                r.membershipAllocationPercent,
+                              )}
+                              %
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div>
                         <div
-                          className="flex h-[18px] overflow-hidden rounded bg-[var(--bg)]"
+                          className="rm-stack"
                           role="img"
                           aria-label={stackLabel}
                           title={stackLabel}
@@ -454,7 +428,7 @@ function DepartmentCard({
                             ? stack.map((seg) => (
                                 <i
                                   key={seg.projectId}
-                                  className="block h-full min-w-[2px]"
+                                  className="rm-seg"
                                   style={{
                                     width: `${seg.widthPct}%`,
                                     background: seg.color,
@@ -464,78 +438,65 @@ function DepartmentCard({
                               ))
                             : bar.committedPct > 0 ? (
                                 <i
-                                  className={`block h-full min-w-[2px] ${
-                                    rTone === "over"
-                                      ? "bg-[var(--color-error)]"
-                                      : rTone === "high"
-                                        ? "bg-[var(--color-warning)]"
-                                        : "bg-[var(--color-accent)]"
-                                  }`}
-                                  style={{ width: `${bar.committedPct}%` }}
+                                  className="rm-seg"
+                                  style={{
+                                    width: `${bar.committedPct}%`,
+                                    background:
+                                      rTone === "over"
+                                        ? "#d65d57"
+                                        : rTone === "high"
+                                          ? "#e3a640"
+                                          : "var(--scania-blue-700, #0f3263)",
+                                  }}
                                 />
                               ) : null}
                         </div>
-                        <p className="mt-0.5 text-[9px] text-[var(--muted)]">
-                          {formatCapacityHours(r.committedHours)}h committed ·{" "}
-                          {formatCapacityHours(r.remainingHours)}h remaining
-                          {stack.length > 0
-                            ? ` · ${stack.length} project${stack.length === 1 ? "" : "s"}`
-                            : ""}
-                        </p>
+                        <div className={`rm-load ${rTone === "none" ? "ok" : rTone}`}>
+                          {formatUtilizationPct(r.utilization)}
+                        </div>
+                        <div className={`rm-capacity ${rTone === "none" ? "ok" : rTone}`}>
+                          {capacityStatusLabel(r.band) === "Within capacity"
+                            ? "Available"
+                            : capacityStatusLabel(r.band) === "Underutilized"
+                              ? "Available"
+                              : capacityStatusLabel(r.band)}
+                        </div>
                       </div>
-                      <div
-                        className={`text-right text-[10px] font-extrabold ${
-                          rTone === "over"
-                            ? "text-[var(--color-error)]"
-                            : rTone === "high"
-                              ? "text-[var(--color-warning)]"
-                              : "text-[var(--color-success)]"
-                        }`}
-                      >
-                        {formatUtilizationPct(r.utilization)}
-                      </div>
-                      <div className="hidden sm:block">
-                        <StatusBadge
-                          status={bandToStatus(r.band)}
-                          label={capacityStatusLabel(r.band)}
-                          size="compact"
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          ))}
-          {projectLegend.length > 0 ? (
-            <div
-              className="mt-3 flex flex-wrap gap-3 px-0.5 text-[9px] text-[var(--muted)]"
-              data-testid="capacity-project-legend"
-              aria-label="Project commitment legend"
-            >
-              {projectLegend.map((seg) => (
-                <span
-                  key={seg.projectId}
-                  className="inline-flex items-center gap-1.5"
-                >
-                  <span
-                    className="inline-block h-2 w-2 shrink-0 rounded-sm"
-                    style={{ background: seg.color }}
-                    aria-hidden
-                  />
-                  {seg.label} ({formatCapacityHours(seg.committedHours)}h)
+                    );
+                  })
+                )}
+              </div>
+            ))}
+            {projectLegend.length > 0 ? (
+              <div
+                className="rm-legend"
+                data-testid="capacity-project-legend"
+                aria-label="Project commitment legend"
+              >
+                {projectLegend.map((seg) => (
+                  <span key={seg.projectId}>
+                    <i
+                      className="rm-dot"
+                      style={{ background: seg.color }}
+                      aria-hidden
+                    />
+                    {seg.label} ({formatCapacityHours(seg.committedHours)}h)
+                  </span>
+                ))}
+                <span>
+                  Bars show each project share of planned hours; load shows
+                  total planned capacity.
                 </span>
-              ))}
-            </div>
-          ) : null}
-          <p className="mt-3 text-[9px] text-[var(--muted)]">
-            Stacked bars show real CURRENT project commitment hours against
-            available capacity from capacity-policy. Shared Resources use
-            membership % from the canonical policy — full capacity is not
-            counted independently per team. No FTE or workstream percentages.
-          </p>
-        </div>
-      ) : null}
+              </div>
+            ) : null}
+            <p className="rm-person-role" style={{ marginTop: 8 }}>
+              Stacked bars use real CURRENT project commitment hours — not FTE
+              or invented workstream %. Shared resources keep membership % from
+              capacity-policy.
+            </p>
+          </>
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -635,8 +596,8 @@ export function PortfolioCapacityDashboard({
     });
   }, [ready, cards, aggregatedResources, dependencies]);
 
-  const showOverviewChrome =
-    workspaceView === "overview" || workspaceView === "capacity-demand";
+  /** Dense A/B hour KPIs + planning context live on Capacity & demand only. */
+  const showOverviewChrome = workspaceView === "capacity-demand";
   const showHierarchy =
     workspaceView === "overview" ||
     workspaceView === "allocation" ||
@@ -644,7 +605,14 @@ export function PortfolioCapacityDashboard({
     workspaceView === "capacity-demand";
   const showDependenciesPanel =
     workspaceView === "overview" || workspaceView === "dependencies";
+  /** Overloaded-team / conflict deep dive — Capacity & demand (keeps overview clear). */
+  const showManagementAttention = workspaceView === "capacity-demand";
   const showCrossFunctionalOnly = workspaceView === "cross-functional";
+  const showManagerChrome =
+    workspaceView === "overview" ||
+    workspaceView === "allocation" ||
+    workspaceView === "cross-functional" ||
+    workspaceView === "dependencies";
   const hierarchyCards = useMemo(() => {
     if (!showCrossFunctionalOnly) return cards;
     const counts = new Map<string, number>();
@@ -766,7 +734,10 @@ export function PortfolioCapacityDashboard({
   const controlCount = 3; /* team filter + overloaded checkbox + search */
 
   return (
-    <div className="space-y-6" data-testid="portfolio-capacity-dashboard">
+    <div
+      className="rm-clear space-y-4"
+      data-testid="portfolio-capacity-dashboard"
+    >
       <ScopeForm
         organizations={organizations}
         departments={departments}
@@ -802,26 +773,17 @@ export function PortfolioCapacityDashboard({
       ) : null}
 
       <div
-        className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]"
+        className="rm-layout"
         data-testid="resource-management-workspace"
       >
-        <aside
-          className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[var(--shadow-md)]"
-          aria-label="Resource Management workspace"
-        >
-          <p className="px-3 pb-1 pt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-            Workspace
-          </p>
+        <aside className="rm-sidebar" aria-label="Resource Management workspace">
+          <div className="rm-nav-label">Workspace</div>
           {RESOURCE_WORKSPACE_NAV.filter((n) => n.group === "workspace").map(
             (item) => (
               <button
                 key={item.id}
                 type="button"
-                className={`mb-0.5 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${
-                  workspaceView === item.id
-                    ? "bg-[var(--accent-soft)] font-bold text-[var(--color-accent)]"
-                    : "text-[var(--muted)] hover:bg-[var(--bg)]"
-                } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]`}
+                className="rm-nav-item"
                 aria-current={workspaceView === item.id ? "page" : undefined}
                 onClick={() => {
                   if (item.id === "reports") {
@@ -833,26 +795,22 @@ export function PortfolioCapacityDashboard({
                   setWorkspaceView(item.id);
                 }}
               >
-                <span aria-hidden className="inline-block w-6">
+                <span className="icon" aria-hidden>
                   {item.icon}
                 </span>
                 {item.label}
               </button>
             ),
           )}
-          <p className="mt-3 px-3 pb-1 pt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+          <div className="rm-nav-label" style={{ marginTop: 14 }}>
             Management
-          </p>
+          </div>
           {RESOURCE_WORKSPACE_NAV.filter((n) => n.group === "management").map(
             (item) => (
               <button
                 key={item.id}
                 type="button"
-                className={`mb-0.5 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${
-                  workspaceView === item.id
-                    ? "bg-[var(--accent-soft)] font-bold text-[var(--color-accent)]"
-                    : "text-[var(--muted)] hover:bg-[var(--bg)]"
-                } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]`}
+                className="rm-nav-item"
                 aria-current={workspaceView === item.id ? "page" : undefined}
                 onClick={() => {
                   if (item.id === "reports") {
@@ -864,7 +822,7 @@ export function PortfolioCapacityDashboard({
                   setWorkspaceView(item.id);
                 }}
               >
-                <span aria-hidden className="inline-block w-6">
+                <span className="icon" aria-hidden>
                   {item.icon}
                 </span>
                 {item.label}
@@ -873,50 +831,73 @@ export function PortfolioCapacityDashboard({
           )}
         </aside>
 
-        <div className="min-w-0 space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="rm-main">
+      {showManagerChrome ? (
+      <div className="rm-topline">
         <div>
-          <p className="ds-eyebrow text-[10px]">
-            Manager dashboard · Resource Management · {organizationName}
-          </p>
-          <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-tight text-[var(--sidebar)]">
-            Resource allocation overview
-          </h2>
-          <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
+          <div className="rm-eyebrow">
+            Manager dashboard · {organizationName}
+          </div>
+          <h1 className="rm-title">Resource allocation overview</h1>
+          <p className="rm-subtitle">
             Select a department to see its people, workstream allocation and
             capacity. Hours come from capacity-policy; stacked bars use real
             CURRENT project commitments — not FTE or invented workstream %.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="rm-actions">
           <Link
             href={appendReturnContext(
               `/portfolio/reports?organizationId=${organizationId}&type=resource_allocation${piId ? `&piId=${piId}` : ""}`,
               returnInput,
             )}
-            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+            aria-label="Export view"
+            className={buttonClassName({ variant: "secondary" })}
           >
-            ↧ Export view
+            Export view
           </Link>
           <Link
             href={boardHref}
-            className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-3 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+            aria-label="Plan allocation"
+            className={buttonClassName({ variant: "primary" })}
           >
-            ＋ Plan allocation
+            Plan allocation
           </Link>
         </div>
       </div>
+      ) : null}
 
-      {managerKpis ? (
+      {showManagerChrome && !piId ? (
+        <p role="status" className="rm-subtitle" style={{ marginBottom: 12 }}>
+          No PI selected — choose a Program Increment above to load capacity.
+        </p>
+      ) : null}
+
+      {showManagerChrome &&
+      capacity?.capacity.state === "unavailable" ? (
+        <Alert tone="warning" live="polite" title="Capacity unavailable">
+          {capacity.capacity.reason}
+        </Alert>
+      ) : null}
+
+      {managerKpis && showManagerChrome ? (
         <section
           aria-label="Manager resource KPIs"
           data-testid="manager-resource-kpis"
-          className="grid grid-cols-2 gap-[13px] xl:grid-cols-4"
+          className="rm-kpis"
         >
           <KpiCard
             label="Capacity allocated"
             value={managerKpis.capacityAllocatedPctLabel}
             note={managerKpis.capacityAllocatedNote}
+            barPct={
+              managerKpis.capacityAllocatedUtil == null
+                ? null
+                : Math.min(
+                    100,
+                    Math.round(managerKpis.capacityAllocatedUtil * 100),
+                  )
+            }
             tone={
               ready?.totals.band === "overload"
                 ? "critical"
@@ -964,7 +945,7 @@ export function PortfolioCapacityDashboard({
           title="Planning context"
           description="Selected PI, planning period, CURRENT revision, and baseline comparison — never draft scenarios."
         />
-        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 text-sm shadow-[var(--shadow-md)]">
+        <div className="tegel-card p-4 text-sm">
           {!piId ? (
             <p role="status" className="text-[var(--muted)]">
               No PI selected — choose a Program Increment to load capacity. An
@@ -1162,7 +1143,7 @@ export function PortfolioCapacityDashboard({
       ) : null}
 
       {/* ——— D. Management Attention (elevated before hierarchy for scan speed) ——— */}
-      {ready && workspaceView === "overview" ? (
+      {ready && showManagementAttention ? (
         <section
           aria-labelledby="capacity-management-attention"
           data-testid="capacity-management-attention"
@@ -1174,7 +1155,7 @@ export function PortfolioCapacityDashboard({
             description="Overloaded teams, capacity shortages, planning conflicts, missing capacity data, and coordination signals that need action."
           />
           <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+            <article className="tegel-card">
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Overloaded teams
@@ -1211,16 +1192,17 @@ export function PortfolioCapacityDashboard({
                             label="Over capacity"
                             size="compact"
                           />
-                          <button
+                          <Button
                             type="button"
-                            className="min-h-11 rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                            variant="secondary"
+                            size="sm"
                             onClick={() => {
                               setOverloadedOnly(true);
                               expandDepartment(t.departmentId, t.teamId);
                             }}
                           >
                             Inspect team
-                          </button>
+                          </Button>
                         </div>
                       </li>
                     ))}
@@ -1229,7 +1211,7 @@ export function PortfolioCapacityDashboard({
               </div>
             </article>
 
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+            <article className="tegel-card">
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Shortages &amp; data gaps
@@ -1264,9 +1246,11 @@ export function PortfolioCapacityDashboard({
                         key={`${t.teamId}-${t.iterationId}`}
                         className="flex items-center justify-between gap-2 text-[10px]"
                       >
-                        <button
+                        <Button
                           type="button"
-                          className="min-h-11 text-left font-semibold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                          variant="ghost"
+                          size="sm"
+                          className="justify-start px-2"
                           onClick={() =>
                             expandDepartment(t.departmentId, t.teamId)
                           }
@@ -1275,7 +1259,7 @@ export function PortfolioCapacityDashboard({
                           <span className="ml-1 font-normal text-[var(--muted)]">
                             · {t.iterationName}
                           </span>
-                        </button>
+                        </Button>
                         <StatusBadge
                           status={bandToStatus(t.band)}
                           label={capacityStatusLabel(t.band)}
@@ -1289,7 +1273,7 @@ export function PortfolioCapacityDashboard({
             </article>
 
             <article
-              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)] lg:col-span-2"
+              className="tegel-card lg:col-span-2"
               data-testid="capacity-conflict-explanations"
             >
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
@@ -1366,26 +1350,33 @@ export function PortfolioCapacityDashboard({
                         {ex.actionKind === "expand_team" &&
                         ex.departmentId &&
                         ex.teamId ? (
-                          <button
+                          <Button
                             type="button"
-                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                            variant="secondary"
+                            size="sm"
                             onClick={() =>
                               expandDepartment(ex.departmentId!, ex.teamId)
                             }
                           >
                             {ex.actionLabel}
-                          </button>
+                          </Button>
                         ) : ex.actionKind === "open_dependencies" ? (
                           <Link
                             href={dependenciesHref}
-                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                            className={buttonClassName({
+                              variant: "secondary",
+                              size: "sm",
+                            })}
                           >
                             {ex.actionLabel}
                           </Link>
                         ) : ex.actionKind === "open_pi_board" ? (
                           <Link
                             href={boardHref}
-                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                            className={buttonClassName({
+                              variant: "secondary",
+                              size: "sm",
+                            })}
                           >
                             {ex.actionLabel}
                           </Link>
@@ -1400,227 +1391,27 @@ export function PortfolioCapacityDashboard({
         </section>
       ) : null}
 
-      {/* ——— E. Cross-department coordination ——— */}
-      {ready && showDependenciesPanel ? (
-        <section
-          aria-labelledby="capacity-cross-department"
-          data-testid="capacity-cross-department"
-        >
-          <SectionHeading
-            id="capacity-cross-department"
-            level="E · Department dependencies"
-            title="Dependencies on other departments"
-            description="Partner-team PlanningDependencies and available capacity in your authorized scope. Sibling departments outside your scope are never loaded."
-          />
-          <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
-              <div className="border-b border-[var(--line)] px-4 py-[14px]">
-                <h3 className="text-sm font-bold text-[var(--sidebar)]">
-                  Departments with available capacity
-                </h3>
-                <p className="mt-1 text-[10px] text-[var(--muted)]">
-                  Remaining hours &gt; 0 in your authorized capacity response
-                </p>
-              </div>
-              <div className="px-4 py-3">
-                {availableDepts.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[var(--muted)]">
-                    No departments with remaining capacity in the returned
-                    scope.
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {availableDepts.map((d) => (
-                      <li
-                        key={d.departmentId}
-                        className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--bg)] py-2 last:border-0"
-                      >
-                        <div>
-                          <p className="text-[11px] font-bold text-[var(--sidebar)]">
-                            {d.departmentName}
-                          </p>
-                          <p className="text-[9px] text-[var(--muted)]">
-                            {formatCapacityHours(d.remainingHours)}h remaining ·{" "}
-                            {formatCapacityHours(d.committedHours)}h /{" "}
-                            {formatCapacityHours(d.availableHours)}h
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <StatusBadge
-                            status={bandToStatus(d.band)}
-                            label={d.statusLabel}
-                            size="compact"
-                          />
-                          <button
-                            type="button"
-                            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-                            onClick={() => expandDepartment(d.departmentId)}
-                          >
-                            Open department
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </article>
-
-            <article
-              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]"
-              data-testid="capacity-dependencies-panel"
-            >
-              <div className="border-b border-[var(--line)] px-4 py-[14px]">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-bold text-[var(--sidebar)]">
-                      Planning dependencies
-                    </h3>
-                    <p className="mt-1 text-[10px] text-[var(--muted)]">
-                      Existing PlanningDependency records — status, severity,
-                      owner, required-by
-                    </p>
-                  </div>
-                  {piIdForNav ? (
-                    <Link
-                      href={dependenciesHref}
-                      className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-[11px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-                    >
-                      Open PI dependencies
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
-              <div className="px-4 py-3">
-                {dependencies.state === "unavailable" ? (
-                  <div className="space-y-2">
-                    <Alert tone="warning" live="polite" title="Scoped / unavailable">
-                      {dependencies.reason}
-                    </Alert>
-                    {dependencies.openCount != null ? (
-                      <p className="text-[11px] text-[var(--muted)]">
-                        Portfolio snapshot counts in your scope:{" "}
-                        <strong>{dependencies.openCount}</strong> open ·{" "}
-                        <strong>{dependencies.criticalCount ?? 0}</strong>{" "}
-                        critical/high. Individual dependency rows are not shown
-                        without organization-scoped PI_VIEW.
-                      </p>
-                    ) : null}
-                  </div>
-                ) : dependencies.rows.length === 0 ? (
-                  <p role="status" className="text-[11px] text-[var(--muted)]">
-                    No PlanningDependencies in this organization.
-                  </p>
-                ) : (
-                  <ul className="max-h-72 space-y-2 overflow-y-auto">
-                    {dependencies.rows.slice(0, 12).map((dep) => (
-                      <li
-                        key={dep.id}
-                        className="border-b border-[var(--bg)] py-2 last:border-0"
-                        data-dependency-id={dep.id}
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <StatusBadge
-                            status={dependencyStatusToBadge(dep.status)}
-                            label={dep.status}
-                            size="compact"
-                          />
-                          <StatusBadge
-                            status={criticalityToBadge(dep.criticality)}
-                            label={dep.criticality}
-                            size="compact"
-                          />
-                          <span className="text-[10px] font-bold text-[var(--sidebar)]">
-                            {dep.type.replace(/_/g, " ")}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[10px] text-[var(--muted)]">
-                          <span className="font-semibold text-[var(--ink)]">
-                            {dep.sourceLabel}
-                          </span>
-                          {" → "}
-                          <span className="font-semibold text-[var(--ink)]">
-                            {dep.targetLabel}
-                          </span>
-                        </p>
-                        <p className="mt-0.5 text-[9px] text-[var(--muted)]">
-                          Owner: {dep.ownerName ?? "Unassigned"} · Needed by:{" "}
-                          {formatNeededBy(dep.neededByDate)}
-                        </p>
-                        {dep.description ? (
-                          <p className="mt-0.5 text-[9px] text-[var(--muted)]">
-                            {dep.description}
-                          </p>
-                        ) : null}
-                        {dep.sourceType === "PROJECT" ? (
-                          (() => {
-                            const commitment = ready.projectCommitments.find(
-                              (p) => p.projectId === dep.sourceId,
-                            );
-                            return commitment ? (
-                              <Link
-                                href={commitment.href}
-                                className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-                              >
-                                Open source project
-                              </Link>
-                            ) : (
-                              <Link
-                                href={dependenciesHref}
-                                className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-                              >
-                                View on PI dependencies
-                              </Link>
-                            );
-                          })()
-                        ) : (
-                          <Link
-                            href={dependenciesHref}
-                            className="mt-1 inline-flex min-h-11 items-center text-[10px] font-bold text-[var(--color-accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-                          >
-                            View on PI dependencies
-                          </Link>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {dependencies.state === "ready" ? (
-                  <p className="mt-3 text-[10px] text-[var(--muted)]">
-                    {dependencies.openCount} open · {dependencies.criticalCount}{" "}
-                    critical/high (authorized org list — not a new reporting
-                    permission)
-                  </p>
-                ) : null}
-              </div>
-            </article>
-          </div>
-        </section>
-      ) : null}
-
       {/* ——— C. Department / Team / Resource Breakdown ——— */}
       {ready && showHierarchy ? (
         <section
           aria-labelledby="capacity-hierarchy"
           data-testid="capacity-hierarchy"
         >
-          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-            <SectionHeading
-              id="capacity-hierarchy"
-              level="C · Department allocation"
-              title={
-                showCrossFunctionalOnly
+          <div className="rm-section-head">
+            <div>
+              <h2 id="capacity-hierarchy">
+                {showCrossFunctionalOnly
                   ? "Cross-functional resource allocation"
-                  : "Department allocation"
-              }
-              description={
-                showCrossFunctionalOnly
-                  ? "People shared across more than one team/workstream in the CURRENT plan. Membership % remains the capacity-policy split — not project load."
-                  : "Departments are grouped below. Expand any department to inspect individual resource allocation. Stacked bars show CURRENT project hours."
-              }
-            />
+                  : "Department allocation"}
+              </h2>
+              <p>
+                {showCrossFunctionalOnly
+                  ? "People shared across more than one team in the CURRENT plan. Membership % remains the capacity-policy split — not project load."
+                  : "Departments are grouped below. Expand any department to inspect individual resource allocation."}
+              </p>
+            </div>
             <div
-              className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
+              className="rm-filters"
               data-testid="capacity-hierarchy-controls"
             >
               <label className="text-sm">
@@ -1640,7 +1431,8 @@ export function PortfolioCapacityDashboard({
                       );
                     }
                   }}
-                  className="min-h-11 w-full rounded-md border border-[var(--line)] px-3 py-2 sm:w-[12rem]"
+                  className="rm-search"
+                  style={{ width: "12rem" }}
                   aria-label="Filter by team"
                 >
                   <option value="">All teams</option>
@@ -1651,7 +1443,7 @@ export function PortfolioCapacityDashboard({
                   ))}
                 </select>
               </label>
-              <label className="flex min-h-11 items-center gap-2 text-sm text-[var(--muted)]">
+              <label className="flex min-h-11 items-center gap-2 text-sm text-[var(--rm-muted)]">
                 <input
                   type="checkbox"
                   checked={overloadedOnly}
@@ -1673,8 +1465,8 @@ export function PortfolioCapacityDashboard({
                 Overloaded only
               </label>
               <input
-                className="min-h-11 w-full rounded-md border border-[var(--line)] px-3 py-2 sm:w-[210px]"
-                placeholder="Search departments or people"
+                className="rm-search"
+                placeholder="⌕  Search departments or people"
                 aria-label="Search departments or people"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -1703,7 +1495,7 @@ export function PortfolioCapacityDashboard({
               description="No departments match the current team, overloaded-only, or search filters. Clear filters to widen the hierarchy."
             />
           ) : (
-            <div className="grid grid-cols-1 gap-[13px] lg:grid-cols-2">
+            <div className="rm-dept-grid">
               {filtered.map((card) => (
                 <DepartmentCard
                   key={card.departmentId}
@@ -1726,7 +1518,7 @@ export function PortfolioCapacityDashboard({
           )}
 
           <div className="mt-4 grid grid-cols-1 gap-[13px] lg:grid-cols-2">
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+            <article className="tegel-card">
               <div className="border-b border-[var(--line)] px-4 py-[14px]">
                 <h3 className="text-sm font-bold text-[var(--sidebar)]">
                   Project commitments
@@ -1774,7 +1566,7 @@ export function PortfolioCapacityDashboard({
               </div>
             </article>
 
-            <article className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]">
+            <article className="tegel-card p-4">
               <h3 className="text-sm font-bold text-[var(--sidebar)]">
                 Shared resource policy
               </h3>
@@ -1799,9 +1591,153 @@ export function PortfolioCapacityDashboard({
         </section>
       ) : null}
 
+      {/* ——— E. Cross-department coordination (mock bottom grid) ——— */}
+      {ready && showDependenciesPanel ? (
+        <section
+          aria-labelledby="capacity-cross-department"
+          data-testid="capacity-cross-department"
+          className="rm-bottom-grid"
+        >
+          <h2 id="capacity-cross-department" className="sr-only">
+            Dependencies on other departments
+          </h2>
+            <article className="rm-card">
+              <div className="rm-panel-head">
+                <h3>Dependencies on other departments</h3>
+                <p>
+                  Support {organizationName} needs from partner teams —
+                  departments with remaining capacity
+                </p>
+              </div>
+              <div className="rm-panel-body">
+                {availableDepts.length === 0 ? (
+                  <p role="status" className="rm-person-role">
+                    No departments with remaining capacity in the returned
+                    scope.
+                  </p>
+                ) : (
+                  availableDepts.map((d) => (
+                    <div key={d.departmentId} className="rm-dep-row">
+                      <div className="rm-dep-icon" aria-hidden>
+                        ⌘
+                      </div>
+                      <div>
+                        <div className="rm-dep-name">{d.departmentName}</div>
+                        <div className="rm-dep-meta">
+                          {formatCapacityHours(d.remainingHours)}h remaining ·{" "}
+                          {d.statusLabel}
+                        </div>
+                      </div>
+                      <div className="rm-dep-count">
+                        {formatCapacityHours(d.availableHours)}h
+                        <small>available</small>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <p className="sr-only">Departments with available capacity</p>
+              </div>
+            </article>
+
+            <article
+              className="rm-card"
+              data-testid="capacity-dependencies-panel"
+            >
+              <div className="rm-panel-head">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3>Dependency actions to watch</h3>
+                    <p>
+                      Partner actions affecting {organizationName} plans
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="rm-panel-body">
+                {dependencies.state === "unavailable" ? (
+                  <div className="space-y-2">
+                    <Alert tone="warning" live="polite" title="Scoped / unavailable">
+                      {dependencies.reason}
+                    </Alert>
+                    {dependencies.openCount != null ? (
+                      <p className="text-[11px] text-[var(--muted)]">
+                        Portfolio snapshot counts in your scope:{" "}
+                        <strong>{dependencies.openCount}</strong> open ·{" "}
+                        <strong>{dependencies.criticalCount ?? 0}</strong>{" "}
+                        critical/high. Individual dependency rows are not shown
+                        without organization-scoped PI_VIEW.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : dependencies.rows.length === 0 ? (
+                  <p role="status" className="text-[11px] text-[var(--muted)]">
+                    No PlanningDependencies in this organization.
+                  </p>
+                ) : (
+                  <div>
+                    {dependencies.rows.slice(0, 12).map((dep) => {
+                      const badgeClass =
+                        dep.criticality === "HIGH" ||
+                        dep.criticality === "CRITICAL"
+                          ? "risk"
+                          : dep.status === "OPEN"
+                            ? "active"
+                            : "";
+                      const badgeLabel =
+                        dep.criticality === "HIGH" ||
+                        dep.criticality === "CRITICAL"
+                          ? "At risk"
+                          : dep.status === "OPEN"
+                            ? "In progress"
+                            : dep.status.replace(/_/g, " ");
+                      return (
+                        <div
+                          key={dep.id}
+                          className="rm-action-row"
+                          data-dependency-id={dep.id}
+                        >
+                          <span className="rm-action-title">
+                            {dep.description?.trim() ||
+                              `${dep.sourceLabel} → ${dep.targetLabel}`}
+                          </span>
+                          <span>{dep.targetLabel}</span>
+                          <span>{formatNeededBy(dep.neededByDate)}</span>
+                          <span className={`rm-badge ${badgeClass}`}>
+                            {badgeLabel}
+                          </span>
+                          <span className="sr-only">
+                            {dep.sourceLabel} {dep.status} {dep.criticality}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {piIdForNav ? (
+                      <Link
+                        href={dependenciesHref}
+                        className={buttonClassName({ variant: "secondary" })}
+                        style={{ marginTop: 10 }}
+                      >
+                        Open PI dependencies
+                      </Link>
+                    ) : null}
+                  </div>
+                )}
+                {dependencies.state === "ready" ? (
+                  <p className="mt-3 text-[10px] text-[var(--muted)]">
+                    {dependencies.openCount} open · {dependencies.criticalCount}{" "}
+                    critical/high (authorized org list — not a new reporting
+                    permission)
+                  </p>
+                ) : null}
+              </div>
+            </article>
+        </section>
+      ) : null}
+
+
       {!piId && pis.length > 0 ? (
         <div
-          className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4"
+          className="tegel-card p-4"
           data-testid="capacity-pi-chips"
         >
           <p className="mb-2 text-sm font-semibold text-[var(--sidebar)]">
@@ -1814,9 +1750,10 @@ export function PortfolioCapacityDashboard({
           <ul className="flex flex-wrap gap-2">
             {pis.slice(0, 12).map((p) => (
               <li key={p.piId}>
-                <button
+                <Button
                   type="button"
-                  className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] hover:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                  variant="secondary"
+                  size="sm"
                   onClick={() =>
                     router.push(
                       capacityHref({
@@ -1828,7 +1765,7 @@ export function PortfolioCapacityDashboard({
                   }
                 >
                   {p.referenceKey} · {p.lifecycle}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

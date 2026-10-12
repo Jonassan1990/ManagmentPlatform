@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/components/ui/cn";
 
 export type ButtonVariant =
@@ -19,30 +19,38 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   iconRight?: ReactNode;
 };
 
-const variantClass: Record<ButtonVariant, string> = {
-  primary:
-    "bg-[var(--color-primary)] text-white hover:brightness-110 disabled:bg-[var(--color-disabled)] disabled:text-white/90",
-  secondary:
-    "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-bg)] disabled:text-[var(--color-disabled)]",
-  outline:
-    "border border-[var(--color-primary)] bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] disabled:border-[var(--color-disabled)] disabled:text-[var(--color-disabled)]",
-  ghost:
-    "bg-transparent text-[var(--color-text)] hover:bg-[var(--color-bg)] disabled:text-[var(--color-disabled)]",
-  destructive:
-    "bg-[var(--color-error)] text-white hover:brightness-110 disabled:bg-[var(--color-disabled)]",
-};
-
-const sizeClass: Record<ButtonSize, string> = {
-  // WCAG 2.2 AA 2.5.5 / 2.5.8: interactive controls meet ≥44×44 CSS px target.
-  sm: "min-h-11 px-3 py-1.5 text-xs",
-  md: "min-h-11 px-4 py-2 text-sm",
-  lg: "min-h-11 px-5 py-2.5 text-sm",
-};
+/**
+ * Shared Tegel button classes (WorkMesh / Scania token skin).
+ * Use on `<button>` or `<Link>` / `<a>` so chrome stays consistent.
+ */
+export function buttonClassName({
+  variant = "primary",
+  size = "md",
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+} = {}): string {
+  const variantClass: Record<ButtonVariant, string> = {
+    primary: "primary-button",
+    secondary: "secondary-button",
+    outline: "outline-button",
+    ghost: "ghost-button",
+    destructive: "danger-button",
+  };
+  const sizeClass: Record<ButtonSize, string> = {
+    // WCAG 2.2 AA 2.5.5 / 2.5.8: interactive controls meet ≥44×44 CSS px.
+    sm: "tegel-btn-sm",
+    md: "tegel-btn-md",
+    lg: "tegel-btn-lg",
+  };
+  return cn(variantClass[variant], sizeClass[size], className);
+}
 
 /**
- * Domain-agnostic Button. Server-component safe (no client hooks).
- * Loading is controlled by the parent; when true the button is disabled
- * to prevent duplicate submission.
+ * Domain-agnostic Button — Scania Tegel CSS tokens via shared utilities.
+ * Server-component safe (no client hooks).
  */
 export function Button({
   variant = "primary",
@@ -64,14 +72,7 @@ export function Button({
       disabled={isDisabled}
       aria-busy={loading || undefined}
       aria-disabled={isDisabled || undefined}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-[filter,background-color,opacity] duration-[var(--transition-fast)]",
-        "disabled:cursor-not-allowed disabled:opacity-60",
-        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]",
-        variantClass[variant],
-        sizeClass[size],
-        className,
-      )}
+      className={buttonClassName({ variant, size, className })}
       {...rest}
     >
       {loading ? (
@@ -85,5 +86,31 @@ export function Button({
       <span>{children}</span>
       {!loading ? iconRight : null}
     </button>
+  );
+}
+
+/** Anchor that looks identical to `Button` — for Next.js `Link` / plain links. */
+export type ButtonLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  iconLeft?: ReactNode;
+  iconRight?: ReactNode;
+};
+
+export function ButtonLink({
+  variant = "primary",
+  size = "md",
+  iconLeft,
+  iconRight,
+  className,
+  children,
+  ...rest
+}: ButtonLinkProps) {
+  return (
+    <a className={buttonClassName({ variant, size, className })} {...rest}>
+      {iconLeft}
+      <span>{children}</span>
+      {iconRight}
+    </a>
   );
 }

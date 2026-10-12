@@ -21,6 +21,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-dialog": "^1.2.0",
+    "@scania/tegel": "^1.65.0",
     "bcryptjs": "^3.0.3",
     "next": "16.3.6",
     "next-auth": "^5.0.0-beta.32",

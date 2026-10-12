@@ -93,6 +93,16 @@ const baseSnapshot: PortfolioSnapshot = {
     ],
   }),
   ownership: metric([]),
+  cost: metric({
+    projectsInScope: 2,
+    projectsWithAnyCost: 2,
+    estimatedTotal: 100_000,
+    plannedTotal: 200_000,
+    forecastTotal: 220_000,
+    actualTotal: 90_000,
+    forecastVsPlannedDelta: 20_000,
+    note: "Sums Project money fields in authorized scope.",
+  }),
 };
 
 const healthSummary: DeliveryHealthSummary = {
@@ -157,6 +167,34 @@ const healthAttention: DeliveryHealthAttentionResult = {
 };
 
 describe("M4E-A PortfolioDashboardView", () => {
+  it("renders leadership Cost · Resources · Planning brief and stage funnel", () => {
+    render(
+      <PortfolioDashboardView
+        snapshot={baseSnapshot}
+        organizationName="Acme"
+        departmentName={null}
+        healthSummary={healthSummary}
+        healthAttention={healthAttention}
+      />,
+    );
+
+    const brief = screen.getByTestId("executive-brief");
+    expect(
+      within(brief).getByRole("heading", { name: /Cost · Resources · Planning/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(brief).getByRole("heading", { name: /^Budget glance$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(brief).getByRole("heading", { name: /^PI capacity load$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(brief).getByRole("heading", { name: /^Commitments & risks$/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("executive-stage-funnel")).toBeInTheDocument();
+    expect(within(brief).getByText("200,000")).toBeTruthy();
+  });
+
   it("renders three-level hierarchy headings", () => {
     render(
       <PortfolioDashboardView

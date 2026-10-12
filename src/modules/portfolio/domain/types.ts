@@ -127,6 +127,18 @@ export type DependencyExposureCounts = {
   criticalOpenDependencies: number;
 };
 
+/** Cost rollup for executive brief — Project money fields only. */
+export type PortfolioCostRollup = {
+  projectsInScope: number;
+  projectsWithAnyCost: number;
+  estimatedTotal: number | null;
+  plannedTotal: number | null;
+  forecastTotal: number | null;
+  actualTotal: number | null;
+  forecastVsPlannedDelta: number | null;
+  note: string;
+};
+
 export type PortfolioSnapshot = {
   asOf: string; // ISO
   scope: PortfolioQueryScopeApplied;
@@ -139,6 +151,8 @@ export type PortfolioSnapshot = {
   ownership: PortfolioMetric<OwnershipReference[]>;
   dependencies: PortfolioMetric<DependencyExposureCounts>;
   piCapacity: PortfolioMetric<PiCapacityPortfolioSummary>;
+  /** ACTIVE/ON_HOLD project money rollup for leadership cost glance. */
+  cost: PortfolioMetric<PortfolioCostRollup>;
 };
 
 // ---------------------------------------------------------------------------

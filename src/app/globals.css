@@ -1,5 +1,8 @@
 @import "tailwindcss";
+@import "@scania/tegel/dist/tegel/tegel.css";
 @import "../styles/design-tokens.css";
+@import "../styles/tegel-bridge.css";
+@import "../styles/resource-management.css";
 
 /**
  * Tailwind v4 theme bridge — maps semantic tokens into utility namespaces.
