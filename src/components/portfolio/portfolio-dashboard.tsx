@@ -12,6 +12,7 @@ import type {
 import {
   appendReturnContext,
 } from "@/modules/navigation/return-context";
+import { ExecutiveBrief } from "./executive-brief";
 import {
   CAPACITY_BAND_LABELS,
   DistributionBar,
@@ -388,6 +389,25 @@ export function PortfolioDashboardView({
         organizationName={organizationName}
         departmentName={departmentName}
         departmentId={departmentId}
+      />
+
+      <ExecutiveBrief
+        cost={
+          snapshot.cost ?? {
+            available: false,
+            reason: "Cost rollup was not included in this snapshot.",
+          }
+        }
+        capacity={capacity}
+        initiatives={initiatives}
+        dependencies={dependencies}
+        delayed={delayed}
+        organizationId={orgId}
+        departmentId={departmentId}
+        capacityHref={capacityHref}
+        piHref={piHref}
+        explorerHref={explorerProjectsHref}
+        initiativesHref={initiativesHref}
       />
 
       {/* ——— Level 1: Executive Summary ——— */}

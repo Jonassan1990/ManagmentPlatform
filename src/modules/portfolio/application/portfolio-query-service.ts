@@ -43,6 +43,7 @@ import type {
   OwnershipReference,
   PiCapacityPortfolioSummary,
   PiCapacityTeamSummary,
+  PortfolioCostRollup,
   PortfolioExplorerEntityKind,
   PortfolioExplorerInput,
   PortfolioExplorerOwner,
@@ -54,6 +55,7 @@ import type {
   PortfolioSnapshot,
   ProjectStatusCounts,
 } from "../domain/types";
+import { rollupProjectCosts } from "./portfolio-cost-rollup";
 import {
   ATTENTION_CLASSIFICATIONS,
   classificationSortRank,
@@ -978,6 +980,11 @@ export class PortfolioQueryService {
       ...(deptFilter ? { departmentId: { in: deptFilter } } : {}),
     };
 
+    const costWhere: Prisma.ProjectWhereInput = {
+      ...projectWhere,
+      status: { in: ["ACTIVE", "ON_HOLD"] },
+    };
+
     const [
       initiatives,
       projects,
@@ -990,6 +997,7 @@ export class PortfolioQueryService {
       openDependencies,
       ownershipRows,
       piCapacity,
+      costRollup,
     ] = await Promise.all([
       this.loadInitiatives(initiativeWhere),
       this.loadProjectStatusCounts(projectWhere),
@@ -1002,6 +1010,7 @@ export class PortfolioQueryService {
       this.loadOpenDependencies(visibility.organizationId, deptFilter),
       this.loadOwnership(initiativeWhere, projectWhere),
       this.loadPiCapacity(principal, visibility.organizationId, deptFilter),
+      this.loadCostRollup(costWhere),
     ]);
 
     const lifecycle = this.summarizeInitiatives(initiatives);
@@ -1050,7 +1059,23 @@ export class PortfolioQueryService {
       ownership: { available: true, value: ownershipRows },
       dependencies: { available: true, value: openDependencies },
       piCapacity,
+      cost: { available: true, value: costRollup },
     };
+  }
+
+  private async loadCostRollup(
+    where: Prisma.ProjectWhereInput,
+  ): Promise<PortfolioCostRollup> {
+    const rows = await this.db.project.findMany({
+      where,
+      select: {
+        estimatedCost: true,
+        plannedCost: true,
+        forecastCost: true,
+        actualCost: true,
+      },
+    });
+    return rollupProjectCosts(rows);
   }
 
   private async resolveHealthScope(

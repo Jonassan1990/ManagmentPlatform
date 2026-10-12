@@ -1,0 +1,61 @@
+{
+  "source": "Sanitized structure derived from QE Portfolio Tracker + PI planning deck templates. No personal names, plant codes, or live project titles.",
+  "infoClass": "internal-template-model",
+  "portfolioTracker": {
+    "purpose": "Stage-gate portfolio wall for leadership: where work sits in the funnel, who owns it, RAG status.",
+    "columns": [
+      { "id": "business_needs", "label": "Business needs", "mapsTo": "Initiative stage DEMAND (intake)" },
+      { "id": "idea_inbox", "label": "Idea inbox", "mapsTo": "Initiative stage DEMAND" },
+      { "id": "portfolio_theme", "label": "Portfolio / theme", "mapsTo": "Initiative / program grouping" },
+      { "id": "prestudy", "label": "Prestudy", "mapsTo": "Initiative stage PRE_STUDY" },
+      { "id": "requirements", "label": "Requirement elicitation", "mapsTo": "Initiative stage REQUIREMENTS" },
+      { "id": "initiation_planning", "label": "Initiation & planning", "mapsTo": "Initiative → PROJECT planning / PI features" },
+      { "id": "execution", "label": "Execution", "mapsTo": "Project ACTIVE + PI WorkItems" },
+      { "id": "implementation", "label": "Implementation", "mapsTo": "Project delivery / milestones" },
+      { "id": "closure", "label": "Closure", "mapsTo": "Project COMPLETED" },
+      { "id": "status", "label": "Status RAG", "mapsTo": "Delivery health + project status" },
+      { "id": "leader", "label": "Project leader", "mapsTo": "Resource ownership (linked principal)" },
+      { "id": "department", "label": "Department", "mapsTo": "Department scope" }
+    ],
+    "ragRule": "Green = on track, Yellow = at risk, Red = blocked — shown on the activity cell, not a separate invented score.",
+    "costSheet": {
+      "label": "Cost challenge",
+      "mapsTo": "Project plannedCost / forecastCost / actualCost rollup on Executive brief"
+    }
+  },
+  "piPlanningBoard": {
+    "purpose": "One PI board a boss can read in seconds: period, objectives, MVP Definition of Done, dependencies, milestones.",
+    "fields": [
+      { "id": "pi_period", "label": "PI calendar weeks", "mapsTo": "ProgramIncrement startDate–endDate" },
+      { "id": "initiative_title", "label": "AD / project name", "mapsTo": "Initiative or Project name" },
+      { "id": "objectives", "label": "T/G objectives", "mapsTo": "Project.objectives / initiative outcomes (text)" },
+      { "id": "mvp", "label": "MVP + Definition of Done", "mapsTo": "Milestones + success criteria" },
+      { "id": "q_dependencies", "label": "Q / cross-dept dependencies", "mapsTo": "PlanningDependency" },
+      { "id": "scania_integration", "label": "Enterprise integration deps", "mapsTo": "PlanningDependency (external)" },
+      { "id": "raci", "label": "RACI / ownership", "mapsTo": "Resource ownership parties" },
+      { "id": "replanned", "label": "Re-planned from prior PI", "mapsTo": "Baseline delta / conflict attention" }
+    ]
+  },
+  "executiveBrief": {
+    "threePillars": ["Cost", "Resources", "Planning"],
+    "rule": "Compose existing authorized read models only — never invent FTE%, composite scores, or unscoped costs."
+  },
+  "sampleAnonymizedRows": [
+    {
+      "theme": "Theme Alpha",
+      "activity": "Capability enablement wave 1",
+      "stage": "PRE_STUDY",
+      "status": "In progress",
+      "department": "Dept A",
+      "leader": "Owner 1"
+    },
+    {
+      "theme": "Theme Beta",
+      "activity": "Platform hardening",
+      "stage": "PROJECT",
+      "status": "At risk",
+      "department": "Dept B",
+      "leader": "Owner 2"
+    }
+  ]
+}
