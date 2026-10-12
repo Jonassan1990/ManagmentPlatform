@@ -228,13 +228,23 @@ const baseProps = {
   capacity: readyCapacity(),
 };
 
+function openCapacityDemand() {
+  fireEvent.click(screen.getByRole("button", { name: /Capacity & demand/i }));
+}
+
 describe("PortfolioCapacityDashboard M4E-B UX", () => {
-  it("renders A/B/C/D sections with CURRENT and baseline labels", () => {
+  it("renders clear overview mock chrome; A/B/D live under Capacity & demand", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
 
+    expect(screen.getByTestId("resource-management-workspace")).toBeTruthy();
+    expect(screen.getByTestId("manager-resource-kpis")).toBeTruthy();
+    expect(screen.getByTestId("capacity-hierarchy")).toBeTruthy();
+    expect(screen.queryByTestId("capacity-planning-context")).toBeNull();
+    expect(screen.queryByTestId("capacity-management-attention")).toBeNull();
+
+    openCapacityDemand();
     expect(screen.getByTestId("capacity-planning-context")).toBeTruthy();
     expect(screen.getByTestId("capacity-summary")).toBeTruthy();
-    expect(screen.getByTestId("capacity-hierarchy")).toBeTruthy();
     expect(screen.getByTestId("capacity-management-attention")).toBeTruthy();
 
     expect(screen.getByText(/CURRENT live/i)).toBeTruthy();
@@ -277,6 +287,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
 
   it("shows capacity KPIs from service totals", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
+    openCapacityDemand();
     const kpis = screen.getByTestId("capacity-kpis");
     expect(within(kpis).getByText("Available hours")).toBeTruthy();
     expect(within(kpis).getByText("200h")).toBeTruthy();
@@ -288,6 +299,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
 
   it("lists overloaded teams and expands hierarchy on inspect", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
+    openCapacityDemand();
     const attention = screen.getByTestId("capacity-management-attention");
     expect(
       within(attention).getAllByText("Platform").length,
@@ -299,7 +311,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
 
     expect(
       screen.getByRole("button", {
-        name: /Hide .* team/i,
+        name: /Hide .* resource/i,
       }),
     ).toBeTruthy();
     expect(screen.getAllByText("Shared Dev").length).toBeGreaterThan(0);
@@ -309,7 +321,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
   it("expands department via keyboard-accessible toggle", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
     const toggle = screen.getByRole("button", {
-      name: /View .* team/i,
+      name: /View .* resource/i,
     });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(toggle);
@@ -348,7 +360,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
   it("M5E-A: renders stacked project bars and legend from real hours", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
     fireEvent.click(
-      screen.getByRole("button", { name: /View .* team/i }),
+      screen.getByRole("button", { name: /View .* resource/i }),
     );
     expect(
       screen.getAllByLabelText(/Project commitments:/i).length,
@@ -363,8 +375,8 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
       screen.getByText(/Manager dashboard · Acme Org/i),
     ).toBeTruthy();
     expect(
-      screen.getByText(/not FTE or invented workstream %/i),
-    ).toBeTruthy();
+      screen.getAllByText(/not FTE or invented workstream %/i).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByTestId("manager-resource-kpis")).toBeTruthy();
     expect(screen.getByTestId("resource-management-workspace")).toBeTruthy();
     expect(
@@ -427,6 +439,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
         })}
       />,
     );
+    openCapacityDemand();
     const kpis = screen.getByTestId("capacity-kpis");
     expect(within(kpis).getByText("0h")).toBeTruthy();
     expect(within(kpis).getByText(/valid empty load/i)).toBeTruthy();
@@ -444,6 +457,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
         })}
       />,
     );
+    openCapacityDemand();
     expect(screen.getByText(/No approved baseline/i)).toBeTruthy();
   });
 
@@ -459,6 +473,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
         })}
       />,
     );
+    openCapacityDemand();
     const attention = screen.getByTestId("capacity-management-attention");
     expect(
       within(attention).getByText("Missing capacity data"),
@@ -478,6 +493,7 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
 
   it("renders conflict explanations with actionable navigation", () => {
     render(<PortfolioCapacityDashboard {...baseProps} />);
+    openCapacityDemand();
     const panel = screen.getByTestId("capacity-conflict-explanations");
     expect(within(panel).getByText(/Team Platform exceeds capacity/i)).toBeTruthy();
     expect(within(panel).getByText(/exceed available capacity/i)).toBeTruthy();
@@ -520,8 +536,9 @@ describe("PortfolioCapacityDashboard M4E-B UX", () => {
     expect(within(deps).getByText(/PRJ-1 · Core delivery/i)).toBeTruthy();
     expect(within(deps).getByText(/Needs partner capacity/i)).toBeTruthy();
     expect(
-      within(deps).getByRole("link", { name: /Open PI dependencies/i }),
-    ).toBeTruthy();
+      within(deps).getAllByRole("link", { name: /Open PI dependencies/i })
+        .length,
+    ).toBeGreaterThan(0);
   });
 
   it("shows scoped unavailable dependency state without inventing rows", () => {
