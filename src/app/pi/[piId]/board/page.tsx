@@ -172,7 +172,44 @@ export default async function PiBoardPage({
         <PlanningBoard
           piId={piId}
           revisionId={board.revision.id}
-          departments={board.departments}
+          departments={board.departments.map((dept) => ({
+            departmentId: dept.departmentId,
+            departmentName: dept.departmentName,
+            teams: dept.teams.map((team) => ({
+              teamId: team.teamId,
+              teamName: team.teamName,
+              departmentId: team.departmentId,
+              iterations: team.iterations.map((cell) => ({
+                iteration: {
+                  id: cell.iteration.id,
+                  name: cell.iteration.name,
+                  sequence: cell.iteration.sequence,
+                  referenceKey: cell.iteration.referenceKey,
+                  startDate:
+                    cell.iteration.startDate instanceof Date
+                      ? cell.iteration.startDate.toISOString()
+                      : String(cell.iteration.startDate),
+                  endDate:
+                    cell.iteration.endDate instanceof Date
+                      ? cell.iteration.endDate.toISOString()
+                      : String(cell.iteration.endDate),
+                },
+                utilizationBand: cell.utilizationBand,
+                hasOverload: cell.hasOverload,
+                conflictCount: cell.conflictCount,
+                capacity: cell.capacity
+                  ? {
+                      effectiveCapacityHours:
+                        cell.capacity.effectiveCapacityHours,
+                      plannedLoadHours: cell.capacity.plannedLoadHours,
+                      utilization: cell.capacity.utilization,
+                      band: cell.capacity.band,
+                    }
+                  : null,
+                cards: cell.cards,
+              })),
+            })),
+          }))}
           iterations={board.pi.iterations.map((it) => ({
             id: it.id,
             name: it.name,

@@ -266,7 +266,7 @@ export class PlanningService {
                           id: c.workItem.project.initiative.id,
                           referenceKey:
                             c.workItem.project.initiative.referenceKey,
-                          name: c.workItem.project.initiative.name,
+                          name: c.workItem.project.initiative.title,
                         }
                       : null,
                   },
@@ -305,7 +305,7 @@ export class PlanningService {
           ? {
               id: item.project.initiative.id,
               referenceKey: item.project.initiative.referenceKey,
-              name: item.project.initiative.name,
+              name: item.project.initiative.title,
             }
           : null,
       },

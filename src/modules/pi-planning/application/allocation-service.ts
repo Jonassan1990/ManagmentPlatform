@@ -419,7 +419,7 @@ export class AllocationService {
             name: true,
             initiativeId: true,
             initiative: {
-              select: { id: true, referenceKey: true, name: true },
+              select: { id: true, referenceKey: true, title: true },
             },
           },
         },
@@ -444,7 +444,7 @@ export class AllocationService {
                 departmentId: true,
                 initiativeId: true,
                 initiative: {
-                  select: { id: true, referenceKey: true, name: true },
+                  select: { id: true, referenceKey: true, title: true },
                 },
               },
             },
