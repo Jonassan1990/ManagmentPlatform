@@ -147,7 +147,7 @@ export function AppShell({
                   {principal.email}
                 </span>
               ) : null}
-              {principal?.source === "oidc" ? <SignOutButton /> : null}
+              <SignOutButton />
               {principal?.source === "dev" ? (
                 <span className="rounded-[4px] border border-white/25 bg-white/10 px-2 py-1 text-xs font-semibold text-white/90">
                   DEV
