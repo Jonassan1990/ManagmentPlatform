@@ -23,6 +23,28 @@ export const expireRoleBindingInputSchema = z.object({
   effectiveTo: z.coerce.date().optional().nullable(),
 });
 
+/** Create a local username/password Principal for testing (org ROLE_MANAGE). */
+export const createLocalTestUserInputSchema = z.object({
+  organizationId: uuidSchema,
+  username: z
+    .string()
+    .trim()
+    .min(3)
+    .max(64)
+    .regex(
+      /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/,
+      "Username: start with letter/number; only . _ - allowed",
+    ),
+  password: z.string().min(8).max(200),
+  displayName: z.string().trim().max(200).optional().nullable(),
+  roleDefinitionId: uuidSchema.optional().nullable(),
+  scopeType: z
+    .enum(["ORGANIZATION", "SECTION", "DEPARTMENT", "TEAM"])
+    .optional()
+    .default("ORGANIZATION"),
+  scopeId: uuidSchema.optional().nullable(),
+});
+
 /**
  * Explicit OIDC → Principal link (R1-B cutover).
  * Never uses email as the identity key. Requires PLATFORM ROLE_MANAGE.

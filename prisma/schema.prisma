@@ -195,8 +195,29 @@ model Principal {
   /// At most one Resource may link to this Principal (ADR-020). Capacity still lives on Resource.
   linkedResource     Resource?
   projectClosures    ProjectClosure[]
+  /// Optional username/password login for local testing (not SSO).
+  localLoginCredential LocalLoginCredential?
 
   @@map("principals")
+}
+
+/// Local username/password for test/demo Principals (separate from TEMP_AUTH owner env).
+model LocalLoginCredential {
+  id                   String    @id @default(uuid()) @db.Uuid
+  principalId          String    @unique @db.Uuid
+  /// Stored lowercase; uniqueness is case-insensitive.
+  username             String    @unique @db.VarChar(80)
+  passwordHash         String    @db.VarChar(200)
+  displayName          String?   @db.VarChar(200)
+  createdByPrincipalId String?   @db.Uuid
+  disabledAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  principal Principal @relation(fields: [principalId], references: [id], onDelete: Cascade)
+
+  @@index([disabledAt])
+  @@map("local_login_credentials")
 }
 
 /// Linked OIDC (or other IdP) identity. Unique on (issuer, subject) — never email alone.

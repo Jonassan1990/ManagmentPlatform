@@ -5,6 +5,7 @@ import { createServices } from "@/server/container";
 import { runAction } from "@/server/action-runner";
 import {
   assignRoleBindingInputSchema,
+  createLocalTestUserInputSchema,
   expireRoleBindingInputSchema,
   linkOidcIdentityInputSchema,
 } from "@/modules/identity-access/application/schemas";
@@ -22,6 +23,17 @@ export async function assignRoleBindingAction(
     if (parsed.organizationId) {
       revalidatePath(`/organization/${parsed.organizationId}/access`);
     }
+    return result;
+  });
+}
+
+export async function createLocalTestUserAction(input: unknown) {
+  return runAction("access.createLocalTestUser", async () => {
+    const { authz, identity } = createServices();
+    const principal = await authz.requirePrincipal();
+    const parsed = createLocalTestUserInputSchema.parse(input);
+    const result = await identity.createLocalTestUser(principal, parsed);
+    revalidatePath(`/organization/${parsed.organizationId}/access`);
     return result;
   });
 }
