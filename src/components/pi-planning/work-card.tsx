@@ -64,64 +64,72 @@ export function WorkCard({
   moveSlot?: React.ReactNode;
   overloaded?: boolean;
 }) {
+  const initiative = card.workItem.project.initiative;
+
   return (
     <article
       draggable={draggable}
       onDragStart={onDragStart}
-      className={`rounded-md border px-2.5 py-2 text-left text-sm ${
-        overloaded
-          ? "border-[var(--danger)]/40 bg-[var(--danger)]/5"
-          : "border-[var(--line)] bg-white"
-      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+      className="pi-card"
+      data-priority={card.workItem.priority}
+      data-overloaded={overloaded ? "true" : "false"}
+      data-draggable={draggable ? "true" : "false"}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="pi-card-top">
         <div className="min-w-0">
-          <p className="truncate font-medium" title={card.workItem.title}>
+          <p className="pi-card-key" title={card.workItem.title}>
             {card.workItem.referenceKey}
           </p>
-          <p className="truncate text-xs text-[var(--muted)]">
+          <p className="pi-card-project">
             {card.workItem.project.referenceKey}
+            {initiative ? ` · ${initiative.referenceKey}` : ""}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-0.5">
           {card.hasDependencyConflict ? (
             <span
-              className="text-[10px] font-medium uppercase tracking-wide text-[var(--warning)]"
+              className="pi-chip"
+              data-tone="warn"
               title="Dependency timing conflict"
             >
               <span aria-hidden="true">Dep</span>
               <span className="sr-only">Dependency timing conflict</span>
             </span>
           ) : null}
-          <span className="text-[10px] text-[var(--muted)]">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
             {humanize(card.workItem.priority)}
           </span>
         </div>
       </div>
-      <p className="mt-1 line-clamp-2 text-xs">{card.workItem.title}</p>
-      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+      <p className="pi-card-title">{card.workItem.title}</p>
+      <div className="pi-card-meta">
         <span>{humanize(card.workItem.type)}</span>
-        <span>{formatHours(card.plannedHours || card.workItem.estimateHours)}</span>
+        <span>
+          {formatHours(card.plannedHours || card.workItem.estimateHours)}
+        </span>
+        <span>{humanize(card.workItem.status)}</span>
       </div>
       {onToggleExpand ? (
-        <button
-          type="button"
-          className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-          onClick={onToggleExpand}
-          aria-expanded={expanded}
-          aria-label={
-            expanded
-              ? `Hide details for ${card.workItem.referenceKey}`
-              : `Show details and move options for ${card.workItem.referenceKey}`
-          }
-        >
-          {expanded ? "Hide details" : "Details / Move"}
-        </button>
+        <div className="pi-card-actions">
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            aria-expanded={expanded}
+            aria-label={
+              expanded
+                ? `Hide details for ${card.workItem.referenceKey}`
+                : `Show details and move options for ${card.workItem.referenceKey}`
+            }
+          >
+            {expanded ? "Hide details" : "Details / Move"}
+          </button>
+        </div>
       ) : null}
       {expanded ? (
-        <div className="mt-2 space-y-2 border-t border-[var(--line)] pt-2">
+        <div className="pi-card-details space-y-2">
           <p className="text-xs text-[var(--muted)]">
-            Project: {card.workItem.project.name} · Status:{" "}
+            Project: {card.workItem.project.name}
+            {initiative ? ` · Initiative: ${initiative.name}` : ""} · Status:{" "}
             {humanize(card.workItem.status)}
           </p>
           {moveSlot}
@@ -142,23 +150,28 @@ export function BacklogCard({
   onDragStart?: (e: React.DragEvent) => void;
   allocateSlot?: React.ReactNode;
 }) {
+  const initiative = item.project.initiative;
+
   return (
     <article
       draggable={draggable}
       onDragStart={onDragStart}
-      className={`rounded-md border border-dashed border-[var(--line)] bg-[var(--surface)] px-2.5 py-2 text-sm ${
-        draggable ? "cursor-grab active:cursor-grabbing" : ""
-      }`}
+      className="pi-card pi-card-dashed"
+      data-priority={item.priority}
+      data-draggable={draggable ? "true" : "false"}
     >
-      <p className="font-medium">{item.referenceKey}</p>
-      <p className="truncate text-xs text-[var(--muted)]">
-        {item.project.referenceKey} · {humanize(item.priority)}
+      <p className="pi-card-key">{item.referenceKey}</p>
+      <p className="pi-card-project">
+        {item.project.referenceKey}
+        {initiative ? ` · ${initiative.referenceKey}` : ""} ·{" "}
+        {humanize(item.priority)}
       </p>
-      <p className="mt-1 line-clamp-2 text-xs">{item.title}</p>
-      <div className="mt-1 text-[11px] text-[var(--muted)]">
-        {humanize(item.type)} · {formatHours(item.estimateHours?.toString() ?? null)}
+      <p className="pi-card-title">{item.title}</p>
+      <div className="pi-card-meta">
+        <span>{humanize(item.type)}</span>
+        <span>{formatHours(item.estimateHours?.toString() ?? null)}</span>
       </div>
-      {allocateSlot ? <div className="mt-2">{allocateSlot}</div> : null}
+      {allocateSlot ? <div className="pi-card-actions">{allocateSlot}</div> : null}
     </article>
   );
 }
