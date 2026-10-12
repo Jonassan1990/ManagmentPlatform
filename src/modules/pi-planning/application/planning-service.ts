@@ -257,7 +257,19 @@ export class PlanningService {
                   status: c.workItem.status,
                   priority: c.workItem.priority,
                   estimateHours: c.workItem.estimateHours?.toString() ?? null,
-                  project: c.workItem.project,
+                  project: {
+                    id: c.workItem.project.id,
+                    referenceKey: c.workItem.project.referenceKey,
+                    name: c.workItem.project.name,
+                    initiative: c.workItem.project.initiative
+                      ? {
+                          id: c.workItem.project.initiative.id,
+                          referenceKey:
+                            c.workItem.project.initiative.referenceKey,
+                          name: c.workItem.project.initiative.title,
+                        }
+                      : null,
+                  },
                 },
               })),
             };
@@ -277,11 +289,33 @@ export class PlanningService {
       };
     });
 
+    const backlogView = backlog.map((item) => ({
+      id: item.id,
+      referenceKey: item.referenceKey,
+      title: item.title,
+      type: item.type,
+      status: item.status,
+      priority: item.priority,
+      estimateHours: item.estimateHours?.toString() ?? null,
+      project: {
+        id: item.project.id,
+        referenceKey: item.project.referenceKey,
+        name: item.project.name,
+        initiative: item.project.initiative
+          ? {
+              id: item.project.initiative.id,
+              referenceKey: item.project.initiative.referenceKey,
+              name: item.project.initiative.title,
+            }
+          : null,
+      },
+    }));
+
     return {
       pi,
       revision,
       departments,
-      backlog,
+      backlog: backlogView,
       conflicts,
       capacityViews,
       attention: buildPiAttentionItems({

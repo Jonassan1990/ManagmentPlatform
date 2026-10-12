@@ -64,8 +64,18 @@ export default async function PiBoardPage({
     type: item.type,
     status: item.status,
     priority: item.priority,
-    estimateHours: item.estimateHours?.toString() ?? null,
-    project: item.project,
+    estimateHours:
+      typeof item.estimateHours === "string"
+        ? item.estimateHours
+        : item.estimateHours != null
+          ? String(item.estimateHours)
+          : null,
+    project: {
+      id: item.project.id,
+      referenceKey: item.project.referenceKey,
+      name: item.project.name,
+      initiative: item.project.initiative ?? null,
+    },
   }));
 
   const readOnlyScenario =
@@ -162,13 +172,68 @@ export default async function PiBoardPage({
         <PlanningBoard
           piId={piId}
           revisionId={board.revision.id}
-          departments={board.departments}
+          departments={board.departments.map((dept) => ({
+            departmentId: dept.departmentId,
+            departmentName: dept.departmentName,
+            teams: dept.teams.map((team) => ({
+              teamId: team.teamId,
+              teamName: team.teamName,
+              departmentId: team.departmentId,
+              iterations: team.iterations.map((cell) => ({
+                iteration: {
+                  id: cell.iteration.id,
+                  name: cell.iteration.name,
+                  sequence: cell.iteration.sequence,
+                  referenceKey: cell.iteration.referenceKey,
+                  startDate:
+                    cell.iteration.startDate instanceof Date
+                      ? cell.iteration.startDate.toISOString()
+                      : String(cell.iteration.startDate),
+                  endDate:
+                    cell.iteration.endDate instanceof Date
+                      ? cell.iteration.endDate.toISOString()
+                      : String(cell.iteration.endDate),
+                },
+                utilizationBand: cell.utilizationBand,
+                hasOverload: cell.hasOverload,
+                conflictCount: cell.conflictCount,
+                capacity: cell.capacity
+                  ? {
+                      effectiveCapacityHours:
+                        cell.capacity.effectiveCapacityHours,
+                      plannedLoadHours: cell.capacity.plannedLoadHours,
+                      utilization: cell.capacity.utilization,
+                      band: cell.capacity.band,
+                    }
+                  : null,
+                cards: cell.cards,
+              })),
+            })),
+          }))}
           iterations={board.pi.iterations.map((it) => ({
             id: it.id,
             name: it.name,
             sequence: it.sequence,
             referenceKey: it.referenceKey,
+            startDate:
+              it.startDate instanceof Date
+                ? it.startDate.toISOString()
+                : String(it.startDate),
+            endDate:
+              it.endDate instanceof Date
+                ? it.endDate.toISOString()
+                : String(it.endDate),
           }))}
+          piStartDate={
+            board.pi.startDate instanceof Date
+              ? board.pi.startDate.toISOString()
+              : String(board.pi.startDate)
+          }
+          piEndDate={
+            board.pi.endDate instanceof Date
+              ? board.pi.endDate.toISOString()
+              : String(board.pi.endDate)
+          }
           backlog={backlog}
           capabilities={capabilities}
           readOnlyScenario={readOnlyScenario}

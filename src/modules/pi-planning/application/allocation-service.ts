@@ -412,7 +412,17 @@ export class AllocationService {
         },
       },
       include: {
-        project: { select: { id: true, referenceKey: true, name: true } },
+        project: {
+          select: {
+            id: true,
+            referenceKey: true,
+            name: true,
+            initiativeId: true,
+            initiative: {
+              select: { id: true, referenceKey: true, title: true },
+            },
+          },
+        },
       },
       orderBy: [{ projectId: "asc" }, { referenceKey: "asc" }],
     });
@@ -432,6 +442,10 @@ export class AllocationService {
                 plannedStart: true,
                 plannedEnd: true,
                 departmentId: true,
+                initiativeId: true,
+                initiative: {
+                  select: { id: true, referenceKey: true, title: true },
+                },
               },
             },
           },

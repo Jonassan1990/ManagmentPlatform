@@ -3,6 +3,12 @@
 import { humanize } from "@/components/governance/governance-panels";
 import { formatHours } from "./pi-nav";
 
+export type InitiativeRef = {
+  id: string;
+  referenceKey: string;
+  name: string;
+};
+
 export type WorkCardData = {
   allocationId: string;
   version: number;
@@ -20,6 +26,7 @@ export type WorkCardData = {
       id: string;
       referenceKey: string;
       name: string;
+      initiative?: InitiativeRef | null;
     };
   };
 };
@@ -36,6 +43,7 @@ export type BacklogItemData = {
     id: string;
     referenceKey: string;
     name: string;
+    initiative?: InitiativeRef | null;
   };
 };
 
