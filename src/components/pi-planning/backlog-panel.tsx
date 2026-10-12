@@ -57,15 +57,18 @@ export function BacklogPanel({
   }, [items, filters]);
 
   return (
-    <aside className="flex h-full flex-col border-l border-[var(--line)] bg-[var(--surface)]">
-      <div className="border-b border-[var(--line)] px-3 py-3">
-        <h2 className="font-medium">Unallocated backlog</h2>
-        <p className="text-xs text-[var(--muted)]">
+    <aside className="pi-backlog">
+      <div className="pi-backlog-head">
+        <h2>
+          Unallocated backlog
+          <span className="pi-backlog-count">{filtered.length}</span>
+        </h2>
+        <p>
           {filtered.length} item{filtered.length === 1 ? "" : "s"}
           {canAllocate ? " · drag onto a cell or use Allocate" : ""}
         </p>
       </div>
-      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+      <div className="pi-backlog-list">
         {filtered.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">
             No unallocated work matches the current filters.
@@ -87,7 +90,7 @@ export function BacklogPanel({
                   canAllocate ? (
                     <button
                       type="button"
-                      className="text-[11px] text-[var(--accent)]"
+                      className="text-[11px] font-bold text-[var(--accent)]"
                       onClick={() =>
                         setOpenId((id) => (id === item.id ? null : item.id))
                       }
@@ -98,7 +101,7 @@ export function BacklogPanel({
                 }
               />
               {openId === item.id && canAllocate ? (
-                <div className="mt-2 rounded-md border border-[var(--line)] p-2">
+                <div className="mt-2 rounded-[4px] border border-[var(--line)] bg-white p-2">
                   <AllocateWorkForm
                     piId={piId}
                     revisionId={revisionId}
@@ -140,9 +143,16 @@ export function BoardFilters({
   value: BoardFilterState;
   onChange: (next: BoardFilterState) => void;
 }) {
+  const hasActive =
+    Boolean(value.departmentId) ||
+    Boolean(value.initiativeId) ||
+    Boolean(value.projectId) ||
+    Boolean(value.type) ||
+    Boolean(value.priority);
+
   return (
     <div
-      className="flex flex-wrap gap-2"
+      className="pi-filters"
       data-testid="pi-board-filters"
       aria-label="Plan filters"
     >
@@ -213,6 +223,23 @@ export function BoardFilters({
           </option>
         ))}
       </select>
+      {hasActive ? (
+        <button
+          type="button"
+          className="pi-filter-clear"
+          onClick={() =>
+            onChange({
+              departmentId: "",
+              projectId: "",
+              initiativeId: "",
+              type: "",
+              priority: "",
+            })
+          }
+        >
+          Clear filters
+        </button>
+      ) : null}
     </div>
   );
 }

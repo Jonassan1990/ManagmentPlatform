@@ -403,193 +403,391 @@ export function PlanningBoard({
     .filter(Boolean)
     .join(", ");
 
+  const boardStats = useMemo(() => {
+    let allocated = 0;
+    let overloadCells = 0;
+    let conflictCells = 0;
+    let teamsVisible = 0;
+    for (const d of filteredDepartments) {
+      teamsVisible += d.teams.length;
+      for (const t of d.teams) {
+        for (const cell of t.iterations) {
+          allocated += cell.cards.length;
+          if (cell.hasOverload || cell.utilizationBand === "overload") {
+            overloadCells += 1;
+          }
+          if (cell.conflictCount > 0) conflictCells += 1;
+        }
+      }
+    }
+    const backlogVisible = backlog.filter((item) => {
+      if (filters.projectId && item.project.id !== filters.projectId)
+        return false;
+      if (
+        filters.initiativeId &&
+        item.project.initiative?.id !== filters.initiativeId
+      )
+        return false;
+      if (filters.type && item.type !== filters.type) return false;
+      if (filters.priority && item.priority !== filters.priority) return false;
+      return true;
+    }).length;
+    return {
+      allocated,
+      backlogVisible,
+      overloadCells,
+      conflictCells,
+      teamsVisible,
+    };
+  }, [filteredDepartments, backlog, filters]);
+
   return (
-    <div className="space-y-4" data-testid="pi-planning-workspace">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <BoardFilters
-          departments={departments.map((d) => ({
-            id: d.departmentId,
-            name: d.departmentName,
-          }))}
-          projects={projectOptions}
-          initiatives={initiativeOptions}
-          types={typeOptions}
-          priorities={priorityOptions}
-          value={filters}
-          onChange={setFilters}
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            className="inline-flex rounded-[4px] border border-[var(--scania-grey-200)] bg-white p-0.5"
-            role="tablist"
-            aria-label="Plan view"
-            data-testid="pi-board-view-mode"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === "overview"}
-              className={buttonClassName({
-                variant: viewMode === "overview" ? "primary" : "ghost",
-                size: "sm",
-                className: "min-w-[5.5rem]",
-              })}
-              onClick={() => setViewMode("overview")}
-            >
-              Overview
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === "detail"}
-              className={buttonClassName({
-                variant: viewMode === "detail" ? "primary" : "ghost",
-                size: "sm",
-                className: "min-w-[5.5rem]",
-              })}
-              onClick={() => setViewMode("detail")}
-            >
-              Detail
-            </button>
-          </div>
-          {viewMode === "overview" ? (
-            <div
-              className="inline-flex rounded-[4px] border border-[var(--scania-grey-200)] bg-white p-0.5"
-              role="group"
-              aria-label="Calendar granularity"
-              data-testid="pi-calendar-granularity"
-            >
-              <button
-                type="button"
-                aria-pressed={granularity === "week"}
-                className={buttonClassName({
-                  variant: granularity === "week" ? "secondary" : "ghost",
-                  size: "sm",
-                })}
-                onClick={() => setGranularity("week")}
-              >
-                Week
-              </button>
-              <button
-                type="button"
-                aria-pressed={granularity === "month"}
-                className={buttonClassName({
-                  variant: granularity === "month" ? "secondary" : "ghost",
-                  size: "sm",
-                })}
-                onClick={() => setGranularity("month")}
-              >
-                Month
-              </button>
-            </div>
-          ) : null}
-          {pending ? (
-            <p
-              className="text-xs text-[var(--muted)]"
-              role="status"
-              aria-live="polite"
-            >
-              Refreshing…
-            </p>
-          ) : null}
-        </div>
-      </div>
-      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {filterAnnounce
-          ? `Board filters active: ${filterAnnounce}.`
-          : "Board filters cleared."}
-      </p>
-      {canAllocate && viewMode === "detail" ? (
-        <p
-          className="text-sm text-[var(--muted)]"
-          data-testid="board-keyboard-hint"
-        >
-          Keyboard: open{" "}
-          <span className="font-medium text-[var(--ink)]">Details</span> on a
-          card to <span className="font-medium text-[var(--ink)]">Move</span>{" "}
-          allocations, or use{" "}
-          <span className="font-medium text-[var(--ink)]">Allocate</span> on
-          backlog items. Drag-and-drop is optional.
-        </p>
-      ) : null}
-
-      {viewMode === "overview" ? (
-        <p className="text-sm text-[var(--muted)]">
-          Calendar overview of allocated work across the PI. Switch to Detail to
-          allocate, move, or edit cells.
-        </p>
-      ) : null}
-
-      {capabilities?.canAllocatePi === false && !readOnlyScenario ? (
-        <div data-testid="board-allocate-permission">
-          <Alert tone="info" live="polite">
-            PI allocate permission is required to move or allocate work on this
-            board. You can still inspect cards and capacity.
-          </Alert>
-        </div>
-      ) : null}
-
-      {error ? <Alert>{error}</Alert> : null}
-
-      {viewMode === "overview" ? (
-        <PiPlanningCalendar
-          granularity={granularity}
-          piStartDate={resolvedPiStart}
-          piEndDate={resolvedPiEnd}
-          iterations={calendarIterations}
-          allocations={calendarAllocations}
-          onSelectAllocation={focusAllocation}
-        />
-      ) : (
-        <>
-          {/* Mobile: list / drill-down */}
-          <div className="space-y-3 md:hidden">
-            <div className="grid gap-2 sm:grid-cols-2">
-              <select
-                aria-label="Iteration"
-                className={fieldClassName}
-                value={mobileIterationId}
-                onChange={(e) => setMobileIterationId(e.target.value)}
-              >
-                {iterations.map((it) => (
-                  <option key={it.id} value={it.id}>
-                    {it.sequence}. {it.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Team"
-                className={fieldClassName}
-                value={mobileTeamId}
-                onChange={(e) => setMobileTeamId(e.target.value)}
-              >
-                {allTeams.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.departmentName} / {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {mobileCell ? (
-              <CellPanel
-                piId={piId}
-                cell={mobileCell.cell}
-                team={mobileCell.team}
-                departmentName={mobileCell.department.departmentName}
-                iterations={iterations}
-                teams={allTeams}
-                canAllocate={canAllocate}
-                capabilities={capabilities}
-                expandedId={expandedId}
-                setExpandedId={setExpandedId}
-                onDrop={handleDrop}
-              />
-            ) : (
-              <p className="text-sm text-[var(--muted)]">
-                Select an iteration and team, or add participation in Settings.
+    <div className="pi-plan" data-testid="pi-planning-workspace">
+      <div className="pi-shell">
+        <div className="pi-toolbar">
+          <div className="pi-toolbar-top">
+            <div className="pi-toolbar-copy">
+              <p className="pi-toolbar-eyebrow">Program increment plan</p>
+              <h2 className="pi-toolbar-title">
+                {viewMode === "overview"
+                  ? "Calendar overview"
+                  : "Iteration detail board"}
+              </h2>
+              <p className="pi-toolbar-hint">
+                {viewMode === "overview"
+                  ? "See allocated work across the PI by week or month. Click a bar to open Detail and adjust."
+                  : "Allocate and move work across teams and iterations. Drag from backlog or use Details / Move."}
               </p>
-            )}
-            <div className="rounded-lg border border-[var(--line)]">
+            </div>
+            <div className="pi-toolbar-controls">
+              <div
+                className="pi-segment"
+                role="tablist"
+                aria-label="Plan view"
+                data-testid="pi-board-view-mode"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "overview"}
+                  className={buttonClassName({
+                    variant: viewMode === "overview" ? "primary" : "ghost",
+                    size: "sm",
+                    className: "min-w-[5.5rem]",
+                  })}
+                  onClick={() => setViewMode("overview")}
+                >
+                  Overview
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "detail"}
+                  className={buttonClassName({
+                    variant: viewMode === "detail" ? "primary" : "ghost",
+                    size: "sm",
+                    className: "min-w-[5.5rem]",
+                  })}
+                  onClick={() => setViewMode("detail")}
+                >
+                  Detail
+                </button>
+              </div>
+              {viewMode === "overview" ? (
+                <div
+                  className="pi-segment"
+                  role="group"
+                  aria-label="Calendar granularity"
+                  data-testid="pi-calendar-granularity"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={granularity === "week"}
+                    className={buttonClassName({
+                      variant: granularity === "week" ? "secondary" : "ghost",
+                      size: "sm",
+                    })}
+                    onClick={() => setGranularity("week")}
+                  >
+                    Week
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={granularity === "month"}
+                    className={buttonClassName({
+                      variant: granularity === "month" ? "secondary" : "ghost",
+                      size: "sm",
+                    })}
+                    onClick={() => setGranularity("month")}
+                  >
+                    Month
+                  </button>
+                </div>
+              ) : null}
+              {pending ? (
+                <p
+                  className="text-xs text-[var(--muted)]"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Refreshing…
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="pi-stats" aria-label="Plan snapshot">
+            <div className="pi-stat">
+              <p className="pi-stat-label">Allocated</p>
+              <p className="pi-stat-value">{boardStats.allocated}</p>
+            </div>
+            <div className="pi-stat">
+              <p className="pi-stat-label">Backlog</p>
+              <p className="pi-stat-value">{boardStats.backlogVisible}</p>
+            </div>
+            <div className="pi-stat">
+              <p className="pi-stat-label">Teams</p>
+              <p className="pi-stat-value">{boardStats.teamsVisible}</p>
+            </div>
+            <div className="pi-stat">
+              <p className="pi-stat-label">Overload cells</p>
+              <p
+                className="pi-stat-value"
+                data-tone={
+                  boardStats.overloadCells > 0
+                    ? "danger"
+                    : boardStats.conflictCells > 0
+                      ? "warn"
+                      : undefined
+                }
+              >
+                {boardStats.overloadCells}
+              </p>
+            </div>
+          </div>
+
+          <BoardFilters
+            departments={departments.map((d) => ({
+              id: d.departmentId,
+              name: d.departmentName,
+            }))}
+            projects={projectOptions}
+            initiatives={initiativeOptions}
+            types={typeOptions}
+            priorities={priorityOptions}
+            value={filters}
+            onChange={setFilters}
+          />
+        </div>
+
+        <p
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {filterAnnounce
+            ? `Board filters active: ${filterAnnounce}.`
+            : "Board filters cleared."}
+        </p>
+        {canAllocate && viewMode === "detail" ? (
+          <p
+            className="text-sm text-[var(--muted)]"
+            data-testid="board-keyboard-hint"
+          >
+            Keyboard: open{" "}
+            <span className="font-medium text-[var(--ink)]">Details</span> on a
+            card to <span className="font-medium text-[var(--ink)]">Move</span>{" "}
+            allocations, or use{" "}
+            <span className="font-medium text-[var(--ink)]">Allocate</span> on
+            backlog items. Drag-and-drop is optional.
+          </p>
+        ) : null}
+
+        {capabilities?.canAllocatePi === false && !readOnlyScenario ? (
+          <div data-testid="board-allocate-permission">
+            <Alert tone="info" live="polite">
+              PI allocate permission is required to move or allocate work on
+              this board. You can still inspect cards and capacity.
+            </Alert>
+          </div>
+        ) : null}
+
+        {error ? <Alert>{error}</Alert> : null}
+
+        {viewMode === "overview" ? (
+          <PiPlanningCalendar
+            granularity={granularity}
+            piStartDate={resolvedPiStart}
+            piEndDate={resolvedPiEnd}
+            iterations={calendarIterations}
+            allocations={calendarAllocations}
+            onSelectAllocation={focusAllocation}
+          />
+        ) : (
+          <>
+            <div className="pi-mobile">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <select
+                  aria-label="Iteration"
+                  className={fieldClassName}
+                  value={mobileIterationId}
+                  onChange={(e) => setMobileIterationId(e.target.value)}
+                >
+                  {iterations.map((it) => (
+                    <option key={it.id} value={it.id}>
+                      {it.sequence}. {it.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Team"
+                  className={fieldClassName}
+                  value={mobileTeamId}
+                  onChange={(e) => setMobileTeamId(e.target.value)}
+                >
+                  {allTeams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.departmentName} / {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {mobileCell ? (
+                <CellPanel
+                  piId={piId}
+                  cell={mobileCell.cell}
+                  team={mobileCell.team}
+                  departmentName={mobileCell.department.departmentName}
+                  iterations={iterations}
+                  teams={allTeams}
+                  canAllocate={canAllocate}
+                  capabilities={capabilities}
+                  expandedId={expandedId}
+                  setExpandedId={setExpandedId}
+                  onDrop={handleDrop}
+                />
+              ) : (
+                <p className="text-sm text-[var(--muted)]">
+                  Select an iteration and team, or add participation in
+                  Settings.
+                </p>
+              )}
+              <div className="pi-mobile-backlog">
+                <BacklogPanel
+                  piId={piId}
+                  revisionId={revisionId}
+                  items={backlog}
+                  iterations={iterations}
+                  teams={allTeams}
+                  canAllocate={canAllocate}
+                  capabilities={capabilities}
+                  filters={filters}
+                />
+              </div>
+            </div>
+
+            <div className="pi-detail-layout">
+              <div
+                className="pi-matrix-scroll"
+                role="region"
+                aria-label="PI planning board matrix. Scroll horizontally to see all iterations."
+                tabIndex={0}
+              >
+                {filteredDepartments.length === 0 ||
+                iterations.length === 0 ? (
+                  <div className="pi-empty" role="status">
+                    {iterations.length === 0
+                      ? "Define iterations in Settings before planning on the board."
+                      : filteredDepartments.every((d) => d.teams.length === 0)
+                        ? "Add participating teams in Settings to populate the board."
+                        : "No departments match the current filters."}
+                  </div>
+                ) : (
+                  <table className="pi-matrix">
+                    <caption className="sr-only">
+                      PI planning board by team and iteration. Use Details then
+                      Move for keyboard allocation changes.
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Team</th>
+                        {iterations.map((it) => (
+                          <th key={it.id} scope="col">
+                            <span className="block">{it.name}</span>
+                            <span className="pi-matrix-iter-key">
+                              {it.referenceKey}
+                              {it.startDate && it.endDate
+                                ? ` · ${new Date(it.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}–${new Date(it.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}`
+                                : ""}
+                            </span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDepartments.map((dept) => (
+                        <Fragment key={dept.departmentId}>
+                          <tr>
+                            <td
+                              colSpan={iterations.length + 1}
+                              className="pi-matrix-dept"
+                            >
+                              {dept.departmentName}
+                            </td>
+                          </tr>
+                          {dept.teams.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan={iterations.length + 1}
+                                className="px-3 py-3 text-sm text-[var(--muted)]"
+                              >
+                                No participating teams in this department.
+                              </td>
+                            </tr>
+                          ) : (
+                            dept.teams.map((team) => (
+                              <tr key={team.teamId}>
+                                <th scope="row">{team.teamName}</th>
+                                {team.iterations.map((cell) => (
+                                  <td
+                                    key={`${team.teamId}-${cell.iteration.id}`}
+                                    data-droppable={
+                                      canAllocate ? "true" : "false"
+                                    }
+                                    onDragOver={(e) => {
+                                      if (canAllocate) e.preventDefault();
+                                    }}
+                                    onDrop={(e) =>
+                                      handleDrop(
+                                        cell.iteration.id,
+                                        team.teamId,
+                                        e,
+                                      )
+                                    }
+                                  >
+                                    <CellBody
+                                      piId={piId}
+                                      cell={cell}
+                                      teamId={team.teamId}
+                                      iterations={iterations}
+                                      teams={allTeams}
+                                      canAllocate={canAllocate}
+                                      capabilities={capabilities}
+                                      expandedId={expandedId}
+                                      setExpandedId={setExpandedId}
+                                    />
+                                  </td>
+                                ))}
+                              </tr>
+                            ))
+                          )}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
               <BacklogPanel
                 piId={piId}
                 revisionId={revisionId}
@@ -601,134 +799,9 @@ export function PlanningBoard({
                 filters={filters}
               />
             </div>
-          </div>
-
-          {/* Desktop matrix */}
-          <div className="hidden md:grid md:grid-cols-[1fr_minmax(240px,280px)] md:gap-0 md:overflow-hidden md:rounded-lg md:border md:border-[var(--line)]">
-            <div
-              className="min-w-0 overflow-x-auto"
-              role="region"
-              aria-label="PI planning board matrix. Scroll horizontally to see all iterations."
-              tabIndex={0}
-            >
-              {filteredDepartments.length === 0 || iterations.length === 0 ? (
-                <div className="p-6 text-sm text-[var(--muted)]" role="status">
-                  {iterations.length === 0
-                    ? "Define iterations in Settings before planning on the board."
-                    : filteredDepartments.every((d) => d.teams.length === 0)
-                      ? "Add participating teams in Settings to populate the board."
-                      : "No departments match the current filters."}
-                </div>
-              ) : (
-                <table className="w-full min-w-[560px] border-collapse text-sm lg:min-w-[720px]">
-                  <caption className="sr-only">
-                    PI planning board by team and iteration. Use Details then
-                    Move for keyboard allocation changes.
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th
-                        scope="col"
-                        className="sticky left-0 z-20 min-w-[8rem] border-b border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium"
-                      >
-                        Team
-                      </th>
-                      {iterations.map((it) => (
-                        <th
-                          key={it.id}
-                          scope="col"
-                          className="sticky top-0 z-10 min-w-[10rem] border-b border-l border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium"
-                        >
-                          <span className="block">{it.name}</span>
-                          <span className="text-xs font-normal text-[var(--muted)]">
-                            {it.referenceKey}
-                            {it.startDate && it.endDate
-                              ? ` · ${new Date(it.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}–${new Date(it.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}`
-                              : ""}
-                          </span>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredDepartments.map((dept) => (
-                      <Fragment key={dept.departmentId}>
-                        <tr>
-                          <td
-                            colSpan={iterations.length + 1}
-                            className="bg-[var(--accent-soft)]/40 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-[var(--muted)]"
-                          >
-                            {dept.departmentName}
-                          </td>
-                        </tr>
-                        {dept.teams.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={iterations.length + 1}
-                              className="px-3 py-3 text-sm text-[var(--muted)]"
-                            >
-                              No participating teams in this department.
-                            </td>
-                          </tr>
-                        ) : (
-                          dept.teams.map((team) => (
-                            <tr key={team.teamId} className="align-top">
-                              <th
-                                scope="row"
-                                className="sticky left-0 z-10 border-t border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left font-medium"
-                              >
-                                {team.teamName}
-                              </th>
-                              {team.iterations.map((cell) => (
-                                <td
-                                  key={`${team.teamId}-${cell.iteration.id}`}
-                                  className="border-l border-t border-[var(--line)] p-2"
-                                  onDragOver={(e) => {
-                                    if (canAllocate) e.preventDefault();
-                                  }}
-                                  onDrop={(e) =>
-                                    handleDrop(
-                                      cell.iteration.id,
-                                      team.teamId,
-                                      e,
-                                    )
-                                  }
-                                >
-                                  <CellBody
-                                    piId={piId}
-                                    cell={cell}
-                                    teamId={team.teamId}
-                                    iterations={iterations}
-                                    teams={allTeams}
-                                    canAllocate={canAllocate}
-                                    capabilities={capabilities}
-                                    expandedId={expandedId}
-                                    setExpandedId={setExpandedId}
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))
-                        )}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-            <BacklogPanel
-              piId={piId}
-              revisionId={revisionId}
-              items={backlog}
-              iterations={iterations}
-              teams={allTeams}
-              canAllocate={canAllocate}
-              capabilities={capabilities}
-              filters={filters}
-            />
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -762,20 +835,25 @@ function CellBody({
   const capacityUnavailable = cell.capacity == null;
 
   return (
-    <div className="min-h-[5rem] space-y-2">
-      <div className="flex flex-wrap items-center gap-1 text-[10px]">
+    <div className="pi-cell">
+      <div className="pi-cell-flags">
         {cell.hasOverload || cell.utilizationBand === "overload" ? (
-          <span className="rounded bg-[var(--danger)]/10 px-1.5 py-0.5 font-medium text-[var(--danger)]">
+          <span className="pi-chip" data-tone="danger">
             Overload
           </span>
         ) : cell.utilizationBand === "near" ? (
-          <span className="rounded bg-[var(--warning)]/15 px-1.5 py-0.5 text-[var(--warning)]">
+          <span className="pi-chip" data-tone="warn">
             Near capacity
+          </span>
+        ) : cell.capacity ? (
+          <span className="pi-chip" data-tone="ok">
+            On track
           </span>
         ) : null}
         {cell.conflictCount > 0 ? (
           <span
-            className="rounded bg-[var(--warning)]/15 px-1.5 py-0.5 text-[var(--warning)]"
+            className="pi-chip"
+            data-tone="warn"
             title={`${cell.conflictCount} conflict(s) touching this cell`}
           >
             {cell.conflictCount} conflict{cell.conflictCount === 1 ? "" : "s"}
@@ -790,7 +868,7 @@ function CellBody({
         className="[&_p]:text-[10px] [&_div.text-xs]:text-[10px]"
       />
       {cell.cards.length === 0 ? (
-        <p className="text-[10px] text-[var(--muted)]">
+        <p className="pi-cell-empty">
           {canAllocate
             ? "Empty — Allocate from backlog, or drop work here."
             : "No allocations in this cell."}
@@ -871,13 +949,13 @@ function CellPanel({
 }) {
   return (
     <section
-      className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4"
+      className="pi-mobile-panel"
       onDragOver={(e) => {
         if (canAllocate) e.preventDefault();
       }}
       onDrop={(e) => onDrop(cell.iteration.id, team.teamId, e)}
     >
-      <h3 className="font-medium">
+      <h3 className="font-bold text-[var(--scania-blue-900,#001533)]">
         {departmentName} / {team.teamName}
       </h3>
       <p className="text-xs text-[var(--muted)]">{cell.iteration.name}</p>

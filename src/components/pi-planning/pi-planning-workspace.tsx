@@ -65,102 +65,104 @@ export function PiPlanningContextHeader({
     capacity.teamSlotCount === 0;
 
   return (
-    <header className="mb-5 space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <p className="ds-eyebrow text-[10px]">
-            PI Planning · {piReference}
-          </p>
-          <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--ink)]">
-            {piName}
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
-            Plan work across iterations with clear capacity, conflicts, and
-            scenarios — without revision jargon in the primary view.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge
-            status={piBadge.status}
-            label={`PI · ${piBadge.label}`}
-          />
-          {revBadge ? (
+    <header className="pi-plan pi-plan-context mb-5 space-y-4">
+      <div className="pi-context-card">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="pi-toolbar-eyebrow">
+              PI Planning · {piReference}
+            </p>
+            <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-tight text-[var(--scania-blue-900,#001533)]">
+              {piName}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-[var(--muted)]">
+              Plan work across iterations with clear capacity, conflicts, and
+              scenarios — without revision jargon in the primary view.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge
-              status={revBadge.status}
-              label={
-                revision?.isCurrent
-                  ? "Current plan"
-                  : revBadge.label
-              }
+              status={piBadge.status}
+              label={`PI · ${piBadge.label}`}
             />
-          ) : null}
-          {editability ? (
-            <StatusBadge
-              status={editability.editable ? "in-progress" : "archived"}
-              label={editability.summary}
-              size="compact"
-            />
-          ) : null}
+            {revBadge ? (
+              <StatusBadge
+                status={revBadge.status}
+                label={
+                  revision?.isCurrent
+                    ? "Current plan"
+                    : revBadge.label
+                }
+              />
+            ) : null}
+            {editability ? (
+              <StatusBadge
+                status={editability.editable ? "in-progress" : "archived"}
+                label={editability.summary}
+                size="compact"
+              />
+            ) : null}
+          </div>
         </div>
-      </div>
 
-      <dl className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <div>
-          <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Planning period
-          </dt>
-          <dd className="mt-0.5 text-sm text-[var(--ink)]">
-            {formatPiDateRange(startDate, endDate)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Active plan
-          </dt>
-          <dd className="mt-0.5 text-sm font-medium text-[var(--ink)]">
-            {revision
-              ? planIdentityLabel(revision)
-              : "Current plan"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Teams
-          </dt>
-          <dd className="mt-0.5 text-sm text-[var(--ink)]">
-            {teamCount != null ? String(teamCount) : "—"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Available
-          </dt>
-          <dd className="mt-0.5 text-sm text-[var(--ink)]">
-            {formatHours(capacity?.availableHours ?? null)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Committed
-          </dt>
-          <dd className="mt-0.5 text-sm text-[var(--ink)]">
-            {formatHours(capacity?.committedHours ?? null)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Remaining
-          </dt>
-          <dd className="mt-0.5 text-sm text-[var(--ink)]">
-            {formatHours(capacity?.remainingHours ?? null)}
-          </dd>
-        </div>
-      </dl>
+        <dl className="pi-context-meta">
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Planning period
+            </dt>
+            <dd className="mt-0.5 text-sm text-[var(--ink)]">
+              {formatPiDateRange(startDate, endDate)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Active plan
+            </dt>
+            <dd className="mt-0.5 text-sm font-medium text-[var(--ink)]">
+              {revision
+                ? planIdentityLabel(revision)
+                : "Current plan"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Teams
+            </dt>
+            <dd className="mt-0.5 text-sm text-[var(--ink)]">
+              {teamCount != null ? String(teamCount) : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Available
+            </dt>
+            <dd className="mt-0.5 text-sm text-[var(--ink)]">
+              {formatHours(capacity?.availableHours ?? null)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Committed
+            </dt>
+            <dd className="mt-0.5 text-sm text-[var(--ink)]">
+              {formatHours(capacity?.committedHours ?? null)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Remaining
+            </dt>
+            <dd className="mt-0.5 text-sm text-[var(--ink)]">
+              {formatHours(capacity?.remainingHours ?? null)}
+            </dd>
+          </div>
+        </dl>
+      </div>
 
       {capacity ? (
         <section
           aria-labelledby="planning-capacity-summary"
-          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3"
+          className="tegel-card px-4 py-3"
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">

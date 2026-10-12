@@ -44,8 +44,7 @@ function addUtcDays(ms: number, days: number): number {
 
 function startOfUtcWeek(ms: number): number {
   const d = new Date(startOfUtcDay(ms));
-  // Monday-start ISO-ish week in UTC
-  const day = d.getUTCDay(); // 0 Sun .. 6 Sat
+  const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
   return addUtcDays(d.getTime(), diff);
 }
@@ -132,18 +131,12 @@ function overlaps(
   return aStart <= bEnd && aEnd >= bStart;
 }
 
-function statusTone(status: string): string {
+function statusTone(status: string): "blocked" | "done" | "progress" | "ready" {
   const s = status.toUpperCase();
-  if (s.includes("BLOCK") || s === "CANCELLED") {
-    return "bg-[var(--scania-red-400,#d1001b)] text-white";
-  }
-  if (s.includes("DONE") || s.includes("COMPLETE")) {
-    return "bg-[#00664f] text-white";
-  }
-  if (s.includes("PROGRESS") || s.includes("ACTIVE")) {
-    return "bg-[var(--scania-blue-700,#0f3263)] text-white";
-  }
-  return "bg-[var(--scania-blue-500,#2058a8)] text-white";
+  if (s.includes("BLOCK") || s === "CANCELLED") return "blocked";
+  if (s.includes("DONE") || s.includes("COMPLETE")) return "done";
+  if (s.includes("PROGRESS") || s.includes("ACTIVE")) return "progress";
+  return "ready";
 }
 
 /**
@@ -205,7 +198,7 @@ export function PiPlanningCalendar({
 
   if (buckets.length === 0) {
     return (
-      <p className="tegel-card p-4 text-sm text-[var(--muted)]" role="status">
+      <p className="pi-empty" role="status">
         PI dates are missing or invalid — set the planning period in Settings.
       </p>
     );
@@ -213,121 +206,136 @@ export function PiPlanningCalendar({
 
   if (rows.length === 0) {
     return (
-      <p className="tegel-card p-4 text-sm text-[var(--muted)]" role="status">
+      <p className="pi-empty" role="status">
         No allocated work matches the current filters. Switch to Detail to
         allocate from the backlog, or clear filters.
       </p>
     );
   }
 
-  const colMin = granularity === "week" ? "110px" : "140px";
-  const columnTemplate = `180px repeat(${buckets.length}, minmax(${colMin}, 1fr))`;
+  const colMin = granularity === "week" ? "112px" : "148px";
+  const columnTemplate = `188px repeat(${buckets.length}, minmax(${colMin}, 1fr))`;
   const laneTemplate = `repeat(${buckets.length}, minmax(${colMin}, 1fr))`;
 
   return (
     <div
-      className="tegel-card overflow-x-auto"
+      className="pi-cal"
       data-testid="pi-planning-calendar"
       data-granularity={granularity}
     >
-      <div className="min-w-[720px] text-xs">
-        <div
-          className="grid border-b border-[var(--scania-grey-200)] bg-[#e8eef8] font-bold text-[var(--scania-blue-900)]"
-          style={{ gridTemplateColumns: columnTemplate }}
-        >
-          <div className="p-3">Team</div>
-          {buckets.map((b) => (
+      <div className="pi-cal-legend" aria-hidden>
+        <span className="pi-cal-legend-item">
+          <span className="pi-cal-swatch" data-tone="progress" /> In progress
+        </span>
+        <span className="pi-cal-legend-item">
+          <span className="pi-cal-swatch" data-tone="ready" /> Ready / planned
+        </span>
+        <span className="pi-cal-legend-item">
+          <span className="pi-cal-swatch" data-tone="done" /> Done
+        </span>
+        <span className="pi-cal-legend-item">
+          <span className="pi-cal-swatch" data-tone="blocked" /> Blocked
+        </span>
+      </div>
+      <div className="pi-cal-scroll">
+        <div className="pi-cal-grid">
+          <div
+            className="pi-cal-head"
+            style={{ gridTemplateColumns: columnTemplate }}
+          >
+            <div>Team</div>
+            {buckets.map((b) => (
+              <div key={b.key}>
+                {b.label}
+                <span className="pi-cal-head-sub">{b.sublabel}</span>
+              </div>
+            ))}
+          </div>
+
+          {rows.map((row) => (
             <div
-              key={b.key}
-              className="border-l border-[var(--scania-grey-200)] p-3 text-center"
+              key={row.teamId}
+              className="pi-cal-row"
+              style={{ gridTemplateColumns: columnTemplate }}
+              data-testid={`pi-calendar-row-${row.teamId}`}
             >
-              {b.label}
-              <span className="mt-1 block font-normal text-[var(--muted)]">
-                {b.sublabel}
-              </span>
+              <div className="pi-cal-team">
+                {row.teamName}
+                <span>
+                  {row.departmentName} · {row.items.length} item
+                  {row.items.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div
+                className="pi-cal-lane"
+                style={{ gridColumn: `2 / span ${buckets.length}` }}
+              >
+                <div
+                  className="pi-cal-lanes"
+                  style={{ gridTemplateColumns: laneTemplate }}
+                  aria-hidden
+                >
+                  {buckets.map((b) => (
+                    <div key={b.key} />
+                  ))}
+                </div>
+                <div
+                  className="pi-cal-items"
+                  style={{ gridTemplateColumns: laneTemplate }}
+                >
+                  {row.items.map((item) => {
+                    const it = iterationById.get(item.iterationId);
+                    if (!it) return null;
+                    const itemStart = startOfUtcDay(Date.parse(it.startDate));
+                    const itemEnd = startOfUtcDay(Date.parse(it.endDate));
+                    if (
+                      !Number.isFinite(itemStart) ||
+                      !Number.isFinite(itemEnd)
+                    ) {
+                      return null;
+                    }
+                    let startCol = -1;
+                    let endCol = -1;
+                    buckets.forEach((b, index) => {
+                      if (overlaps(itemStart, itemEnd, b.startMs, b.endMs)) {
+                        if (startCol < 0) startCol = index + 1;
+                        endCol = index + 1;
+                      }
+                    });
+                    if (startCol < 0 || endCol < 0) return null;
+                    const span = Math.max(1, endCol - startCol + 1);
+                    const tone = statusTone(item.card.workItem.status);
+                    return (
+                      <button
+                        key={item.allocationId}
+                        type="button"
+                        className="pi-cal-item"
+                        data-tone={tone}
+                        style={{ gridColumn: `${startCol} / span ${span}` }}
+                        title={`${item.card.workItem.title} · ${it.name} · ${item.plannedHours}h`}
+                        onClick={() =>
+                          onSelectAllocation?.(item.allocationId)
+                        }
+                        data-testid={`pi-calendar-item-${item.allocationId}`}
+                      >
+                        <div className="pi-cal-item-key">
+                          {item.card.workItem.referenceKey}
+                        </div>
+                        <div className="pi-cal-item-meta">
+                          {item.card.workItem.project.referenceKey}
+                          {item.card.workItem.project.initiative
+                            ? ` · ${item.card.workItem.project.initiative.referenceKey}`
+                            : ""}{" "}
+                          · {item.plannedHours}h
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           ))}
         </div>
-
-        {rows.map((row) => (
-          <div
-            key={row.teamId}
-            className="grid min-h-[4.5rem] border-b border-[var(--scania-grey-100)] last:border-b-0"
-            style={{ gridTemplateColumns: columnTemplate }}
-            data-testid={`pi-calendar-row-${row.teamId}`}
-          >
-            <div className="bg-[var(--scania-grey-50)] p-3 font-bold text-[var(--scania-blue-900)]">
-              {row.teamName}
-              <span className="mt-1 block font-normal text-[var(--muted)]">
-                {row.departmentName} · {row.items.length} item
-                {row.items.length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <div
-              className="relative min-h-[4.5rem]"
-              style={{ gridColumn: `2 / span ${buckets.length}` }}
-            >
-              <div
-                className="pointer-events-none absolute inset-0 grid"
-                style={{ gridTemplateColumns: laneTemplate }}
-                aria-hidden
-              >
-                {buckets.map((b) => (
-                  <div
-                    key={b.key}
-                    className="border-l border-[var(--scania-grey-100)] bg-white"
-                  />
-                ))}
-              </div>
-              <div
-                className="relative grid gap-y-1 py-2"
-                style={{ gridTemplateColumns: laneTemplate }}
-              >
-                {row.items.map((item) => {
-                  const it = iterationById.get(item.iterationId);
-                  if (!it) return null;
-                  const itemStart = startOfUtcDay(Date.parse(it.startDate));
-                  const itemEnd = startOfUtcDay(Date.parse(it.endDate));
-                  if (!Number.isFinite(itemStart) || !Number.isFinite(itemEnd)) {
-                    return null;
-                  }
-                  let startCol = -1;
-                  let endCol = -1;
-                  buckets.forEach((b, index) => {
-                    if (overlaps(itemStart, itemEnd, b.startMs, b.endMs)) {
-                      if (startCol < 0) startCol = index + 1;
-                      endCol = index + 1;
-                    }
-                  });
-                  if (startCol < 0 || endCol < 0) return null;
-                  const span = Math.max(1, endCol - startCol + 1);
-                  return (
-                    <button
-                      key={item.allocationId}
-                      type="button"
-                      className={`z-10 mx-1 min-w-0 self-start overflow-hidden rounded-[4px] px-2 py-1.5 text-left shadow-sm ${statusTone(item.card.workItem.status)}`}
-                      style={{ gridColumn: `${startCol} / span ${span}` }}
-                      title={`${item.card.workItem.title} · ${it.name} · ${item.plannedHours}h`}
-                      onClick={() => onSelectAllocation?.(item.allocationId)}
-                      data-testid={`pi-calendar-item-${item.allocationId}`}
-                    >
-                      <div className="truncate font-bold">
-                        {item.card.workItem.referenceKey}
-                      </div>
-                      <div className="truncate text-[10px] text-white/85">
-                        {item.card.workItem.project.referenceKey}
-                        {item.card.workItem.project.initiative
-                          ? ` · ${item.card.workItem.project.initiative.referenceKey}`
-                          : ""}{" "}
-                        · {item.plannedHours}h
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
