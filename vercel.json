@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "npm install",
-  "buildCommand": "prisma generate && node scripts/maybe-migrate-deploy.mjs && node scripts/maybe-seed-demo.mjs && next build",
+  "buildCommand": "prisma generate && node scripts/maybe-migrate-deploy.mjs && node scripts/ensure-local-login-credentials.mjs && node scripts/maybe-seed-demo.mjs && next build",
   "regions": ["iad1"]
 }
