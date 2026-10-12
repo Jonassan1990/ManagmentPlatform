@@ -39,9 +39,8 @@ export function migrateEnv(baseEnv = process.env) {
 }
 
 export function sleepSync(ms) {
-  spawnSync(process.execPath, ["-e", `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,${ms})`], {
-    stdio: "ignore",
-  });
+  const seconds = Math.max(1, Math.ceil(ms / 1000));
+  spawnSync("sleep", [String(seconds)], { stdio: "ignore" });
 }
 
 /**
