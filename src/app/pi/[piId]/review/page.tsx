@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { humanize } from "@/components/governance/governance-panels";
 import { TransitionPiButtons } from "@/components/pi-planning/pi-forms";
 import { PiTabs, piStatusLabel } from "@/components/pi-planning/pi-nav";
+import { buttonClassName } from "@/components/ui/button";
 import {
   PiPlanningWorkflowBar,
   PiWorkflowPrimaryActionCard,
@@ -372,7 +373,7 @@ export default async function PiReviewPage({
               {pi.status === "REVIEW" && capabilities.canBaselinePi ? (
                 <Link
                   href={baselineHref}
-                  className="mt-4 inline-block rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                  className={buttonClassName({ variant: "primary", className: "mt-4" })}
                 >
                   Go to baseline
                 </Link>

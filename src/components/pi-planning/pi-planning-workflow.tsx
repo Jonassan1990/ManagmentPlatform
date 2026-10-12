@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
+import { buttonClassName } from "@/components/ui/button";
 import type { StatusBadgeMapping } from "@/components/ui/status-adapters";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { readinessClassificationLabel } from "@/modules/pi-planning/application/pi-planning-presentation";
@@ -150,11 +151,11 @@ export function PiWorkflowPrimaryActionCard({
         {action.href ? (
           <Link
             href={action.href}
-            className={`inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] ${
-              action.blocked
-                ? "border border-[var(--line)] text-[var(--muted)]"
-                : "bg-[var(--accent)] text-white hover:brightness-110"
-            }`}
+            className={buttonClassName({
+              variant: action.blocked ? "secondary" : "primary",
+              size: "sm",
+              className: "shrink-0",
+            })}
           >
             {action.blocked ? "See blockers" : "Go to step"}
           </Link>

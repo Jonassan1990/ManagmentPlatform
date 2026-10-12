@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { buttonClassName } from "@/components/ui/button";
 import { fieldClassName } from "@/components/ui/forms";
 import type { PrincipalCapabilities } from "@/modules/identity-access/application/capabilities";
 import { AllocateWorkForm } from "./move-work-form";
@@ -90,7 +91,11 @@ export function BacklogPanel({
                   canAllocate ? (
                     <button
                       type="button"
-                      className="text-[11px] font-bold text-[var(--accent)]"
+                      className={buttonClassName({
+                        variant: "ghost",
+                        size: "sm",
+                        className: "px-0",
+                      })}
                       onClick={() =>
                         setOpenId((id) => (id === item.id ? null : item.id))
                       }
@@ -226,7 +231,10 @@ export function BoardFilters({
       {hasActive ? (
         <button
           type="button"
-          className="pi-filter-clear"
+          className={buttonClassName({
+            variant: "ghost",
+            size: "sm",
+          })}
           onClick={() =>
             onChange({
               departmentId: "",

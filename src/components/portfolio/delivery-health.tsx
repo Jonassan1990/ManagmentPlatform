@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonClassName } from "@/components/ui/button";
 import { EmptyState, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { mapDeliveryHealthBadge } from "@/components/ui/status-adapters";
@@ -269,7 +270,7 @@ export function DeliveryHealthAttentionList({
                 departmentId,
                 healthFocus: null,
               })}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+              className={buttonClassName({ variant: "secondary", size: "sm" })}
             >
               Clear health focus
             </Link>
@@ -285,7 +286,7 @@ export function DeliveryHealthAttentionList({
                 ? `&deliveryHealth=${healthFocus}&kind=PROJECT`
                 : "&kind=PROJECT&deliveryHealth=AT_RISK"
             }`}
-            className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+            className={buttonClassName({ variant: "secondary", size: "sm" })}
           >
             Open in explorer
           </Link>
@@ -569,13 +570,13 @@ export function DeliveryHealthExplanation({
           <div className="flex flex-wrap gap-2">
             <Link
               href={projectHref}
-              className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+              className={buttonClassName({ variant: "primary", size: "sm" })}
             >
               Open project
             </Link>
             <Link
               href={hubHref}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+              className={buttonClassName({ variant: "secondary", size: "sm" })}
             >
               Health hub
             </Link>
@@ -584,7 +585,7 @@ export function DeliveryHealthExplanation({
                 `/portfolio?organizationId=${organizationId}`,
                 ret,
               )}
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+              className={buttonClassName({ variant: "secondary", size: "sm" })}
             >
               Portfolio
             </Link>

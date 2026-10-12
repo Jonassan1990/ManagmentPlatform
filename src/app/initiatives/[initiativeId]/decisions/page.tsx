@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { buttonClassName } from "@/components/ui/button";
 import {
   RecordDecisionForm,
   ResolveConditionForm,
@@ -258,7 +259,7 @@ export default async function InitiativeDecisionsPage({
               action={
                 <Link
                   href={`/initiatives/${item.id}/governance`}
-                  className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                  className={buttonClassName({ variant: "primary" })}
                 >
                   Open governance
                 </Link>

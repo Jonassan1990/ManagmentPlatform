@@ -1,6 +1,7 @@
 "use client";
 
 import { humanize } from "@/components/governance/governance-panels";
+import { buttonClassName } from "@/components/ui/button";
 import { formatHours } from "./pi-nav";
 
 export type InitiativeRef = {
@@ -113,6 +114,11 @@ export function WorkCard({
         <div className="pi-card-actions">
           <button
             type="button"
+            className={buttonClassName({
+              variant: "ghost",
+              size: "sm",
+              className: "px-0",
+            })}
             onClick={onToggleExpand}
             aria-expanded={expanded}
             aria-label={

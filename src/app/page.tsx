@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getHomeDashboardAction } from "@/app/actions/home";
 import { HomeDashboardView } from "@/components/home/home-dashboard-view";
 import { Breadcrumbs, EmptyState, Panel } from "@/components/ui/page";
+import { buttonClassName } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function HomePage() {
             action={
               <Link
                 href="/login"
-                className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition-[filter] duration-[var(--transition-fast)] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+                className={buttonClassName({ variant: "primary" })}
               >
                 Sign in
               </Link>
@@ -55,7 +56,7 @@ export default async function HomePage() {
           action={
             <Link
               href="/organization/setup"
-              className="inline-flex min-h-11 items-center rounded-md bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition-[filter] duration-[var(--transition-fast)] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+              className={buttonClassName({ variant: "primary" })}
             >
               Set up organization
             </Link>

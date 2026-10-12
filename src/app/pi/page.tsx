@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { buttonClassName } from "@/components/ui/button";
 import {
   Breadcrumbs,
   EmptyState,
@@ -32,7 +33,7 @@ export default async function PiListPage() {
           action={
             <Link
               href="/organization/setup"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+              className={buttonClassName({ variant: "primary" })}
             >
               Set up organization
             </Link>
@@ -91,7 +92,7 @@ export default async function PiListPage() {
           canCreateSomewhere ? (
             <Link
               href="/pi/new"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+              className={buttonClassName({ variant: "primary" })}
             >
               New Program Increment
             </Link>
@@ -108,7 +109,7 @@ export default async function PiListPage() {
               canCreateSomewhere ? (
                 <Link
                   href="/pi/new"
-                  className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                  className={buttonClassName({ variant: "primary" })}
                 >
                   Create Program Increment
                 </Link>
