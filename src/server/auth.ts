@@ -16,6 +16,12 @@ import {
 } from "@/server/env";
 import { logger } from "@/server/logger";
 
+const FAILURE_DELAY_MS = 400;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 declare module "next-auth" {
   interface Session {
     principalId?: string;
@@ -77,11 +83,12 @@ function buildAuthConfig(): NextAuthConfig {
     });
   }
 
-  if (tempConfig) {
+  const secretForCredentials = resolveAuthSecret();
+  if (tempConfig || secretForCredentials) {
     providers.push(
       Credentials({
         id: TEMP_AUTH_PROVIDER_ID,
-        name: "Temporary owner access",
+        name: "Username and password",
         credentials: {
           username: { label: "Username", type: "text" },
           password: { label: "Password", type: "password" },
@@ -96,38 +103,63 @@ function buildAuthConfig(): NextAuthConfig {
               ? credentials.password
               : "";
 
-          const ok = await verifyTempAuthCredentials({
-            username,
-            password,
-            config: tempConfig,
-          });
-          if (!ok) {
-            return null;
-          }
-
           const identity = new IdentityService(
             prisma,
             new AuthorizationService(prisma),
             new AuditService(prisma),
           );
+
+          // 1) Admin-created local test users (DB)
           try {
-            const principal = await identity.resolveOrCreateFromTempAuth({
-              principalId: tempConfig.TEMP_AUTH_PRINCIPAL_ID,
-              username: tempConfig.TEMP_AUTH_USERNAME,
-              displayName:
-                tempConfig.TEMP_AUTH_DISPLAY_NAME ?? "Platform Owner",
+            const local = await identity.authenticateLocalLogin({
+              username,
+              password,
             });
-            return {
-              id: principal.id,
-              name: principal.displayName,
-              principalId: principal.id,
-            };
+            if (local) {
+              return {
+                id: local.id,
+                name: local.displayName,
+                principalId: local.id,
+              };
+            }
           } catch (error) {
-            logger.error("auth.temp_identity_failed", {
+            logger.error("auth.local_login_failed", {
               reason: error instanceof Error ? error.name : "unknown",
             });
-            return null;
           }
+
+          // 2) Env-configured temporary owner (ADR-026)
+          if (tempConfig) {
+            const ok = await verifyTempAuthCredentials({
+              username,
+              password,
+              config: tempConfig,
+            });
+            if (!ok) {
+              return null;
+            }
+            try {
+              const principal = await identity.resolveOrCreateFromTempAuth({
+                principalId: tempConfig.TEMP_AUTH_PRINCIPAL_ID,
+                username: tempConfig.TEMP_AUTH_USERNAME,
+                displayName:
+                  tempConfig.TEMP_AUTH_DISPLAY_NAME ?? "Platform Owner",
+              });
+              return {
+                id: principal.id,
+                name: principal.displayName,
+                principalId: principal.id,
+              };
+            } catch (error) {
+              logger.error("auth.temp_identity_failed", {
+                reason: error instanceof Error ? error.name : "unknown",
+              });
+              return null;
+            }
+          }
+
+          await sleep(FAILURE_DELAY_MS);
+          return null;
         },
       }),
     );

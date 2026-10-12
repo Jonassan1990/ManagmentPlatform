@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "crypto";
+import { hash as bcryptHash, compare as bcryptCompare } from "bcryptjs";
 import { PrismaClient, ScopeType } from "@prisma/client";
 import { AuditService } from "@/modules/audit/application/audit-service";
 import { AppError } from "@/modules/shared/errors";
@@ -6,7 +7,10 @@ import { PERMISSIONS, ROLE_KEYS } from "@/modules/shared/permissions";
 import type { Principal } from "../domain/types";
 import { AuthorizationService } from "./authorization-service";
 import { getBootstrapSetupToken } from "@/server/env";
-import { TEMP_AUTH_ISSUER } from "./temp-auth-constants";
+import {
+  LOCAL_LOGIN_ISSUER,
+  TEMP_AUTH_ISSUER,
+} from "./temp-auth-constants";
 
 export type OidcIdentityInput = {
   issuer: string;
@@ -294,6 +298,195 @@ export class IdentityService {
       email: principal.email ?? undefined,
       source: "temp",
     };
+  }
+
+  /**
+   * Create a Principal with local username/password for testing, and optionally
+   * assign an organization-scoped role binding in the same operation.
+   * Requires ROLE_MANAGE on the target organization.
+   */
+  async createLocalTestUser(
+    actor: Principal,
+    input: {
+      organizationId: string;
+      username: string;
+      password: string;
+      displayName?: string | null;
+      roleDefinitionId?: string | null;
+      scopeType?: ScopeType;
+      scopeId?: string | null;
+    },
+  ): Promise<{
+    principalId: string;
+    username: string;
+    displayName: string | null;
+    roleBindingId: string | null;
+  }> {
+    await this.authz.assertCan(actor, PERMISSIONS.ROLE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId: input.organizationId,
+    });
+
+    const username = input.username.trim().toLowerCase();
+    const displayName = input.displayName?.trim() || username;
+    if (!/^[a-z0-9][a-z0-9._-]{2,63}$/.test(username)) {
+      throw new AppError(
+        "VALIDATION",
+        "Username must be 3–64 characters: letters, numbers, . _ - (start with letter/number).",
+      );
+    }
+    if (input.password.length < 8 || input.password.length > 200) {
+      throw new AppError(
+        "VALIDATION",
+        "Password must be between 8 and 200 characters.",
+      );
+    }
+
+    const taken = await this.db.localLoginCredential.findUnique({
+      where: { username },
+    });
+    if (taken) {
+      throw new AppError("CONFLICT", "That username is already in use.");
+    }
+
+    const passwordHash = await bcryptHash(input.password, 10);
+
+    const created = await this.db.$transaction(async (tx) => {
+      const principal = await tx.principal.create({
+        data: { displayName },
+      });
+      await tx.localLoginCredential.create({
+        data: {
+          principalId: principal.id,
+          username,
+          passwordHash,
+          displayName,
+          createdByPrincipalId: actor.id,
+        },
+      });
+      await tx.externalIdentity.create({
+        data: {
+          issuer: LOCAL_LOGIN_ISSUER,
+          subject: username,
+          principalId: principal.id,
+          displayNameSnapshot: displayName,
+        },
+      });
+      return principal;
+    });
+
+    let roleBindingId: string | null = null;
+    if (input.roleDefinitionId) {
+      const scopeType = input.scopeType ?? ScopeType.ORGANIZATION;
+      const binding = await this.authz.assignRoleBinding(actor, {
+        principalId: created.id,
+        roleDefinitionId: input.roleDefinitionId,
+        scopeType,
+        organizationId: input.organizationId,
+        scopeId:
+          scopeType === ScopeType.ORGANIZATION
+            ? input.organizationId
+            : input.scopeId ?? null,
+      });
+      roleBindingId = binding.id;
+    }
+
+    await this.audit.record({
+      actorPrincipalId: actor.id,
+      actionType: "identity.local_login.create",
+      subjectType: "Principal",
+      subjectId: created.id,
+      organizationId: input.organizationId,
+      payload: {
+        username,
+        roleAssigned: Boolean(roleBindingId),
+      },
+      result: "success",
+    });
+
+    return {
+      principalId: created.id,
+      username,
+      displayName,
+      roleBindingId,
+    };
+  }
+
+  /**
+   * Authenticate a local test user by username/password.
+   * Returns Principal on success, null on failure (caller applies delay/throttle).
+   */
+  async authenticateLocalLogin(input: {
+    username: string;
+    password: string;
+  }): Promise<Principal | null> {
+    const username = input.username.trim().toLowerCase();
+    if (!username || !input.password) return null;
+
+    const row = await this.db.localLoginCredential.findUnique({
+      where: { username },
+      include: { principal: true },
+    });
+    if (!row || row.disabledAt) return null;
+
+    let ok = false;
+    try {
+      ok = await bcryptCompare(input.password, row.passwordHash);
+    } catch {
+      ok = false;
+    }
+    if (!ok) return null;
+
+    await this.db.externalIdentity.updateMany({
+      where: {
+        issuer: LOCAL_LOGIN_ISSUER,
+        subject: username,
+        principalId: row.principalId,
+      },
+      data: { lastLoginAt: new Date() },
+    });
+
+    return {
+      id: row.principal.id,
+      displayName: row.displayName ?? row.principal.displayName,
+      email: row.principal.email ?? undefined,
+      source: "local",
+    };
+  }
+
+  async listLocalLogins(actor: Principal, organizationId: string) {
+    await this.authz.assertCan(actor, PERMISSIONS.ROLE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId,
+    });
+    // Local logins are platform-wide credentials; list those with a binding in this org
+    // plus recently created ones that may not yet have bindings (createdBy actor in org).
+    const bindings = await this.db.roleBinding.findMany({
+      where: {
+        organizationId,
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: new Date() } }],
+      },
+      select: { principalId: true },
+    });
+    const principalIds = [...new Set(bindings.map((b) => b.principalId))];
+    return this.db.localLoginCredential.findMany({
+      where: {
+        OR: [
+          { principalId: { in: principalIds } },
+          { createdByPrincipalId: actor.id },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        principalId: true,
+        disabledAt: true,
+        createdAt: true,
+      },
+    });
   }
 
   /**

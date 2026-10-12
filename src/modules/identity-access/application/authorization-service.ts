@@ -14,7 +14,10 @@ import {
   type OwnershipRelationship,
 } from "./relationship-policy";
 import { logger } from "@/server/logger";
-import { TEMP_AUTH_ISSUER } from "./temp-auth-constants";
+import {
+  LOCAL_LOGIN_ISSUER,
+  TEMP_AUTH_ISSUER,
+} from "./temp-auth-constants";
 
 export class AuthorizationService {
   constructor(private readonly db: PrismaClient) {}
@@ -68,20 +71,27 @@ export class AuthorizationService {
         where: { id: principalId },
         include: {
           externalIdentities: {
-            where: { issuer: TEMP_AUTH_ISSUER },
-            take: 1,
+            where: {
+              issuer: { in: [TEMP_AUTH_ISSUER, LOCAL_LOGIN_ISSUER] },
+            },
+            take: 2,
           },
         },
       });
       if (!row) {
         return null;
       }
-      const viaTemp = row.externalIdentities.length > 0;
+      const viaTemp = row.externalIdentities.some(
+        (ei) => ei.issuer === TEMP_AUTH_ISSUER,
+      );
+      const viaLocal = row.externalIdentities.some(
+        (ei) => ei.issuer === LOCAL_LOGIN_ISSUER,
+      );
       return {
         id: row.id,
         displayName: row.displayName,
         email: row.email,
-        source: viaTemp ? "temp" : "oidc",
+        source: viaTemp ? "temp" : viaLocal ? "local" : "oidc",
       };
     } catch {
       return null;

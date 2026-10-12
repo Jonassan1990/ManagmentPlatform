@@ -2,11 +2,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
   AssignRoleBindingForm,
+  CreateLocalTestUserForm,
+  LocalLoginsList,
   RoleBindingsTable,
 } from "@/components/organization/access-forms";
+import { buttonClassName } from "@/components/ui/button";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
-import { createServices } from "@/server/container";
 import { PERMISSIONS } from "@/modules/shared/permissions";
+import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +19,7 @@ export default async function OrganizationAccessPage({
   params: Promise<{ organizationId: string }>;
 }) {
   const { organizationId } = await params;
-  const { authz, organization } = createServices();
+  const { authz, identity, organization } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
 
@@ -36,10 +39,11 @@ export default async function OrganizationAccessPage({
   }
   if (!hierarchy) notFound();
 
-  const [roles, principals, bindings] = await Promise.all([
+  const [roles, principals, bindings, localLogins] = await Promise.all([
     authz.listRoleDefinitions(principal, organizationId),
     authz.listOrganizationPrincipals(principal, organizationId),
     authz.listRoleBindings(principal, organizationId),
+    identity.listLocalLogins(principal, organizationId),
   ]);
 
   const sections = hierarchy.sections.map((s) => ({
@@ -73,17 +77,29 @@ export default async function OrganizationAccessPage({
       />
       <PageHeader
         title="Access & roles"
-        description="Assign RoleDefinition packs to Principals at Organization, Section, Department, or Team scope. Roles are permission packs — scope comes from the binding."
+        description="Create local test users, then assign RoleDefinition packs at Organization, Section, Department, or Team scope."
         actions={
           <Link
             href={`/organization/${organizationId}`}
-            className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+            className={buttonClassName({ variant: "secondary", size: "sm" })}
           >
             Back to organization
           </Link>
         }
       />
       <div className="grid gap-4 lg:grid-cols-2">
+        <Panel>
+          <CreateLocalTestUserForm
+            organizationId={organizationId}
+            roles={roles}
+            sections={sections}
+            departments={departments}
+            teams={teams}
+          />
+        </Panel>
+        <Panel>
+          <LocalLoginsList logins={localLogins} />
+        </Panel>
         <Panel>
           <AssignRoleBindingForm
             organizationId={organizationId}
@@ -95,7 +111,10 @@ export default async function OrganizationAccessPage({
           />
         </Panel>
         <Panel>
-          <RoleBindingsTable bindings={bindings} organizationId={organizationId} />
+          <RoleBindingsTable
+            bindings={bindings}
+            organizationId={organizationId}
+          />
         </Panel>
       </div>
       <Panel className="mt-4">

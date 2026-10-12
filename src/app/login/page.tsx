@@ -7,6 +7,7 @@ import {
   isDevAuthEnabled,
   isOidcConfigured,
   isTempAuthConfigured,
+  resolveAuthSecret,
 } from "@/server/env";
 import { SignInButton } from "./sign-in-button";
 import { TempCredentialsForm } from "./temp-credentials-form";
@@ -28,9 +29,10 @@ export default async function LoginPage({
   const env = getEnv();
   const oidc = isOidcConfigured();
   const tempAuth = isTempAuthConfigured();
+  const passwordLogin = tempAuth || Boolean(resolveAuthSecret());
   const dev = isDevAuthEnabled(env);
   const callbackUrl = params.callbackUrl ?? "/";
-  const hasProvider = oidc || tempAuth;
+  const hasProvider = oidc || passwordLogin;
 
   return (
     <div className="mx-auto max-w-lg py-10">
@@ -65,19 +67,18 @@ export default async function LoginPage({
         </Panel>
       ) : null}
 
-      {tempAuth ? (
+      {passwordLogin ? (
         <Panel>
           <h2 className="mb-2 font-medium">
-            {oidc ? "Temporary owner access" : "Sign in"}
+            {oidc ? "Username and password" : "Sign in"}
           </h2>
           {oidc ? (
             <p className="mb-4 text-sm text-[var(--muted)]">
-              Temporary credentials for platform recovery. Prefer SSO when
-              available.
+              Temporary owner or local test users. Prefer SSO when available.
             </p>
           ) : (
             <p className="mb-4 text-sm text-[var(--muted)]">
-              Enter your owner username and password.
+              Enter username and password (owner or local test user).
             </p>
           )}
           <TempCredentialsForm callbackUrl={callbackUrl} />
