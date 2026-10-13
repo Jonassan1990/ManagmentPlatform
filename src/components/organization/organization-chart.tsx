@@ -133,9 +133,21 @@ function PersonRow({ person }: { person: ChartMember }) {
   );
 }
 
-function DepartmentPeople({ department }: { department: ChartDepartment }) {
+function DepartmentPeople({
+  department,
+  selected = false,
+  anchor = false,
+}: {
+  department: ChartDepartment;
+  selected?: boolean;
+  anchor?: boolean;
+}) {
   return (
-    <section className="mp-org-roster" aria-label={`People in ${department.name}`}>
+    <section
+      id={anchor ? `org-dept-${department.id}` : undefined}
+      className={`mp-org-roster ${selected ? "is-selected" : ""}`}
+      aria-label={`People in ${department.name}`}
+    >
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="mp-card-title">{department.name}</h3>
         <Link href={department.href} className="mp-org-open">
@@ -185,6 +197,14 @@ export function OrganizationChart({
     name: department.label,
     teams: department.teams.map((team) => ({ id: team.id, name: team.name })),
   }));
+
+  useEffect(() => {
+    if (!openDepartmentId) return;
+    if (!window.matchMedia("(min-width: 1280px)").matches) return;
+    document.getElementById(`org-dept-${openDepartmentId}`)?.scrollIntoView({
+      block: "nearest",
+    });
+  }, [openDepartmentId]);
 
   useEffect(() => {
     if (view !== "organization") return;
@@ -312,17 +332,51 @@ export function OrganizationChart({
               </li>
             </ul>
           </div>
-          <aside className="mp-org-side">
-            {open ? (
-              <DepartmentPeople department={open} />
-            ) : (
-              <section className="mp-org-roster">
-                <h3 className="mp-card-title">People in a department</h3>
-                <p className="mt-2 text-sm text-[var(--muted)]">
-                  Click a department to see who belongs there.
-                </p>
+          <aside className="mp-org-side" aria-label="Departments and people">
+            <div className="mp-org-focus">
+              {open ? (
+                <DepartmentPeople department={open} selected />
+              ) : (
+                <section className="mp-org-roster">
+                  <h3 className="mp-card-title">People in a department</h3>
+                  <p className="mt-2 text-sm text-[var(--muted)]">
+                    Click a department to see who belongs there.
+                  </p>
+                </section>
+              )}
+            </div>
+            <div className="mp-org-directory">
+              <h3 className="mp-card-title">Departments and people</h3>
+              {chart.sections.map((section) => (
+                <div key={section.id}>
+                  <p className="mp-org-side-section">{section.name}</p>
+                  <div className="mt-2 space-y-2">
+                    {section.departments.map((department) => (
+                      <DepartmentPeople
+                        key={department.id}
+                        department={department}
+                        selected={openDepartmentId === department.id}
+                        anchor
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <section className="mp-org-roster" aria-label="People without a department">
+                <h3 className="mp-card-title">Unassigned</h3>
+                {chart.unassigned.length === 0 ? (
+                  <p className="mt-2 text-sm text-[var(--muted)]">
+                    Everyone belongs to a department.
+                  </p>
+                ) : (
+                  <ul className="mp-org-person-list mt-2">
+                    {chart.unassigned.map((person) => (
+                      <PersonRow key={person.id} person={person} />
+                    ))}
+                  </ul>
+                )}
               </section>
-            )}
+            </div>
           </aside>
         </div>
       ) : (
