@@ -22,7 +22,7 @@ export function OrganizationList({ orgs }: { orgs: OrganizationListItem[] }) {
         const editing = editingId === org.id;
         return (
           <li key={org.id} className="py-3">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <Link
                 href={`/organization/${org.id}`}
                 className="block min-h-11 min-w-0 flex-1 rounded-sm py-1 hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
@@ -37,6 +37,7 @@ export function OrganizationList({ orgs }: { orgs: OrganizationListItem[] }) {
                   type="button"
                   className={buttonClassName({ variant: "secondary", size: "sm" })}
                   aria-expanded={editing}
+                  aria-label={editing ? `Close edit for ${org.name}` : `Edit ${org.name}`}
                   onClick={() => setEditingId(editing ? null : org.id)}
                 >
                   {editing ? "Close" : "Edit"}

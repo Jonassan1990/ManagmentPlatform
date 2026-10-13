@@ -157,10 +157,17 @@ export class OrganizationService {
     if (!existing || existing.status === EntityStatus.ARCHIVED) {
       throw new AppError("NOT_FOUND", "Organization not found.");
     }
-    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
-      type: "ORGANIZATION",
-      organizationId: existing.id,
-    });
+    const canEditInOrg = await this.authz.can(
+      principal,
+      PERMISSIONS.ORG_STRUCTURE_MANAGE,
+      { type: "ORGANIZATION", organizationId: existing.id },
+    );
+    if (!canEditInOrg) {
+      // Platform structure managers can create organizations; they can edit them too.
+      await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
+        type: "PLATFORM",
+      });
+    }
     if (existing.version !== input.expectedVersion) {
       throw new AppError(
         "STALE_VERSION",

@@ -36,10 +36,12 @@ export default async function OrganizationIndexPage() {
       name: org.name,
       description: org.description,
       version: org.version,
-      canEdit: await authz.can(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
-        type: "ORGANIZATION",
-        organizationId: org.id,
-      }),
+      canEdit:
+        canCreateAnother ||
+        (await authz.can(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
+          type: "ORGANIZATION",
+          organizationId: org.id,
+        })),
     })),
   );
 
