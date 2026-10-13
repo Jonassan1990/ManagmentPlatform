@@ -59,7 +59,7 @@ export default async function DepartmentPage({
         title={department.name}
         description={department.description ?? "Department workspace"}
       />
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
           <Panel>
             <h2 className="mp-section-title mb-3">People</h2>

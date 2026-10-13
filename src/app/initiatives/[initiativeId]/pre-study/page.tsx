@@ -78,7 +78,7 @@ export default async function PreStudyPage({
           </p>
         </Panel>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4">
             <ReadinessPanel readiness={workspace.readiness} />
             <Panel>

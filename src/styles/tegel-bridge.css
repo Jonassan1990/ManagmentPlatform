@@ -149,27 +149,36 @@ h6,
   letter-spacing: 0;
 }
 
-/* Body-sans headings — beats Tegel h1 40px / h2 32px / h3 24px condensed. */
+/* Body-sans headings — beats Tegel h1 40px / h2 32px / h3 24px condensed.
+   Sizes grow from phone to a large desktop without jumping to display type. */
+.tegel-rm h1,
+.tegel-rm h2,
+.tegel-rm h3,
 .tegel-rm h1.mp-page-title,
 .tegel-rm h2.mp-section-title,
 .tegel-rm h3.mp-card-title {
   font-family: var(--app-font-body);
-  font-weight: 600;
-  letter-spacing: -0.011em;
+  font-weight: 650;
+  letter-spacing: -0.015em;
   text-transform: none;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
+.tegel-rm h1,
 .tegel-rm h1.mp-page-title {
-  font-size: 1.5rem;
+  font-size: clamp(1.45rem, 1.15rem + 1.1vw, 2rem);
 }
 
+.tegel-rm h2,
 .tegel-rm h2.mp-section-title {
-  font-size: 1.0625rem;
+  font-size: clamp(1.05rem, 0.95rem + 0.45vw, 1.35rem);
+  font-weight: 650;
 }
 
+.tegel-rm h3,
 .tegel-rm h3.mp-card-title {
-  font-size: 0.9375rem;
+  font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
+  font-weight: 600;
 }
 
 nav,

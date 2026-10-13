@@ -53,7 +53,7 @@ export default async function SectionPage({
         title={section.name}
         description={section.description ?? "Section workspace"}
       />
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel>
           <h2 className="mb-3 font-medium">Departments</h2>
           {departments.length === 0 ? (

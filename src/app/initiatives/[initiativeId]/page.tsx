@@ -287,7 +287,7 @@ export default async function InitiativeOverviewPage({
         </NextActionPanel>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="space-y-4">
           <SituationOverview
             problem={item.demand?.problemOpportunity}

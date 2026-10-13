@@ -339,7 +339,7 @@ export default async function ProjectPage({
             <ManagementAttentionPanel items={attention} />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-4">
               <section id="overview">
                 <Panel>

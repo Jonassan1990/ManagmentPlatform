@@ -227,7 +227,7 @@ export default async function InitiativeDecisionsPage({
         ) : null}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-4">
           {focus ? (
             <>

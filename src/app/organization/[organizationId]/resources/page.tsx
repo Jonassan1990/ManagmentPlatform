@@ -59,7 +59,7 @@ export default async function ResourcesPage({
         title="Resources"
         description="Capacity-bearing entities. Distinct from authenticated user accounts."
       />
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel>
           {resources.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No resources yet.</p>
