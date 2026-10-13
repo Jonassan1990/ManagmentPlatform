@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   createDepartmentAction,
   createResourceAction,
@@ -340,6 +341,99 @@ export function EditResourceForm(props: {
       </FormField>
       <PrimaryButton disabled={form.pending}>
         {form.pending ? "Saving…" : "Save resource"}
+      </PrimaryButton>
+    </form>
+  );
+}
+
+export function AssignDepartmentForm({
+  people,
+  departments,
+  initialDepartmentId,
+}: {
+  people: { id: string; name: string; role: string | null }[];
+  departments: { id: string; name: string; teams: { id: string; name: string }[] }[];
+  initialDepartmentId?: string;
+}) {
+  const form = useActionForm(assignMembershipAction);
+  const [departmentId, setDepartmentId] = useState(
+    initialDepartmentId && departments.some((department) => department.id === initialDepartmentId)
+      ? initialDepartmentId
+      : (departments[0]?.id ?? ""),
+  );
+  const teams = departments.find((department) => department.id === departmentId)?.teams ?? [];
+
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        form.submit({
+          resourceId: String(data.get("resourceId") ?? ""),
+          teamId: String(data.get("teamId") ?? ""),
+          isPrimary: data.get("isPrimary") === "on",
+          replaceOthers: data.get("isPrimary") === "on",
+        });
+      }}
+    >
+      <h3 className="mp-card-title">Place a person in a department</h3>
+      <p className="text-sm text-[var(--muted)]">
+        A person belongs to a department through one of its teams. Primary department
+        replaces their other memberships.
+      </p>
+      {form.ErrorAlert}
+      <FormField label="Person" htmlFor="place-person">
+        <select id="place-person" name="resourceId" required className={fieldClassName} defaultValue="">
+          <option value="" disabled>
+            Select a person
+          </option>
+          {people.map((person) => (
+            <option key={person.id} value={person.id}>
+              {person.role ? `${person.name} · ${person.role}` : person.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
+      <FormField label="Department" htmlFor="place-department">
+        <select
+          id="place-department"
+          className={fieldClassName}
+          value={departmentId}
+          onChange={(event) => setDepartmentId(event.target.value)}
+        >
+          {departments.map((department) => (
+            <option key={department.id} value={department.id}>
+              {department.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
+      <FormField label="Team in that department" htmlFor="place-team">
+        <select
+          key={departmentId}
+          id="place-team"
+          name="teamId"
+          required
+          className={fieldClassName}
+          defaultValue=""
+        >
+          <option value="" disabled>
+            {teams.length === 0 ? "This department has no team yet" : "Select a team"}
+          </option>
+          {teams.map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="isPrimary" defaultChecked />
+        Primary department
+      </label>
+      <PrimaryButton disabled={form.pending || teams.length === 0 || people.length === 0}>
+        {form.pending ? "Saving…" : "Save department"}
       </PrimaryButton>
     </form>
   );

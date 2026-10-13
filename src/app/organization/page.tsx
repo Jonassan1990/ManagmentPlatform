@@ -85,7 +85,10 @@ export default async function OrganizationIndexPage({
         <div className="space-y-4">
           {chart ? (
             <Panel>
-              <OrganizationChart chart={chart} />
+              <OrganizationChart
+                chart={chart}
+                canAssign={listed.find((org) => org.id === chart.id)?.canEdit ?? false}
+              />
             </Panel>
           ) : null}
           <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">

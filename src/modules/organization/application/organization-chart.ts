@@ -6,6 +6,11 @@ export type ChartPerson = {
   role: string | null;
 };
 
+export type ChartMember = ChartPerson & {
+  href: string;
+  teams: string[];
+};
+
 export type ChartOwner = {
   name: string;
   title: string;
@@ -26,6 +31,7 @@ export type ChartDepartment = {
   href: string;
   owner: ChartOwner | null;
   teams: ChartTeam[];
+  people: ChartMember[];
 };
 
 export type ChartSection = {
@@ -43,6 +49,7 @@ export type OrganizationChart = {
   href: string;
   owner: ChartOwner | null;
   sections: ChartSection[];
+  unassigned: ChartMember[];
   counts: {
     sections: number;
     departments: number;
@@ -124,6 +131,34 @@ function peopleOnTeams(people: ChartPersonInput[], teamIds: Set<string>): ChartP
   );
 }
 
+function departmentMembers(
+  orgId: string,
+  people: ChartPersonInput[],
+  teams: { id: string; name: string }[],
+): ChartMember[] {
+  const teamName = new Map(teams.map((team) => [team.id, team.name]));
+  return people
+    .map((person) => {
+      const names = [
+        ...new Set(
+          person.memberships
+            .map((membership) => teamName.get(membership.teamId))
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ];
+      if (names.length === 0) return null;
+      return {
+        id: person.id,
+        name: person.name,
+        role: person.role,
+        href: `/organization/${orgId}/resources/${person.id}`,
+        teams: names,
+      };
+    })
+    .filter((member): member is ChartMember => member != null)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function buildOrganizationChart(input: {
   organization: { id: string; name: string; description: string | null };
   sections: {
@@ -165,6 +200,7 @@ export function buildOrganizationChart(input: {
           bindingOwner(input.bindings, "DEPARTMENT", department.id) ??
           inferOwner(departmentPeople),
         teams,
+        people: departmentMembers(orgId, input.people, department.teams),
       };
     });
     const sectionTeamIds = new Set(
@@ -181,6 +217,22 @@ export function buildOrganizationChart(input: {
     };
   });
 
+  const placedIds = new Set(
+    sections.flatMap((section) =>
+      section.departments.flatMap((department) => department.people.map((person) => person.id)),
+    ),
+  );
+  const unassigned = input.people
+    .filter((person) => !placedIds.has(person.id))
+    .map((person) => ({
+      id: person.id,
+      name: person.name,
+      role: person.role,
+      href: `/organization/${orgId}/resources/${person.id}`,
+      teams: [] as string[],
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return {
     id: orgId,
     name: input.organization.name,
@@ -188,6 +240,7 @@ export function buildOrganizationChart(input: {
     href: `/organization/${orgId}`,
     owner: bindingOwner(input.bindings, "ORGANIZATION", orgId),
     sections,
+    unassigned,
     counts: {
       sections: sections.length,
       departments: sections.reduce((sum, section) => sum + section.departments.length, 0),
