@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import {
   extractActivePiId,
   resolveNavGroups,
@@ -178,7 +186,7 @@ export function AppShell({
         <aside
           id={navId}
           ref={navPanelRef}
-          className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden bg-[var(--scania-blue-900)] pt-4 text-white transition-transform lg:sticky lg:top-14 lg:z-20 lg:h-[calc(100vh-56px)] lg:w-64 lg:translate-x-0 ${
+          className={`mp-sidebar fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden pt-4 text-white transition-transform duration-300 lg:sticky lg:top-14 lg:z-20 lg:h-[calc(100vh-56px)] lg:w-[17rem] lg:translate-x-0 ${
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -197,7 +205,7 @@ export function AppShell({
             className="flex min-h-0 flex-1 flex-col"
             aria-label="Primary"
           >
-            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-6">
               {groups.map((group) => (
                 <NavGroupBlock
                   key={group.id}
@@ -233,6 +241,97 @@ export function AppShell({
   );
 }
 
+function markPressed(event: PointerEvent<HTMLElement>) {
+  const el = event.currentTarget;
+  const box = el.getBoundingClientRect();
+  el.style.setProperty("--press-x", `${event.clientX - box.left}px`);
+  el.style.setProperty("--press-y", `${event.clientY - box.top}px`);
+  el.classList.remove("is-pressed");
+  void el.offsetWidth;
+  el.classList.add("is-pressed");
+}
+
+function SideLink({
+  href,
+  active,
+  onNavigate,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  onNavigate: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      onPointerDown={markPressed}
+      aria-current={active ? "page" : undefined}
+      className={`mp-side-link min-w-0 flex-1 ${active ? "is-active" : ""}`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function NavGlyph({ id }: { id: string }) {
+  const common = {
+    width: 16,
+    height: 16,
+    viewBox: "0 0 16 16",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.5,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  if (id === "home") {
+    return (
+      <svg {...common}>
+        <path d="M2.5 7.2 8 2.8l5.5 4.4V13a1 1 0 0 1-1 1h-3.2V9.6H6.7V14H3.5a1 1 0 0 1-1-1V7.2Z" />
+      </svg>
+    );
+  }
+  if (id === "portfolio") {
+    return (
+      <svg {...common}>
+        <path d="M2.5 12.5V3.5h4l1.2 1.5H13.5v7.5h-11Z" />
+      </svg>
+    );
+  }
+  if (id === "initiatives") {
+    return (
+      <svg {...common}>
+        <path d="M3 3.5h10M3 8h10M3 12.5h6" />
+      </svg>
+    );
+  }
+  if (id === "pi-planning") {
+    return (
+      <svg {...common}>
+        <rect x="2.5" y="3" width="11" height="10.5" rx="1.2" />
+        <path d="M2.5 6.2h11M6 3v3.2" />
+      </svg>
+    );
+  }
+  if (id === "governance") {
+    return (
+      <svg {...common}>
+        <path d="M8 2.4 13 4.6v3.4c0 3-2.1 4.8-5 5.6-2.9-.8-5-2.6-5-5.6V4.6L8 2.4Z" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <circle cx="5" cy="5.2" r="1.6" />
+      <circle cx="11" cy="5.2" r="1.6" />
+      <path d="M2.8 12.4c.5-1.6 1.7-2.4 3.2-2.4s2.7.8 3.2 2.4M9.2 10.2c.6-.4 1.3-.6 2-.6 1.4 0 2.5.7 3 2.2" />
+    </svg>
+  );
+}
+
 function NavGroupBlock({
   group,
   expanded,
@@ -247,77 +346,89 @@ function NavGroupBlock({
   const hasChildren = group.items.length > 0;
   const panelId = `nav-group-${group.id}`;
 
-  // Home / single-hub without children: just a link
   if (!hasChildren && group.hubHref) {
     return (
-      <Link
+      <SideLink
         href={group.hubHref}
-        onClick={onNavigate}
-        aria-current={group.hubActive ? "page" : undefined}
-        className={`mp-nav-link block min-h-11 rounded-[4px] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
-          group.hubActive
-            ? "bg-[var(--sidebar-active)] text-white"
-            : "hover:bg-white/5"
-        }`}
+        active={group.hubActive}
+        onNavigate={onNavigate}
       >
+        <span className="mp-side-icon">
+          <NavGlyph id={group.id} />
+        </span>
         {group.label}
-      </Link>
+      </SideLink>
     );
   }
 
   return (
     <div className="space-y-0.5">
-      <div className="flex items-stretch gap-0.5">
+      <div className="flex items-stretch gap-1">
         {group.hubHref ? (
-          <Link
+          <SideLink
             href={group.hubHref}
-            onClick={onNavigate}
-            aria-current={group.hubActive ? "page" : undefined}
-            className={`mp-nav-link min-h-11 min-w-0 flex-1 rounded-[4px] px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
-              group.hubActive
-                ? "bg-[var(--sidebar-active)] text-white"
-                : "hover:bg-white/5"
-            }`}
+            active={group.hubActive}
+            onNavigate={onNavigate}
           >
-            {group.label}
-          </Link>
+            <span className="mp-side-icon">
+              <NavGlyph id={group.id} />
+            </span>
+            <span className="truncate">{group.label}</span>
+          </SideLink>
         ) : (
-          <span className="min-w-0 flex-1 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80">
+          <span className="mp-side-link pointer-events-none min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
+            <span className="mp-side-icon">
+              <NavGlyph id={group.id} />
+            </span>
             {group.label}
           </span>
         )}
         {hasChildren ? (
           <button
             type="button"
-            className="min-h-11 min-w-11 rounded-[4px] px-2 text-white/85 hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="mp-side-chevron focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             aria-expanded={expanded}
             aria-controls={panelId}
             aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}
             onClick={onToggle}
+            onPointerDown={markPressed}
           >
-            <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+              <path
+                d="M5 3.2 9 7 5 10.8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         ) : null}
       </div>
-      {hasChildren && expanded ? (
-        <ul id={panelId} className="space-y-0.5 pb-1 pl-2">
-          {group.items.map((item) => (
-            <li key={item.id}>
-              <Link
-                href={item.href}
-                onClick={onNavigate}
-                aria-current={item.active ? "page" : undefined}
-                className={`mp-nav-link block min-h-11 rounded-[4px] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
-                  item.active
-                    ? "bg-[var(--sidebar-active)] text-white"
-                    : "text-white/85 hover:bg-white/5"
-                }`}
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+      {hasChildren ? (
+        <div
+          id={panelId}
+          className="mp-side-children"
+          data-open={expanded ? "true" : "false"}
+          inert={expanded ? undefined : true}
+        >
+          <div className="mp-side-children-inner">
+            <ul className="space-y-0.5 py-1 pl-7">
+              {group.items.map((item) => (
+                <li key={item.id}>
+                  <SideLink
+                    href={item.href}
+                    active={item.active}
+                    onNavigate={onNavigate}
+                  >
+                    {item.label}
+                  </SideLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       ) : null}
     </div>
   );
