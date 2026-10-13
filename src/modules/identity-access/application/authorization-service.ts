@@ -20,7 +20,40 @@ import {
 } from "./temp-auth-constants";
 
 export class AuthorizationService {
+  /** One in-flight load per principal so parallel can() checks share a query. */
+  private bindingLoads = new Map<
+    string,
+    Promise<Awaited<ReturnType<AuthorizationService["loadActiveBindings"]>>>
+  >();
+
   constructor(private readonly db: PrismaClient) {}
+
+  private loadActiveBindings(principalId: string) {
+    const now = new Date();
+    return this.db.roleBinding.findMany({
+      where: {
+        principalId,
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+      },
+      include: { roleDefinition: true },
+    });
+  }
+
+  private activeBindings(principalId: string) {
+    const existing = this.bindingLoads.get(principalId);
+    if (existing) return existing;
+    const pending = this.loadActiveBindings(principalId).catch((error: unknown) => {
+      this.bindingLoads.delete(principalId);
+      throw error;
+    });
+    this.bindingLoads.set(principalId, pending);
+    return pending;
+  }
+
+  private clearBindingCache(principalId?: string) {
+    if (principalId) this.bindingLoads.delete(principalId);
+    else this.bindingLoads.clear();
+  }
 
   /**
    * Resolves the current principal.
@@ -165,6 +198,7 @@ export class AuthorizationService {
         scopeType: ScopeType.PLATFORM,
       },
     });
+    this.clearBindingCache(principalId);
   }
 
   async grantOrganizationAdmin(
@@ -196,6 +230,7 @@ export class AuthorizationService {
         scopeId: organizationId,
       },
     });
+    this.clearBindingCache(principalId);
   }
 
   /**
@@ -208,15 +243,7 @@ export class AuthorizationService {
     relationship?: OwnershipRelationship,
   ): Promise<void> {
     await this.ensureBootstrapBinding(principal.id);
-
-    const now = new Date();
-    const bindings = await this.db.roleBinding.findMany({
-      where: {
-        principalId: principal.id,
-        OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
-      },
-      include: { roleDefinition: true },
-    });
+    const bindings = await this.activeBindings(principal.id);
 
     for (const binding of bindings) {
       if (!binding.roleDefinition.permissions.includes(permission)) {
@@ -470,6 +497,7 @@ export class AuthorizationService {
       },
     });
 
+    this.clearBindingCache(created.principalId);
     return created;
   }
 
@@ -501,6 +529,7 @@ export class AuthorizationService {
       where: { id: binding.id },
       data: { effectiveTo },
     });
+    this.clearBindingCache(binding.principalId);
 
     await this.db.auditEvent.create({
       data: {

@@ -10,8 +10,14 @@ import {
 import { homeCrumb, piPlanningHubCrumb } from "@/modules/navigation/breadcrumbs";
 import { CreatePiForm } from "@/components/pi-planning/pi-forms";
 import { piStatusLabel } from "@/components/pi-planning/pi-nav";
-import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
+import { logger } from "@/server/logger";
+
+function formatDay(value: Date) {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toISOString().slice(0, 10);
+}
 
 export const dynamic = "force-dynamic";
 
@@ -56,10 +62,12 @@ export default async function PiListPage() {
 
   let canCreateSomewhere = false;
   for (const org of orgs) {
-    const caps = await resolveCapabilities(authz, principal, org.id);
-    if (caps.canCreatePi) canCreateSomewhere = true;
-    if (!caps.canViewPi) continue;
+    const scope = { type: "ORGANIZATION" as const, organizationId: org.id };
     try {
+      const canView = await authz.can(principal, PERMISSIONS.PI_VIEW, scope);
+      const canCreate = await authz.can(principal, PERMISSIONS.PI_CREATE, scope);
+      if (canCreate) canCreateSomewhere = true;
+      if (!canView) continue;
       const list = await planning.listProgramIncrements(principal, org.id);
       for (const pi of list) {
         rows.push({
@@ -70,15 +78,16 @@ export default async function PiListPage() {
           organizationName: org.name,
           startDate: pi.startDate,
           endDate: pi.endDate,
-          iterationCount: pi.iterations.length,
+          iterationCount: pi.iterations?.length ?? 0,
         });
       }
-    } catch {
-      // Skip orgs the principal cannot view for PI.
+    } catch (error) {
+      logger.error("pi.list.org_failed", {
+        organizationId: org.id,
+        message: error instanceof Error ? error.message : "unknown",
+      });
     }
   }
-
-  const firstCaps = await resolveCapabilities(authz, principal, orgs[0].id);
 
   return (
     <div>
@@ -125,7 +134,7 @@ export default async function PiListPage() {
                   name: o.name,
                   sections: [],
                 }))}
-                capabilities={firstCaps}
+                capabilities={{ canCreatePi: true }}
               />
             </Panel>
           ) : null}
@@ -184,8 +193,7 @@ export default async function PiListPage() {
                     </td>
                     <td className="py-3 pr-3">{piStatusLabel(pi.status)}</td>
                     <td className="py-3 pr-3 text-[var(--muted)]">
-                      {pi.startDate.toISOString().slice(0, 10)} →{" "}
-                      {pi.endDate.toISOString().slice(0, 10)}
+                      {formatDay(pi.startDate)} → {formatDay(pi.endDate)}
                     </td>
                     <td className="py-3">{pi.iterationCount}</td>
                   </tr>
