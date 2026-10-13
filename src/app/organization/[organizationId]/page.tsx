@@ -33,6 +33,7 @@ export default async function OrganizationDetailPage({
   if (!hierarchy) notFound();
 
   const chart = await organization.getOrganizationChart(principal, organizationId);
+  const visibleOrgs = await organization.listOrganizations(principal);
 
   const canManage = await authz.can(
     principal,
@@ -144,6 +145,8 @@ export default async function OrganizationDetailPage({
                   name={hierarchy.name}
                   description={hierarchy.description}
                   version={hierarchy.version}
+                  parentOrganizationId={hierarchy.parentOrganizationId}
+                  parents={visibleOrgs.map((org) => ({ id: org.id, name: org.name }))}
                 />
               </Panel>
               <Panel>

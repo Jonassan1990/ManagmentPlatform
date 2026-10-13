@@ -6,6 +6,7 @@ import { AssignDepartmentForm } from "@/components/organization/org-forms";
 import type {
   ChartDepartment,
   ChartMember,
+  ChartOrgNode,
   ChartOwner,
   ChartPerson,
   OrganizationChart,
@@ -167,6 +168,27 @@ function DepartmentPeople({
   );
 }
 
+function OrgUnitBranch({ unit }: { unit: ChartOrgNode }) {
+  return (
+    <li>
+      <OrgCard
+        href={unit.href}
+        tone="organization"
+        eyebrow="Organization"
+        name={unit.name}
+        owner={unit.owner}
+      />
+      {unit.children.length > 0 ? (
+        <ul>
+          {unit.children.map((child) => (
+            <OrgUnitBranch key={child.id} unit={child} />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
 export function OrganizationChart({
   chart,
   canAssign = false,
@@ -272,12 +294,15 @@ export function OrganizationChart({
                   name={chart.name}
                   owner={chart.owner}
                 />
-                {chart.sections.length === 0 ? (
+                {chart.sections.length === 0 && chart.children.length === 0 ? (
                   <p className="mt-4 max-w-sm text-center text-sm text-[var(--muted)]">
-                    No sections yet. Add a section to grow this hierarchy.
+                    No sections yet. Add a section, or place another organization inside this one.
                   </p>
                 ) : (
                   <ul>
+                    {chart.children.map((child) => (
+                      <OrgUnitBranch key={child.id} unit={child} />
+                    ))}
                     {chart.sections.map((section) => (
                       <li key={section.id}>
                         <OrgCard

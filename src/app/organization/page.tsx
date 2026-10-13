@@ -42,6 +42,7 @@ export default async function OrganizationIndexPage({
       name: org.name,
       description: org.description,
       version: org.version,
+      parentOrganizationId: org.parentOrganizationId,
       canEdit:
         canCreateAnother ||
         (await authz.can(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
@@ -50,6 +51,29 @@ export default async function OrganizationIndexPage({
         })),
     })),
   );
+  const byParent = new Map<string | null, typeof listed>();
+  for (const org of listed) {
+    const parentId = listed.some((item) => item.id === org.parentOrganizationId)
+      ? org.parentOrganizationId
+      : null;
+    const group = byParent.get(parentId) ?? [];
+    group.push({ ...org, parentOrganizationId: parentId });
+    byParent.set(parentId, group);
+  }
+  const seen = new Set<string>();
+  const ordered: ((typeof listed)[number] & { depth: number })[] = [];
+  const walk = (parentId: string | null, depth: number) => {
+    for (const org of byParent.get(parentId) ?? []) {
+      if (seen.has(org.id)) continue;
+      seen.add(org.id);
+      ordered.push({ ...org, depth });
+      walk(org.id, depth + 1);
+    }
+  };
+  walk(null, 0);
+  for (const org of listed) {
+    if (!seen.has(org.id)) ordered.push({ ...org, depth: 0, parentOrganizationId: null });
+  }
   const chartOrgId =
     requestedOrgId && orgs.some((org) => org.id === requestedOrgId)
       ? requestedOrgId
@@ -65,7 +89,7 @@ export default async function OrganizationIndexPage({
       />
       <PageHeader
         title="Organization"
-        description="Configure the organizational hierarchy used across management and planning."
+        description="Connect a main organization such as Q to the organizations inside it, for example QD, QM, and QC, and those to QCM or QCF."
       />
 
       {orgs.length === 0 ? (
@@ -94,12 +118,15 @@ export default async function OrganizationIndexPage({
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <Panel>
               <h2 className="mp-section-title mb-3">Organizations</h2>
-              <OrganizationList orgs={listed} selectedId={chart?.id} />
+              <OrganizationList orgs={ordered} selectedId={chart?.id} />
             </Panel>
             <Panel>
               <h2 className="mp-section-title mb-3">Create another organization</h2>
               {canCreateAnother ? (
-                <CreateOrganizationForm redirectToOrg />
+                <CreateOrganizationForm
+                  redirectToOrg
+                  parents={ordered.map((org) => ({ id: org.id, name: org.name }))}
+                />
               ) : (
                 <Alert tone="info" live="polite">
                   Creating another organization requires platform organization

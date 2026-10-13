@@ -18,12 +18,14 @@ export const uuidSchema = z.string().uuid("Invalid identifier");
 export const createOrganizationInputSchema = z.object({
   name: nameSchema,
   description: descriptionSchema,
+  parentOrganizationId: z.string().uuid().nullable().optional(),
 });
 
 export const updateOrganizationInputSchema = z.object({
   id: uuidSchema,
   name: nameSchema,
   description: descriptionSchema,
+  parentOrganizationId: z.string().uuid().nullable().optional(),
   expectedVersion: z.number().int().positive(),
 });
 
