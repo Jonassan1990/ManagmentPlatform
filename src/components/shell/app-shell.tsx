@@ -8,9 +8,10 @@ import {
   useMemo,
   useRef,
   useState,
-  type PointerEvent,
+  type MouseEvent,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   extractActivePiId,
   resolveNavGroups,
@@ -65,6 +66,12 @@ export function AppShell({
   const [manualExpanded, setManualExpanded] = useState<Record<string, boolean>>(
     {},
   );
+  /** Highlight the clicked item before the route finishes loading. */
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingKey(null);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -211,6 +218,8 @@ export function AppShell({
                   key={group.id}
                   group={group}
                   expanded={isGroupExpanded(group)}
+                  pendingKey={pendingKey}
+                  onArm={(key) => setPendingKey(key)}
                   onToggle={() =>
                     setManualExpanded((prev) => ({
                       ...prev,
@@ -241,11 +250,26 @@ export function AppShell({
   );
 }
 
-function markPressed(event: PointerEvent<HTMLElement>) {
-  const el = event.currentTarget;
+function isPlainClick(event: {
+  button: number;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}) {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
+function markPressed(el: HTMLElement, clientX: number, clientY: number) {
   const box = el.getBoundingClientRect();
-  el.style.setProperty("--press-x", `${event.clientX - box.left}px`);
-  el.style.setProperty("--press-y", `${event.clientY - box.top}px`);
+  el.style.setProperty("--press-x", `${clientX - box.left}px`);
+  el.style.setProperty("--press-y", `${clientY - box.top}px`);
   el.classList.remove("is-pressed");
   void el.offsetWidth;
   el.classList.add("is-pressed");
@@ -253,21 +277,53 @@ function markPressed(event: PointerEvent<HTMLElement>) {
 
 function SideLink({
   href,
+  selectKey,
   active,
+  onArm,
   onNavigate,
   children,
 }: {
   href: string;
+  selectKey: string;
   active: boolean;
+  onArm: (key: string) => void;
   onNavigate: () => void;
   children: ReactNode;
 }) {
+  const onArmRef = useRef(onArm);
+  const keyRef = useRef(selectKey);
+  onArmRef.current = onArm;
+  keyRef.current = selectKey;
+  const anchorRef = useRef<HTMLAnchorElement | null>(null);
+
+  useEffect(() => {
+    const el = anchorRef.current;
+    if (!el) return;
+    const onDown = (event: PointerEvent) => {
+      if (!isPlainClick(event)) return;
+      // Commit the highlight before click starts Next's navigation transition.
+      flushSync(() => onArmRef.current(keyRef.current));
+      markPressed(el, event.clientX, event.clientY);
+    };
+    el.addEventListener("pointerdown", onDown);
+    return () => el.removeEventListener("pointerdown", onDown);
+  }, []);
+
+  function onClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (isPlainClick(event)) {
+      flushSync(() => onArm(selectKey));
+      markPressed(event.currentTarget, event.clientX, event.clientY);
+    }
+    onNavigate();
+  }
+
   return (
     <Link
+      ref={anchorRef}
       href={href}
-      onClick={onNavigate}
-      onPointerDown={markPressed}
+      onClick={onClick}
       aria-current={active ? "page" : undefined}
+      data-nav-key={selectKey}
       className={`mp-side-link min-w-0 flex-1 ${active ? "is-active" : ""}`}
     >
       {children}
@@ -335,22 +391,31 @@ function NavGlyph({ id }: { id: string }) {
 function NavGroupBlock({
   group,
   expanded,
+  pendingKey,
+  onArm,
   onToggle,
   onNavigate,
 }: {
   group: ResolvedNavGroup;
   expanded: boolean;
+  pendingKey: string | null;
+  onArm: (key: string) => void;
   onToggle: () => void;
   onNavigate: () => void;
 }) {
   const hasChildren = group.items.length > 0;
   const panelId = `nav-group-${group.id}`;
+  const hubKey = `${group.id}:hub`;
+  const selected = (key: string, routeActive: boolean) =>
+    pendingKey != null ? pendingKey === key : routeActive;
 
   if (!hasChildren && group.hubHref) {
     return (
       <SideLink
         href={group.hubHref}
-        active={group.hubActive}
+        selectKey={hubKey}
+        active={selected(hubKey, group.hubActive)}
+        onArm={onArm}
         onNavigate={onNavigate}
       >
         <span className="mp-side-icon">
@@ -367,7 +432,9 @@ function NavGroupBlock({
         {group.hubHref ? (
           <SideLink
             href={group.hubHref}
-            active={group.hubActive}
+            selectKey={hubKey}
+            active={selected(hubKey, group.hubActive)}
+            onArm={onArm}
             onNavigate={onNavigate}
           >
             <span className="mp-side-icon">
@@ -391,7 +458,9 @@ function NavGroupBlock({
             aria-controls={panelId}
             aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}
             onClick={onToggle}
-            onPointerDown={markPressed}
+            onPointerDown={(event) => {
+              markPressed(event.currentTarget, event.clientX, event.clientY);
+            }}
           >
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
               <path
@@ -419,7 +488,9 @@ function NavGroupBlock({
                 <li key={item.id}>
                   <SideLink
                     href={item.href}
-                    active={item.active}
+                    selectKey={item.id}
+                    active={selected(item.id, item.active)}
+                    onArm={onArm}
                     onNavigate={onNavigate}
                   >
                     {item.label}
