@@ -5,6 +5,7 @@ import {
   assignRoleBindingAction,
   createLocalTestUserAction,
   expireRoleBindingAction,
+  resetLocalLoginPasswordAction,
 } from "@/app/actions/access";
 import { buttonClassName } from "@/components/ui/button";
 import {
@@ -312,10 +313,74 @@ export function CreateLocalTestUserForm({
   );
 }
 
+function ResetLocalPasswordForm({
+  organizationId,
+  credentialId,
+  username,
+}: {
+  organizationId: string;
+  credentialId: string;
+  username: string;
+}) {
+  const [done, setDone] = useState(false);
+  const form = useActionForm(resetLocalLoginPasswordAction, () => {
+    setDone(true);
+  });
+
+  return (
+    <form
+      className="mt-2 space-y-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setDone(false);
+        const fd = new FormData(e.currentTarget);
+        form.submit({
+          organizationId,
+          credentialId,
+          password: String(fd.get("password") ?? ""),
+        });
+        e.currentTarget.reset();
+      }}
+    >
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="min-w-[12rem] flex-1 space-y-1 text-xs">
+          <span className="font-medium text-[var(--muted)]">New password</span>
+          <input
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            className={fieldClassName}
+            aria-label={`New password for ${username}`}
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={form.pending}
+          className={buttonClassName({ variant: "secondary", size: "sm" })}
+        >
+          {form.pending ? "Resetting…" : "Reset password"}
+        </button>
+      </div>
+      {form.ErrorAlert}
+      {done ? (
+        <p className="text-xs text-[var(--muted)]" role="status">
+          Password reset for <span className="font-medium">{username}</span>.
+          They can sign in with the new password.
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
 export function LocalLoginsList({
+  organizationId,
   logins,
   unavailable = false,
 }: {
+  organizationId: string;
   logins: {
     id: string;
     username: string;
@@ -329,6 +394,10 @@ export function LocalLoginsList({
   return (
     <div className="space-y-3">
       <h3 className="font-medium">Local test logins</h3>
+      <p className="text-xs text-[var(--muted)]">
+        Reset a password to let someone sign in again. Roles stay on the same
+        principal.
+      </p>
       {unavailable ? (
         <p className="text-sm text-[var(--muted)]">
           Local login list is temporarily unavailable. Reload after the latest
@@ -341,7 +410,7 @@ export function LocalLoginsList({
       ) : (
         <ul className="divide-y divide-[var(--line)]">
           {logins.map((u) => (
-            <li key={u.id} className="py-2 text-sm">
+            <li key={u.id} className="py-3 text-sm">
               <p className="font-medium">
                 {u.username}
                 {u.displayName ? (
@@ -355,6 +424,11 @@ export function LocalLoginsList({
                 {u.disabledAt ? "Disabled" : "Active"} · principal{" "}
                 {u.principalId.slice(0, 8)}…
               </p>
+              <ResetLocalPasswordForm
+                organizationId={organizationId}
+                credentialId={u.id}
+                username={u.username}
+              />
             </li>
           ))}
         </ul>

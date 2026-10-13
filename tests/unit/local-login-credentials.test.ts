@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createLocalTestUserInputSchema } from "@/modules/identity-access/application/schemas";
+import {
+  createLocalTestUserInputSchema,
+  resetLocalLoginPasswordInputSchema,
+} from "@/modules/identity-access/application/schemas";
 
 describe("createLocalTestUserInputSchema", () => {
   it("accepts a valid local test user payload", () => {
@@ -28,6 +31,27 @@ describe("createLocalTestUserInputSchema", () => {
         organizationId: "11111111-1111-4111-8111-111111111111",
         username: "-bad",
         password: "longenough",
+      }),
+    ).toThrow();
+  });
+});
+
+describe("resetLocalLoginPasswordInputSchema", () => {
+  it("accepts a password reset for a local login", () => {
+    const parsed = resetLocalLoginPasswordInputSchema.parse({
+      organizationId: "11111111-1111-4111-8111-111111111111",
+      credentialId: "33333333-3333-4333-8333-333333333333",
+      password: "new-pass-12",
+    });
+    expect(parsed.password).toBe("new-pass-12");
+  });
+
+  it("rejects a short reset password", () => {
+    expect(() =>
+      resetLocalLoginPasswordInputSchema.parse({
+        organizationId: "11111111-1111-4111-8111-111111111111",
+        credentialId: "33333333-3333-4333-8333-333333333333",
+        password: "short",
       }),
     ).toThrow();
   });
