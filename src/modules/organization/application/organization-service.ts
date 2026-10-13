@@ -540,6 +540,38 @@ export class OrganizationService {
     });
   }
 
+  async listDepartmentMembers(principal: Principal, departmentId: string) {
+    const department = await this.getDepartment(principal, departmentId);
+    const memberships = await this.db.resourceMembership.findMany({
+      where: {
+        effectiveTo: null,
+        team: { departmentId: department.id, status: EntityStatus.ACTIVE },
+        resource: { status: EntityStatus.ACTIVE, type: ResourceType.PERSON },
+      },
+      include: { resource: true, team: true },
+    });
+    const byPerson = new Map<
+      string,
+      { id: string; name: string; role: string | null; teams: string[] }
+    >();
+    for (const membership of memberships) {
+      const existing = byPerson.get(membership.resourceId);
+      if (existing) {
+        if (!existing.teams.includes(membership.team.name)) {
+          existing.teams.push(membership.team.name);
+        }
+        continue;
+      }
+      byPerson.set(membership.resourceId, {
+        id: membership.resource.id,
+        name: membership.resource.name,
+        role: membership.resource.functionRole,
+        teams: [membership.team.name],
+      });
+    }
+    return [...byPerson.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   async getTeam(principal: Principal, id: string) {
     const team = await this.db.team.findUnique({
       where: { id },
@@ -1076,6 +1108,17 @@ export class OrganizationService {
           effectiveTo: null,
         },
       });
+
+      if (input.replaceOthers) {
+        await tx.resourceMembership.updateMany({
+          where: {
+            resourceId: resource.id,
+            effectiveTo: null,
+            ...(existingActive ? { id: { not: existingActive.id } } : {}),
+          },
+          data: { effectiveTo: new Date(), isPrimary: false },
+        });
+      }
 
       const otherActive = await tx.resourceMembership.findMany({
         where: {

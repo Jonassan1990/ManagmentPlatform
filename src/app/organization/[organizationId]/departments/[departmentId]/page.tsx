@@ -24,12 +24,14 @@ export default async function DepartmentPage({
 
   let department;
   let teams;
+  let members;
   let org;
   try {
     org = await organization.getOrganization(principal, organizationId);
     department = await organization.getDepartment(principal, departmentId);
     if (department.section.organizationId !== organizationId) notFound();
     teams = await organization.listTeams(principal, departmentId);
+    members = await organization.listDepartmentMembers(principal, departmentId);
   } catch {
     notFound();
   }
@@ -58,8 +60,33 @@ export default async function DepartmentPage({
         description={department.description ?? "Department workspace"}
       />
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-4">
+          <Panel>
+            <h2 className="mp-section-title mb-3">People</h2>
+            {members.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">
+                No one is in this department yet.
+              </p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {members.map((member) => (
+                  <li key={member.id} className="py-2">
+                    <Link
+                      href={`/organization/${org.id}/resources/${member.id}`}
+                      className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
+                    >
+                      {member.name}
+                    </Link>
+                    <p className="text-xs text-[var(--muted)]">
+                      {[member.role, member.teams.join(", ")].filter(Boolean).join(" · ")}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
         <Panel>
-          <h2 className="mb-3 font-medium">Teams</h2>
+          <h2 className="mp-section-title mb-3">Teams</h2>
           {teams.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No teams yet.</p>
           ) : (
@@ -77,6 +104,7 @@ export default async function DepartmentPage({
             </ul>
           )}
         </Panel>
+        </div>
         <div className="space-y-4">
           {canManage ? (
             <>

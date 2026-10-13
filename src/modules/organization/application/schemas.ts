@@ -111,6 +111,8 @@ export const assignMembershipInputSchema = z.object({
   resourceId: uuidSchema,
   teamId: uuidSchema,
   isPrimary: z.boolean().default(false),
+  /** When true, end every other active membership so this team is the person's department. */
+  replaceOthers: z.boolean().optional().default(false),
   /** Share of weekly capacity for this team; active memberships must sum ≤ 100. */
   allocationPercent: z
     .union([z.string(), z.number()])

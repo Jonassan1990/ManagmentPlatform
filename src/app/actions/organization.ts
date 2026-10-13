@@ -152,7 +152,17 @@ export async function assignMembershipAction(
       principal,
       membership.resourceId,
     );
+    revalidatePath("/organization");
     revalidatePath(`/organization/${resource.organizationId}`);
+    revalidatePath(`/organization/${resource.organizationId}/resources`);
+    revalidatePath(
+      `/organization/${resource.organizationId}/resources/${resource.id}`,
+    );
+    for (const membershipRow of resource.memberships) {
+      revalidatePath(
+        `/organization/${resource.organizationId}/departments/${membershipRow.team.departmentId}`,
+      );
+    }
     return membership;
   });
 }

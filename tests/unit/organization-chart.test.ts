@@ -58,6 +58,11 @@ describe("buildOrganizationChart", () => {
       title: "Plant Manager",
     });
     expect(chart.sections[0]?.departments[0]?.teams[0]?.members).toHaveLength(2);
+    expect(chart.sections[0]?.departments[0]?.people.map((person) => person.name)).toEqual([
+      "Sara Lind",
+      "Viktor Ek",
+    ]);
+    expect(chart.unassigned).toEqual([]);
     expect(chart.counts).toEqual({
       sections: 1,
       departments: 1,

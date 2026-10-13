@@ -85,7 +85,7 @@ export default async function OrganizationDetailPage({
         <div className="space-y-4">
           <Panel>
             {chart ? (
-              <OrganizationChart chart={chart} />
+              <OrganizationChart chart={chart} canAssign={canManage} />
             ) : (
               <p className="text-sm text-[var(--muted)]">
                 This organization could not be drawn.
