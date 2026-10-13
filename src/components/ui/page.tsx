@@ -77,7 +77,7 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mp-rise mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 className="scania-title text-3xl tracking-tight text-[var(--scania-blue-900)]">
           {title}
@@ -101,7 +101,7 @@ export function Panel({
 } & React.HTMLAttributes<HTMLElement>) {
   return (
     <section
-      className={`tegel-card p-5 ${className}`}
+      className={`tegel-card mp-interactive p-5 ${className}`}
       {...rest}
     >
       {children}

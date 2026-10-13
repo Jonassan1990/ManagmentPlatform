@@ -108,6 +108,11 @@ export async function AuthenticatedShell({
     };
   }
 
+  // Auth surfaces get a shell-free branded stage (future-proof for SSO cutover).
+  if (requestPath === "/login" || requestPath.startsWith("/login?")) {
+    return <SessionProvider>{children}</SessionProvider>;
+  }
+
   return (
     <SessionProvider>
       <AppShell
