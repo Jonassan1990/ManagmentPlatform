@@ -10,6 +10,7 @@ import {
 import { Alert } from "@/components/ui/alert";
 import { homeCrumb, organizationHubCrumb } from "@/modules/navigation/breadcrumbs";
 import { CreateOrganizationForm } from "@/components/organization/create-organization-form";
+import { OrganizationList } from "@/components/organization/organization-list";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createOrganizationService } from "@/server/container";
 
@@ -29,6 +30,18 @@ export default async function OrganizationIndexPage() {
           type: "PLATFORM",
         })
       : false;
+  const listed = await Promise.all(
+    orgs.map(async (org) => ({
+      id: org.id,
+      name: org.name,
+      description: org.description,
+      version: org.version,
+      canEdit: await authz.can(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId: org.id,
+      }),
+    })),
+  );
 
   return (
     <div>
@@ -57,23 +70,7 @@ export default async function OrganizationIndexPage() {
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <Panel>
             <h2 className="mb-3 font-medium">Organizations</h2>
-            <ul className="divide-y divide-[var(--line)]">
-              {orgs.map((org) => (
-                <li key={org.id} className="py-3">
-                  <Link
-                    href={`/organization/${org.id}`}
-                    className="block min-h-11 rounded-sm py-1 hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-                  >
-                    <p className="font-medium">{org.name}</p>
-                    {org.description ? (
-                      <p className="text-sm text-[var(--muted)]">
-                        {org.description}
-                      </p>
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <OrganizationList orgs={listed} />
           </Panel>
           <Panel>
             <h2 className="mb-3 font-medium">Create another organization</h2>

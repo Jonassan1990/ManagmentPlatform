@@ -27,13 +27,17 @@ export function EditOrganizationForm({
   name,
   description,
   version,
+  onSaved,
 }: {
   id: string;
   name: string;
   description: string | null;
   version: number;
+  onSaved?: () => void;
 }) {
-  const form = useActionForm(updateOrganizationAction);
+  const form = useActionForm(updateOrganizationAction, () => {
+    onSaved?.();
+  });
   return (
     <form
       className="space-y-4"
