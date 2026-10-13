@@ -3,6 +3,7 @@ import {
   Prisma,
   PrismaClient,
   ResourceType,
+  ScopeType,
 } from "@prisma/client";
 import { ZodError } from "zod";
 import { AuditService } from "@/modules/audit/application/audit-service";
@@ -10,7 +11,8 @@ import { AuthorizationService } from "@/modules/identity-access/application/auth
 import type { Principal } from "@/modules/identity-access/domain/types";
 import { assertAllocationPercentsWithinLimit } from "@/modules/pi-planning/application/capacity-policy";
 import { AppError } from "@/modules/shared/errors";
-import { PERMISSIONS } from "@/modules/shared/permissions";
+import { PERMISSIONS, ROLE_KEYS } from "@/modules/shared/permissions";
+import { buildOrganizationChart } from "./organization-chart";
 import {
   archiveEntityInputSchema,
   assignMembershipInputSchema,
@@ -1182,6 +1184,99 @@ export class OrganizationService {
       organizationId: resource.organizationId,
     });
     return resource;
+  }
+
+  async findStructuredOrganizationId(organizationIds: string[]) {
+    if (organizationIds.length === 0) return null;
+    const row = await this.db.organization.findFirst({
+      where: {
+        id: { in: organizationIds },
+        status: EntityStatus.ACTIVE,
+        sections: { some: { status: EntityStatus.ACTIVE } },
+      },
+      orderBy: { name: "asc" },
+      select: { id: true },
+    });
+    return row?.id ?? organizationIds[0] ?? null;
+  }
+
+  async getOrganizationChart(principal: Principal, organizationId: string) {
+    const hierarchy = await this.getHierarchy(principal, organizationId);
+    if (!hierarchy) return null;
+    const now = new Date();
+    const bindings = await this.db.roleBinding.findMany({
+      where: {
+        organizationId,
+        scopeType: {
+          in: [
+            ScopeType.ORGANIZATION,
+            ScopeType.SECTION,
+            ScopeType.DEPARTMENT,
+            ScopeType.TEAM,
+          ],
+        },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+        roleDefinition: {
+          key: {
+            in: [
+              ROLE_KEYS.ORGANIZATION_ADMIN,
+              ROLE_KEYS.SECTION_MANAGER,
+              ROLE_KEYS.DEPARTMENT_MANAGER,
+              ROLE_KEYS.TEAM_MANAGER,
+            ],
+          },
+        },
+      },
+      include: {
+        principal: { select: { displayName: true, email: true } },
+        roleDefinition: { select: { key: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return buildOrganizationChart({
+      organization: {
+        id: hierarchy.id,
+        name: hierarchy.name,
+        description: hierarchy.description,
+      },
+      sections: hierarchy.sections.map((section) => ({
+        id: section.id,
+        name: section.name,
+        departments: section.departments.map((department) => ({
+          id: department.id,
+          name: department.name,
+          teams: department.teams.map((team) => ({
+            id: team.id,
+            name: team.name,
+          })),
+        })),
+      })),
+      people: hierarchy.resources
+        .filter((resource) => resource.type === ResourceType.PERSON)
+        .map((resource) => ({
+          id: resource.id,
+          name: resource.name,
+          role: resource.functionRole,
+          memberships: resource.memberships.map((membership) => ({
+            teamId: membership.teamId,
+            isPrimary: membership.isPrimary,
+          })),
+        })),
+      bindings: bindings.map((binding) => ({
+        scopeType: binding.scopeType as
+          | "ORGANIZATION"
+          | "SECTION"
+          | "DEPARTMENT"
+          | "TEAM",
+        scopeId:
+          binding.scopeType === ScopeType.ORGANIZATION
+            ? organizationId
+            : (binding.scopeId ?? ""),
+        name: binding.principal.displayName || binding.principal.email || "Owner",
+        roleKey: binding.roleDefinition.key,
+      })),
+    });
   }
 
   async getHierarchy(principal: Principal, organizationId: string) {

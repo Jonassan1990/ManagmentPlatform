@@ -13,7 +13,13 @@ export type OrganizationListItem = {
   canEdit: boolean;
 };
 
-export function OrganizationList({ orgs }: { orgs: OrganizationListItem[] }) {
+export function OrganizationList({
+  orgs,
+  selectedId,
+}: {
+  orgs: OrganizationListItem[];
+  selectedId?: string | null;
+}) {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
@@ -21,7 +27,10 @@ export function OrganizationList({ orgs }: { orgs: OrganizationListItem[] }) {
       {orgs.map((org) => {
         const editing = editingId === org.id;
         return (
-          <li key={org.id} className="py-3">
+          <li
+            key={org.id}
+            className={`rounded-md py-3 ${selectedId === org.id ? "bg-[var(--accent-soft)] px-2" : ""}`}
+          >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <Link
                 href={`/organization/${org.id}`}
@@ -31,6 +40,13 @@ export function OrganizationList({ orgs }: { orgs: OrganizationListItem[] }) {
                 {org.description ? (
                   <p className="text-sm text-[var(--muted)]">{org.description}</p>
                 ) : null}
+              </Link>
+              <Link
+                href={`/organization?org=${org.id}#org-chart`}
+                className={buttonClassName({ variant: "secondary", size: "sm" })}
+                aria-current={selectedId === org.id ? "true" : undefined}
+              >
+                Hierarchy
               </Link>
               {org.canEdit ? (
                 <button
