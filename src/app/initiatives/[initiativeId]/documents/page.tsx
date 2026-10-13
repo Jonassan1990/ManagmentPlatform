@@ -60,7 +60,7 @@ export default async function DocumentsPage({
         hasProject={Boolean(item.project)}
         preserveQuery={query}
       />
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel>
           <h2 className="mb-3 font-medium">Documentation hub (metadata)</h2>
           <p className="mb-3 text-sm text-[var(--muted)]">

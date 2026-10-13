@@ -226,7 +226,7 @@ export default async function GovernancePage({
         ) : null}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-3">
           <DisclosureSection
             id="governance-evidence"

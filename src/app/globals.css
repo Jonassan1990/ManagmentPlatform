@@ -302,3 +302,76 @@ textarea:disabled,
     color: black !important;
   }
 }
+
+/* Phone, tablet, laptop, and large desktop.
+   The sidebar docks at 768px. Below that it is an overlay. */
+.mp-main {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  padding: 1.25rem max(1rem, env(safe-area-inset-right)) 2.5rem
+    max(1rem, env(safe-area-inset-left));
+}
+
+.scania-topbar {
+  padding-top: env(safe-area-inset-top);
+}
+
+@media (max-width: 639px) {
+  .tegel-shell-brand small {
+    display: none;
+  }
+
+  .tegel-shell-brand {
+    font-size: 0.92rem;
+    letter-spacing: 0.08em;
+  }
+
+  .tegel-card {
+    padding: 1rem;
+  }
+
+  .tegel-rm form {
+    min-width: 0;
+  }
+
+  .tegel-rm form > label,
+  .tegel-rm form > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .mp-main {
+    width: min(100%, 80rem);
+    padding-top: 1.5rem;
+    padding-bottom: 2.75rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .mp-main {
+    width: min(100%, 90rem);
+    padding-top: 1.75rem;
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .mp-main {
+    width: min(100%, 100rem);
+  }
+}
+
+@media (min-width: 1920px) {
+  .mp-main {
+    width: min(100%, 112rem);
+    padding-inline: 2.5rem;
+  }
+}
+
+@media (max-width: 1279px) {
+  .mp-org-scroll-hint {
+    display: none;
+  }
+}

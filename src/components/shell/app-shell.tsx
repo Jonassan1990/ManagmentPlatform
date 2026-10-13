@@ -81,9 +81,23 @@ export function AppShell({
         menuButtonRef.current?.focus();
       }
     }
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [open]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const closeIfDocked = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    desktop.addEventListener("change", closeIfDocked);
+    return () => desktop.removeEventListener("change", closeIfDocked);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -119,12 +133,12 @@ export function AppShell({
         Skip to main content
       </a>
 
-      <header className="scania-topbar sticky top-0 z-40 flex h-14 items-center justify-between gap-3 px-4 text-white lg:px-6">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+      <header className="scania-topbar sticky top-0 z-40 flex min-h-14 items-center justify-between gap-2 px-3 text-white sm:gap-3 sm:px-4 lg:px-6">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
           <button
             ref={menuButtonRef}
             type="button"
-            className="rounded-[4px] p-1.5 text-white hover:bg-white/10 lg:hidden"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[4px] text-white hover:bg-white/10 md:hidden"
             onClick={() => setOpen(true)}
             aria-label="Open navigation"
             aria-expanded={open}
@@ -148,7 +162,7 @@ export function AppShell({
             </div>
           </Link>
         </div>
-        <div className="flex min-w-0 max-w-[min(100%,48rem)] flex-wrap items-center justify-end gap-2 sm:gap-3">
+        <div className="mp-shell-actions flex shrink-0 items-center justify-end gap-2">
           {label ? (
             <>
               <span
@@ -185,7 +199,7 @@ export function AppShell({
           <button
             type="button"
             aria-label="Close navigation"
-            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
             onClick={() => setOpen(false)}
           />
         ) : null}
@@ -193,11 +207,11 @@ export function AppShell({
         <aside
           id={navId}
           ref={navPanelRef}
-          className={`mp-sidebar fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden pt-4 text-white transition-transform duration-300 lg:sticky lg:top-14 lg:z-20 lg:h-[calc(100vh-56px)] lg:w-[17rem] lg:translate-x-0 ${
+          className={`mp-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col overflow-hidden pt-4 text-white transition-transform duration-300 md:sticky md:top-14 md:z-20 md:h-[calc(100vh-3.5rem)] md:w-60 md:translate-x-0 xl:w-[17rem] ${
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="flex items-center justify-between px-4 pb-4 lg:hidden">
+          <div className="flex items-center justify-between px-4 pb-4 md:hidden">
             <span className="font-bold">Navigation</span>
             <button
               type="button"
@@ -240,7 +254,7 @@ export function AppShell({
           <main
             id="main-content"
             tabIndex={-1}
-            className="mp-fade mx-auto max-w-[1500px] space-y-4 px-4 py-6 outline-none sm:px-6 lg:px-8"
+            className="mp-main mp-fade space-y-4 outline-none"
           >
             {children}
           </main>

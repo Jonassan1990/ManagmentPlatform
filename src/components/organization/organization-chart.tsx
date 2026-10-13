@@ -205,9 +205,11 @@ export function OrganizationChart({
           <p className="mt-1 text-sm text-[var(--muted)]">
             {chart.counts.sections} sections · {chart.counts.departments} departments ·{" "}
             {chart.counts.teams} teams · {chart.counts.people} people
-            {view === "organization" && chart.counts.sections > 1
-              ? " · Scroll sideways to see every branch."
-              : ""}
+            {view === "organization" && chart.counts.sections > 1 ? (
+              <span className="mp-org-scroll-hint"> · Scroll sideways to see every branch.</span>
+            ) : (
+              ""
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -340,7 +342,7 @@ export function OrganizationChart({
               {section.departments.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No departments in this section.</p>
               ) : (
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {section.departments.map((department) => (
                     <DepartmentPeople key={department.id} department={department} />
                   ))}

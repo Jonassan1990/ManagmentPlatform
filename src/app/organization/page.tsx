@@ -91,7 +91,7 @@ export default async function OrganizationIndexPage({
               />
             </Panel>
           ) : null}
-          <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <Panel>
               <h2 className="mp-section-title mb-3">Organizations</h2>
               <OrganizationList orgs={listed} selectedId={chart?.id} />

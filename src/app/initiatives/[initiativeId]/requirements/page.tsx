@@ -66,7 +66,7 @@ export default async function RequirementsPage({
         preserveQuery={query}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel>
           <h2 className="mb-3 font-medium">Requirements</h2>
           {item.requirements.length === 0 ? (
