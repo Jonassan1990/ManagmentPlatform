@@ -149,6 +149,29 @@ h6,
   letter-spacing: 0;
 }
 
+/* Body-sans headings — beats Tegel h1 40px / h2 32px / h3 24px condensed. */
+.tegel-rm h1.mp-page-title,
+.tegel-rm h2.mp-section-title,
+.tegel-rm h3.mp-card-title {
+  font-family: var(--app-font-body);
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  text-transform: none;
+  line-height: 1.3;
+}
+
+.tegel-rm h1.mp-page-title {
+  font-size: 1.5rem;
+}
+
+.tegel-rm h2.mp-section-title {
+  font-size: 1.0625rem;
+}
+
+.tegel-rm h3.mp-card-title {
+  font-size: 0.9375rem;
+}
+
 nav,
 button,
 input,

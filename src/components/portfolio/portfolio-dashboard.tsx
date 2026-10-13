@@ -168,7 +168,7 @@ function ScopeBanner({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm text-[var(--muted)]">Scope context</p>
-          <h2 className="font-[family-name:var(--font-display)] text-xl">
+          <h2 className="mp-section-title text-[var(--scania-blue-900)]">
             {organizationName}
             {departmentName ? ` · ${departmentName}` : ""}
           </h2>
@@ -226,7 +226,7 @@ export function PortfolioScopeControls({
 }) {
   return (
     <Panel>
-      <h2 className="font-medium">Portfolio scope</h2>
+      <h2 className="mp-section-title text-[var(--scania-blue-900)]">Portfolio scope</h2>
       <p className="mt-1 text-sm text-[var(--muted)]">
         Changing organization or department reloads a server-scoped snapshot.
         Metrics are never filtered only in the browser.
