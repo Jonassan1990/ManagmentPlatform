@@ -46,7 +46,7 @@ function Pillar({
       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--scania-blue-700)]">
         {eyebrow}
       </p>
-      <h3 className="scania-title mt-1 text-base text-[var(--scania-blue-900)]">
+      <h3 className="mp-card-title mt-1 text-[var(--scania-blue-900)]">
         {title}
       </h3>
       <div className="mt-3 flex-1 space-y-2 text-sm">{children}</div>
@@ -161,7 +161,7 @@ export function ExecutiveBrief({
           </p>
           <h2
             id="executive-brief-heading"
-            className="scania-title text-xl text-[var(--scania-blue-900)]"
+            className="mp-section-title text-[var(--scania-blue-900)]"
           >
             Cost · Resources · Planning
           </h2>
@@ -349,7 +349,7 @@ export function ExecutiveBrief({
       >
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h3 className="scania-title text-sm text-[var(--scania-blue-900)]">
+            <h3 className="mp-card-title text-[var(--scania-blue-900)]">
               Portfolio stage funnel
             </h3>
             <p className="text-[11px] text-[var(--muted)]">

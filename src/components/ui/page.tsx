@@ -79,7 +79,7 @@ export function PageHeader({
   return (
     <div className="mp-rise mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="scania-title text-3xl tracking-tight text-[var(--scania-blue-900)]">
+        <h1 className="mp-page-title text-[var(--scania-blue-900)]">
           {title}
         </h1>
         {description ? (
