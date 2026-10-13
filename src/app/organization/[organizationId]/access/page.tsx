@@ -88,7 +88,7 @@ export default async function OrganizationAccessPage({
       />
       <PageHeader
         title="Access & roles"
-        description="Create local test users, then assign RoleDefinition packs at Organization, Section, Department, or Team scope."
+        description="Create local test users, reset a password, then assign RoleDefinition packs at Organization, Section, Department, or Team scope."
         actions={
           <Link
             href={`/organization/${organizationId}`}
@@ -110,6 +110,7 @@ export default async function OrganizationAccessPage({
         </Panel>
         <Panel>
           <LocalLoginsList
+            organizationId={organizationId}
             logins={localLogins}
             unavailable={localLoginsUnavailable}
           />

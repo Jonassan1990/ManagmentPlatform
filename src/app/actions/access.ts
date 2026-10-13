@@ -8,6 +8,7 @@ import {
   createLocalTestUserInputSchema,
   expireRoleBindingInputSchema,
   linkOidcIdentityInputSchema,
+  resetLocalLoginPasswordInputSchema,
 } from "@/modules/identity-access/application/schemas";
 
 export type { ActionResult } from "@/server/action-runner";
@@ -33,6 +34,17 @@ export async function createLocalTestUserAction(input: unknown) {
     const principal = await authz.requirePrincipal();
     const parsed = createLocalTestUserInputSchema.parse(input);
     const result = await identity.createLocalTestUser(principal, parsed);
+    revalidatePath(`/organization/${parsed.organizationId}/access`);
+    return result;
+  });
+}
+
+export async function resetLocalLoginPasswordAction(input: unknown) {
+  return runAction("access.resetLocalLoginPassword", async () => {
+    const { authz, identity } = createServices();
+    const principal = await authz.requirePrincipal();
+    const parsed = resetLocalLoginPasswordInputSchema.parse(input);
+    const result = await identity.resetLocalLoginPassword(principal, parsed);
     revalidatePath(`/organization/${parsed.organizationId}/access`);
     return result;
   });

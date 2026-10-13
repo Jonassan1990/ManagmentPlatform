@@ -45,6 +45,13 @@ export const createLocalTestUserInputSchema = z.object({
   scopeId: uuidSchema.optional().nullable(),
 });
 
+/** Admin reset of a local test login password (org ROLE_MANAGE). Re-enables if disabled. */
+export const resetLocalLoginPasswordInputSchema = z.object({
+  organizationId: uuidSchema,
+  credentialId: uuidSchema,
+  password: z.string().min(8).max(200),
+});
+
 /**
  * Explicit OIDC → Principal link (R1-B cutover).
  * Never uses email as the identity key. Requires PLATFORM ROLE_MANAGE.

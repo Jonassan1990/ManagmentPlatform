@@ -459,23 +459,8 @@ export class IdentityService {
       type: "ORGANIZATION",
       organizationId,
     });
-    // Local logins are platform-wide credentials; list those with a binding in this org
-    // plus recently created ones that may not yet have bindings (createdBy actor in org).
-    const bindings = await this.db.roleBinding.findMany({
-      where: {
-        organizationId,
-        OR: [{ effectiveTo: null }, { effectiveTo: { gt: new Date() } }],
-      },
-      select: { principalId: true },
-    });
-    const principalIds = [...new Set(bindings.map((b) => b.principalId))];
     return this.db.localLoginCredential.findMany({
-      where: {
-        OR: [
-          { principalId: { in: principalIds } },
-          { createdByPrincipalId: actor.id },
-        ],
-      },
+      where: await this.localLoginVisibilityWhere(actor, organizationId),
       orderBy: { createdAt: "desc" },
       take: 100,
       select: {
@@ -487,6 +472,89 @@ export class IdentityService {
         createdAt: true,
       },
     });
+  }
+
+  /**
+   * Set a new password for a local test login visible in this organization.
+   * Clears disabledAt so a locked test account can sign in again.
+   * Does not change roles or the Principal id.
+   */
+  async resetLocalLoginPassword(
+    actor: Principal,
+    input: {
+      organizationId: string;
+      credentialId: string;
+      password: string;
+    },
+  ): Promise<{ credentialId: string; username: string; principalId: string }> {
+    await this.authz.assertCan(actor, PERMISSIONS.ROLE_MANAGE, {
+      type: "ORGANIZATION",
+      organizationId: input.organizationId,
+    });
+
+    if (input.password.length < 8 || input.password.length > 200) {
+      throw new AppError(
+        "VALIDATION",
+        "Password must be between 8 and 200 characters.",
+      );
+    }
+
+    const row = await this.db.localLoginCredential.findFirst({
+      where: {
+        id: input.credentialId,
+        ...(await this.localLoginVisibilityWhere(actor, input.organizationId)),
+      },
+      select: { id: true, username: true, principalId: true },
+    });
+    if (!row) {
+      throw new AppError(
+        "NOT_FOUND",
+        "Local login was not found in this organization.",
+      );
+    }
+
+    const passwordHash = await bcryptHash(input.password, 10);
+    await this.db.localLoginCredential.update({
+      where: { id: row.id },
+      data: { passwordHash, disabledAt: null },
+    });
+
+    await this.audit.record({
+      actorPrincipalId: actor.id,
+      actionType: "identity.local_login.reset_password",
+      subjectType: "Principal",
+      subjectId: row.principalId,
+      organizationId: input.organizationId,
+      payload: { username: row.username },
+      result: "success",
+    });
+
+    return {
+      credentialId: row.id,
+      username: row.username,
+      principalId: row.principalId,
+    };
+  }
+
+  /** Bindings in this org, plus logins this actor created (may have no role yet). */
+  private async localLoginVisibilityWhere(
+    actor: Principal,
+    organizationId: string,
+  ) {
+    const bindings = await this.db.roleBinding.findMany({
+      where: {
+        organizationId,
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: new Date() } }],
+      },
+      select: { principalId: true },
+    });
+    const principalIds = [...new Set(bindings.map((b) => b.principalId))];
+    return {
+      OR: [
+        { principalId: { in: principalIds } },
+        { createdByPrincipalId: actor.id },
+      ],
+    };
   }
 
   /**
