@@ -1,0 +1,247 @@
+.mp-org-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.mp-org-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mp-org-swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.mp-org-swatch--organization { background: #0c2340; }
+.mp-org-swatch--section { background: #0f4c5c; }
+.mp-org-swatch--department { background: #087f78; }
+.mp-org-swatch--team { background: #7eb6c0; }
+
+.mp-org-scroll {
+  overflow-x: auto;
+  padding: 0.25rem 0.25rem 1rem;
+}
+
+.mp-org-tree {
+  width: max-content;
+  min-width: 100%;
+}
+
+.mp-org-tree,
+.mp-org-tree ul {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mp-org-tree ul {
+  position: relative;
+  padding-top: 1.6rem;
+}
+
+.mp-org-tree li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.6rem 0.55rem 0;
+  list-style: none;
+}
+
+.mp-org-tree > li {
+  padding-top: 0;
+}
+
+.mp-org-tree li::before,
+.mp-org-tree li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 1.6rem;
+  border-top: 1px solid #c5d0dc;
+}
+
+.mp-org-tree li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid #c5d0dc;
+}
+
+.mp-org-tree li:only-child {
+  padding-top: 0;
+}
+
+.mp-org-tree li:only-child::before,
+.mp-org-tree li:only-child::after,
+.mp-org-tree > li::before,
+.mp-org-tree > li::after {
+  display: none;
+}
+
+.mp-org-tree li:first-child::before,
+.mp-org-tree li:last-child::after {
+  border: 0 none;
+}
+
+.mp-org-tree li:last-child::before {
+  border-right: 1px solid #c5d0dc;
+  border-radius: 0 0.6rem 0 0;
+}
+
+.mp-org-tree li:first-child::after {
+  border-radius: 0.6rem 0 0 0;
+}
+
+.mp-org-tree ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 1.6rem;
+  border-left: 1px solid #c5d0dc;
+}
+
+.mp-org-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 12.5rem;
+  min-height: 7.5rem;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: #fff;
+  padding: 0.75rem 0.8rem 0.7rem;
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgba(12, 35, 64, 0.06);
+}
+
+.mp-org-card:hover {
+  border-color: #9eb4c6;
+  transform: translateY(-1px);
+}
+
+.mp-org-card:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.mp-org-card--organization {
+  width: 15rem;
+  border-color: #0c2340;
+  background:
+    radial-gradient(120px 60px at 100% 0%, rgba(127, 211, 238, 0.22), transparent 70%),
+    linear-gradient(180deg, #123056 0%, #0c2340 100%);
+  color: #fff;
+}
+
+.mp-org-card--section { border-top: 3px solid #0f4c5c; }
+.mp-org-card--department { border-top: 3px solid #087f78; }
+.mp-org-card--team { border-top: 3px solid #7eb6c0; }
+
+.mp-org-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.mp-org-card--organization .mp-org-eyebrow { color: rgba(255, 255, 255, 0.7); }
+
+.mp-org-card-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.mp-org-owner {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: auto;
+}
+
+.mp-org-owner-label,
+.mp-org-owner-role {
+  display: block;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: var(--muted);
+}
+
+.mp-org-card--organization .mp-org-owner-label,
+.mp-org-card--organization .mp-org-owner-role {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.mp-org-owner-name {
+  display: block;
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-org-avatar {
+  display: grid;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: #e6f1f3;
+  color: #0f4c5c;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.mp-org-card--organization .mp-org-avatar {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.mp-org-avatar--sm {
+  width: 1.45rem;
+  height: 1.45rem;
+  margin-left: -0.35rem;
+  border: 2px solid #fff;
+  font-size: 0.58rem;
+}
+
+.mp-org-members {
+  display: flex;
+  align-items: center;
+  padding-left: 0.35rem;
+}
+
+.mp-org-more {
+  margin-left: 0.25rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-org-card:hover { transform: none; }
+}

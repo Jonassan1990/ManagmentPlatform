@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { OrganizationChart } from "@/components/organization/organization-chart";
 import {
   CreateResourceForm,
   CreateSectionForm,
@@ -30,6 +31,8 @@ export default async function OrganizationDetailPage({
     notFound();
   }
   if (!hierarchy) notFound();
+
+  const chart = await organization.getOrganizationChart(principal, organizationId);
 
   const canManage = await authz.can(
     principal,
@@ -81,57 +84,12 @@ export default async function OrganizationDetailPage({
       <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-4">
           <Panel>
-            <h2 className="mb-3 font-medium">Hierarchy</h2>
-            {hierarchy.sections.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">
-                No sections yet.
-                {canManage
-                  ? " Create the first section to continue."
-                  : " Organization structure manage permission is required to add sections."}
-              </p>
+            {chart ? (
+              <OrganizationChart chart={chart} />
             ) : (
-              <ul className="space-y-4">
-                {hierarchy.sections.map((section) => (
-                  <li key={section.id}>
-                    <Link
-                      href={`/organization/${hierarchy.id}/sections/${section.id}`}
-                      className="inline-flex min-h-11 items-center font-medium text-[var(--accent)]"
-                    >
-                      Section · {section.name}
-                    </Link>
-                    {section.departments.length === 0 ? (
-                      <p className="ml-4 mt-1 text-sm text-[var(--muted)]">
-                        No departments
-                      </p>
-                    ) : (
-                      <ul className="ml-4 mt-2 space-y-2 border-l border-[var(--line)] pl-4">
-                        {section.departments.map((department) => (
-                          <li key={department.id}>
-                            <Link
-                              href={`/organization/${hierarchy.id}/departments/${department.id}`}
-                              className="inline-flex min-h-11 items-center text-sm font-medium"
-                            >
-                              Department · {department.name}
-                            </Link>
-                            <ul className="ml-3 mt-1 space-y-1">
-                              {department.teams.map((team) => (
-                                <li key={team.id}>
-                                  <Link
-                                    href={`/organization/${hierarchy.id}/teams/${team.id}`}
-                                    className="inline-flex min-h-11 items-center text-sm text-[var(--muted)] hover:text-[var(--ink)]"
-                                  >
-                                    Team · {team.name}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <p className="text-sm text-[var(--muted)]">
+                This organization could not be drawn.
+              </p>
             )}
           </Panel>
 
