@@ -11,6 +11,8 @@ export type OrganizationListItem = {
   description: string | null;
   version: number;
   canEdit: boolean;
+  parentOrganizationId: string | null;
+  depth: number;
 };
 
 export function OrganizationList({
@@ -31,12 +33,17 @@ export function OrganizationList({
             key={org.id}
             className={`rounded-md py-3 ${selectedId === org.id ? "bg-[var(--accent-soft)] px-2" : ""}`}
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3" style={{ paddingLeft: org.depth * 16 }}>
               <Link
                 href={`/organization/${org.id}`}
                 className="block min-h-11 min-w-0 flex-1 rounded-sm py-1 hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
               >
                 <p className="font-medium">{org.name}</p>
+                {org.parentOrganizationId ? (
+                  <p className="text-xs text-[var(--muted)]">
+                    Inside {orgs.find((parent) => parent.id === org.parentOrganizationId)?.name}
+                  </p>
+                ) : null}
                 {org.description ? (
                   <p className="text-sm text-[var(--muted)]">{org.description}</p>
                 ) : null}
@@ -67,6 +74,8 @@ export function OrganizationList({
                   name={org.name}
                   description={org.description}
                   version={org.version}
+                  parentOrganizationId={org.parentOrganizationId}
+                  parents={orgs.map((item) => ({ id: item.id, name: item.name }))}
                   onSaved={() => setEditingId(null)}
                 />
               </div>

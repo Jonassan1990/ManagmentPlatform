@@ -42,6 +42,14 @@ export type ChartSection = {
   departments: ChartDepartment[];
 };
 
+export type ChartOrgNode = {
+  id: string;
+  name: string;
+  href: string;
+  owner: ChartOwner | null;
+  children: ChartOrgNode[];
+};
+
 export type OrganizationChart = {
   id: string;
   name: string;
@@ -49,6 +57,7 @@ export type OrganizationChart = {
   href: string;
   owner: ChartOwner | null;
   sections: ChartSection[];
+  children: ChartOrgNode[];
   unassigned: ChartMember[];
   counts: {
     sections: number;
@@ -240,6 +249,7 @@ export function buildOrganizationChart(input: {
     href: `/organization/${orgId}`,
     owner: bindingOwner(input.bindings, "ORGANIZATION", orgId),
     sections,
+    children: [],
     unassigned,
     counts: {
       sections: sections.length,
@@ -252,4 +262,48 @@ export function buildOrganizationChart(input: {
       people: input.people.length,
     },
   };
+}
+
+export function nestChildOrganizations(
+  rootId: string,
+  orgs: { id: string; name: string; parentOrganizationId: string | null }[],
+  owners: { organizationId: string; name: string }[],
+): ChartOrgNode[] {
+  const childrenOf = new Map<string, { id: string; name: string }[]>();
+  for (const org of orgs) {
+    if (!org.parentOrganizationId || org.id === rootId) continue;
+    const list = childrenOf.get(org.parentOrganizationId) ?? [];
+    list.push({ id: org.id, name: org.name });
+    childrenOf.set(org.parentOrganizationId, list);
+  }
+  for (const list of childrenOf.values()) {
+    list.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  const ownerName = new Map<string, string>();
+  for (const owner of owners) {
+    if (!ownerName.has(owner.organizationId) && owner.name.trim()) {
+      ownerName.set(owner.organizationId, owner.name);
+    }
+  }
+
+  const walk = (parentId: string, seen: Set<string>): ChartOrgNode[] => {
+    return (childrenOf.get(parentId) ?? [])
+      .filter((child) => !seen.has(child.id))
+      .map((child) => {
+        const next = new Set(seen);
+        next.add(child.id);
+        const name = ownerName.get(child.id);
+        return {
+          id: child.id,
+          name: child.name,
+          href: `/organization/${child.id}`,
+          owner: name
+            ? { name, title: "Organization owner", kind: "owner" as const }
+            : null,
+          children: walk(child.id, next),
+        };
+      });
+  };
+
+  return walk(rootId, new Set([rootId]));
 }

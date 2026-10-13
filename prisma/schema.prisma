@@ -28,14 +28,17 @@ enum ScopeType {
 }
 
 model Organization {
-  id          String       @id @default(uuid()) @db.Uuid
-  name        String       @db.VarChar(200)
-  description String?      @db.VarChar(2000)
-  status      EntityStatus @default(ACTIVE)
-  version     Int          @default(1)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                   String       @id @default(uuid()) @db.Uuid
+  name                 String       @db.VarChar(200)
+  description          String?      @db.VarChar(2000)
+  parentOrganizationId String?      @db.Uuid
+  status               EntityStatus @default(ACTIVE)
+  version              Int          @default(1)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
+  parent   Organization?  @relation("OrganizationTree", fields: [parentOrganizationId], references: [id], onDelete: SetNull)
+  children Organization[] @relation("OrganizationTree")
   sections     Section[]
   resources    Resource[]
   roleBindings RoleBinding[]
@@ -51,6 +54,7 @@ model Organization {
   planningDependencies PlanningDependency[]
 
   @@index([status])
+  @@index([parentOrganizationId])
   @@map("organizations")
 }
 

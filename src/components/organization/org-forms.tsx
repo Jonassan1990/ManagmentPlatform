@@ -28,12 +28,16 @@ export function EditOrganizationForm({
   name,
   description,
   version,
+  parentOrganizationId = null,
+  parents = [],
   onSaved,
 }: {
   id: string;
   name: string;
   description: string | null;
   version: number;
+  parentOrganizationId?: string | null;
+  parents?: { id: string; name: string }[];
   onSaved?: () => void;
 }) {
   const form = useActionForm(updateOrganizationAction, () => {
@@ -45,18 +49,20 @@ export function EditOrganizationForm({
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
+        const parent = String(fd.get("parentOrganizationId") ?? "");
         form.submit({
           id,
           expectedVersion: version,
           name: String(fd.get("name") ?? ""),
           description: String(fd.get("description") ?? "") || null,
+          parentOrganizationId: parent || null,
         });
       }}
     >
       {form.ErrorAlert}
-      <FormField label="Name" htmlFor="org-name">
+      <FormField label="Name" htmlFor={`org-name-${id}`}>
         <input
-          id="org-name"
+          id={`org-name-${id}`}
           name="name"
           defaultValue={name}
           required
@@ -64,15 +70,36 @@ export function EditOrganizationForm({
           className={fieldClassName}
         />
       </FormField>
-      <FormField label="Description" htmlFor="org-description">
+      <FormField label="Description" htmlFor={`org-description-${id}`}>
         <textarea
-          id="org-description"
+          id={`org-description-${id}`}
           name="description"
           defaultValue={description ?? ""}
           maxLength={2000}
           rows={3}
           className={fieldClassName}
         />
+      </FormField>
+      <FormField
+        label="Inside organization"
+        htmlFor={`org-parent-${id}`}
+        hint="Leave empty for a main organization such as Q. Choose Q to place QD, QM, or QC inside it."
+      >
+        <select
+          id={`org-parent-${id}`}
+          name="parentOrganizationId"
+          className={fieldClassName}
+          defaultValue={parentOrganizationId ?? ""}
+        >
+          <option value="">Top level</option>
+          {parents
+            .filter((parent) => parent.id !== id)
+            .map((parent) => (
+              <option key={parent.id} value={parent.id}>
+                {parent.name}
+              </option>
+            ))}
+        </select>
       </FormField>
       <PrimaryButton disabled={form.pending}>
         {form.pending ? "Saving…" : "Save changes"}

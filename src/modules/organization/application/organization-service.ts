@@ -12,7 +12,7 @@ import type { Principal } from "@/modules/identity-access/domain/types";
 import { assertAllocationPercentsWithinLimit } from "@/modules/pi-planning/application/capacity-policy";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS, ROLE_KEYS } from "@/modules/shared/permissions";
-import { buildOrganizationChart } from "./organization-chart";
+import { buildOrganizationChart, nestChildOrganizations } from "./organization-chart";
 import {
   archiveEntityInputSchema,
   assignMembershipInputSchema,
@@ -127,12 +127,14 @@ export class OrganizationService {
         type: "PLATFORM",
       });
     }
+    await this.assertParentOrganization(null, input.parentOrganizationId ?? null);
 
     const org = await this.db.$transaction(async (tx) => {
       const created = await tx.organization.create({
         data: {
           name: input.name,
           description: input.description ?? null,
+          parentOrganizationId: input.parentOrganizationId ?? null,
         },
       });
       return created;
@@ -177,6 +179,7 @@ export class OrganizationService {
         { details: { currentVersion: existing.version } },
       );
     }
+    await this.assertParentOrganization(existing.id, input.parentOrganizationId ?? null);
 
     try {
       const updated = await this.db.organization.update({
@@ -184,6 +187,9 @@ export class OrganizationService {
         data: {
           name: input.name,
           description: input.description ?? null,
+          ...(input.parentOrganizationId !== undefined
+            ? { parentOrganizationId: input.parentOrganizationId }
+            : {}),
           version: { increment: 1 },
         },
       });
@@ -1277,7 +1283,7 @@ export class OrganizationService {
       orderBy: { createdAt: "asc" },
     });
 
-    return buildOrganizationChart({
+    const chart = buildOrganizationChart({
       organization: {
         id: hierarchy.id,
         name: hierarchy.name,
@@ -1320,6 +1326,39 @@ export class OrganizationService {
         roleKey: binding.roleDefinition.key,
       })),
     });
+
+    const visible = await this.listOrganizations(principal);
+    const childIds = visible
+      .filter((org) => org.parentOrganizationId)
+      .map((org) => org.id);
+    const childOwners =
+      childIds.length === 0
+        ? []
+        : await this.db.roleBinding.findMany({
+            where: {
+              organizationId: { in: childIds },
+              scopeType: ScopeType.ORGANIZATION,
+              OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+              roleDefinition: { key: ROLE_KEYS.ORGANIZATION_ADMIN },
+            },
+            include: {
+              principal: { select: { displayName: true, email: true } },
+            },
+            orderBy: { createdAt: "asc" },
+          });
+    chart.children = nestChildOrganizations(
+      organizationId,
+      visible.map((org) => ({
+        id: org.id,
+        name: org.name,
+        parentOrganizationId: org.parentOrganizationId,
+      })),
+      childOwners.map((binding) => ({
+        organizationId: binding.organizationId ?? "",
+        name: binding.principal.displayName || binding.principal.email || "Owner",
+      })),
+    );
+    return chart;
   }
 
   async getHierarchy(principal: Principal, organizationId: string) {
@@ -1358,6 +1397,35 @@ export class OrganizationService {
         },
       },
     });
+  }
+
+  private async assertParentOrganization(orgId: string | null, parentId: string | null) {
+    if (!parentId) return;
+    if (orgId && parentId === orgId) {
+      throw new AppError("VALIDATION", "An organization cannot belong to itself.");
+    }
+    const rows = await this.db.organization.findMany({
+      where: { status: EntityStatus.ACTIVE },
+      select: { id: true, parentOrganizationId: true },
+    });
+    if (!rows.some((row) => row.id === parentId)) {
+      throw new AppError("NOT_FOUND", "Parent organization not found.");
+    }
+    if (!orgId) return;
+    const parentOf = new Map(rows.map((row) => [row.id, row.parentOrganizationId]));
+    const seen = new Set<string>();
+    let cursor: string | null = parentId;
+    while (cursor) {
+      if (cursor === orgId) {
+        throw new AppError(
+          "VALIDATION",
+          "That organization is already inside this one. Choose a parent above it, such as Q for QD.",
+        );
+      }
+      if (seen.has(cursor)) break;
+      seen.add(cursor);
+      cursor = parentOf.get(cursor) ?? null;
+    }
   }
 
   private async requireActiveOrganization(id: string) {

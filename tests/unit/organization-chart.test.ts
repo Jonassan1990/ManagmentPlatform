@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOrganizationChart } from "@/modules/organization/application/organization-chart";
+import { buildOrganizationChart, nestChildOrganizations } from "@/modules/organization/application/organization-chart";
 
 const orgId = "11111111-1111-4111-8111-111111111111";
 const sectionId = "22222222-2222-4222-8222-222222222222";
@@ -110,5 +110,28 @@ describe("buildOrganizationChart", () => {
       kind: "manager",
     });
     expect(chart.owner).toBeNull();
+  });
+});
+
+describe("nestChildOrganizations", () => {
+  it("connects Q to QD, QM, and QC, and QC to QCM and QCF", () => {
+    const tree = nestChildOrganizations(
+      "q",
+      [
+        { id: "q", name: "Q", parentOrganizationId: null },
+        { id: "qd", name: "QD", parentOrganizationId: "q" },
+        { id: "qm", name: "QM", parentOrganizationId: "q" },
+        { id: "qc", name: "QC", parentOrganizationId: "q" },
+        { id: "qcm", name: "QCM", parentOrganizationId: "qc" },
+        { id: "qcf", name: "QCF", parentOrganizationId: "qc" },
+      ],
+      [],
+    );
+
+    expect(tree.map((node) => node.name)).toEqual(["QC", "QD", "QM"]);
+    expect(tree.find((node) => node.name === "QC")?.children.map((node) => node.name)).toEqual([
+      "QCF",
+      "QCM",
+    ]);
   });
 });

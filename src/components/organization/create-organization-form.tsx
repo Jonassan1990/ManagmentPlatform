@@ -11,8 +11,10 @@ import {
 
 export function CreateOrganizationForm({
   redirectToOrg = true,
+  parents = [],
 }: {
   redirectToOrg?: boolean;
+  parents?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const form = useActionForm(createOrganizationAction, (data) => {
@@ -28,9 +30,11 @@ export function CreateOrganizationForm({
       onSubmit={(event) => {
         event.preventDefault();
         const fd = new FormData(event.currentTarget);
+        const parent = String(fd.get("parentOrganizationId") ?? "");
         form.submit({
           name: String(fd.get("name") ?? ""),
           description: String(fd.get("description") ?? "") || null,
+          parentOrganizationId: parent || null,
         });
       }}
     >
@@ -42,8 +46,22 @@ export function CreateOrganizationForm({
           required
           maxLength={200}
           className={fieldClassName}
-          placeholder="Enter the organization name"
+          placeholder="Q, QD, QM, QC"
         />
+      </FormField>
+      <FormField
+        label="Inside organization"
+        htmlFor="parentOrganizationId"
+        hint="Leave empty for the main organization, such as Q. Choose Q when creating QD, QM, or QC."
+      >
+        <select id="parentOrganizationId" name="parentOrganizationId" className={fieldClassName} defaultValue="">
+          <option value="">Top level</option>
+          {parents.map((parent) => (
+            <option key={parent.id} value={parent.id}>
+              {parent.name}
+            </option>
+          ))}
+        </select>
       </FormField>
       <FormField
         label="Description"
