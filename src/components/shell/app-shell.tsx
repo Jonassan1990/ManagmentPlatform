@@ -223,7 +223,7 @@ export function AppShell({
           <main
             id="main-content"
             tabIndex={-1}
-            className="mx-auto max-w-[1500px] space-y-4 px-4 py-6 outline-none sm:px-6 lg:px-8"
+            className="mp-fade mx-auto max-w-[1500px] space-y-4 px-4 py-6 outline-none sm:px-6 lg:px-8"
           >
             {children}
           </main>
@@ -254,7 +254,7 @@ function NavGroupBlock({
         href={group.hubHref}
         onClick={onNavigate}
         aria-current={group.hubActive ? "page" : undefined}
-        className={`block min-h-11 rounded-[4px] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+        className={`mp-nav-link block min-h-11 rounded-[4px] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
           group.hubActive
             ? "bg-[var(--sidebar-active)] text-white"
             : "hover:bg-white/5"
@@ -273,7 +273,7 @@ function NavGroupBlock({
             href={group.hubHref}
             onClick={onNavigate}
             aria-current={group.hubActive ? "page" : undefined}
-            className={`min-h-11 min-w-0 flex-1 rounded-[4px] px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+            className={`mp-nav-link min-h-11 min-w-0 flex-1 rounded-[4px] px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
               group.hubActive
                 ? "bg-[var(--sidebar-active)] text-white"
                 : "hover:bg-white/5"
@@ -307,7 +307,7 @@ function NavGroupBlock({
                 href={item.href}
                 onClick={onNavigate}
                 aria-current={item.active ? "page" : undefined}
-                className={`block min-h-11 rounded-[4px] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+                className={`mp-nav-link block min-h-11 rounded-[4px] px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
                   item.active
                     ? "bg-[var(--sidebar-active)] text-white"
                     : "text-white/85 hover:bg-white/5"

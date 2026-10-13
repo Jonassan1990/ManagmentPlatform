@@ -258,7 +258,7 @@ function WelcomeHeader({ dash }: { dash: HomeDashboardResponse }) {
   const name = userContext.displayName?.trim() || "there";
 
   return (
-    <header className="mb-2">
+    <header className="mp-rise mb-2">
       <p className="ds-eyebrow text-[10px]">
         Home
       </p>
@@ -982,7 +982,7 @@ export function HomeDashboardView({ dashboard }: HomeDashboardViewProps) {
   // Mixed: attention + my work side-by-side on large screens.
   if (dashboard.userContext.mode === "mixed") {
     return (
-      <div className="space-y-8">
+      <div className="mp-stagger space-y-8">
         <WelcomeHeader dash={dashboard} />
         <Warnings dash={dashboard} />
         <div className="grid gap-6 lg:grid-cols-2">
@@ -999,7 +999,7 @@ export function HomeDashboardView({ dashboard }: HomeDashboardViewProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="mp-stagger space-y-8">
       <WelcomeHeader dash={dashboard} />
       <Warnings dash={dashboard} />
       {order.map((key) => (

@@ -254,6 +254,13 @@ async function main() {
       description: "Enterprise platforms and plant systems",
     },
   });
+  const qualitySection = await db.section.create({
+    data: {
+      organizationId: org.id,
+      name: "Quality & Continuous Improvement",
+      description: "Quality systems, audits, and lean coaching",
+    },
+  });
 
   const plantA = await db.department.create({
     data: {
@@ -283,12 +290,35 @@ async function main() {
       description: "Reporting and analytics products",
     },
   });
+  const qualityDept = await db.department.create({
+    data: {
+      sectionId: qualitySection.id,
+      name: "Quality Systems",
+      description: "Plant quality management and supplier audits",
+    },
+  });
+  const leanDept = await db.department.create({
+    data: {
+      sectionId: qualitySection.id,
+      name: "Lean Office",
+      description: "CI coaching and standard work",
+    },
+  });
 
   const teamA = await db.team.create({
     data: { departmentId: plantA.id, name: "Line 2 Improvement" },
   });
   const teamIT = await db.team.create({
     data: { departmentId: itPlatform.id, name: "Platform Delivery" },
+  });
+  const teamData = await db.team.create({
+    data: { departmentId: dataDept.id, name: "Analytics Delivery" },
+  });
+  const teamQuality = await db.team.create({
+    data: { departmentId: qualityDept.id, name: "Audit Ops" },
+  });
+  const teamLean = await db.team.create({
+    data: { departmentId: leanDept.id, name: "CI Coaches" },
   });
 
   const people = await Promise.all(
@@ -298,6 +328,11 @@ async function main() {
       ["Mina Kader", "Product Owner"],
       ["Jonas Berg", "Tech Lead"],
       ["Nora Ali", "Data Analyst"],
+      ["Lina Persson", "Quality Manager"],
+      ["Omar Hassan", "Lean Coach"],
+      ["Freja Nyström", "Scrum Master"],
+      ["Viktor Ek", "OT Engineer"],
+      ["Aisha Rahman", "UX Researcher"],
     ].map(([name, role]) =>
       db.resource.create({
         data: {
@@ -312,13 +347,21 @@ async function main() {
       }),
     ),
   );
-  const [sara, erik, mina, jonas, nora] = people;
+  const [sara, erik, mina, jonas, nora, lina, omar, freja, viktor, aisha] =
+    people;
 
   await db.resourceMembership.createMany({
     data: [
       { resourceId: sara.id, teamId: teamA.id, isPrimary: true, allocationPercent: 100 },
       { resourceId: jonas.id, teamId: teamIT.id, isPrimary: true, allocationPercent: 100 },
       { resourceId: mina.id, teamId: teamIT.id, isPrimary: true, allocationPercent: 80 },
+      { resourceId: freja.id, teamId: teamIT.id, isPrimary: true, allocationPercent: 100 },
+      { resourceId: nora.id, teamId: teamData.id, isPrimary: true, allocationPercent: 100 },
+      { resourceId: aisha.id, teamId: teamData.id, isPrimary: false, allocationPercent: 50 },
+      { resourceId: lina.id, teamId: teamQuality.id, isPrimary: true, allocationPercent: 100 },
+      { resourceId: omar.id, teamId: teamLean.id, isPrimary: true, allocationPercent: 100 },
+      { resourceId: viktor.id, teamId: teamA.id, isPrimary: false, allocationPercent: 60 },
+      { resourceId: erik.id, teamId: teamA.id, isPrimary: false, allocationPercent: 20 },
     ],
   });
 
@@ -422,6 +465,115 @@ async function main() {
     },
   });
 
+  const pocInit = await createInitiative({
+    key: "INI-DEMO-07",
+    title: "Vision-based defect detection PoC",
+    stage: "POC",
+    departmentId: qualityDept.id,
+    ownerResourceId: lina.id,
+    ownerName: lina.name,
+    urgency: "HIGH",
+  });
+  const poc = await db.poC.create({
+    data: {
+      initiativeId: pocInit.id,
+      title: "Camera defect detection on Line 2",
+      objective: "Prove AI vision can flag paint defects with ≥90% precision.",
+      hypothesis:
+        "Edge inference on existing PLC cameras reduces escaped defects by 30%.",
+      scope: "Two camera stations on Line 2; offline labeling week 1–2.",
+      outOfScope: "Full MES integration and plant-wide rollout.",
+      ownerName: lina.name,
+      ownerResourceId: lina.id,
+      plannedStart: new Date("2026-09-15"),
+      plannedEnd: new Date("2026-11-15"),
+      estimatedCost: "45000",
+      status: "IN_PROGRESS",
+    },
+  });
+  await db.poCSuccessCriterion.createMany({
+    data: [
+      {
+        pocId: poc.id,
+        description: "Precision on held-out defect set",
+        measurementMethod: "Confusion matrix weekly review",
+        target: "≥ 0.90",
+        unit: "ratio",
+        sortOrder: 1,
+      },
+      {
+        pocId: poc.id,
+        description: "False positive rate acceptable to operators",
+        measurementMethod: "Operator diary + sample audit",
+        target: "≤ 5%",
+        unit: "%",
+        sortOrder: 2,
+      },
+    ],
+  });
+
+  const pilotInit = await createInitiative({
+    key: "INI-DEMO-08",
+    title: "Digital andon & escalation pilot",
+    stage: "PILOT",
+    departmentId: plantA.id,
+    ownerResourceId: omar.id,
+    ownerName: omar.name,
+    urgency: "CRITICAL",
+  });
+  const pilot = await db.pilot.create({
+    data: {
+      initiativeId: pilotInit.id,
+      objective: "Validate digital andon reduces mean response time on Line 2.",
+      scope: "Line 2 cells A–D; team leads and maintenance on-call.",
+      outOfScope: "Other plants and vendor SLA changes.",
+      ownerName: omar.name,
+      ownerResourceId: omar.id,
+      siteOrArea: "Plant A — Assembly Line 2",
+      targetUsers: "Team leads, maintenance technicians, shift managers",
+      plannedStart: new Date("2026-10-01"),
+      plannedEnd: new Date("2026-12-15"),
+      estimatedCost: 62000,
+      status: "IN_PROGRESS",
+      environment: "Production cells with staging fallback",
+      supportModel: "Platform Delivery on-call + Lean Office coaching",
+      rollbackPlan: "Revert to physical andon boards within one shift",
+    },
+  });
+  await db.pilotCriterion.createMany({
+    data: [
+      {
+        pilotId: pilot.id,
+        category: "OPERATIONAL",
+        title: "Mean response time",
+        description: "Time from andon pull to first acknowledge",
+        measurementMethod: "Andon event timestamps",
+        target: "≤ 8 minutes",
+        unit: "minutes",
+        sortOrder: 1,
+      },
+      {
+        pilotId: pilot.id,
+        category: "BUSINESS",
+        title: "Operator adoption",
+        description: "Active users per shift",
+        measurementMethod: "Weekly active operator count",
+        target: "≥ 85%",
+        unit: "%",
+        sortOrder: 2,
+      },
+    ],
+  });
+  await db.pilotFeedback.create({
+    data: {
+      pilotId: pilot.id,
+      sourceType: "OPERATOR_INTERVIEW",
+      summary: "Team leads like mobile ack; want louder secondary alert.",
+      sentiment: "MIXED",
+      submittedByName: sara.name,
+    },
+  });
+
   const projectInitA = await createInitiative({
     key: "INI-DEMO-04",
     title: "Plant A OEE dashboard",
@@ -446,6 +598,24 @@ async function main() {
     departmentId: itPlatform.id,
     ownerResourceId: jonas.id,
     ownerName: jonas.name,
+  });
+  const projectInitD = await createInitiative({
+    key: "INI-DEMO-09",
+    title: "Supplier quality scorecard",
+    stage: "PROJECT",
+    departmentId: qualityDept.id,
+    ownerResourceId: lina.id,
+    ownerName: lina.name,
+    urgency: "HIGH",
+  });
+  const projectInitE = await createInitiative({
+    key: "INI-DEMO-10",
+    title: "Shift capacity planner for coaches",
+    stage: "PROJECT",
+    departmentId: leanDept.id,
+    ownerResourceId: omar.id,
+    ownerName: omar.name,
+    urgency: "MEDIUM",
   });
 
   console.log("Creating projects, work items, milestones, issues…");
@@ -511,12 +681,36 @@ async function main() {
     priority: "MEDIUM",
     description: "Managers request and approve system access without tickets.",
   });
+  const projD = await createProject({
+    initiativeId: projectInitD.id,
+    key: "PROJ-DEMO-04",
+    name: "Supplier Quality Scorecard",
+    departmentId: qualityDept.id,
+    ownerResourceId: lina.id,
+    ownerName: lina.name,
+    priority: "HIGH",
+    description: "Rolling scorecard for top 40 suppliers with audit linkage.",
+  });
+  const projE = await createProject({
+    initiativeId: projectInitE.id,
+    key: "PROJ-DEMO-05",
+    name: "Coach Shift Capacity Planner",
+    departmentId: leanDept.id,
+    ownerResourceId: omar.id,
+    ownerName: omar.name,
+    priority: "MEDIUM",
+    description: "Allocate CI coaches across plants by week with skill tags.",
+  });
 
   await db.projectParticipatingDepartment.createMany({
     data: [
       { projectId: projA.id, departmentId: plantA.id },
       { projectId: projA.id, departmentId: itPlatform.id },
       { projectId: projB.id, departmentId: plantB.id },
+      { projectId: projD.id, departmentId: qualityDept.id },
+      { projectId: projD.id, departmentId: plantA.id },
+      { projectId: projE.id, departmentId: leanDept.id },
+      { projectId: projE.id, departmentId: plantB.id },
       { projectId: projC.id, departmentId: itPlatform.id },
     ],
   });
@@ -553,6 +747,37 @@ async function main() {
         ownerName: erik.name,
         ownerResourceId: erik.id,
         plannedDate: new Date("2026-12-15"),
+      },
+      {
+        projectId: projD.id,
+        referenceKey: "MS-001",
+        title: "Scorecard data model approved",
+        status: "COMPLETED",
+        criticality: true,
+        ownerName: lina.name,
+        ownerResourceId: lina.id,
+        plannedDate: new Date("2026-10-01"),
+        actualDate: new Date("2026-09-28"),
+      },
+      {
+        projectId: projD.id,
+        referenceKey: "MS-002",
+        title: "First supplier cohort live",
+        status: "IN_PROGRESS",
+        criticality: true,
+        ownerName: lina.name,
+        ownerResourceId: lina.id,
+        plannedDate: new Date("2026-11-20"),
+      },
+      {
+        projectId: projE.id,
+        referenceKey: "MS-001",
+        title: "Coach skills taxonomy",
+        status: "IN_PROGRESS",
+        criticality: false,
+        ownerName: omar.name,
+        ownerResourceId: omar.id,
+        plannedDate: new Date("2026-11-10"),
       },
     ],
   });
@@ -616,6 +841,50 @@ async function main() {
         ownerResourceId: jonas.id,
         estimateHours: "32",
       },
+      {
+        projectId: projD.id,
+        type: "EPIC",
+        referenceKey: "WI-001",
+        title: "Supplier score engine",
+        status: "IN_PROGRESS",
+        priority: "HIGH",
+        ownerName: lina.name,
+        ownerResourceId: lina.id,
+      },
+      {
+        projectId: projD.id,
+        type: "FEATURE",
+        referenceKey: "WI-002",
+        title: "Audit evidence upload",
+        status: "READY",
+        priority: "MEDIUM",
+        ownerName: aisha.name,
+        ownerResourceId: aisha.id,
+        estimateHours: "24",
+      },
+      {
+        projectId: projE.id,
+        type: "FEATURE",
+        referenceKey: "WI-001",
+        title: "Weekly coach board",
+        status: "IN_PROGRESS",
+        priority: "MEDIUM",
+        ownerName: omar.name,
+        ownerResourceId: omar.id,
+        estimateHours: "28",
+      },
+      {
+        projectId: projA.id,
+        type: "TASK",
+        referenceKey: "WI-004",
+        title: "UX pass for shift review cards",
+        status: "READY",
+        priority: "MEDIUM",
+        parentId: epicA.id,
+        ownerName: aisha.name,
+        ownerResourceId: aisha.id,
+        estimateHours: "12",
+      },
     ],
   });
 
@@ -673,38 +942,134 @@ async function main() {
         resolvedAt: new Date("2026-10-01"),
         resolution: "Added contractor OU mapping in IdP.",
       },
+      {
+        organizationId: org.id,
+        projectId: projD.id,
+        referenceKey: "ISS-001",
+        title: "Supplier master data duplicates across sites",
+        description: "Same VAT ID appears under two plant codes.",
+        severity: "HIGH",
+        status: "OPEN",
+        isBlocker: true,
+        ownerName: lina.name,
+        ownerResourceId: lina.id,
+        reportedAt: new Date(),
+      },
+      {
+        organizationId: org.id,
+        projectId: projE.id,
+        referenceKey: "ISS-001",
+        title: "Coach calendar sync drops weekend slots",
+        severity: "MEDIUM",
+        status: "IN_PROGRESS",
+        isBlocker: false,
+        ownerName: freja.name,
+        ownerResourceId: freja.id,
+        reportedAt: new Date(),
+      },
     ],
   });
 
-  await db.risk.create({
-    data: {
-      initiativeId: projectInitA.id,
-      referenceKey: "RSK-001",
-      title: "OT network change window slips",
-      description: "May delay PLC tag wiring",
-      ownerName: sara.name,
-      ownerResourceId: sara.id,
-      probability: "MEDIUM",
-      impact: "HIGH",
-      status: "MITIGATING",
-      mitigation: "Book joint OT/IT change slot in November",
-    },
+  await db.risk.createMany({
+    data: [
+      {
+        initiativeId: projectInitA.id,
+        referenceKey: "RSK-001",
+        title: "OT network change window slips",
+        description: "May delay PLC tag wiring",
+        ownerName: sara.name,
+        ownerResourceId: sara.id,
+        probability: "MEDIUM",
+        impact: "HIGH",
+        status: "MITIGATING",
+        mitigation: "Book joint OT/IT change slot in November",
+      },
+      {
+        initiativeId: pocInit.id,
+        referenceKey: "RSK-001",
+        title: "Labeled defect set too small",
+        description: "Model may overfit paint flakes vs scratches",
+        ownerName: lina.name,
+        ownerResourceId: lina.id,
+        probability: "HIGH",
+        impact: "MEDIUM",
+        status: "OPEN",
+        mitigation: "Borrow annotated frames from Plant B pilot archive",
+      },
+      {
+        initiativeId: pilotInit.id,
+        referenceKey: "RSK-001",
+        title: "On-call fatigue during pilot",
+        description: "Maintenance ack volume spikes mid-shift",
+        ownerName: omar.name,
+        ownerResourceId: omar.id,
+        probability: "MEDIUM",
+        impact: "HIGH",
+        status: "MITIGATING",
+        mitigation: "Rotate secondary alert channel; cap concurrent pulls",
+      },
+      {
+        initiativeId: projectInitD.id,
+        referenceKey: "RSK-001",
+        title: "Supplier legal review of score publication",
+        description: "Procurement counsel may delay external sharing",
+        ownerName: lina.name,
+        ownerResourceId: lina.id,
+        probability: "MEDIUM",
+        impact: "MEDIUM",
+        status: "OPEN",
+      },
+    ],
+  });
+
+  await db.requirement.createMany({
+    data: [
+      {
+        initiativeId: reqInit.id,
+        referenceKey: "REQ-002",
+        title: "Exception queue for low-confidence forecasts",
+        description: "Planners can accept/override suggested orders",
+        category: "BUSINESS",
+        status: "DRAFT",
+        priority: "SHOULD",
+      },
+      {
+        initiativeId: demandInit.id,
+        referenceKey: "REQ-001",
+        title: "Offline mode for shift checklist",
+        description: "Operators complete checklist without Wi-Fi for 2 hours",
+        category: "BUSINESS",
+        status: "PROPOSED",
+        priority: "MUST",
+      },
+    ],
   });
 
   const summary = {
     organization: org.name,
     organizationId: org.id,
     DEV_AUTH_PRINCIPAL_ID: actorId,
-    sections: [opsSection.name, digitalSection.name],
-    departments: [plantA.name, plantB.name, itPlatform.name, dataDept.name],
+    sections: [opsSection.name, digitalSection.name, qualitySection.name],
+    departments: [
+      plantA.name,
+      plantB.name,
+      itPlatform.name,
+      dataDept.name,
+      qualityDept.name,
+      leanDept.name,
+    ],
     people: people.map((p) => p.name),
     initiatives: [
       { key: demandInit.referenceKey, stage: "DEMAND", title: demandInit.title },
       { key: reqInit.referenceKey, stage: "REQUIREMENTS", title: reqInit.title },
       { key: preStudyInit.referenceKey, stage: "PRE_STUDY", title: preStudyInit.title },
+      { key: pocInit.referenceKey, stage: "POC", title: pocInit.title },
+      { key: pilotInit.referenceKey, stage: "PILOT", title: pilotInit.title },
       { key: projectInitA.referenceKey, stage: "PROJECT", title: projectInitA.title, project: projA.referenceKey },
       { key: projectInitB.referenceKey, stage: "PROJECT", title: projectInitB.title, project: projB.referenceKey },
       { key: projectInitC.referenceKey, stage: "PROJECT", title: projectInitC.title, project: projC.referenceKey },
+      { key: projectInitD.referenceKey, stage: "PROJECT", title: projectInitD.title, project: projD.referenceKey },
+      { key: projectInitE.referenceKey, stage: "PROJECT", title: projectInitE.title, project: projE.referenceKey },
     ],
     demoUrls: {
       home: "/",
@@ -713,6 +1078,10 @@ async function main() {
       projectOee: `/initiatives/${projectInitA.id}/project`,
       projectYard: `/initiatives/${projectInitB.id}/project`,
       projectAccess: `/initiatives/${projectInitC.id}/project`,
+      projectQuality: `/initiatives/${projectInitD.id}/project`,
+      projectLean: `/initiatives/${projectInitE.id}/project`,
+      pocVision: `/initiatives/${pocInit.id}/poc`,
+      pilotAndon: `/initiatives/${pilotInit.id}/pilot`,
     },
   };
 
