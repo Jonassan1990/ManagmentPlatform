@@ -554,6 +554,127 @@ export class AuthorizationService {
     return updated;
   }
 
+  async updateRoleBinding(
+    actor: Principal,
+    input: {
+      bindingId: string;
+      roleDefinitionId: string;
+      scopeType: ScopeType;
+      organizationId?: string | null;
+      scopeId?: string | null;
+      effectiveTo?: Date | null;
+    },
+  ) {
+    await this.ensureSystemRoles();
+    const binding = await this.db.roleBinding.findUnique({
+      where: { id: input.bindingId },
+      include: { roleDefinition: true },
+    });
+    if (!binding) throw new AppError("NOT_FOUND", "Role binding not found.");
+
+    if (binding.scopeType === ScopeType.PLATFORM) {
+      await this.assertCan(actor, PERMISSIONS.ROLE_MANAGE, { type: "PLATFORM" });
+    } else if (binding.organizationId) {
+      await this.assertCan(actor, PERMISSIONS.ROLE_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId: binding.organizationId,
+      });
+    } else {
+      throw new AppError("VALIDATION", "Binding has invalid scope.");
+    }
+
+    const role = await this.db.roleDefinition.findUnique({
+      where: { id: input.roleDefinitionId },
+    });
+    if (!role) throw new AppError("NOT_FOUND", "Role definition not found.");
+
+    await this.validateBindingScope(input);
+
+    if (input.scopeType === ScopeType.PLATFORM) {
+      await this.assertCan(actor, PERMISSIONS.ROLE_MANAGE, { type: "PLATFORM" });
+    } else {
+      if (!input.organizationId) {
+        throw new AppError(
+          "VALIDATION",
+          "organizationId is required for non-PLATFORM bindings.",
+        );
+      }
+      await this.assertCan(actor, PERMISSIONS.ROLE_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId: input.organizationId,
+      });
+      if (role.key === ROLE_KEYS.PLATFORM_BOOTSTRAP_ADMIN) {
+        throw new AppError(
+          "VALIDATION",
+          "Platform Admin role may only be bound at PLATFORM scope.",
+        );
+      }
+    }
+
+    const organizationId =
+      input.scopeType === ScopeType.PLATFORM ? null : input.organizationId ?? null;
+    const scopeId =
+      input.scopeType === ScopeType.ORGANIZATION
+        ? organizationId
+        : input.scopeType === ScopeType.PLATFORM
+          ? null
+          : input.scopeId ?? null;
+    const effectiveTo =
+      input.effectiveTo === undefined ? binding.effectiveTo : input.effectiveTo;
+
+    const remainsAdmin = this.bindingRemainsProtectedAdmin(binding, {
+      scopeType: input.scopeType,
+      organizationId,
+      effectiveTo,
+      role,
+    });
+    if (!remainsAdmin) {
+      await this.assertNotLastAdminBinding(binding, "change");
+    }
+
+    const updated = await this.db.roleBinding.update({
+      where: { id: binding.id },
+      data: {
+        roleDefinitionId: role.id,
+        scopeType: input.scopeType,
+        organizationId,
+        scopeId,
+        effectiveTo,
+      },
+      include: {
+        roleDefinition: { select: { key: true, name: true } },
+      },
+    });
+
+    await this.db.auditEvent.create({
+      data: {
+        actorPrincipalId: actor.id,
+        actionType: "role_binding.updated",
+        subjectType: "RoleBinding",
+        subjectId: binding.id,
+        organizationId: updated.organizationId,
+        payload: {
+          targetPrincipalId: binding.principalId,
+          oldRoleKey: binding.roleDefinition.key,
+          newRoleKey: updated.roleDefinition.key,
+          newRoleName: updated.roleDefinition.name,
+          oldScopeType: binding.scopeType,
+          newScopeType: updated.scopeType,
+          oldOrganizationId: binding.organizationId,
+          newOrganizationId: updated.organizationId,
+          oldScopeId: binding.scopeId,
+          newScopeId: updated.scopeId,
+          oldEffectiveTo: binding.effectiveTo,
+          newEffectiveTo: updated.effectiveTo,
+        },
+        result: "success",
+      },
+    });
+
+    this.clearBindingCache(binding.principalId);
+    return updated;
+  }
+
   private async validateBindingScope(input: {
     scopeType: ScopeType;
     organizationId?: string | null;
@@ -637,15 +758,64 @@ export class AuthorizationService {
   }
 
   /**
+   * True when this edit still leaves the same protected admin grant in place.
+   * Non-admin bindings are always "kept" so the last-admin check is skipped.
+   */
+  private bindingRemainsProtectedAdmin(
+    binding: {
+      scopeType: ScopeType;
+      organizationId: string | null;
+      roleDefinition: { permissions: string[]; key: string };
+    },
+    next: {
+      scopeType: ScopeType;
+      organizationId: string | null;
+      effectiveTo: Date | null;
+      role: { permissions: string[]; key: string };
+    },
+  ) {
+    const hasRoleManage = binding.roleDefinition.permissions.includes(
+      PERMISSIONS.ROLE_MANAGE,
+    );
+    if (!hasRoleManage) return true;
+
+    const active = !next.effectiveTo || next.effectiveTo > new Date();
+    if (!active) return false;
+
+    if (binding.scopeType === ScopeType.PLATFORM) {
+      return (
+        next.scopeType === ScopeType.PLATFORM &&
+        next.role.permissions.includes(PERMISSIONS.ROLE_MANAGE)
+      );
+    }
+
+    if (
+      binding.organizationId &&
+      binding.roleDefinition.key === ROLE_KEYS.ORGANIZATION_ADMIN
+    ) {
+      return (
+        next.scopeType === ScopeType.ORGANIZATION &&
+        next.organizationId === binding.organizationId &&
+        next.role.key === ROLE_KEYS.ORGANIZATION_ADMIN
+      );
+    }
+
+    return true;
+  }
+
+  /**
    * Prevent removing the last usable PLATFORM ROLE_MANAGE or last ORGANIZATION admin
    * binding for an organization.
    */
-  private async assertNotLastAdminBinding(binding: {
-    id: string;
-    scopeType: ScopeType;
-    organizationId: string | null;
-    roleDefinition: { permissions: string[]; key: string };
-  }) {
+  private async assertNotLastAdminBinding(
+    binding: {
+      id: string;
+      scopeType: ScopeType;
+      organizationId: string | null;
+      roleDefinition: { permissions: string[]; key: string };
+    },
+    verb: "expire" | "change" = "expire",
+  ) {
     const now = new Date();
     const hasRoleManage = binding.roleDefinition.permissions.includes(
       PERMISSIONS.ROLE_MANAGE,
@@ -666,7 +836,7 @@ export class AuthorizationService {
       if (others === 0) {
         throw new AppError(
           "VALIDATION",
-          "Cannot expire the last PLATFORM role-management binding.",
+          `Cannot ${verb} the last PLATFORM role-management binding.`,
         );
       }
       return;
@@ -688,7 +858,7 @@ export class AuthorizationService {
       if (others === 0) {
         throw new AppError(
           "VALIDATION",
-          "Cannot expire the last Organization Admin binding for this organization.",
+          `Cannot ${verb} the last Organization Admin binding for this organization.`,
         );
       }
     }

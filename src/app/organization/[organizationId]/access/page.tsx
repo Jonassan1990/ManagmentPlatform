@@ -88,7 +88,7 @@ export default async function OrganizationAccessPage({
       />
       <PageHeader
         title="Access & roles"
-        description="Create local test users, reset a password, then assign RoleDefinition packs at Organization, Section, Department, or Team scope."
+        description="Create local test users, reset a password, then assign or edit role packs at Organization, Section, Department, or Team scope."
         actions={
           <Link
             href={`/organization/${organizationId}`}
@@ -125,10 +125,14 @@ export default async function OrganizationAccessPage({
             teams={teams}
           />
         </Panel>
-        <Panel>
+        <Panel className="lg:col-span-2">
           <RoleBindingsTable
             bindings={bindings}
             organizationId={organizationId}
+            roles={roles}
+            sections={sections}
+            departments={departments}
+            teams={teams}
           />
         </Panel>
       </div>

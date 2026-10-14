@@ -566,10 +566,13 @@ describe("Phase 0C — ownership relationship authorization", () => {
 describe("Phase 0C — role binding admin + audit + lockout", () => {
   it("assigns and expires bindings with audit; blocks last org admin expire", async () => {
     const admin = principal();
-    const { org } = await seedOrgTree(admin);
+    const { org, deptA1 } = await seedOrgTree(admin);
     await authz.ensureSystemRoles();
     const viewerRole = await db.roleDefinition.findUniqueOrThrow({
       where: { key: ROLE_KEYS.VIEWER },
+    });
+    const departmentManager = await db.roleDefinition.findUniqueOrThrow({
+      where: { key: ROLE_KEYS.DEPARTMENT_MANAGER },
     });
     const target = principal();
     await db.principal.create({ data: { id: target.id, displayName: "T" } });
@@ -586,6 +589,22 @@ describe("Phase 0C — role binding admin + audit + lockout", () => {
       where: { actionType: "role_binding.created", subjectId: binding.id },
     });
     expect(createdEvents).toHaveLength(1);
+
+    const updated = await authz.updateRoleBinding(admin, {
+      bindingId: binding.id,
+      roleDefinitionId: departmentManager.id,
+      scopeType: ScopeType.DEPARTMENT,
+      organizationId: org.id,
+      scopeId: deptA1.id,
+      effectiveTo: null,
+    });
+    expect(updated.roleDefinitionId).toBe(departmentManager.id);
+    expect(updated.scopeType).toBe(ScopeType.DEPARTMENT);
+    expect(updated.scopeId).toBe(deptA1.id);
+    const updateEvents = await db.auditEvent.findMany({
+      where: { actionType: "role_binding.updated", subjectId: binding.id },
+    });
+    expect(updateEvents).toHaveLength(1);
 
     await authz.expireRoleBinding(admin, { bindingId: binding.id });
     const expiredEvents = await db.auditEvent.findMany({
@@ -606,6 +625,19 @@ describe("Phase 0C — role binding admin + audit + lockout", () => {
     await expect(
       authz.expireRoleBinding(admin, { bindingId: orgAdminBinding!.id }),
     ).rejects.toBeInstanceOf(AppError);
+    await expect(
+      authz.updateRoleBinding(admin, {
+        bindingId: orgAdminBinding!.id,
+        roleDefinitionId: viewerRole.id,
+        scopeType: ScopeType.ORGANIZATION,
+        organizationId: org.id,
+        scopeId: org.id,
+        effectiveTo: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      message: "Cannot change the last Organization Admin binding for this organization.",
+    });
   });
 });
 

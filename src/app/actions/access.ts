@@ -9,6 +9,7 @@ import {
   expireRoleBindingInputSchema,
   linkOidcIdentityInputSchema,
   resetLocalLoginPasswordInputSchema,
+  updateRoleBindingInputSchema,
 } from "@/modules/identity-access/application/schemas";
 
 export type { ActionResult } from "@/server/action-runner";
@@ -46,6 +47,25 @@ export async function resetLocalLoginPasswordAction(input: unknown) {
     const parsed = resetLocalLoginPasswordInputSchema.parse(input);
     const result = await identity.resetLocalLoginPassword(principal, parsed);
     revalidatePath(`/organization/${parsed.organizationId}/access`);
+    return result;
+  });
+}
+
+export async function updateRoleBindingAction(input: unknown) {
+  return runAction("access.updateRoleBinding", async () => {
+    const { authz } = createServices();
+    const principal = await authz.requirePrincipal();
+    const parsed = updateRoleBindingInputSchema.parse(input);
+    const result = await authz.updateRoleBinding(principal, parsed);
+    if (result.organizationId) {
+      revalidatePath(`/organization/${result.organizationId}/access`);
+    }
+    if (
+      parsed.organizationId &&
+      parsed.organizationId !== result.organizationId
+    ) {
+      revalidatePath(`/organization/${parsed.organizationId}/access`);
+    }
     return result;
   });
 }

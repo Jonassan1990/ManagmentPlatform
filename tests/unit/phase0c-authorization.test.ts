@@ -13,6 +13,7 @@ import { PERMISSIONS, ROLE_KEYS } from "@/modules/shared/permissions";
 import {
   assignRoleBindingInputSchema,
   expireRoleBindingInputSchema,
+  updateRoleBindingInputSchema,
 } from "@/modules/identity-access/application/schemas";
 
 describe("Phase 0C role packs", () => {
@@ -77,5 +78,18 @@ describe("Phase 0C role binding schemas", () => {
       bindingId: "11111111-1111-4111-8111-111111111111",
     });
     expect(parsed.bindingId).toBeDefined();
+  });
+
+  it("accepts an edit that changes role and scope", () => {
+    const parsed = updateRoleBindingInputSchema.parse({
+      bindingId: "11111111-1111-4111-8111-111111111111",
+      roleDefinitionId: "22222222-2222-4222-8222-222222222222",
+      scopeType: ScopeType.DEPARTMENT,
+      organizationId: "33333333-3333-4333-8333-333333333333",
+      scopeId: "44444444-4444-4444-8444-444444444444",
+      effectiveTo: null,
+    });
+    expect(parsed.scopeType).toBe("DEPARTMENT");
+    expect(parsed.effectiveTo).toBeNull();
   });
 });
