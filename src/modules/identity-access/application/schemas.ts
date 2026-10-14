@@ -23,6 +23,22 @@ export const expireRoleBindingInputSchema = z.object({
   effectiveTo: z.coerce.date().optional().nullable(),
 });
 
+/** Change the role pack, scope, or end date of an existing binding. Principal stays the same. */
+export const updateRoleBindingInputSchema = z.object({
+  bindingId: uuidSchema,
+  roleDefinitionId: uuidSchema,
+  scopeType: z.enum([
+    "PLATFORM",
+    "ORGANIZATION",
+    "SECTION",
+    "DEPARTMENT",
+    "TEAM",
+  ]),
+  organizationId: uuidSchema.optional().nullable(),
+  scopeId: uuidSchema.optional().nullable(),
+  effectiveTo: z.coerce.date().optional().nullable(),
+});
+
 /** Create a local username/password Principal for testing (org ROLE_MANAGE). */
 export const createLocalTestUserInputSchema = z.object({
   organizationId: uuidSchema,

@@ -6,6 +6,7 @@ import {
   createLocalTestUserAction,
   expireRoleBindingAction,
   resetLocalLoginPasswordAction,
+  updateRoleBindingAction,
 } from "@/app/actions/access";
 import { buttonClassName } from "@/components/ui/button";
 import {
@@ -26,9 +27,173 @@ type BindingRow = {
   scopeId: string | null;
   effectiveFrom: Date | string;
   effectiveTo: Date | string | null;
-  roleDefinition: { key: string; name: string };
+  roleDefinition: { id: string; key: string; name: string };
   principal: { id: string; displayName: string | null; email: string | null };
 };
+
+function bindingScopeLabel(
+  binding: BindingRow,
+  sections: ScopeTarget[],
+  departments: ScopeTarget[],
+  teams: ScopeTarget[],
+) {
+  if (binding.scopeType === "ORGANIZATION") return "Organization";
+  if (binding.scopeType === "PLATFORM") return "Platform";
+  const pool =
+    binding.scopeType === "SECTION"
+      ? sections
+      : binding.scopeType === "DEPARTMENT"
+        ? departments
+        : binding.scopeType === "TEAM"
+          ? teams
+          : [];
+  const match = pool.find((item) => item.id === binding.scopeId);
+  const typeLabel =
+    binding.scopeType === "SECTION"
+      ? "Section"
+      : binding.scopeType === "DEPARTMENT"
+        ? "Department"
+        : binding.scopeType === "TEAM"
+          ? "Team"
+          : binding.scopeType;
+  return match ? `${typeLabel} · ${match.label}` : typeLabel;
+}
+
+function EditRoleBindingForm({
+  binding,
+  organizationId,
+  roles,
+  sections,
+  departments,
+  teams,
+  onDone,
+}: {
+  binding: BindingRow;
+  organizationId: string;
+  roles: RoleOption[];
+  sections: ScopeTarget[];
+  departments: ScopeTarget[];
+  teams: ScopeTarget[];
+  onDone: () => void;
+}) {
+  const form = useActionForm(updateRoleBindingAction, onDone);
+  const assignable = roles.filter((r) => r.key !== "platform.bootstrap_admin");
+  const roleOptions = assignable.some((r) => r.id === binding.roleDefinition.id)
+    ? assignable
+    : roles;
+  const fieldPrefix = `edit-binding-${binding.id}`;
+
+  return (
+    <form
+      className="mt-3 space-y-3 rounded-[4px] border border-[var(--line)] bg-[var(--accent-soft)] p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        const scopeType = String(fd.get("scopeType") ?? "ORGANIZATION");
+        form.submit({
+          bindingId: binding.id,
+          roleDefinitionId: String(fd.get("roleDefinitionId") ?? ""),
+          scopeType,
+          organizationId,
+          scopeId:
+            scopeType === "ORGANIZATION"
+              ? organizationId
+              : String(fd.get("scopeId") ?? "") || null,
+          effectiveTo: String(fd.get("effectiveTo") ?? "") || null,
+        });
+      }}
+    >
+      <p className="text-sm font-medium">Edit role</p>
+      {form.ErrorAlert}
+      <FormField label="Role pack" htmlFor={`${fieldPrefix}-role`}>
+        <select
+          id={`${fieldPrefix}-role`}
+          name="roleDefinitionId"
+          required
+          className={fieldClassName}
+          defaultValue={binding.roleDefinition.id}
+        >
+          {roleOptions.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
+      <FormField label="Scope type" htmlFor={`${fieldPrefix}-scope-type`}>
+        <select
+          id={`${fieldPrefix}-scope-type`}
+          name="scopeType"
+          className={fieldClassName}
+          defaultValue={binding.scopeType}
+        >
+          <option value="ORGANIZATION">Organization</option>
+          <option value="SECTION">Section</option>
+          <option value="DEPARTMENT">Department</option>
+          <option value="TEAM">Team</option>
+        </select>
+      </FormField>
+      <FormField
+        label="Scope target"
+        htmlFor={`${fieldPrefix}-scope`}
+        hint="Required for Section, Department, or Team. Organization scope uses this organization."
+      >
+        <select
+          id={`${fieldPrefix}-scope`}
+          name="scopeId"
+          className={fieldClassName}
+          defaultValue={
+            binding.scopeType === "ORGANIZATION" ? "" : (binding.scopeId ?? "")
+          }
+        >
+          <option value="">Organization (or select target)</option>
+          <optgroup label="Sections">
+            {sections.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Departments">
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Teams">
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+      </FormField>
+      <FormField label="Effective to (optional)" htmlFor={`${fieldPrefix}-until`}>
+        <input
+          id={`${fieldPrefix}-until`}
+          name="effectiveTo"
+          type="date"
+          className={fieldClassName}
+          defaultValue={
+            binding.effectiveTo
+              ? new Date(binding.effectiveTo).toISOString().slice(0, 10)
+              : ""
+          }
+        />
+      </FormField>
+      <div className="flex flex-wrap gap-2">
+        <PrimaryButton disabled={form.pending}>
+          {form.pending ? "Saving…" : "Save role"}
+        </PrimaryButton>
+        <SecondaryButton type="button" disabled={form.pending} onClick={onDone}>
+          Cancel
+        </SecondaryButton>
+      </div>
+    </form>
+  );
+}
 
 export function AssignRoleBindingForm({
   organizationId,
@@ -440,11 +605,20 @@ export function LocalLoginsList({
 export function RoleBindingsTable({
   bindings,
   organizationId,
+  roles,
+  sections,
+  departments,
+  teams,
 }: {
   bindings: BindingRow[];
   organizationId: string;
+  roles: RoleOption[];
+  sections: ScopeTarget[];
+  departments: ScopeTarget[];
+  teams: ScopeTarget[];
 }) {
   const form = useActionForm(expireRoleBindingAction);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const active = bindings.filter(
     (b) => !b.effectiveTo || new Date(b.effectiveTo) > new Date(),
   );
@@ -458,29 +632,52 @@ export function RoleBindingsTable({
       ) : (
         <ul className="divide-y divide-[var(--line)]">
           {active.map((b) => (
-            <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-              <div>
-                <p className="font-medium">
-                  {b.principal.displayName ?? b.principal.email ?? "Principal"} ·{" "}
-                  {b.roleDefinition.name}
-                </p>
-                <p className="text-[var(--muted)]">
-                  {b.scopeType}
-                  {b.scopeId ? ` · ${b.scopeId.slice(0, 8)}…` : ""}
-                  {b.effectiveTo
-                    ? ` · until ${new Date(b.effectiveTo).toISOString().slice(0, 10)}`
-                    : " · open-ended"}
-                </p>
+            <li key={b.id} className="py-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-medium">
+                    {b.principal.displayName ?? b.principal.email ?? "Principal"} ·{" "}
+                    {b.roleDefinition.name}
+                  </p>
+                  <p className="text-[var(--muted)]">
+                    {bindingScopeLabel(b, sections, departments, teams)}
+                    {b.effectiveTo
+                      ? ` · until ${new Date(b.effectiveTo).toISOString().slice(0, 10)}`
+                      : " · open-ended"}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <SecondaryButton
+                    type="button"
+                    disabled={form.pending}
+                    onClick={() =>
+                      setEditingId((current) => (current === b.id ? null : b.id))
+                    }
+                  >
+                    Edit
+                  </SecondaryButton>
+                  <SecondaryButton
+                    type="button"
+                    disabled={form.pending}
+                    onClick={() =>
+                      form.submit({ bindingId: b.id, effectiveTo: new Date().toISOString() })
+                    }
+                  >
+                    Expire
+                  </SecondaryButton>
+                </div>
               </div>
-              <SecondaryButton
-                type="button"
-                disabled={form.pending}
-                onClick={() =>
-                  form.submit({ bindingId: b.id, effectiveTo: new Date().toISOString() })
-                }
-              >
-                Expire
-              </SecondaryButton>
+              {editingId === b.id ? (
+                <EditRoleBindingForm
+                  binding={b}
+                  organizationId={organizationId}
+                  roles={roles}
+                  sections={sections}
+                  departments={departments}
+                  teams={teams}
+                  onDone={() => setEditingId(null)}
+                />
+              ) : null}
             </li>
           ))}
         </ul>
