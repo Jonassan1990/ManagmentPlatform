@@ -1,5 +1,5 @@
 /**
- * M4C-C — Home experience helpers (presentation / navigation only).
+ * Home experience helpers (presentation / navigation only).
  * No new attention aggregation engine; no AuthZ grants.
  */
 import type { ShellNavCapabilities } from "@/modules/navigation/types";
@@ -68,7 +68,8 @@ export function selectAuthorizedPiEntry(
 }
 
 /**
- * Capability-aware Home quick links. Visibility only — pages still AuthZ.
+ * Short capability-aware Home quick links.
+ * Prefer a few clear starts over a long menu — deeper pages stay in the sidebar.
  */
 export function buildHomeQuickLinks(input: {
   capabilities: ShellNavCapabilities;
@@ -76,35 +77,23 @@ export function buildHomeQuickLinks(input: {
   piEntry?: AuthorizedPiEntry | null;
 }): HomeQuickLink[] {
   const { capabilities: caps, organizationId, piEntry } = input;
-  const orgQ = organizationId
-    ? `?organizationId=${organizationId}`
-    : "";
+  const orgQ = organizationId ? `?organizationId=${organizationId}` : "";
   const links: HomeQuickLink[] = [
+    {
+      id: "guide",
+      label: "User guide",
+      href: "/guide",
+      primary: true,
+    },
+    {
+      id: "organization",
+      label: "Organization",
+      href: "/organization",
+    },
     {
       id: "portfolio",
       label: "Portfolio",
       href: organizationId ? `/portfolio${orgQ}` : "/portfolio",
-    },
-    {
-      id: "explorer",
-      label: "Explorer",
-      href: organizationId
-        ? `/portfolio/explorer${orgQ}`
-        : "/portfolio/explorer",
-    },
-    {
-      id: "health",
-      label: "Delivery health",
-      href: organizationId
-        ? `/portfolio/health${orgQ}`
-        : "/portfolio/health",
-    },
-    {
-      id: "capacity",
-      label: "Resource Management",
-      href: organizationId
-        ? `/portfolio/capacity${orgQ}`
-        : "/portfolio/capacity",
     },
   ];
 
@@ -113,21 +102,14 @@ export function buildHomeQuickLinks(input: {
       id: "initiatives",
       label: "Initiatives",
       href: "/initiatives",
-      primary: true,
     });
   }
   if (caps.canCreateInitiative) {
     links.push({
       id: "initiative-new",
-      label: "Create initiative",
+      label: "New initiative",
       href: "/initiatives/new",
     });
-  }
-  if (caps.canViewApprovals) {
-    links.push({ id: "approvals", label: "Approvals", href: "/approvals" });
-  }
-  if (caps.canViewDecisions) {
-    links.push({ id: "decisions", label: "Decisions", href: "/decisions" });
   }
   if (caps.canViewPi) {
     links.push({ id: "pi-list", label: "PI Planning", href: "/pi" });
@@ -136,26 +118,20 @@ export function buildHomeQuickLinks(input: {
         id: "pi-entry",
         label: `Open ${piEntry.referenceKey}`,
         href: piEntry.href,
-        primary: !caps.canViewInitiatives,
       });
     }
-    if (caps.canCreatePi) {
-      links.push({ id: "pi-new", label: "Create PI", href: "/pi/new" });
-    }
   }
-  links.push({ id: "organization", label: "Organization", href: "/organization" });
+  if (caps.canViewApprovals) {
+    links.push({ id: "approvals", label: "Approvals", href: "/approvals" });
+  }
+  if (caps.canViewDecisions) {
+    links.push({ id: "decisions", label: "Decisions", href: "/decisions" });
+  }
   if (caps.canManageAccess && organizationId) {
     links.push({
       id: "access",
-      label: "Access & roles",
+      label: "Access",
       href: `/organization/${organizationId}/access`,
-    });
-  }
-  if (caps.canManageGovernancePolicy && organizationId) {
-    links.push({
-      id: "policy",
-      label: "Governance policy",
-      href: `/organization/${organizationId}/governance-policy`,
     });
   }
 
@@ -170,13 +146,14 @@ export function buildHomeFooterLinks(input: {
 }): HomeQuickLink[] {
   const quick = buildHomeQuickLinks(input);
   const order = [
+    "guide",
     "approvals",
     "decisions",
-    "policy",
     "pi-entry",
     "pi-list",
     "portfolio",
     "initiatives",
+    "organization",
   ];
   const byId = new Map(quick.map((l) => [l.id, l]));
   const out: HomeQuickLink[] = [];

@@ -38,7 +38,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
     items: [
       {
         id: "portfolio-overview",
-        label: "Executive overview",
+        label: "Overview",
         href: "/portfolio",
         match: {
           type: "prefixExclude",
@@ -51,30 +51,31 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
           ],
         },
         capability: "always",
-        description: "Attention, lifecycle, and executive metrics",
+        description: "What needs attention across the portfolio",
       },
       {
         id: "portfolio-explorer",
-        label: "Explorer",
+        label: "Find work",
         href: "/portfolio/explorer",
         match: { type: "prefix", path: "/portfolio/explorer" },
         capability: "always",
+        description: "Search initiatives and projects",
       },
       {
         id: "portfolio-health",
-        label: "Delivery health",
+        label: "Health",
         href: "/portfolio/health",
         match: { type: "prefix", path: "/portfolio/health" },
         capability: "always",
+        description: "Delivery risk and blockers",
       },
       {
         id: "portfolio-capacity",
-        label: "Resource Management",
+        label: "Capacity",
         href: "/portfolio/capacity",
         match: { type: "prefix", path: "/portfolio/capacity" },
         capability: "always",
-        description:
-          "Resource overview, allocation, cross-functional work, and dependencies",
+        description: "People load and dependencies",
       },
       {
         id: "portfolio-reports",
@@ -82,7 +83,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         href: "/portfolio/reports",
         match: { type: "prefix", path: "/portfolio/reports" },
         capability: "always",
-        description: "Authorized CSV and print management outputs",
+        description: "Export and print summaries",
       },
     ],
   },
@@ -98,7 +99,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
     items: [
       {
         id: "initiatives-all",
-        label: "All initiatives",
+        label: "All",
         href: "/initiatives",
         match: {
           type: "prefixExclude",
@@ -109,7 +110,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
       },
       {
         id: "initiatives-create",
-        label: "Create initiative",
+        label: "New",
         href: "/initiatives/new",
         match: { type: "exact", path: "/initiatives/new" },
         capability: "canCreateInitiative",
@@ -128,7 +129,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
     items: [
       {
         id: "pi-list",
-        label: "Program increments",
+        label: "All PIs",
         href: "/pi",
         match: {
           type: "prefixExclude",
@@ -136,11 +137,11 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
           excludePrefixes: ["/pi/new"],
         },
         capability: "canViewPi",
-        description: "Open a PI for board, compare, review, and baselines",
+        description: "Open a PI board, capacity, or review",
       },
       {
         id: "pi-create",
-        label: "Create PI",
+        label: "New",
         href: "/pi/new",
         match: { type: "exact", path: "/pi/new" },
         capability: "canCreatePi",
@@ -190,7 +191,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
     items: [
       {
         id: "org-hub",
-        label: "Organizations",
+        label: "Structure",
         href: "/organization",
         match: {
           type: "prefixExclude",
@@ -199,17 +200,33 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
           excludeSegments: ["access", "governance-policy"],
         },
         capability: "always",
-        description: "Sections, departments, teams, and resources",
+        description: "Browse or configure org hierarchy",
       },
       {
         id: "org-access",
-        label: "Access & roles",
+        label: "Access",
         href: (ctx) =>
           ctx.organizationId
             ? `/organization/${ctx.organizationId}/access`
             : null,
         match: { type: "includesSegment", segment: "access" },
         capability: "canManageAccess",
+      },
+    ],
+  },
+  {
+    id: "help",
+    label: "Help",
+    hubHref: "/guide",
+    hubMatch: { type: "prefix", path: "/guide" },
+    items: [
+      {
+        id: "user-guide",
+        label: "User guide",
+        href: "/guide",
+        match: { type: "prefix", path: "/guide" },
+        capability: "always",
+        description: "How to use the platform step by step",
       },
     ],
   },

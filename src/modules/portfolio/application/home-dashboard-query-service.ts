@@ -468,12 +468,26 @@ export class HomeDashboardQueryService {
     const orgQ = preferredOrganizationId
       ? `?organizationId=${preferredOrganizationId}`
       : "";
-    const actions: HomeQuickAction[] = [];
+    const actions: HomeQuickAction[] = [
+      {
+        id: "user-guide",
+        label: "User guide",
+        href: "/guide",
+        authorizationBasis: "shell.help",
+        primary: true,
+      },
+      {
+        id: "open-organization",
+        label: "Organization",
+        href: "/organization",
+        authorizationBasis: "shell.organization",
+      },
+    ];
 
     if (capabilities.canCreateInitiative) {
       actions.push({
         id: "create-initiative",
-        label: "Create Initiative",
+        label: "New initiative",
         href: "/initiatives/new",
         authorizationBasis: PERMISSIONS.INITIATIVE_CREATE,
         primary: true,
@@ -482,7 +496,7 @@ export class HomeDashboardQueryService {
     if (capabilities.canViewInitiatives) {
       actions.push({
         id: "view-projects",
-        label: "View Projects",
+        label: "Find work",
         href: preferredOrganizationId
           ? `/portfolio/explorer${orgQ}`
           : "/portfolio/explorer",
@@ -492,16 +506,15 @@ export class HomeDashboardQueryService {
     if (capabilities.canViewPi) {
       actions.push({
         id: "open-pi-planning",
-        label: "Open PI Planning",
+        label: "PI Planning",
         href: piEntry?.href ?? "/pi",
         authorizationBasis: PERMISSIONS.PI_VIEW,
-        primary: !capabilities.canCreateInitiative,
       });
     }
     if (capabilities.canViewApprovals || capabilities.canViewDecisions) {
       actions.push({
         id: "review-governance",
-        label: "Review Governance",
+        label: "Approvals & decisions",
         href: capabilities.canViewApprovals ? "/approvals" : "/decisions",
         authorizationBasis: capabilities.canViewApprovals
           ? PERMISSIONS.APPROVAL_REVIEW
@@ -510,21 +523,21 @@ export class HomeDashboardQueryService {
     }
     actions.push({
       id: "open-portfolio",
-      label: "Open Portfolio",
+      label: "Portfolio",
       href: preferredOrganizationId ? `/portfolio${orgQ}` : "/portfolio",
       authorizationBasis: "shell.portfolio",
     });
     if (canManageResources && preferredOrganizationId) {
       actions.push({
         id: "manage-resources",
-        label: "Manage Resources",
+        label: "People & resources",
         href: `/organization/${preferredOrganizationId}/resources`,
         authorizationBasis: PERMISSIONS.ORG_STRUCTURE_MANAGE,
       });
     } else if (canReadStructure && preferredOrganizationId) {
       actions.push({
         id: "view-resources",
-        label: "View Resources",
+        label: "People & resources",
         href: `/organization/${preferredOrganizationId}/resources`,
         authorizationBasis: PERMISSIONS.ORG_STRUCTURE_READ,
       });
@@ -541,6 +554,8 @@ export class HomeDashboardQueryService {
       if (seen.has(link.id)) continue;
       // Skip generic duplicates already covered by explicit Quick Start ids.
       if (
+        link.id === "guide" ||
+        link.id === "organization" ||
         link.id === "initiatives" ||
         link.id === "initiative-new" ||
         link.id === "pi-list" ||

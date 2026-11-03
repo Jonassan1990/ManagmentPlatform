@@ -99,7 +99,11 @@ describe("M4C-A navigation filtering", () => {
     expect(hrefs).toContain("/portfolio/health");
     expect(hrefs).toContain("/organization/org-1/access");
     expect(hrefs).toContain("/organization/org-1/governance-policy");
+    expect(hrefs).toContain("/guide");
     expect(hrefs).not.toContain("/pi/board");
+
+    const help = groups.find((g) => g.id === "help");
+    expect(help?.items.map((i) => i.id)).toEqual(["user-guide"]);
   });
 
   it("hides governance and create actions for viewer capabilities", () => {

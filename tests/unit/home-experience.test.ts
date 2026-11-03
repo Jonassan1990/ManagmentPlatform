@@ -115,17 +115,18 @@ describe("buildHomeQuickLinks", () => {
       piEntry: null,
     });
     const ids = links.map((l) => l.id);
+    expect(ids).toContain("guide");
+    expect(ids).toContain("organization");
     expect(ids).toContain("portfolio");
     expect(ids).toContain("initiatives");
     expect(ids).toContain("pi-list");
     expect(ids).not.toContain("approvals");
     expect(ids).not.toContain("decisions");
     expect(ids).not.toContain("access");
-    expect(ids).not.toContain("policy");
     expect(ids).not.toContain("initiative-new");
   });
 
-  it("includes PI entry and admin destinations when permitted", () => {
+  it("includes PI entry and access when permitted", () => {
     const links = buildHomeQuickLinks({
       capabilities: {
         ...DEFAULT_SHELL_CAPABILITIES,
@@ -144,17 +145,16 @@ describe("buildHomeQuickLinks", () => {
       },
     });
     const ids = links.map((l) => l.id);
+    expect(ids).toContain("guide");
     expect(ids).toContain("pi-entry");
     expect(ids).toContain("approvals");
     expect(ids).toContain("access");
-    expect(ids).toContain("policy");
-    expect(ids).toContain("pi-new");
     expect(links.find((l) => l.id === "pi-entry")?.href).toBe(
       "/pi/pi-1/board",
     );
   });
 
-  it("scopes Portfolio / Explorer / Health / Capacity quick links to organizationId", () => {
+  it("scopes Portfolio quick link to organizationId", () => {
     const links = buildHomeQuickLinks({
       capabilities: DEFAULT_SHELL_CAPABILITIES,
       organizationId: "org-42",
@@ -163,15 +163,7 @@ describe("buildHomeQuickLinks", () => {
     expect(links.find((l) => l.id === "portfolio")?.href).toBe(
       "/portfolio?organizationId=org-42",
     );
-    expect(links.find((l) => l.id === "explorer")?.href).toBe(
-      "/portfolio/explorer?organizationId=org-42",
-    );
-    expect(links.find((l) => l.id === "health")?.href).toBe(
-      "/portfolio/health?organizationId=org-42",
-    );
-    expect(links.find((l) => l.id === "capacity")?.href).toBe(
-      "/portfolio/capacity?organizationId=org-42",
-    );
+    expect(links.find((l) => l.id === "guide")?.href).toBe("/guide");
   });
 
   it("footer links are a capability-filtered subset", () => {

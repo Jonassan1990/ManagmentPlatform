@@ -112,9 +112,11 @@ export function availabilityTitle(state: HomeAvailabilityState): string {
 
 /** Primary Quick Start action ids for manager first-screen emphasis. */
 export const PRIMARY_QUICK_START_IDS = new Set([
+  "user-guide",
   "create-initiative",
   "open-pi-planning",
   "review-governance",
   "manage-resources",
   "view-projects",
+  "open-organization",
 ]);
