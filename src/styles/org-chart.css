@@ -1,3 +1,37 @@
+.mp-org-mode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.mp-org-mode-toggle a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.95rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mp-org-mode-toggle a + a {
+  border-left: 1px solid var(--line);
+}
+
+.mp-org-mode-toggle a.is-active {
+  background: #0c2340;
+  color: #fff;
+}
+
+.mp-org-mode-toggle a:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
 .mp-org-legend {
   display: flex;
   flex-wrap: wrap;
