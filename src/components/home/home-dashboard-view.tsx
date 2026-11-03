@@ -306,7 +306,7 @@ function QuickStartSection({
       id="home-quick-start"
       eyebrow="Start here"
       title="Quick Start"
-      description="Authorized destinations for this session. Pages still enforce permissions."
+      description="Short paths into the app. Open the User guide anytime from Help in the sidebar."
     >
       {availableActions.availability.state !== "available" ? (
         <AvailabilityPanel
