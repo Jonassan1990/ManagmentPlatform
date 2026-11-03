@@ -84,6 +84,8 @@ export class AuthorizationService {
     }
 
     const env = getEnv();
+    let resolved: Principal | null = null;
+
     if (isDevAuthEnabled(env)) {
       const id = env.DEV_AUTH_PRINCIPAL_ID!;
       await this.db.principal.upsert({
@@ -97,49 +99,59 @@ export class AuthorizationService {
           displayName: env.DEV_AUTH_DISPLAY_NAME ?? "Local Developer",
         },
       });
-      return {
+      resolved = {
         id,
         displayName: env.DEV_AUTH_DISPLAY_NAME ?? "Local Developer",
         source: "dev",
       };
+    } else {
+      // Dynamic import avoids circular init with auth.ts ↔ prisma ↔ this service.
+      try {
+        const { auth } = await import("@/server/auth");
+        const session = await auth();
+        const principalId = session?.principalId ?? session?.user?.principalId;
+        if (!principalId) {
+          return null;
+        }
+        const row = await this.db.principal.findUnique({
+          where: { id: principalId },
+          include: {
+            externalIdentities: {
+              where: {
+                issuer: { in: [TEMP_AUTH_ISSUER, LOCAL_LOGIN_ISSUER] },
+              },
+              take: 2,
+            },
+          },
+        });
+        if (!row) {
+          return null;
+        }
+        const viaTemp = row.externalIdentities.some(
+          (ei) => ei.issuer === TEMP_AUTH_ISSUER,
+        );
+        const viaLocal = row.externalIdentities.some(
+          (ei) => ei.issuer === LOCAL_LOGIN_ISSUER,
+        );
+        resolved = {
+          id: row.id,
+          displayName: row.displayName,
+          email: row.email,
+          source: viaTemp ? "temp" : viaLocal ? "local" : "oidc",
+        };
+      } catch {
+        return null;
+      }
     }
 
-    // Dynamic import avoids circular init with auth.ts ↔ prisma ↔ this service.
+    // Optional demo level simulation (I / IN / INF / INFB managers, etc.).
     try {
-      const { auth } = await import("@/server/auth");
-      const session = await auth();
-      const principalId = session?.principalId ?? session?.user?.principalId;
-      if (!principalId) {
-        return null;
-      }
-      const row = await this.db.principal.findUnique({
-        where: { id: principalId },
-        include: {
-          externalIdentities: {
-            where: {
-              issuer: { in: [TEMP_AUTH_ISSUER, LOCAL_LOGIN_ISSUER] },
-            },
-            take: 2,
-          },
-        },
-      });
-      if (!row) {
-        return null;
-      }
-      const viaTemp = row.externalIdentities.some(
-        (ei) => ei.issuer === TEMP_AUTH_ISSUER,
+      const { applyDemoPersonaOverride } = await import(
+        "@/modules/demo/demo-persona-runtime"
       );
-      const viaLocal = row.externalIdentities.some(
-        (ei) => ei.issuer === LOCAL_LOGIN_ISSUER,
-      );
-      return {
-        id: row.id,
-        displayName: row.displayName,
-        email: row.email,
-        source: viaTemp ? "temp" : viaLocal ? "local" : "oidc",
-      };
+      return await applyDemoPersonaOverride(resolved);
     } catch {
-      return null;
+      return resolved;
     }
   }
 

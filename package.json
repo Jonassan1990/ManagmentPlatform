@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "demo:seed-it": "tsx scripts/seed-it-hierarchy-demo.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

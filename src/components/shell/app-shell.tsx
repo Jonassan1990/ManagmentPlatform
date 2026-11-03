@@ -20,6 +20,11 @@ import type {
   ResolvedNavGroup,
   ShellNavCapabilities,
 } from "@/modules/navigation/types";
+import {
+  DemoPersonaSwitcher,
+  type DemoPersonaOption,
+} from "@/components/demo/demo-persona-switcher";
+import type { DemoPersonaKey } from "@/modules/demo/it-hierarchy-demo";
 import { RouteFocusMain } from "./route-focus-main";
 import { SignOutButton } from "./sign-out-button";
 
@@ -35,6 +40,11 @@ export type ShellNavProps = {
   organizationId: string | null;
 };
 
+export type ShellDemoPersonaProps = {
+  personas: DemoPersonaOption[];
+  activeKey: DemoPersonaKey | null;
+};
+
 /**
  * WorkMesh-style chrome: full-width navy topbar + sticky blue-900 sidebar.
  * Inspired by Jonassan1990/projectmanagement (Scania Tegel CSS tokens).
@@ -43,10 +53,12 @@ export function AppShell({
   children,
   principal,
   nav,
+  demoPersona,
 }: {
   children: React.ReactNode;
   principal?: ShellPrincipal | null;
   nav: ShellNavProps;
+  demoPersona?: ShellDemoPersonaProps | null;
 }) {
   const pathname = usePathname() || "/";
   const [open, setOpen] = useState(false);
@@ -163,6 +175,12 @@ export function AppShell({
           </Link>
         </div>
         <div className="mp-shell-actions flex shrink-0 items-center justify-end gap-2">
+          {demoPersona && demoPersona.personas.length > 0 ? (
+            <DemoPersonaSwitcher
+              personas={demoPersona.personas}
+              activeKey={demoPersona.activeKey}
+            />
+          ) : null}
           {label ? (
             <>
               <span
@@ -180,6 +198,11 @@ export function AppShell({
               {principal?.source === "dev" ? (
                 <span className="rounded-[4px] border border-white/25 bg-white/10 px-2 py-1 text-xs font-semibold text-white/90">
                   DEV
+                </span>
+              ) : null}
+              {principal?.source === "demo" ? (
+                <span className="rounded-[4px] border border-amber-300/40 bg-amber-400/20 px-2 py-1 text-xs font-semibold text-amber-50">
+                  DEMO
                 </span>
               ) : null}
             </>
