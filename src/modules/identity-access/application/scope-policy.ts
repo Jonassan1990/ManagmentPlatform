@@ -1,4 +1,8 @@
 import { PrismaClient, ScopeType } from "@prisma/client";
+import {
+  ancestorDepartmentIds,
+  isAncestorDepartment,
+} from "@/modules/organization/application/department-tree";
 import type { AuthScope } from "../domain/types";
 
 /**
@@ -8,6 +12,7 @@ import type { AuthScope } from "../domain/types";
  * - PLATFORM bindings satisfy PLATFORM requests only (no universal wildcard).
  * - Child scopes never satisfy ancestor requests (TEAM ≠ ORGANIZATION).
  * - Ancestor bindings may satisfy descendant requests when DB hierarchy confirms containment.
+ * - Nested departments: a DEPARTMENT binding on a parent satisfies child department requests.
  */
 export async function scopeMatchesAsync(
   db: PrismaClient,
@@ -48,6 +53,15 @@ export async function scopeMatchesAsync(
       ) {
         return true;
       }
+      if (bindingScopeType === ScopeType.DEPARTMENT && bindingScopeId) {
+        // Parent department manager may act on child departments (INF → INFB).
+        return departmentIsUnderParent(
+          db,
+          requested.departmentId,
+          bindingScopeId,
+          requested.organizationId,
+        );
+      }
       if (bindingScopeType === ScopeType.SECTION && bindingScopeId) {
         return departmentBelongsToSection(
           db,
@@ -68,7 +82,15 @@ export async function scopeMatchesAsync(
         return true;
       }
       if (bindingScopeType === ScopeType.DEPARTMENT && bindingScopeId) {
-        return teamBelongsToDepartment(
+        const direct = await teamBelongsToDepartment(
+          db,
+          requested.teamId,
+          bindingScopeId,
+          requested.organizationId,
+        );
+        if (direct) return true;
+        // Team under a child department of the binding department.
+        return teamBelongsUnderDepartmentTree(
           db,
           requested.teamId,
           bindingScopeId,
@@ -108,6 +130,110 @@ async function departmentBelongsToSection(
     !!department &&
     department.sectionId === sectionId &&
     department.section.organizationId === organizationId
+  );
+}
+
+async function loadSectionDepartmentTree(
+  db: PrismaClient,
+  organizationId: string,
+  sectionId: string,
+) {
+  return db.department.findMany({
+    where: {
+      sectionId,
+      status: "ACTIVE",
+      section: { organizationId },
+    },
+    select: { id: true, sectionId: true, parentDepartmentId: true },
+  });
+}
+
+/** True when `departmentId` is `parentDepartmentId` or nested under it. */
+async function departmentIsUnderParent(
+  db: PrismaClient,
+  departmentId: string,
+  parentDepartmentId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const department = await db.department.findUnique({
+    where: { id: departmentId },
+    select: {
+      sectionId: true,
+      section: { select: { organizationId: true } },
+    },
+  });
+  if (
+    !department ||
+    department.section.organizationId !== organizationId
+  ) {
+    return false;
+  }
+  const rows = await loadSectionDepartmentTree(
+    db,
+    organizationId,
+    department.sectionId,
+  );
+  return isAncestorDepartment(departmentId, parentDepartmentId, rows);
+}
+
+async function teamBelongsUnderDepartmentTree(
+  db: PrismaClient,
+  teamId: string,
+  parentDepartmentId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const team = await db.team.findUnique({
+    where: { id: teamId },
+    select: {
+      departmentId: true,
+      department: {
+        select: {
+          sectionId: true,
+          section: { select: { organizationId: true } },
+        },
+      },
+    },
+  });
+  if (!team || team.department.section.organizationId !== organizationId) {
+    return false;
+  }
+  if (team.departmentId === parentDepartmentId) return true;
+  const rows = await loadSectionDepartmentTree(
+    db,
+    organizationId,
+    team.department.sectionId,
+  );
+  return isAncestorDepartment(team.departmentId, parentDepartmentId, rows);
+}
+
+/**
+ * VIEW-only: child department binding may read an ancestor department
+ * (INFB manager may open INF initiatives/projects with details).
+ */
+export async function departmentAncestorViewMatchesAsync(
+  db: PrismaClient,
+  bindingDepartmentId: string,
+  requestedDepartmentId: string,
+  organizationId: string,
+): Promise<boolean> {
+  if (bindingDepartmentId === requestedDepartmentId) return true;
+  const department = await db.department.findUnique({
+    where: { id: bindingDepartmentId },
+    select: {
+      sectionId: true,
+      section: { select: { organizationId: true } },
+    },
+  });
+  if (!department || department.section.organizationId !== organizationId) {
+    return false;
+  }
+  const rows = await loadSectionDepartmentTree(
+    db,
+    organizationId,
+    department.sectionId,
+  );
+  return ancestorDepartmentIds(bindingDepartmentId, rows).includes(
+    requestedDepartmentId,
   );
 }
 

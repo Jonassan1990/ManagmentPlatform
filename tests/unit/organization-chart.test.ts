@@ -71,6 +71,8 @@ describe("buildOrganizationChart", () => {
       projects: 0,
       initiatives: 0,
     });
+    expect(chart.sections[0]?.departments[0]?.parentDepartmentId).toBeNull();
+    expect(chart.sections[0]?.departments[0]?.children).toEqual([]);
     expect(chart.unassigned).toEqual([]);
     expect(chart.counts).toEqual({
       sections: 1,
@@ -78,6 +80,45 @@ describe("buildOrganizationChart", () => {
       teams: 1,
       people: 2,
     });
+  });
+
+  it("nests child departments under a parent department", () => {
+    const childDept = "55555555-5555-4555-8555-555555555555";
+    const chart = buildOrganizationChart({
+      organization: { id: orgId, name: "I", description: null },
+      sections: [
+        {
+          id: sectionId,
+          name: "IN",
+          departments: [
+            {
+              id: departmentId,
+              name: "INF",
+              parentDepartmentId: null,
+              teams: [],
+              initiativeCount: 1,
+              projectCount: 0,
+            },
+            {
+              id: childDept,
+              name: "INFB",
+              parentDepartmentId: departmentId,
+              teams: [{ id: teamId, name: "Team A" }],
+              initiativeCount: 2,
+              projectCount: 1,
+            },
+          ],
+        },
+      ],
+      people: [],
+      bindings: [],
+    });
+
+    expect(chart.sections[0]?.departments).toHaveLength(1);
+    expect(chart.sections[0]?.departments[0]?.name).toBe("INF");
+    expect(chart.sections[0]?.departments[0]?.children).toHaveLength(1);
+    expect(chart.sections[0]?.departments[0]?.children[0]?.name).toBe("INFB");
+    expect(chart.counts.departments).toBe(2);
   });
 
   it("carries initiative and project counts onto departments", () => {

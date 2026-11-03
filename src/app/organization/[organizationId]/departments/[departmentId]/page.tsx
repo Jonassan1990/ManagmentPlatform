@@ -38,15 +38,28 @@ export default async function DepartmentPage({
 
   let workspace;
   let org;
+  let siblingDepartments: { id: string; name: string; parentDepartmentId: string | null }[] =
+    [];
   try {
     org = await organization.getOrganization(principal, organizationId);
     workspace = await organization.getDepartmentWorkspace(principal, departmentId);
     if (workspace.organizationId !== organizationId) notFound();
+    siblingDepartments = await organization.listDepartments(
+      principal,
+      workspace.department.sectionId,
+    );
   } catch {
     notFound();
   }
 
   const { department, teams, members, initiatives, projects, counts } = workspace;
+  const childDepartments = siblingDepartments.filter(
+    (row) => row.parentDepartmentId === department.id,
+  );
+  const parentDepartment = department.parentDepartmentId
+    ? siblingDepartments.find((row) => row.id === department.parentDepartmentId) ??
+      null
+    : null;
 
   const canManage = await authz.can(
     principal,
@@ -248,14 +261,40 @@ export default async function DepartmentPage({
               >
                 {department.section.name}
               </Link>
+              {parentDepartment ? (
+                <>
+                  {" → "}
+                  <Link
+                    href={`/organization/${org.id}/departments/${parentDepartment.id}`}
+                    className="text-[var(--accent)]"
+                  >
+                    {parentDepartment.name}
+                  </Link>
+                </>
+              ) : null}
               {" → "}
               <span className="font-medium text-[var(--fg)]">{department.name}</span>
             </p>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Open a child organization from the org hierarchy to deep-dive into
-              departments under that unit. From here you work inside this
-              department only.
-            </p>
+            {childDepartments.length > 0 ? (
+              <ul className="mt-3 divide-y divide-[var(--line)]">
+                {childDepartments.map((child) => (
+                  <li key={child.id} className="py-2">
+                    <Link
+                      href={`/organization/${org.id}/departments/${child.id}`}
+                      className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
+                    >
+                      {child.name}
+                    </Link>
+                    <p className="text-xs text-[var(--muted)]">Child department</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                No child departments. Add teams below, or create a child department
+                under this one from the section page.
+              </p>
+            )}
           </Panel>
           {canManage ? (
             <>
@@ -266,6 +305,11 @@ export default async function DepartmentPage({
                   name={department.name}
                   description={department.description}
                   version={department.version}
+                  parentDepartmentId={department.parentDepartmentId}
+                  parents={siblingDepartments.map((row) => ({
+                    id: row.id,
+                    name: row.name,
+                  }))}
                 />
               </Panel>
               <Panel>

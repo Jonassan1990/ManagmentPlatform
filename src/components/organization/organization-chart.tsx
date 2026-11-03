@@ -12,7 +12,10 @@ import type {
   OrganizationChart,
   PeopleManagerNode,
 } from "@/modules/organization/application/organization-chart";
-import { buildPeopleHierarchy } from "@/modules/organization/application/organization-chart";
+import {
+  buildPeopleHierarchy,
+  flattenChartDepartments,
+} from "@/modules/organization/application/organization-chart";
 
 function initials(name: string): string {
   const parts = name
@@ -272,6 +275,55 @@ function OrgUnitBranch({ unit }: { unit: ChartOrgNode }) {
   );
 }
 
+function DepartmentBranch({
+  department,
+  openDepartmentId,
+  onToggle,
+}: {
+  department: ChartDepartment;
+  openDepartmentId: string | null;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <li>
+      <OrgCard
+        href={department.href}
+        tone="department"
+        eyebrow="Department"
+        name={department.name}
+        owner={department.owner}
+        counts={department.counts}
+        selected={openDepartmentId === department.id}
+        onShowPeople={() => onToggle(department.id)}
+      />
+      {department.children.length > 0 || department.teams.length > 0 ? (
+        <ul>
+          {department.children.map((child) => (
+            <DepartmentBranch
+              key={child.id}
+              department={child}
+              openDepartmentId={openDepartmentId}
+              onToggle={onToggle}
+            />
+          ))}
+          {department.teams.map((team) => (
+            <li key={team.id}>
+              <OrgCard
+                href={team.href}
+                tone="team"
+                eyebrow="Team"
+                name={team.name}
+                owner={team.owner}
+                members={team.members}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
 export function OrganizationChart({
   chart,
   canAssign = false,
@@ -285,7 +337,7 @@ export function OrganizationChart({
   const peopleHierarchy = useMemo(() => buildPeopleHierarchy(chart), [chart]);
 
   const departments = chart.sections.flatMap((section) =>
-    section.departments.map((department) => ({
+    flattenChartDepartments([section]).map((department) => ({
       ...department,
       label: `${section.name} / ${department.name}`,
     })),
@@ -400,38 +452,16 @@ export function OrganizationChart({
                         {section.departments.length > 0 ? (
                           <ul>
                             {section.departments.map((department) => (
-                              <li key={department.id}>
-                                <OrgCard
-                                  href={department.href}
-                                  tone="department"
-                                  eyebrow="Department"
-                                  name={department.name}
-                                  owner={department.owner}
-                                  counts={department.counts}
-                                  selected={openDepartmentId === department.id}
-                                  onShowPeople={() =>
-                                    setOpenDepartmentId((current) =>
-                                      current === department.id ? null : department.id,
-                                    )
-                                  }
-                                />
-                                {department.teams.length > 0 ? (
-                                  <ul>
-                                    {department.teams.map((team) => (
-                                      <li key={team.id}>
-                                        <OrgCard
-                                          href={team.href}
-                                          tone="team"
-                                          eyebrow="Team"
-                                          name={team.name}
-                                          owner={team.owner}
-                                          members={team.members}
-                                        />
-                                      </li>
-                                    ))}
-                                  </ul>
-                                ) : null}
-                              </li>
+                              <DepartmentBranch
+                                key={department.id}
+                                department={department}
+                                openDepartmentId={openDepartmentId}
+                                onToggle={(id) =>
+                                  setOpenDepartmentId((current) =>
+                                    current === id ? null : id,
+                                  )
+                                }
+                              />
                             ))}
                           </ul>
                         ) : null}
@@ -462,7 +492,7 @@ export function OrganizationChart({
                 <div key={section.id}>
                   <p className="mp-org-side-section">{section.name}</p>
                   <div className="mt-2 space-y-2">
-                    {section.departments.map((department) => (
+                    {flattenChartDepartments([section]).map((department) => (
                       <DepartmentFocus
                         key={department.id}
                         department={department}

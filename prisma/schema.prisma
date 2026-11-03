@@ -80,6 +80,8 @@ model Section {
 model Department {
   id        String       @id @default(uuid()) @db.Uuid
   sectionId String       @db.Uuid
+  /// Optional parent inside the same section (e.g. INF → INFB).
+  parentDepartmentId String? @db.Uuid
   name      String       @db.VarChar(200)
   description String?    @db.VarChar(2000)
   status    EntityStatus @default(ACTIVE)
@@ -88,6 +90,8 @@ model Department {
   updatedAt DateTime     @updatedAt
 
   section     Section      @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  parent      Department?  @relation("DepartmentTree", fields: [parentDepartmentId], references: [id], onDelete: SetNull)
+  children    Department[] @relation("DepartmentTree")
   teams       Team[]
   initiatives Initiative[]
   projectsOwned Project[]
@@ -96,6 +100,7 @@ model Department {
 
   @@unique([sectionId, name])
   @@index([sectionId, status])
+  @@index([parentDepartmentId])
   @@map("departments")
 }
 

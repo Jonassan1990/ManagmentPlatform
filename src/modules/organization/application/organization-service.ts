@@ -364,10 +364,16 @@ export class OrganizationService {
       organizationId: section.organizationId,
       sectionId: section.id,
     });
+    await this.assertParentDepartment(
+      section.id,
+      null,
+      input.parentDepartmentId ?? null,
+    );
     try {
       const department = await this.db.department.create({
         data: {
           sectionId: section.id,
+          parentDepartmentId: input.parentDepartmentId ?? null,
           name: input.name,
           description: input.description ?? null,
         },
@@ -378,7 +384,11 @@ export class OrganizationService {
         subjectType: "Department",
         subjectId: department.id,
         organizationId: section.organizationId,
-        payload: { name: department.name, sectionId: section.id },
+        payload: {
+          name: department.name,
+          sectionId: section.id,
+          parentDepartmentId: department.parentDepartmentId,
+        },
         result: "success",
       });
       return department;
@@ -407,12 +417,22 @@ export class OrganizationService {
         "This department was changed by someone else. Refresh and try again.",
       );
     }
+    if (input.parentDepartmentId !== undefined) {
+      await this.assertParentDepartment(
+        existing.sectionId,
+        existing.id,
+        input.parentDepartmentId,
+      );
+    }
     try {
       const updated = await this.db.department.update({
         where: { id: input.id, version: input.expectedVersion },
         data: {
           name: input.name,
           description: input.description ?? null,
+          ...(input.parentDepartmentId !== undefined
+            ? { parentDepartmentId: input.parentDepartmentId }
+            : {}),
           version: { increment: 1 },
         },
       });
@@ -422,7 +442,11 @@ export class OrganizationService {
         subjectType: "Department",
         subjectId: updated.id,
         organizationId: existing.section.organizationId,
-        payload: { name: updated.name, version: updated.version },
+        payload: {
+          name: updated.name,
+          version: updated.version,
+          parentDepartmentId: updated.parentDepartmentId,
+        },
         result: "success",
       });
       return updated;
@@ -1434,6 +1458,7 @@ export class OrganizationService {
         departments: section.departments.map((department) => ({
           id: department.id,
           name: department.name,
+          parentDepartmentId: department.parentDepartmentId,
           teams: department.teams.map((team) => ({
             id: team.id,
             name: team.name,
@@ -1538,6 +1563,49 @@ export class OrganizationService {
         },
       },
     });
+  }
+
+  private async assertParentDepartment(
+    sectionId: string,
+    departmentId: string | null,
+    parentId: string | null,
+  ) {
+    if (!parentId) return;
+    if (departmentId && parentId === departmentId) {
+      throw new AppError("VALIDATION", "A department cannot belong to itself.");
+    }
+    const parent = await this.db.department.findUnique({
+      where: { id: parentId },
+      select: { id: true, sectionId: true, status: true, parentDepartmentId: true },
+    });
+    if (!parent || parent.status === EntityStatus.ARCHIVED) {
+      throw new AppError("NOT_FOUND", "Parent department not found.");
+    }
+    if (parent.sectionId !== sectionId) {
+      throw new AppError(
+        "VALIDATION",
+        "Parent department must be in the same section.",
+      );
+    }
+    if (!departmentId) return;
+    const rows = await this.db.department.findMany({
+      where: { sectionId, status: EntityStatus.ACTIVE },
+      select: { id: true, sectionId: true, parentDepartmentId: true },
+    });
+    const parentOf = new Map(rows.map((row) => [row.id, row.parentDepartmentId]));
+    const seen = new Set<string>();
+    let cursor: string | null = parentId;
+    while (cursor) {
+      if (cursor === departmentId) {
+        throw new AppError(
+          "VALIDATION",
+          "That department is already inside this one. Choose a parent above it, such as INF for INFB.",
+        );
+      }
+      if (seen.has(cursor)) break;
+      seen.add(cursor);
+      cursor = parentOf.get(cursor) ?? null;
+    }
   }
 
   private async assertParentOrganization(orgId: string | null, parentId: string | null) {
