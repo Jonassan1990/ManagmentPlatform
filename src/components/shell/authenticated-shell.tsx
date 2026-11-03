@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { SessionProvider } from "@/components/shell/session-provider";
+import { getDemoPersonaSwitcherStateAction } from "@/app/actions/demo-persona";
 import { DEFAULT_SHELL_CAPABILITIES } from "@/modules/navigation/nav-definition";
 import { resolveShellNavContext } from "@/modules/navigation/resolve-shell-nav";
 import { createServices } from "@/server/container";
@@ -113,6 +114,10 @@ export async function AuthenticatedShell({
     return <SessionProvider>{children}</SessionProvider>;
   }
 
+  const demoState = principal
+    ? await getDemoPersonaSwitcherStateAction()
+    : { enabled: false as const, personas: [], activeKey: null };
+
   return (
     <SessionProvider>
       <AppShell
@@ -127,6 +132,14 @@ export async function AuthenticatedShell({
             : null
         }
         nav={nav}
+        demoPersona={
+          demoState.enabled
+            ? {
+                personas: demoState.personas,
+                activeKey: demoState.activeKey,
+              }
+            : null
+        }
       >
         {children}
       </AppShell>

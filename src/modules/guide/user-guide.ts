@@ -142,8 +142,30 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
     ],
   },
   {
+    id: "demo",
+    title: "6. Try demo levels (optional)",
+    summary: "After seeding the IT hierarchy demo, use the top-bar dropdown to simulate each manager level.",
+    steps: [
+      {
+        id: "seed",
+        title: "Seed Organization I",
+        body: "Run npm run demo:seed-it (with DEV_AUTH_PRINCIPAL_ID or TEMP_AUTH_PRINCIPAL_ID). Creates I → IN → INF/INFB/INFF/ING/INA, sample demand/pre-study/PoC/project work, and people.",
+      },
+      {
+        id: "switcher",
+        title: "Use the level dropdown",
+        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), sign in then pick Organization, Section IN, INF, INFB, ING, INA, or Viewer to see what that level can access.",
+      },
+      {
+        id: "logins",
+        title: "Or sign in as a demo user",
+        body: "Local usernames demo.orgadmin, demo.inmanager, demo.infmanager, demo.infbmanager, demo.ingmanager, demo.inamanager, demo.viewer — password DemoLevel2026!",
+      },
+    ],
+  },
+  {
     id: "tips",
-    title: "6. Simple habits",
+    title: "7. Simple habits",
     summary: "Keep the product calm and clear.",
     steps: [
       {
