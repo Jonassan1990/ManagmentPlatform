@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildOrganizationChart, nestChildOrganizations } from "@/modules/organization/application/organization-chart";
+import {
+  buildOrganizationChart,
+  buildPeopleHierarchy,
+  nestChildOrganizations,
+} from "@/modules/organization/application/organization-chart";
 
 const orgId = "11111111-1111-4111-8111-111111111111";
 const sectionId = "22222222-2222-4222-8222-222222222222";
@@ -62,6 +66,11 @@ describe("buildOrganizationChart", () => {
       "Sara Lind",
       "Viktor Ek",
     ]);
+    expect(chart.sections[0]?.departments[0]?.counts).toEqual({
+      resources: 2,
+      projects: 0,
+      initiatives: 0,
+    });
     expect(chart.unassigned).toEqual([]);
     expect(chart.counts).toEqual({
       sections: 1,
@@ -69,6 +78,84 @@ describe("buildOrganizationChart", () => {
       teams: 1,
       people: 2,
     });
+  });
+
+  it("carries initiative and project counts onto departments", () => {
+    const chart = buildOrganizationChart({
+      organization: { id: orgId, name: "Nordic", description: null },
+      sections: [
+        {
+          id: sectionId,
+          name: "Operations",
+          departments: [
+            {
+              id: departmentId,
+              name: "Plant A",
+              teams: [{ id: teamId, name: "Line 2" }],
+              initiativeCount: 3,
+              projectCount: 2,
+            },
+          ],
+        },
+      ],
+      people: [],
+      bindings: [],
+    });
+
+    expect(chart.sections[0]?.departments[0]?.counts).toEqual({
+      resources: 0,
+      projects: 2,
+      initiatives: 3,
+    });
+  });
+
+  it("builds a people hierarchy under each department manager", () => {
+    const chart = buildOrganizationChart({
+      organization: { id: orgId, name: "Nordic", description: null },
+      sections: [
+        {
+          id: sectionId,
+          name: "Operations",
+          departments: [
+            {
+              id: departmentId,
+              name: "Plant A",
+              teams: [{ id: teamId, name: "Line 2" }],
+            },
+          ],
+        },
+      ],
+      people: [
+        {
+          id: "sara",
+          name: "Sara Lind",
+          role: "Plant Manager",
+          memberships: [{ teamId, isPrimary: true }],
+        },
+        {
+          id: "viktor",
+          name: "Viktor Ek",
+          role: "OT Engineer",
+          memberships: [{ teamId, isPrimary: false }],
+        },
+      ],
+      bindings: [
+        {
+          scopeType: "DEPARTMENT",
+          scopeId: departmentId,
+          name: "Sara Lind",
+          roleKey: "department.manager",
+        },
+      ],
+    });
+
+    const people = buildPeopleHierarchy(chart);
+    expect(people).toHaveLength(1);
+    expect(people[0]).toMatchObject({
+      managerName: "Sara Lind",
+      departmentName: "Plant A",
+    });
+    expect(people[0]?.employees.map((person) => person.name)).toEqual(["Viktor Ek"]);
   });
 
   it("prefers an explicit team manager over the inferred lead", () => {

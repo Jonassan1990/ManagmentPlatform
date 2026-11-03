@@ -32,6 +32,24 @@ export type ChartDepartment = {
   owner: ChartOwner | null;
   teams: ChartTeam[];
   people: ChartMember[];
+  /** Delivery items owned by / tied to this department. */
+  counts: {
+    resources: number;
+    projects: number;
+    initiatives: number;
+  };
+};
+
+export type PeopleManagerNode = {
+  /** Stable key for React lists — manager resource id, or synthetic unmanaged id. */
+  id: string;
+  managerName: string;
+  managerTitle: string;
+  managerHref: string | null;
+  departmentId: string;
+  departmentName: string;
+  departmentHref: string;
+  employees: ChartMember[];
 };
 
 export type ChartSection = {
@@ -177,6 +195,8 @@ export function buildOrganizationChart(input: {
       id: string;
       name: string;
       teams: { id: string; name: string }[];
+      initiativeCount?: number;
+      projectCount?: number;
     }[];
   }[];
   people: ChartPersonInput[];
@@ -201,6 +221,7 @@ export function buildOrganizationChart(input: {
         input.people,
         new Set(department.teams.map((team) => team.id)),
       );
+      const people = departmentMembers(orgId, input.people, department.teams);
       return {
         id: department.id,
         name: department.name,
@@ -209,7 +230,12 @@ export function buildOrganizationChart(input: {
           bindingOwner(input.bindings, "DEPARTMENT", department.id) ??
           inferOwner(departmentPeople),
         teams,
-        people: departmentMembers(orgId, input.people, department.teams),
+        people,
+        counts: {
+          resources: people.length,
+          projects: department.projectCount ?? 0,
+          initiatives: department.initiativeCount ?? 0,
+        },
       };
     });
     const sectionTeamIds = new Set(
@@ -306,4 +332,43 @@ export function nestChildOrganizations(
   };
 
   return walk(rootId, new Set([rootId]));
+}
+
+/**
+ * People hierarchy: each department manager sits above the people in that department.
+ * Falls back to "No manager assigned" when the department has no owner.
+ */
+export function buildPeopleHierarchy(chart: OrganizationChart): PeopleManagerNode[] {
+  const nodes: PeopleManagerNode[] = [];
+
+  for (const section of chart.sections) {
+    for (const department of section.departments) {
+      const owner = department.owner;
+      const managerPerson = owner
+        ? department.people.find(
+            (person) => person.name.toLowerCase() === owner.name.toLowerCase(),
+          )
+        : null;
+      const employees = managerPerson
+        ? department.people.filter((person) => person.id !== managerPerson.id)
+        : department.people;
+
+      nodes.push({
+        id: managerPerson?.id ?? `unmanaged-${department.id}`,
+        managerName: owner?.name ?? "No manager assigned",
+        managerTitle: owner?.title ?? "Department",
+        managerHref: managerPerson?.href ?? null,
+        departmentId: department.id,
+        departmentName: department.name,
+        departmentHref: department.href,
+        employees,
+      });
+    }
+  }
+
+  return nodes.sort((a, b) => {
+    const byManager = a.managerName.localeCompare(b.managerName);
+    if (byManager !== 0) return byManager;
+    return a.departmentName.localeCompare(b.departmentName);
+  });
 }

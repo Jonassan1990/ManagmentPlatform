@@ -415,10 +415,73 @@
   text-decoration: none;
 }
 
-.mp-org-people-count {
+.mp-org-people-count,
+.mp-org-delivery-counts {
   color: #087f78;
   font-size: 0.68rem;
   font-weight: 700;
+}
+
+.mp-org-stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mp-org-stat-row li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  background: #f8fafb;
+}
+
+.mp-org-stat-row strong {
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+
+.mp-org-stat-row span {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.mp-org-manager-node {
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: #fff;
+  padding: 0.9rem;
+}
+
+.mp-org-manager-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mp-org-manager-head .mp-org-person {
+  border-top: 0;
+  flex: 1;
+  min-width: 0;
+  padding-top: 0;
+}
+
+.mp-org-report-list {
+  margin: 0.35rem 0 0;
+  padding: 0 0 0 0.85rem;
+  list-style: none;
+  border-left: 2px solid #c5d0dc;
+}
+
+.mp-org-report-list .mp-org-person {
+  border-top-color: #e6ecf1;
 }
 
 .mp-org-roster {

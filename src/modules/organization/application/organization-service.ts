@@ -578,6 +578,114 @@ export class OrganizationService {
     return [...byPerson.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  /**
+   * Department hub: people/resources, teams, initiatives, and projects in one place.
+   * Org-level users drill from hierarchy → department → these lists.
+   */
+  async getDepartmentWorkspace(principal: Principal, departmentId: string) {
+    const department = await this.getDepartment(principal, departmentId);
+    const organizationId = department.section.organizationId;
+
+    const [teams, members, initiatives, projectsOwned, projectsParticipating] =
+      await Promise.all([
+        this.listTeams(principal, departmentId),
+        this.listDepartmentMembers(principal, departmentId),
+        this.db.initiative.findMany({
+          where: {
+            departmentId: department.id,
+            status: { not: "ARCHIVED" },
+          },
+          select: {
+            id: true,
+            referenceKey: true,
+            title: true,
+            currentStage: true,
+            status: true,
+            updatedAt: true,
+          },
+          orderBy: { updatedAt: "desc" },
+        }),
+        this.db.project.findMany({
+          where: {
+            departmentId: department.id,
+            status: { not: "ARCHIVED" },
+          },
+          select: {
+            id: true,
+            initiativeId: true,
+            referenceKey: true,
+            name: true,
+            status: true,
+            updatedAt: true,
+          },
+          orderBy: { updatedAt: "desc" },
+        }),
+        this.db.projectParticipatingDepartment.findMany({
+          where: { departmentId: department.id },
+          include: {
+            project: {
+              select: {
+                id: true,
+                initiativeId: true,
+                referenceKey: true,
+                name: true,
+                status: true,
+                updatedAt: true,
+                departmentId: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+    const projectById = new Map<
+      string,
+      {
+        id: string;
+        initiativeId: string;
+        referenceKey: string;
+        name: string;
+        status: string;
+        updatedAt: Date;
+        relation: "owns" | "participates";
+      }
+    >();
+    for (const project of projectsOwned) {
+      projectById.set(project.id, { ...project, relation: "owns" });
+    }
+    for (const row of projectsParticipating) {
+      if (row.project.status === "ARCHIVED") continue;
+      if (projectById.has(row.project.id)) continue;
+      projectById.set(row.project.id, {
+        id: row.project.id,
+        initiativeId: row.project.initiativeId,
+        referenceKey: row.project.referenceKey,
+        name: row.project.name,
+        status: row.project.status,
+        updatedAt: row.project.updatedAt,
+        relation: "participates",
+      });
+    }
+    const projects = [...projectById.values()].sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+    );
+
+    return {
+      organizationId,
+      department,
+      teams,
+      members,
+      initiatives,
+      projects,
+      counts: {
+        resources: members.length,
+        teams: teams.length,
+        initiatives: initiatives.length,
+        projects: projects.length,
+      },
+    };
+  }
+
   async getTeam(principal: Principal, id: string) {
     const team = await this.db.team.findUnique({
       where: { id },
@@ -1283,6 +1391,37 @@ export class OrganizationService {
       orderBy: { createdAt: "asc" },
     });
 
+    const departmentIds = hierarchy.sections.flatMap((section) =>
+      section.departments.map((department) => department.id),
+    );
+    const [initiativeGroups, projectGroups] =
+      departmentIds.length === 0
+        ? [[], []]
+        : await Promise.all([
+            this.db.initiative.groupBy({
+              by: ["departmentId"],
+              where: {
+                departmentId: { in: departmentIds },
+                status: { not: "ARCHIVED" },
+              },
+              _count: { _all: true },
+            }),
+            this.db.project.groupBy({
+              by: ["departmentId"],
+              where: {
+                departmentId: { in: departmentIds },
+                status: { not: "ARCHIVED" },
+              },
+              _count: { _all: true },
+            }),
+          ]);
+    const initiativeCountByDept = new Map(
+      initiativeGroups.map((row) => [row.departmentId, row._count._all]),
+    );
+    const projectCountByDept = new Map(
+      projectGroups.map((row) => [row.departmentId, row._count._all]),
+    );
+
     const chart = buildOrganizationChart({
       organization: {
         id: hierarchy.id,
@@ -1299,6 +1438,8 @@ export class OrganizationService {
             id: team.id,
             name: team.name,
           })),
+          initiativeCount: initiativeCountByDept.get(department.id) ?? 0,
+          projectCount: projectCountByDept.get(department.id) ?? 0,
         })),
       })),
       people: hierarchy.resources

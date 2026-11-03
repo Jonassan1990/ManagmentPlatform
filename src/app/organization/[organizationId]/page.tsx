@@ -62,7 +62,7 @@ export default async function OrganizationDetailPage({
         title={hierarchy.name}
         description={
           hierarchy.description ??
-          "Navigate the hierarchy from section to resource."
+          "See the whole organization, open a department for resources, projects, and initiatives, or switch to People for manager → employee view."
         }
         actions={
           <div className="flex flex-wrap gap-2">
