@@ -11,6 +11,10 @@
 
 import { PrismaClient, ScopeType } from "@prisma/client";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import {
+  ancestorDepartmentIds,
+  descendantDepartmentIds,
+} from "@/modules/organization/application/department-tree";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS, type Permission } from "@/modules/shared/permissions";
 import type { PortfolioQueryScopeApplied } from "../domain/types";
@@ -90,11 +94,10 @@ export async function resolvePortfolioVisibility(
       for (const d of depts) allowed.add(d.id);
     }
 
-    for (const b of relevant) {
-      if (b.scopeType === ScopeType.DEPARTMENT && b.scopeId) {
-        allowed.add(b.scopeId);
-      }
-    }
+    const departmentBindings = relevant
+      .filter((b) => b.scopeType === ScopeType.DEPARTMENT && b.scopeId)
+      .map((b) => b.scopeId!);
+    for (const id of departmentBindings) allowed.add(id);
 
     const teamIds = relevant
       .filter((b) => b.scopeType === ScopeType.TEAM && b.scopeId)
@@ -105,6 +108,27 @@ export async function resolvePortfolioVisibility(
         select: { departmentId: true },
       });
       for (const t of teams) allowed.add(t.departmentId);
+    }
+
+    // Nested departments: include descendants (parent manager) and ancestors
+    // (child manager may see parent INF initiatives/projects).
+    if (allowed.size > 0 || departmentBindings.length > 0) {
+      const treeRows = await db.department.findMany({
+        where: {
+          status: "ACTIVE",
+          section: { organizationId },
+        },
+        select: { id: true, sectionId: true, parentDepartmentId: true },
+      });
+      const seed = [...allowed];
+      for (const id of seed) {
+        for (const child of descendantDepartmentIds(id, treeRows)) {
+          allowed.add(child);
+        }
+        for (const parent of ancestorDepartmentIds(id, treeRows)) {
+          allowed.add(parent);
+        }
+      }
     }
 
     if (allowed.size === 0) {

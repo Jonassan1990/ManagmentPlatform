@@ -8,11 +8,23 @@ import {
 import type { AuthScope, Principal } from "../domain/types";
 import { isDevAuthEnabled, getEnv } from "@/server/env";
 import { SYSTEM_ROLE_PACKS } from "./role-packs";
-import { scopeMatchesAsync } from "./scope-policy";
+import {
+  departmentAncestorViewMatchesAsync,
+  scopeMatchesAsync,
+} from "./scope-policy";
 import {
   ownershipGrantsPermission,
   type OwnershipRelationship,
 } from "./relationship-policy";
+
+/** Child department managers may read parent department delivery details. */
+const ANCESTOR_DEPARTMENT_VIEW_PERMISSIONS = new Set<Permission>([
+  PERMISSIONS.ORG_STRUCTURE_READ,
+  PERMISSIONS.INITIATIVE_VIEW,
+  PERMISSIONS.PROJECT_VIEW,
+  PERMISSIONS.GOVERNANCE_VIEW,
+  PERMISSIONS.PI_VIEW,
+]);
 import { logger } from "@/server/logger";
 import {
   LOCAL_LOGIN_ISSUER,
@@ -257,6 +269,23 @@ export class AuthorizationService {
         scope,
       );
       if (matches) {
+        return;
+      }
+
+      // INFB manager → read INF initiatives/projects (ancestor department, view only).
+      if (
+        ANCESTOR_DEPARTMENT_VIEW_PERMISSIONS.has(permission) &&
+        binding.scopeType === ScopeType.DEPARTMENT &&
+        binding.scopeId &&
+        binding.organizationId &&
+        scope.type === "DEPARTMENT" &&
+        (await departmentAncestorViewMatchesAsync(
+          this.db,
+          binding.scopeId,
+          scope.departmentId,
+          binding.organizationId,
+        ))
+      ) {
         return;
       }
     }

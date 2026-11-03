@@ -60,16 +60,25 @@ export default async function SectionPage({
             <p className="text-sm text-[var(--muted)]">No departments yet.</p>
           ) : (
             <ul className="divide-y divide-[var(--line)]">
-              {departments.map((department) => (
-                <li key={department.id} className="py-2">
-                  <Link
-                    href={`/organization/${org.id}/departments/${department.id}`}
-                    className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
-                  >
-                    {department.name}
-                  </Link>
-                </li>
-              ))}
+              {departments.map((department) => {
+                const parentName = department.parentDepartmentId
+                  ? departments.find((row) => row.id === department.parentDepartmentId)
+                      ?.name
+                  : null;
+                return (
+                  <li key={department.id} className="py-2">
+                    <Link
+                      href={`/organization/${org.id}/departments/${department.id}`}
+                      className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
+                    >
+                      {department.name}
+                    </Link>
+                    <p className="text-xs text-[var(--muted)]">
+                      {parentName ? `Under ${parentName}` : "Top department in this section"}
+                    </p>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Panel>
@@ -86,7 +95,13 @@ export default async function SectionPage({
                 />
               </Panel>
               <Panel>
-                <CreateDepartmentForm sectionId={section.id} />
+                <CreateDepartmentForm
+                  sectionId={section.id}
+                  parents={departments.map((department) => ({
+                    id: department.id,
+                    name: department.name,
+                  }))}
+                />
               </Panel>
             </>
           ) : (

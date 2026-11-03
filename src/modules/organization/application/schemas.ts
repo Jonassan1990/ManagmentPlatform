@@ -46,12 +46,14 @@ export const createDepartmentInputSchema = z.object({
   sectionId: uuidSchema,
   name: nameSchema,
   description: descriptionSchema,
+  parentDepartmentId: z.string().uuid().nullable().optional(),
 });
 
 export const updateDepartmentInputSchema = z.object({
   id: uuidSchema,
   name: nameSchema,
   description: descriptionSchema,
+  parentDepartmentId: z.string().uuid().nullable().optional(),
   expectedVersion: z.number().int().positive(),
 });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AssignDepartmentForm } from "@/components/organization/org-forms";
 import type {
   ChartDepartment,
@@ -10,6 +10,11 @@ import type {
   ChartOwner,
   ChartPerson,
   OrganizationChart,
+  PeopleManagerNode,
+} from "@/modules/organization/application/organization-chart";
+import {
+  buildPeopleHierarchy,
+  flattenChartDepartments,
 } from "@/modules/organization/application/organization-chart";
 
 function initials(name: string): string {
@@ -36,6 +41,7 @@ function OrgCard({
   owner,
   members,
   peopleCount,
+  counts,
   selected,
   onShowPeople,
 }: {
@@ -46,6 +52,7 @@ function OrgCard({
   owner: ChartOwner | null;
   members?: ChartPerson[];
   peopleCount?: number;
+  counts?: ChartDepartment["counts"];
   selected?: boolean;
   onShowPeople?: () => void;
 }) {
@@ -86,7 +93,12 @@ function OrgCard({
           ) : null}
         </span>
       ) : null}
-      {peopleCount != null ? (
+      {counts ? (
+        <span className="mp-org-delivery-counts">
+          {counts.resources} resources · {counts.projects} projects ·{" "}
+          {counts.initiatives} initiatives
+        </span>
+      ) : peopleCount != null ? (
         <span className="mp-org-people-count">
           {peopleCount === 1 ? "1 person" : `${peopleCount} people`}
         </span>
@@ -134,12 +146,12 @@ function PersonRow({ person }: { person: ChartMember }) {
   );
 }
 
-function DepartmentPeople({
+function DepartmentFocus({
   department,
   selected = false,
   anchor = false,
 }: {
-  department: ChartDepartment;
+  department: ChartDepartment & { label?: string };
   selected?: boolean;
   anchor?: boolean;
 }) {
@@ -147,19 +159,93 @@ function DepartmentPeople({
     <section
       id={anchor ? `org-dept-${department.id}` : undefined}
       className={`mp-org-roster ${selected ? "is-selected" : ""}`}
-      aria-label={`People in ${department.name}`}
+      aria-label={`${department.name} overview`}
     >
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="mp-card-title">{department.name}</h3>
+        <h3 className="mp-card-title">{department.label ?? department.name}</h3>
         <Link href={department.href} className="mp-org-open">
           Open department
         </Link>
       </div>
-      {department.people.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">No one is in this department yet.</p>
+      {department.owner ? (
+        <p className="mb-3 text-sm text-[var(--muted)]">
+          Manager: <span className="text-[var(--fg)]">{department.owner.name}</span>
+          {department.owner.title ? ` · ${department.owner.title}` : ""}
+        </p>
       ) : (
-        <ul className="mp-org-person-list">
-          {department.people.map((person) => (
+        <p className="mb-3 text-sm text-[var(--muted)]">No manager assigned.</p>
+      )}
+      <ul className="mp-org-stat-row" aria-label="Department contents">
+        <li>
+          <strong>{department.counts.resources}</strong>
+          <span>Resources</span>
+        </li>
+        <li>
+          <strong>{department.counts.projects}</strong>
+          <span>Projects</span>
+        </li>
+        <li>
+          <strong>{department.counts.initiatives}</strong>
+          <span>Initiatives</span>
+        </li>
+        <li>
+          <strong>{department.teams.length}</strong>
+          <span>Teams</span>
+        </li>
+      </ul>
+      {department.people.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--muted)]">No people in this department yet.</p>
+      ) : (
+        <ul className="mp-org-person-list mt-3">
+          {department.people.slice(0, 6).map((person) => (
+            <PersonRow key={person.id} person={person} />
+          ))}
+        </ul>
+      )}
+      {department.people.length > 6 ? (
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          +{department.people.length - 6} more — open the department to see everything.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function ManagerPeopleNode({ node }: { node: PeopleManagerNode }) {
+  const managerBody = (
+    <>
+      <span className="mp-org-avatar" aria-hidden>
+        {initials(node.managerName)}
+      </span>
+      <span className="min-w-0">
+        <span className="mp-org-owner-label">Manager</span>
+        <span className="mp-org-owner-name">{node.managerName}</span>
+        <span className="mp-org-owner-role">
+          {node.managerTitle} · {node.departmentName}
+        </span>
+      </span>
+    </>
+  );
+
+  return (
+    <section className="mp-org-manager-node" aria-label={`${node.managerName} reports`}>
+      <div className="mp-org-manager-head">
+        {node.managerHref ? (
+          <Link href={node.managerHref} className="mp-org-person">
+            {managerBody}
+          </Link>
+        ) : (
+          <div className="mp-org-person">{managerBody}</div>
+        )}
+        <Link href={node.departmentHref} className="mp-org-open">
+          Open department
+        </Link>
+      </div>
+      {node.employees.length === 0 ? (
+        <p className="mt-2 text-sm text-[var(--muted)]">No employees under this manager yet.</p>
+      ) : (
+        <ul className="mp-org-report-list">
+          {node.employees.map((person) => (
             <PersonRow key={person.id} person={person} />
           ))}
         </ul>
@@ -174,7 +260,7 @@ function OrgUnitBranch({ unit }: { unit: ChartOrgNode }) {
       <OrgCard
         href={unit.href}
         tone="organization"
-        eyebrow="Organization"
+        eyebrow="Child organization"
         name={unit.name}
         owner={unit.owner}
       />
@@ -182,6 +268,55 @@ function OrgUnitBranch({ unit }: { unit: ChartOrgNode }) {
         <ul>
           {unit.children.map((child) => (
             <OrgUnitBranch key={child.id} unit={child} />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+function DepartmentBranch({
+  department,
+  openDepartmentId,
+  onToggle,
+}: {
+  department: ChartDepartment;
+  openDepartmentId: string | null;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <li>
+      <OrgCard
+        href={department.href}
+        tone="department"
+        eyebrow="Department"
+        name={department.name}
+        owner={department.owner}
+        counts={department.counts}
+        selected={openDepartmentId === department.id}
+        onShowPeople={() => onToggle(department.id)}
+      />
+      {department.children.length > 0 || department.teams.length > 0 ? (
+        <ul>
+          {department.children.map((child) => (
+            <DepartmentBranch
+              key={child.id}
+              department={child}
+              openDepartmentId={openDepartmentId}
+              onToggle={onToggle}
+            />
+          ))}
+          {department.teams.map((team) => (
+            <li key={team.id}>
+              <OrgCard
+                href={team.href}
+                tone="team"
+                eyebrow="Team"
+                name={team.name}
+                owner={team.owner}
+                members={team.members}
+              />
+            </li>
           ))}
         </ul>
       ) : null}
@@ -199,9 +334,10 @@ export function OrganizationChart({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"organization" | "people">("organization");
   const [openDepartmentId, setOpenDepartmentId] = useState<string | null>(null);
+  const peopleHierarchy = useMemo(() => buildPeopleHierarchy(chart), [chart]);
 
   const departments = chart.sections.flatMap((section) =>
-    section.departments.map((department) => ({
+    flattenChartDepartments([section]).map((department) => ({
       ...department,
       label: `${section.name} / ${department.name}`,
     })),
@@ -245,13 +381,13 @@ export function OrganizationChart({
         <div>
           <h2 className="mp-section-title">Hierarchy</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            {chart.counts.sections} sections · {chart.counts.departments} departments ·{" "}
-            {chart.counts.teams} teams · {chart.counts.people} people
+            {view === "organization"
+              ? "Start at the organization, open a department to see resources, projects, and initiatives. Child organizations nest underneath for deeper drill-down."
+              : "People view groups employees under each manager name."}{" "}
+            {chart.counts.departments} departments · {chart.counts.people} people
             {view === "organization" && chart.counts.sections > 1 ? (
               <span className="mp-org-scroll-hint"> · Scroll sideways to see every branch.</span>
-            ) : (
-              ""
-            )}
+            ) : null}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -261,7 +397,7 @@ export function OrganizationChart({
               aria-pressed={view === "organization"}
               onClick={() => setView("organization")}
             >
-              Organization
+              Departments
             </button>
             <button
               type="button"
@@ -296,7 +432,8 @@ export function OrganizationChart({
                 />
                 {chart.sections.length === 0 && chart.children.length === 0 ? (
                   <p className="mt-4 max-w-sm text-center text-sm text-[var(--muted)]">
-                    No sections yet. Add a section, or place another organization inside this one.
+                    No sections yet. Add a section, then departments. Place child
+                    organizations under this one for deeper structure.
                   </p>
                 ) : (
                   <ul>
@@ -315,38 +452,16 @@ export function OrganizationChart({
                         {section.departments.length > 0 ? (
                           <ul>
                             {section.departments.map((department) => (
-                              <li key={department.id}>
-                                <OrgCard
-                                  href={department.href}
-                                  tone="department"
-                                  eyebrow="Department"
-                                  name={department.name}
-                                  owner={department.owner}
-                                  peopleCount={department.people.length}
-                                  selected={openDepartmentId === department.id}
-                                  onShowPeople={() =>
-                                    setOpenDepartmentId((current) =>
-                                      current === department.id ? null : department.id,
-                                    )
-                                  }
-                                />
-                                {department.teams.length > 0 ? (
-                                  <ul>
-                                    {department.teams.map((team) => (
-                                      <li key={team.id}>
-                                        <OrgCard
-                                          href={team.href}
-                                          tone="team"
-                                          eyebrow="Team"
-                                          name={team.name}
-                                          owner={team.owner}
-                                          members={team.members}
-                                        />
-                                      </li>
-                                    ))}
-                                  </ul>
-                                ) : null}
-                              </li>
+                              <DepartmentBranch
+                                key={department.id}
+                                department={department}
+                                openDepartmentId={openDepartmentId}
+                                onToggle={(id) =>
+                                  setOpenDepartmentId((current) =>
+                                    current === id ? null : id,
+                                  )
+                                }
+                              />
                             ))}
                           </ul>
                         ) : null}
@@ -357,27 +472,28 @@ export function OrganizationChart({
               </li>
             </ul>
           </div>
-          <aside className="mp-org-side" aria-label="Departments and people">
+          <aside className="mp-org-side" aria-label="Department drill-down">
             <div className="mp-org-focus">
               {open ? (
-                <DepartmentPeople department={open} selected />
+                <DepartmentFocus department={open} selected />
               ) : (
                 <section className="mp-org-roster">
-                  <h3 className="mp-card-title">People in a department</h3>
+                  <h3 className="mp-card-title">Click a department</h3>
                   <p className="mt-2 text-sm text-[var(--muted)]">
-                    Click a department to see who belongs there.
+                    See resources, projects, and initiatives for that department,
+                    then open it for the full workspace.
                   </p>
                 </section>
               )}
             </div>
             <div className="mp-org-directory">
-              <h3 className="mp-card-title">Departments and people</h3>
+              <h3 className="mp-card-title">All departments</h3>
               {chart.sections.map((section) => (
                 <div key={section.id}>
                   <p className="mp-org-side-section">{section.name}</p>
                   <div className="mt-2 space-y-2">
-                    {section.departments.map((department) => (
-                      <DepartmentPeople
+                    {flattenChartDepartments([section]).map((department) => (
+                      <DepartmentFocus
                         key={department.id}
                         department={department}
                         selected={openDepartmentId === department.id}
@@ -387,20 +503,6 @@ export function OrganizationChart({
                   </div>
                 </div>
               ))}
-              <section className="mp-org-roster" aria-label="People without a department">
-                <h3 className="mp-card-title">Unassigned</h3>
-                {chart.unassigned.length === 0 ? (
-                  <p className="mt-2 text-sm text-[var(--muted)]">
-                    Everyone belongs to a department.
-                  </p>
-                ) : (
-                  <ul className="mp-org-person-list mt-2">
-                    {chart.unassigned.map((person) => (
-                      <PersonRow key={person.id} person={person} />
-                    ))}
-                  </ul>
-                )}
-              </section>
             </div>
           </aside>
         </div>
@@ -415,20 +517,17 @@ export function OrganizationChart({
               />
             </section>
           ) : null}
-          {chart.sections.map((section) => (
-            <section key={section.id}>
-              <h3 className="mp-card-title mb-2">{section.name}</h3>
-              {section.departments.length === 0 ? (
-                <p className="text-sm text-[var(--muted)]">No departments in this section.</p>
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {section.departments.map((department) => (
-                    <DepartmentPeople key={department.id} department={department} />
-                  ))}
-                </div>
-              )}
-            </section>
-          ))}
+          {peopleHierarchy.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">
+              No departments yet — add a department to place managers and employees.
+            </p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {peopleHierarchy.map((node) => (
+                <ManagerPeopleNode key={`${node.id}-${node.departmentId}`} node={node} />
+              ))}
+            </div>
+          )}
           <section className="mp-org-roster" aria-label="People without a department">
             <h3 className="mp-card-title">Unassigned</h3>
             {chart.unassigned.length === 0 ? (

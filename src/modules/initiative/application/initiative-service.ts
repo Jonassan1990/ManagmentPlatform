@@ -14,6 +14,7 @@ import { GovernanceService } from "@/modules/governance/application/governance-s
 import { evaluatePoCReadiness } from "@/modules/governance/application/poc-readiness-policy";
 import { evaluatePilotGovernanceReadiness } from "@/modules/governance/application/pilot-readiness-policy";
 import { resolveOptionalBusinessOwner } from "@/modules/organization/application/ownership-policy";
+import { resolvePortfolioVisibility } from "@/modules/portfolio/application/portfolio-scope";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { buildAttentionItems } from "./attention";
@@ -1028,27 +1029,50 @@ export class InitiativeService {
     principal: Principal,
     filters?: { organizationId?: string; stage?: InitiativeStage },
   ) {
-    // Prefer org-scoped listing when organizationId provided
-    if (filters?.organizationId) {
-      await this.authz.assertCan(principal, PERMISSIONS.INITIATIVE_VIEW, {
-        type: "ORGANIZATION",
-        organizationId: filters.organizationId,
-      });
-    } else {
-      // Ensure principal can at least bootstrap/list via any binding
-      await this.authz.ensureBootstrapBinding(principal.id);
-    }
+    await this.authz.ensureBootstrapBinding(principal.id);
 
     const orgs = await this.accessibleOrganizationIds(principal);
-    if (orgs.length === 0) return [];
+    const targetOrgs = filters?.organizationId
+      ? orgs.filter((id) => id === filters.organizationId)
+      : orgs;
+    if (targetOrgs.length === 0) return [];
+
+    // Level-scoped visibility: section sees all depts under it; department sees
+    // own + ancestors (e.g. INFB can see INF) + descendants.
+    const visibleDepartmentIdsByOrg = new Map<string, string[] | null>();
+    for (const organizationId of targetOrgs) {
+      try {
+        const visibility = await resolvePortfolioVisibility(
+          this.db,
+          principal,
+          organizationId,
+        );
+        visibleDepartmentIdsByOrg.set(
+          organizationId,
+          visibility.departmentIds,
+        );
+      } catch {
+        // No portfolio view in this org — skip.
+      }
+    }
+    if (visibleDepartmentIdsByOrg.size === 0) return [];
+
+    const departmentFilters = [...visibleDepartmentIdsByOrg.entries()].flatMap(
+      ([organizationId, departmentIds]) =>
+        departmentIds === null
+          ? [{ organizationId }]
+          : departmentIds.map((departmentId) => ({
+              organizationId,
+              departmentId,
+            })),
+    );
+    if (departmentFilters.length === 0) return [];
 
     const initiatives = await this.db.initiative.findMany({
       where: {
-        organizationId: filters?.organizationId
-          ? filters.organizationId
-          : { in: orgs },
         status: { not: "ARCHIVED" },
         ...(filters?.stage ? { currentStage: filters.stage } : {}),
+        OR: departmentFilters,
       },
       include: {
         department: true,

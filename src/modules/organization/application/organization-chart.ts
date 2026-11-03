@@ -30,8 +30,28 @@ export type ChartDepartment = {
   name: string;
   href: string;
   owner: ChartOwner | null;
+  parentDepartmentId: string | null;
+  children: ChartDepartment[];
   teams: ChartTeam[];
   people: ChartMember[];
+  /** Delivery items owned by / tied to this department. */
+  counts: {
+    resources: number;
+    projects: number;
+    initiatives: number;
+  };
+};
+
+export type PeopleManagerNode = {
+  /** Stable key for React lists — manager resource id, or synthetic unmanaged id. */
+  id: string;
+  managerName: string;
+  managerTitle: string;
+  managerHref: string | null;
+  departmentId: string;
+  departmentName: string;
+  departmentHref: string;
+  employees: ChartMember[];
 };
 
 export type ChartSection = {
@@ -168,6 +188,29 @@ function departmentMembers(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function nestDepartments(flat: ChartDepartment[]): ChartDepartment[] {
+  const byId = new Map(flat.map((department) => [department.id, { ...department, children: [] as ChartDepartment[] }]));
+  const roots: ChartDepartment[] = [];
+  for (const department of byId.values()) {
+    const parentId = department.parentDepartmentId;
+    if (parentId && byId.has(parentId)) {
+      byId.get(parentId)!.children.push(department);
+    } else {
+      roots.push(department);
+    }
+  }
+  const sortTree = (nodes: ChartDepartment[]) => {
+    nodes.sort((a, b) => a.name.localeCompare(b.name));
+    for (const node of nodes) sortTree(node.children);
+  };
+  sortTree(roots);
+  return roots;
+}
+
+function flattenDepartments(nodes: ChartDepartment[]): ChartDepartment[] {
+  return nodes.flatMap((node) => [node, ...flattenDepartments(node.children)]);
+}
+
 export function buildOrganizationChart(input: {
   organization: { id: string; name: string; description: string | null };
   sections: {
@@ -176,7 +219,10 @@ export function buildOrganizationChart(input: {
     departments: {
       id: string;
       name: string;
+      parentDepartmentId?: string | null;
       teams: { id: string; name: string }[];
+      initiativeCount?: number;
+      projectCount?: number;
     }[];
   }[];
   people: ChartPersonInput[];
@@ -184,7 +230,7 @@ export function buildOrganizationChart(input: {
 }): OrganizationChart {
   const orgId = input.organization.id;
   const sections = input.sections.map((section) => {
-    const departments = section.departments.map((department) => {
+    const flatDepartments = section.departments.map((department) => {
       const teams = department.teams.map((team) => {
         const members = peopleOnTeams(input.people, new Set([team.id]));
         const owner =
@@ -201,6 +247,7 @@ export function buildOrganizationChart(input: {
         input.people,
         new Set(department.teams.map((team) => team.id)),
       );
+      const people = departmentMembers(orgId, input.people, department.teams);
       return {
         id: department.id,
         name: department.name,
@@ -208,10 +255,18 @@ export function buildOrganizationChart(input: {
         owner:
           bindingOwner(input.bindings, "DEPARTMENT", department.id) ??
           inferOwner(departmentPeople),
+        parentDepartmentId: department.parentDepartmentId ?? null,
+        children: [] as ChartDepartment[],
         teams,
-        people: departmentMembers(orgId, input.people, department.teams),
+        people,
+        counts: {
+          resources: people.length,
+          projects: department.projectCount ?? 0,
+          initiatives: department.initiativeCount ?? 0,
+        },
       };
     });
+    const departments = nestDepartments(flatDepartments);
     const sectionTeamIds = new Set(
       section.departments.flatMap((department) => department.teams.map((team) => team.id)),
     );
@@ -228,7 +283,9 @@ export function buildOrganizationChart(input: {
 
   const placedIds = new Set(
     sections.flatMap((section) =>
-      section.departments.flatMap((department) => department.people.map((person) => person.id)),
+      flattenDepartments(section.departments).flatMap((department) =>
+        department.people.map((person) => person.id),
+      ),
     ),
   );
   const unassigned = input.people
@@ -253,15 +310,26 @@ export function buildOrganizationChart(input: {
     unassigned,
     counts: {
       sections: sections.length,
-      departments: sections.reduce((sum, section) => sum + section.departments.length, 0),
+      departments: sections.reduce(
+        (sum, section) => sum + flattenDepartments(section.departments).length,
+        0,
+      ),
       teams: sections.reduce(
         (sum, section) =>
-          sum + section.departments.reduce((inner, department) => inner + department.teams.length, 0),
+          sum +
+          flattenDepartments(section.departments).reduce(
+            (inner, department) => inner + department.teams.length,
+            0,
+          ),
         0,
       ),
       people: input.people.length,
     },
   };
+}
+
+export function flattenChartDepartments(sections: ChartSection[]): ChartDepartment[] {
+  return sections.flatMap((section) => flattenDepartments(section.departments));
 }
 
 export function nestChildOrganizations(
@@ -306,4 +374,41 @@ export function nestChildOrganizations(
   };
 
   return walk(rootId, new Set([rootId]));
+}
+
+/**
+ * People hierarchy: each department manager sits above the people in that department.
+ * Falls back to "No manager assigned" when the department has no owner.
+ */
+export function buildPeopleHierarchy(chart: OrganizationChart): PeopleManagerNode[] {
+  const nodes: PeopleManagerNode[] = [];
+
+  for (const department of flattenChartDepartments(chart.sections)) {
+    const owner = department.owner;
+    const managerPerson = owner
+      ? department.people.find(
+          (person) => person.name.toLowerCase() === owner.name.toLowerCase(),
+        )
+      : null;
+    const employees = managerPerson
+      ? department.people.filter((person) => person.id !== managerPerson.id)
+      : department.people;
+
+    nodes.push({
+      id: managerPerson?.id ?? `unmanaged-${department.id}`,
+      managerName: owner?.name ?? "No manager assigned",
+      managerTitle: owner?.title ?? "Department",
+      managerHref: managerPerson?.href ?? null,
+      departmentId: department.id,
+      departmentName: department.name,
+      departmentHref: department.href,
+      employees,
+    });
+  }
+
+  return nodes.sort((a, b) => {
+    const byManager = a.managerName.localeCompare(b.managerName);
+    if (byManager !== 0) return byManager;
+    return a.departmentName.localeCompare(b.departmentName);
+  });
 }

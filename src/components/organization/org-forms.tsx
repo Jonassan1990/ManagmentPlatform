@@ -148,20 +148,73 @@ export function EditSectionForm(props: {
   );
 }
 
-export function CreateDepartmentForm({ sectionId }: { sectionId: string }) {
+export function CreateDepartmentForm({
+  sectionId,
+  parents = [],
+}: {
+  sectionId: string;
+  parents?: { id: string; name: string }[];
+}) {
   const form = useActionForm(createDepartmentAction);
   return (
-    <EntityCreateForm
-      title="Add department"
-      form={form}
-      onSubmit={(fd) =>
-        form.submit({
+    <form
+      className="space-y-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const fd = new FormData(event.currentTarget);
+        const parent = String(fd.get("parentDepartmentId") ?? "");
+        void form.submit({
           sectionId,
           name: String(fd.get("name") ?? ""),
           description: String(fd.get("description") ?? "") || null,
-        })
-      }
-    />
+          parentDepartmentId: parent || null,
+        });
+      }}
+    >
+      <h2 className="font-medium">Add department</h2>
+      <FormField label="Name" htmlFor="department-name">
+        <input
+          id="department-name"
+          name="name"
+          required
+          maxLength={200}
+          className={fieldClassName}
+          placeholder="INF, INFB, ING"
+        />
+      </FormField>
+      <FormField label="Description" htmlFor="department-description">
+        <textarea
+          id="department-description"
+          name="description"
+          rows={3}
+          maxLength={2000}
+          className={fieldClassName}
+        />
+      </FormField>
+      <FormField
+        label="Parent department"
+        htmlFor="parentDepartmentId"
+        hint="Optional. Example: choose INF when creating INFB."
+      >
+        <select
+          id="parentDepartmentId"
+          name="parentDepartmentId"
+          className={fieldClassName}
+          defaultValue=""
+        >
+          <option value="">No parent (top under section)</option>
+          {parents.map((parent) => (
+            <option key={parent.id} value={parent.id}>
+              {parent.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
+      {form.ErrorAlert}
+      <PrimaryButton disabled={form.pending}>
+        {form.pending ? "Saving…" : "Create department"}
+      </PrimaryButton>
+    </form>
   );
 }
 
@@ -170,21 +223,76 @@ export function EditDepartmentForm(props: {
   name: string;
   description: string | null;
   version: number;
+  parentDepartmentId?: string | null;
+  parents?: { id: string; name: string }[];
 }) {
   const form = useActionForm(updateDepartmentAction);
+  const parents = props.parents ?? [];
   return (
-    <EntityEditForm
-      {...props}
-      form={form}
-      onSubmit={(fd) =>
-        form.submit({
+    <form
+      className="space-y-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const fd = new FormData(event.currentTarget);
+        const parent = String(fd.get("parentDepartmentId") ?? "");
+        void form.submit({
           id: props.id,
           expectedVersion: props.version,
           name: String(fd.get("name") ?? ""),
           description: String(fd.get("description") ?? "") || null,
-        })
-      }
-    />
+          parentDepartmentId: parent || null,
+        });
+      }}
+    >
+      <FormField label="Name" htmlFor={`edit-department-name-${props.id}`}>
+        <input
+          id={`edit-department-name-${props.id}`}
+          name="name"
+          required
+          maxLength={200}
+          defaultValue={props.name}
+          className={fieldClassName}
+        />
+      </FormField>
+      <FormField
+        label="Description"
+        htmlFor={`edit-department-description-${props.id}`}
+      >
+        <textarea
+          id={`edit-department-description-${props.id}`}
+          name="description"
+          rows={3}
+          maxLength={2000}
+          defaultValue={props.description ?? ""}
+          className={fieldClassName}
+        />
+      </FormField>
+      <FormField
+        label="Parent department"
+        htmlFor={`edit-department-parent-${props.id}`}
+        hint="Optional. Keep empty for a top department under the section."
+      >
+        <select
+          id={`edit-department-parent-${props.id}`}
+          name="parentDepartmentId"
+          className={fieldClassName}
+          defaultValue={props.parentDepartmentId ?? ""}
+        >
+          <option value="">No parent (top under section)</option>
+          {parents
+            .filter((parent) => parent.id !== props.id)
+            .map((parent) => (
+              <option key={parent.id} value={parent.id}>
+                {parent.name}
+              </option>
+            ))}
+        </select>
+      </FormField>
+      {form.ErrorAlert}
+      <PrimaryButton disabled={form.pending}>
+        {form.pending ? "Saving…" : "Save changes"}
+      </PrimaryButton>
+    </form>
   );
 }
 
