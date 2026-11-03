@@ -1,12 +1,18 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import {
   CreateDepartmentForm,
   EditSectionForm,
 } from "@/components/organization/org-forms";
+import { OrgModeToggle } from "@/components/organization/org-mode-toggle";
 import { Alert } from "@/components/ui/alert";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
 import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
+import {
+  parseOrgUiMode,
+  withOrgMode,
+} from "@/modules/organization/application/org-ui-mode";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createOrganizationService } from "@/server/container";
 
@@ -14,10 +20,14 @@ export const dynamic = "force-dynamic";
 
 export default async function SectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ organizationId: string; sectionId: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
   const { organizationId, sectionId } = await params;
+  const { mode: modeParam } = await searchParams;
+  const mode = parseOrgUiMode(modeParam);
   const { authz, organization } = createOrganizationService();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
@@ -39,6 +49,7 @@ export default async function SectionPage({
     PERMISSIONS.ORG_STRUCTURE_MANAGE,
     { type: "ORGANIZATION", organizationId },
   );
+  const showConfig = canManage && mode === "config";
 
   return (
     <div>
@@ -51,71 +62,122 @@ export default async function SectionPage({
       />
       <PageHeader
         title={section.name}
-        description={section.description ?? "Section workspace"}
+        description={
+          showConfig
+            ? "Configure this section and its departments (including parent → child such as INF → INFB)."
+            : (section.description ??
+              "Browse departments under this section. Open one to see resources, projects, and initiatives.")
+        }
+        actions={
+          <Suspense fallback={null}>
+            <OrgModeToggle canConfigure={canManage} />
+          </Suspense>
+        }
       />
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Panel>
-          <h2 className="mb-3 font-medium">Departments</h2>
-          {departments.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No departments yet.</p>
-          ) : (
-            <ul className="divide-y divide-[var(--line)]">
-              {departments.map((department) => {
-                const parentName = department.parentDepartmentId
-                  ? departments.find((row) => row.id === department.parentDepartmentId)
-                      ?.name
-                  : null;
-                return (
-                  <li key={department.id} className="py-2">
-                    <Link
-                      href={`/organization/${org.id}/departments/${department.id}`}
-                      className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
-                    >
-                      {department.name}
-                    </Link>
-                    <p className="text-xs text-[var(--muted)]">
-                      {parentName ? `Under ${parentName}` : "Top department in this section"}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Panel>
-        <div className="space-y-4">
-          {canManage ? (
-            <>
-              <Panel>
-                <h2 className="mb-3 font-medium">Edit section</h2>
-                <EditSectionForm
-                  id={section.id}
-                  name={section.name}
-                  description={section.description}
-                  version={section.version}
-                />
-              </Panel>
-              <Panel>
-                <CreateDepartmentForm
-                  sectionId={section.id}
-                  parents={departments.map((department) => ({
-                    id: department.id,
-                    name: department.name,
-                  }))}
-                />
-              </Panel>
-            </>
-          ) : (
+
+      {showConfig ? (
+        <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+          <Panel>
+            <h2 className="mb-3 font-medium">Edit section</h2>
+            <EditSectionForm
+              id={section.id}
+              name={section.name}
+              description={section.description}
+              version={section.version}
+            />
+          </Panel>
+          <div className="space-y-4">
             <Panel>
-              <h2 className="mb-3 font-medium">Structure changes</h2>
-              <Alert tone="info" live="polite">
-                This section is read-only for your account. Organization
-                structure manage permission is required to edit sections or add
-                departments.
-              </Alert>
+              <CreateDepartmentForm
+                sectionId={section.id}
+                parents={departments.map((department) => ({
+                  id: department.id,
+                  name: department.name,
+                }))}
+              />
             </Panel>
-          )}
+            <Panel>
+              <h2 className="mb-3 font-medium">Departments in this section</h2>
+              {departments.length === 0 ? (
+                <p className="text-sm text-[var(--muted)]">No departments yet.</p>
+              ) : (
+                <ul className="divide-y divide-[var(--line)]">
+                  {departments.map((department) => {
+                    const parentName = department.parentDepartmentId
+                      ? departments.find(
+                          (row) => row.id === department.parentDepartmentId,
+                        )?.name
+                      : null;
+                    return (
+                      <li key={department.id} className="py-2">
+                        <Link
+                          href={withOrgMode(
+                            `/organization/${org.id}/departments/${department.id}`,
+                            "config",
+                          )}
+                          className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
+                        >
+                          {department.name}
+                        </Link>
+                        <p className="text-xs text-[var(--muted)]">
+                          {parentName
+                            ? `Under ${parentName}`
+                            : "Top department in this section"}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Panel>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          <Panel>
+            <h2 className="mb-3 font-medium">Departments</h2>
+            {departments.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">
+                No departments yet.
+                {canManage
+                  ? " Switch to Config to add INF, ING, INA, and child departments."
+                  : ""}
+              </p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {departments.map((department) => {
+                  const parentName = department.parentDepartmentId
+                    ? departments.find(
+                        (row) => row.id === department.parentDepartmentId,
+                      )?.name
+                    : null;
+                  return (
+                    <li key={department.id} className="py-2">
+                      <Link
+                        href={`/organization/${org.id}/departments/${department.id}`}
+                        className="inline-flex min-h-11 items-center font-medium hover:text-[var(--accent)]"
+                      >
+                        {department.name}
+                      </Link>
+                      <p className="text-xs text-[var(--muted)]">
+                        {parentName
+                          ? `Under ${parentName}`
+                          : "Top department in this section"}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
+          {!canManage ? (
+            <Alert tone="info" live="polite">
+              You can browse this section. Structure changes need organization
+              manage permission.
+            </Alert>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
