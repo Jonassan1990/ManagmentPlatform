@@ -143,18 +143,33 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
   },
   {
     id: "demo",
-    title: "6. Try demo levels (optional)",
-    summary: "After seeding the IT hierarchy demo, use the top-bar dropdown to simulate each manager level.",
+    title: "6. Manager demo (Industrial IT)",
+    summary:
+      "A structured walkthrough for showing managers the real org codes (I → IN → INF/INFB/INFF/ING/INA) with a clearer industrial-IT portfolio.",
     steps: [
       {
         id: "seed",
         title: "Seed Organization I",
-        body: "Run npm run demo:seed-it (with DEV_AUTH_PRINCIPAL_ID or TEMP_AUTH_PRINCIPAL_ID). Creates I → IN → INF/INFB/INFF/ING/INA, sample demand/pre-study/PoC/project work, and people.",
+        body: "Run npm run demo:seed-it (or set DEMO_SEED_IT=1 on Vercel once). Creates I — Industrial IT with section IN, departments INF→INFB/INFF, ING, INA, people, and a five-stage portfolio.",
+      },
+      {
+        id: "walkthrough",
+        title: "Suggested manager path",
+        body: "1) Simulate Section (IN) for the overview. 2) Open INFB — Business apps. 3) Open project PROJ-IT-01 Maintenance work-order mobile app — show milestones, budget, issues, and work. 4) Switch to INF to show the identity pre-study. 5) Switch to INA/ING to show demand vs PoC scopes.",
+        href: "/organization",
+        hrefLabel: "Open Organization",
+      },
+      {
+        id: "portfolio",
+        title: "What is in the portfolio",
+        body: "INA Demand: digital work instructions. INF Pre-study: identity & access upgrade (assessments + alternatives). ING PoC: zero-trust remote admin. INFF Requirements: plant master-data sync hub. INFB Project: maintenance work-order mobile app (flagship).",
+        href: "/portfolio",
+        hrefLabel: "Open Portfolio",
       },
       {
         id: "switcher",
         title: "Use the level dropdown",
-        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), sign in then pick Organization, Section IN, INF, INFB, ING, INA, or Viewer to see what that level can access.",
+        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), sign in then pick Organization, Section IN, INF, INFB, ING, INA, or Viewer to show what each manager can see.",
       },
       {
         id: "logins",
