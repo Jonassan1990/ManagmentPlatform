@@ -11,6 +11,7 @@ import { PortfolioPiCapacityQueryService } from "@/modules/portfolio/application
 import { PortfolioQueryService } from "@/modules/portfolio/application/portfolio-query-service";
 import { ProjectIssueService } from "@/modules/project/application/project-issue-service";
 import { ProjectService } from "@/modules/project/application/project-service";
+import { VacationService } from "@/modules/vacation/application/vacation-service";
 import { prisma } from "@/server/db";
 
 export function createServices() {
@@ -21,6 +22,7 @@ export function createServices() {
   const project = new ProjectService(prisma, authz, audit);
   const projectIssues = new ProjectIssueService(prisma, authz, audit);
   const planning = new PlanningService(prisma, authz, audit);
+  const vacation = new VacationService(prisma, authz, audit);
   const portfolio = new PortfolioQueryService(prisma, authz, audit);
   const portfolioPiCapacity = new PortfolioPiCapacityQueryService(
     prisma,
@@ -62,6 +64,7 @@ export function createServices() {
     portfolioPiCapacity,
     homeDashboard,
     managementReports,
+    vacation,
   };
 }
 

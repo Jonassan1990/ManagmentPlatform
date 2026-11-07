@@ -104,6 +104,8 @@ export async function AuthenticatedShell({
         canCreatePi: false,
         canViewInitiatives: false,
         canCreateInitiative: false,
+        canViewVacation: false,
+        canReviewVacation: false,
       },
       organizationId: null,
     };

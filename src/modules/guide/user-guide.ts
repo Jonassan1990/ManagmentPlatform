@@ -179,8 +179,37 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
     ],
   },
   {
+    id: "vacation",
+    title: "7. Vacation requests",
+    summary:
+      "Employees request time off; managers accept, reject, or ask for changes. Approved days show on the calendar and yearly totals, with a full audit table.",
+    steps: [
+      {
+        id: "request",
+        title: "Submit a request",
+        body: "Open Vacation → My requests, pick dates and optional reason, then submit. Working days (Mon–Fri) are counted automatically.",
+        href: "/vacation",
+        hrefLabel: "My vacation",
+      },
+      {
+        id: "manager",
+        title: "Manager review",
+        body: "Section and department managers use Vacation → Manager inbox to Accept, Reject, or Ask for changes (comment required for reject/changes).",
+        href: "/vacation/inbox",
+        hrefLabel: "Manager inbox",
+      },
+      {
+        id: "calendar-year",
+        title: "Calendar and year view",
+        body: "Approved vacations appear on the month calendar. By year shows each person’s approved working-day total. Open a request to see the audit history table.",
+        href: "/vacation/calendar",
+        hrefLabel: "Calendar",
+      },
+    ],
+  },
+  {
     id: "tips",
-    title: "7. Simple habits",
+    title: "8. Simple habits",
     summary: "Keep the product calm and clear.",
     steps: [
       {

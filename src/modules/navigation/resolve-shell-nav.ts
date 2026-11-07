@@ -34,6 +34,8 @@ export async function resolveShellNavContext(
         canCreatePi: false,
         canViewInitiatives: false,
         canCreateInitiative: false,
+        canViewVacation: false,
+        canReviewVacation: false,
       },
     };
   }
@@ -47,6 +49,8 @@ export async function resolveShellNavContext(
     canCreatePi: false,
     canViewInitiatives: false,
     canCreateInitiative: false,
+    canViewVacation: false,
+    canReviewVacation: false,
   };
 
   let preferredOrgId = organizationIds[0]!;
@@ -66,6 +70,8 @@ export async function resolveShellNavContext(
       piCreate,
       initView,
       initCreate,
+      vacationView,
+      vacationReview,
     ] = await Promise.all([
       check(PERMISSIONS.APPROVAL_REVIEW),
       check(PERMISSIONS.DECISION_MAKE),
@@ -75,6 +81,8 @@ export async function resolveShellNavContext(
       check(PERMISSIONS.PI_CREATE),
       check(PERMISSIONS.INITIATIVE_VIEW),
       check(PERMISSIONS.INITIATIVE_CREATE),
+      check(PERMISSIONS.VACATION_VIEW),
+      check(PERMISSIONS.VACATION_REVIEW),
     ]);
 
     if (approvals) flags.canViewApprovals = true;
@@ -91,6 +99,8 @@ export async function resolveShellNavContext(
     if (piCreate) flags.canCreatePi = true;
     if (initView) flags.canViewInitiatives = true;
     if (initCreate) flags.canCreateInitiative = true;
+    if (vacationView) flags.canViewVacation = true;
+    if (vacationReview) flags.canReviewVacation = true;
   }
 
   // Prefer an org that can open org-scoped admin destinations.

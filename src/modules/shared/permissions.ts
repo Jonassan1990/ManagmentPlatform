@@ -49,6 +49,10 @@ export const PERMISSIONS = {
   PI_MANAGE_DEPENDENCY: "pi.manage_dependency",
   PI_REVIEW: "pi.review",
   PI_BASELINE: "pi.baseline",
+  // Vacation / leave
+  VACATION_REQUEST: "vacation.request",
+  VACATION_REVIEW: "vacation.review",
+  VACATION_VIEW: "vacation.view",
 } as const;
 
 export type Permission =

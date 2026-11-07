@@ -76,6 +76,8 @@ function emptyCaps(): ShellNavCapabilities {
     canCreatePi: false,
     canViewInitiatives: false,
     canCreateInitiative: false,
+    canViewVacation: false,
+    canReviewVacation: false,
   };
 }
 
