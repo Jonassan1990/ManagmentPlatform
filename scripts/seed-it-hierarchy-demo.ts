@@ -660,7 +660,7 @@ async function main() {
       description:
         "Propagate item masters from the plant source system to subscribed INFF consumers within 5 minutes of change.",
       category: "DATA",
-      status: "APPROVED",
+      status: "ACCEPTED",
       priority: "MUST",
       ownerName: nora.name,
       source: "Plant Logistics IT",
