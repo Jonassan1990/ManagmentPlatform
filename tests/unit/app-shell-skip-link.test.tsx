@@ -29,6 +29,8 @@ describe("AppShell skip link (M4F-D)", () => {
             canCreatePi: false,
             canViewInitiatives: true,
             canCreateInitiative: false,
+            canViewVacation: true,
+            canReviewVacation: false,
           },
           organizationId: "org-1",
         }}

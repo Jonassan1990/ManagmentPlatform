@@ -215,6 +215,62 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
     ],
   },
   {
+    id: "vacation",
+    label: "Vacation",
+    hubHref: "/vacation",
+    hubMatch: {
+      type: "prefixExclude",
+      path: "/vacation",
+      excludePrefixes: [
+        "/vacation/inbox",
+        "/vacation/calendar",
+        "/vacation/year",
+      ],
+    },
+    items: [
+      {
+        id: "vacation-mine",
+        label: "My requests",
+        href: "/vacation",
+        match: {
+          type: "prefixExclude",
+          path: "/vacation",
+          excludePrefixes: [
+            "/vacation/inbox",
+            "/vacation/calendar",
+            "/vacation/year",
+          ],
+        },
+        capability: "canViewVacation",
+        description: "Request time off and track status",
+      },
+      {
+        id: "vacation-inbox",
+        label: "Manager inbox",
+        href: "/vacation/inbox",
+        match: { type: "prefix", path: "/vacation/inbox" },
+        capability: "canReviewVacation",
+        description: "Accept, reject, or ask for changes",
+      },
+      {
+        id: "vacation-calendar",
+        label: "Calendar",
+        href: "/vacation/calendar",
+        match: { type: "prefix", path: "/vacation/calendar" },
+        capability: "canViewVacation",
+        description: "Approved vacations by month",
+      },
+      {
+        id: "vacation-year",
+        label: "By year",
+        href: "/vacation/year",
+        match: { type: "prefix", path: "/vacation/year" },
+        capability: "canViewVacation",
+        description: "Approved days per person for a year",
+      },
+    ],
+  },
+  {
     id: "help",
     label: "Help",
     hubHref: "/guide",
@@ -337,6 +393,20 @@ export function resolveNavGroups(
       continue;
     }
 
+    if (group.id === "vacation") {
+      const showHub = capabilityAllowed("canViewVacation", ctx.capabilities);
+      if (!showHub && items.length === 0) continue;
+      groups.push({
+        id: group.id,
+        label: group.label,
+        hubHref: showHub ? hubHref : undefined,
+        hubActive,
+        items,
+        containsActive: hubActive || items.some((i) => i.active),
+      });
+      continue;
+    }
+
     groups.push({
       id: group.id,
       label: group.label,
@@ -375,4 +445,6 @@ export const DEFAULT_SHELL_CAPABILITIES: ShellNavCapabilities = {
   canCreatePi: false,
   canViewInitiatives: true,
   canCreateInitiative: false,
+  canViewVacation: true,
+  canReviewVacation: false,
 };

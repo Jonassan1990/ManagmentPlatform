@@ -52,6 +52,7 @@ model Organization {
   programIncrements ProgramIncrement[]
   piReferenceCounter PiReferenceCounter?
   planningDependencies PlanningDependency[]
+  vacationRequests VacationRequest[]
 
   @@index([status])
   @@index([parentOrganizationId])
@@ -1881,4 +1882,76 @@ model PiPlanApproval {
   @@index([piId, status])
   @@index([piId, approvedAt])
   @@map("pi_plan_approvals")
+}
+
+// ---------------------------------------------------------------------------
+// Vacation requests — employee leave with manager review + dedicated audit
+// ---------------------------------------------------------------------------
+
+enum VacationRequestStatus {
+  SUBMITTED
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum VacationAuditAction {
+  CREATED
+  UPDATED
+  RESUBMITTED
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// Employee vacation / leave request. Manager may approve, reject, or ask for changes.
+model VacationRequest {
+  id                   String                @id @default(uuid()) @db.Uuid
+  organizationId       String                @db.Uuid
+  requesterPrincipalId String                @db.Uuid
+  /// Optional link to Resource (people capacity) when the principal has one.
+  requesterResourceId  String?               @db.Uuid
+  departmentId         String?               @db.Uuid
+  sectionId            String?               @db.Uuid
+  startDate            DateTime              @db.Date
+  endDate              DateTime              @db.Date
+  /// Inclusive weekday count cached at write time for year summaries.
+  workingDays          Int
+  reason               String?               @db.VarChar(2000)
+  status               VacationRequestStatus @default(SUBMITTED)
+  managerComment       String?               @db.VarChar(4000)
+  reviewedByPrincipalId String?              @db.Uuid
+  reviewedAt           DateTime?
+  version              Int                   @default(1)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  audits       VacationRequestAudit[]
+
+  @@index([organizationId, status])
+  @@index([requesterPrincipalId, startDate])
+  @@index([organizationId, startDate, endDate])
+  @@index([status, departmentId])
+  @@map("vacation_requests")
+}
+
+/// Dedicated vacation audit trail shown on the request detail page.
+model VacationRequestAudit {
+  id              String              @id @default(uuid()) @db.Uuid
+  vacationRequestId String            @db.Uuid
+  actorPrincipalId String?            @db.Uuid
+  action          VacationAuditAction
+  fromStatus      VacationRequestStatus?
+  toStatus        VacationRequestStatus?
+  comment         String?             @db.VarChar(4000)
+  payload         Json                @default("{}")
+  createdAt       DateTime            @default(now())
+
+  vacationRequest VacationRequest @relation(fields: [vacationRequestId], references: [id], onDelete: Cascade)
+
+  @@index([vacationRequestId, createdAt])
+  @@map("vacation_request_audits")
 }

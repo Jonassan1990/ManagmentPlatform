@@ -12,7 +12,9 @@ export type NavCapabilityKey =
   | "canViewPi"
   | "canCreatePi"
   | "canViewInitiatives"
-  | "canCreateInitiative";
+  | "canCreateInitiative"
+  | "canViewVacation"
+  | "canReviewVacation";
 
 export type ShellNavCapabilities = {
   canViewApprovals: boolean;
@@ -23,6 +25,8 @@ export type ShellNavCapabilities = {
   canCreatePi: boolean;
   canViewInitiatives: boolean;
   canCreateInitiative: boolean;
+  canViewVacation: boolean;
+  canReviewVacation: boolean;
 };
 
 export type NavMatch =

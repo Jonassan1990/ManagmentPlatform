@@ -86,6 +86,8 @@ function baseDashboard(
         canCreatePi: true,
         canViewInitiatives: true,
         canCreateInitiative: true,
+        canViewVacation: true,
+        canReviewVacation: false,
       },
       organizations: [
         {
@@ -316,6 +318,8 @@ describe("HomeDashboardView — modes", () => {
           canCreatePi: false,
           canViewInitiatives: true,
           canCreateInitiative: false,
+          canViewVacation: true,
+          canReviewVacation: false,
         },
         roleBindings: [
           {
