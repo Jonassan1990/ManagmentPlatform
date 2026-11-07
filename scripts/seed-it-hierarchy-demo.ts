@@ -1,7 +1,10 @@
 /**
  * Seed Organization I → Section IN → departments INF/INFB/INFF/ING/INA
- * with IT initiatives (demand, pre-study, PoC, project) + resources, and
- * demo personas for the top-bar level switcher.
+ * with a realistic industrial-IT portfolio (demand → pre-study → PoC →
+ * requirements → delivery project) plus resources and demo personas.
+ *
+ * Designed so a manager walkthrough is easy:
+ *   IN overview → drill into INF/INFB → open Maintenance work-order project.
  *
  * Usage:
  *   DEV_AUTH_PRINCIPAL_ID=<uuid> npx tsx scripts/seed-it-hierarchy-demo.ts
@@ -22,6 +25,7 @@ import {
   DEMO_PERSONA_PASSWORD,
   DEMO_PERSONAS,
   DEMO_SECTION_NAME,
+  IT_DEMO_DEPTS,
   IT_DEMO_IDS,
 } from "@/modules/demo/it-hierarchy-demo";
 
@@ -44,7 +48,11 @@ function resolveActorPrincipalId(): string {
 async function wipePrevious() {
   const org =
     (await db.organization.findUnique({ where: { id: IT_DEMO_IDS.org } })) ??
-    (await db.organization.findFirst({ where: { name: DEMO_ORG_NAME } }));
+    (await db.organization.findFirst({
+      where: {
+        OR: [{ name: DEMO_ORG_NAME }, { name: "I" }],
+      },
+    }));
   if (org) {
     const initIds = (
       await db.initiative.findMany({
@@ -164,7 +172,7 @@ async function main() {
       id: IT_DEMO_IDS.org,
       name: DEMO_ORG_NAME,
       description:
-        "Top organization for the IT hierarchy demo (I → IN → INF/ING/INA).",
+        "Industrial IT organization used for manager demos. Hierarchy: I → IN → INF (INFB, INFF) / ING / INA.",
     },
   });
   await authz.grantOrganizationAdmin(actorId, org.id);
@@ -174,50 +182,51 @@ async function main() {
       id: IT_DEMO_IDS.sectionIn,
       organizationId: org.id,
       name: DEMO_SECTION_NAME,
-      description: "IT section under organization I",
+      description:
+        "IT section spanning platforms, infrastructure, and demand. Start here for the section-manager overview.",
     },
   });
 
   const inf = await db.department.create({
     data: {
-      id: IT_DEMO_IDS.deptInf,
+      id: IT_DEMO_DEPTS.inf.id,
       sectionId: section.id,
-      name: "INF",
-      description: "IT Foundation / platforms parent department",
+      name: IT_DEMO_DEPTS.inf.name,
+      description: IT_DEMO_DEPTS.inf.description,
     },
   });
   const infb = await db.department.create({
     data: {
-      id: IT_DEMO_IDS.deptInfb,
+      id: IT_DEMO_DEPTS.infb.id,
       sectionId: section.id,
       parentDepartmentId: inf.id,
-      name: "INFB",
-      description: "Business applications under INF",
+      name: IT_DEMO_DEPTS.infb.name,
+      description: IT_DEMO_DEPTS.infb.description,
     },
   });
   const inff = await db.department.create({
     data: {
-      id: IT_DEMO_IDS.deptInff,
+      id: IT_DEMO_DEPTS.inff.id,
       sectionId: section.id,
       parentDepartmentId: inf.id,
-      name: "INFF",
-      description: "Data & integration under INF",
+      name: IT_DEMO_DEPTS.inff.name,
+      description: IT_DEMO_DEPTS.inff.description,
     },
   });
   const ing = await db.department.create({
     data: {
-      id: IT_DEMO_IDS.deptIng,
+      id: IT_DEMO_DEPTS.ing.id,
       sectionId: section.id,
-      name: "ING",
-      description: "Infrastructure & networks",
+      name: IT_DEMO_DEPTS.ing.name,
+      description: IT_DEMO_DEPTS.ing.description,
     },
   });
   const ina = await db.department.create({
     data: {
-      id: IT_DEMO_IDS.deptIna,
+      id: IT_DEMO_DEPTS.ina.id,
       sectionId: section.id,
-      name: "INA",
-      description: "Architecture & demand intake",
+      name: IT_DEMO_DEPTS.ina.name,
+      description: IT_DEMO_DEPTS.ina.description,
     },
   });
 
@@ -267,14 +276,19 @@ async function main() {
   };
 
   console.log("Creating people resources…");
-  async function person(name: string, role: string, teamId: string) {
+  async function person(
+    name: string,
+    role: string,
+    teamId: string,
+    skills: string[],
+  ) {
     const resource = await db.resource.create({
       data: {
         organizationId: org.id,
         name,
         type: "PERSON",
         functionRole: role,
-        skillsJson: ["IT"],
+        skillsJson: skills,
         capacityHoursPerWeek: 40,
         status: "ACTIVE",
       },
@@ -290,15 +304,51 @@ async function main() {
     return resource;
   }
 
-  const ira = await person("Ira INF Manager", "Department Manager", teams.infPlatform.id);
-  const bo = await person("Bo INFB Manager", "Department Manager", teams.infbApps.id);
-  const freja = await person("Freja App Dev", "Developer", teams.infbApps.id);
-  const viktor = await person("Viktor App Ops", "Ops Engineer", teams.infbOps.id);
-  const nora = await person("Nora Data Lead", "Data Lead", teams.inffData.id);
-  const gina = await person("Gina ING Manager", "Department Manager", teams.ingInfra.id);
-  const omar = await person("Omar Network", "Network Engineer", teams.ingInfra.id);
-  const ana = await person("Ana INA Manager", "Department Manager", teams.inaDemand.id);
-  const sam = await person("Sam IN Manager", "Section Manager", teams.inaDemand.id);
+  const ira = await person("Ira INF Manager", "Department Manager", teams.infPlatform.id, [
+    "Platforms",
+    "Governance",
+  ]);
+  const bo = await person("Bo INFB Manager", "Department Manager", teams.infbApps.id, [
+    "Delivery",
+    "Product",
+  ]);
+  const freja = await person("Freja App Dev", "Developer", teams.infbApps.id, [
+    "React",
+    "Mobile",
+    "TypeScript",
+  ]);
+  const lina = await person("Lina UX", "Product Designer", teams.infbApps.id, [
+    "UX",
+    "Field research",
+  ]);
+  const viktor = await person("Viktor App Ops", "Ops Engineer", teams.infbOps.id, [
+    "SRE",
+    "Kubernetes",
+  ]);
+  const nora = await person("Nora Data Lead", "Data Lead", teams.inffData.id, [
+    "Integration",
+    "Master data",
+  ]);
+  const erik = await person("Erik Integration", "Integration Engineer", teams.inffData.id, [
+    "APIs",
+    "EDI",
+  ]);
+  const gina = await person("Gina ING Manager", "Department Manager", teams.ingInfra.id, [
+    "Network",
+    "Security",
+  ]);
+  const omar = await person("Omar Network", "Network Engineer", teams.ingInfra.id, [
+    "Zero-trust",
+    "Firewall",
+  ]);
+  const ana = await person("Ana INA Manager", "Department Manager", teams.inaDemand.id, [
+    "Demand",
+    "Architecture",
+  ]);
+  const sam = await person("Sam IN Manager", "Section Manager", teams.inaDemand.id, [
+    "Portfolio",
+    "Leadership",
+  ]);
 
   async function createInitiative(opts: {
     key: string;
@@ -306,6 +356,17 @@ async function main() {
     stage: "DEMAND" | "REQUIREMENTS" | "PRE_STUDY" | "POC" | "PROJECT";
     departmentId: string;
     owner: { id: string; name: string };
+    requesterName: string;
+    demand: {
+      problemOpportunity: string;
+      reasonForRequest: string;
+      expectedValue: string;
+      affectedAreas: string;
+      urgency: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+      strategicAlignment: string;
+      initialImpact: string;
+      notes?: string;
+    };
   }) {
     const initiative = await db.initiative.create({
       data: {
@@ -313,7 +374,7 @@ async function main() {
         departmentId: opts.departmentId,
         referenceKey: opts.key,
         title: opts.title,
-        requesterName: "IT Demand Office",
+        requesterName: opts.requesterName,
         businessOwnerName: opts.owner.name,
         businessOwnerResourceId: opts.owner.id,
         currentStage: opts.stage,
@@ -323,13 +384,7 @@ async function main() {
     await db.demand.create({
       data: {
         initiativeId: initiative.id,
-        problemOpportunity: `IT need: ${opts.title}`,
-        reasonForRequest: "Demo hierarchy visibility seed",
-        expectedValue: "Clearer ownership and delivery across IN departments",
-        affectedAreas: "IN / INF / child departments",
-        urgency: "HIGH",
-        strategicAlignment: "IT operating model",
-        initialImpact: "Medium",
+        ...opts.demand,
       },
     });
     await db.lifecycleTransition.create({
@@ -338,58 +393,194 @@ async function main() {
         fromStage: "DEMAND",
         toStage: opts.stage === "DEMAND" ? "DEMAND" : opts.stage,
         actorPrincipalId: actorId,
-        comment: "IT demo seed",
+        comment: "Manager-demo seed — industrial IT portfolio",
       },
     });
     return initiative;
   }
 
-  console.log("Creating demand / pre-study / PoC / project work…");
+  console.log("Creating clearer industrial IT portfolio…");
+
+  // 1) INA — early demand a manager can discuss in intake meetings
   await createInitiative({
     key: "INI-IT-DEMAND-01",
-    title: "New plant self-service portal (demand)",
+    title: "Digital work instructions for assembly operators",
     stage: "DEMAND",
     departmentId: ina.id,
     owner: ana,
-  });
-
-  const preStudy = await createInitiative({
-    key: "INI-IT-PRESTUDY-01",
-    title: "Identity platform upgrade pre-study",
-    stage: "PRE_STUDY",
-    departmentId: inf.id,
-    owner: ira,
-  });
-  await db.preStudy.create({ data: { initiativeId: preStudy.id } });
-  await db.risk.create({
-    data: {
-      initiativeId: preStudy.id,
-      referenceKey: "RSK-IT-01",
-      title: "Legacy IdP connectors",
-      description: "Plant AD connectors may need rewrite",
-      ownerName: ira.name,
-      ownerResourceId: ira.id,
-      probability: "MEDIUM",
-      impact: "HIGH",
-      status: "OPEN",
+    requesterName: "Plant Production (Assembly)",
+    demand: {
+      problemOpportunity:
+        "Operators still use paper work instructions that go stale after line changes. Quality deviations increase when the wrong revision is on the floor.",
+      reasonForRequest:
+        "Production asked IT for a tablet-based instruction viewer tied to the current product variant on each station.",
+      expectedValue:
+        "Fewer revision errors, faster line changeovers, and a single source of truth owned by process engineering.",
+      affectedAreas: "Assembly lines A/B, process engineering, quality, INA demand, INFB apps",
+      urgency: "HIGH",
+      strategicAlignment: "Digital plant operations / paperless shop floor",
+      initialImpact: "High on assembly quality; medium IT delivery effort",
+      notes: "Still in intake — good example for INA manager walkthrough.",
     },
   });
 
+  // 2) INF — pre-study with assessments + alternatives (decision-ready)
+  const preStudyInit = await createInitiative({
+    key: "INI-IT-PRESTUDY-01",
+    title: "Identity & access platform upgrade",
+    stage: "PRE_STUDY",
+    departmentId: inf.id,
+    owner: ira,
+    requesterName: "IT Security Office",
+    demand: {
+      problemOpportunity:
+        "Legacy IdP and plant AD connectors are hard to operate and block SSO for new shop-floor apps.",
+      reasonForRequest:
+        "Security and platforms need a clear recommendation before funding a multi-year identity program.",
+      expectedValue:
+        "One SSO pattern for business and plant apps, fewer VPN exceptions, easier joiner/mover/leaver.",
+      affectedAreas: "INF platforms, ING network, all plant apps under INFB/INFF",
+      urgency: "HIGH",
+      strategicAlignment: "Zero-trust and industrial cybersecurity roadmap",
+      initialImpact: "High — foundation for several delivery projects",
+    },
+  });
+  const preStudy = await db.preStudy.create({
+    data: {
+      initiativeId: preStudyInit.id,
+      summary:
+        "Compare managed cloud IdP vs harden-in-place. Recommendation leans managed IdP with phased plant connector migration.",
+    },
+  });
+  await db.preStudyAssessment.createMany({
+    data: [
+      {
+        preStudyId: preStudy.id,
+        area: "CURRENT_STATE",
+        ownerName: ira.name,
+        status: "COMPLETE",
+        summary: "Mixed AD forests + aging federation gateway",
+        findings:
+          "Three plant forests, custom scripts for contractor accounts, no device posture on admin VPN.",
+        conclusion: "Current state is operationally fragile for new digital plant apps.",
+      },
+      {
+        preStudyId: preStudy.id,
+        area: "SECURITY",
+        ownerName: gina.name,
+        status: "COMPLETE",
+        summary: "Privileged access is the highest risk",
+        findings:
+          "Shared jump-host passwords still used by some contractors; MFA coverage incomplete on plant apps.",
+        conclusion: "Any option must include MFA + privileged access workflow.",
+      },
+      {
+        preStudyId: preStudy.id,
+        area: "COST",
+        ownerName: ira.name,
+        status: "IN_PROGRESS",
+        summary: "3-year TCO draft in progress",
+        findings: "Licensing dominates managed IdP; staff time dominates harden-in-place.",
+        conclusion: null,
+      },
+      {
+        preStudyId: preStudy.id,
+        area: "INTEGRATION",
+        ownerName: nora.name,
+        status: "IN_PROGRESS",
+        summary: "Plant AD connector inventory ongoing",
+        findings: "12 connectors identified; 4 undocumented.",
+        conclusion: null,
+      },
+    ],
+  });
+  await db.solutionAlternative.createMany({
+    data: [
+      {
+        preStudyId: preStudy.id,
+        title: "A — Managed cloud IdP (recommended)",
+        description:
+          "Adopt a managed identity platform, keep plant AD as a source for a transition period, migrate connectors in waves.",
+        benefits: "Faster MFA, better audit, less custom code, clearer vendor support.",
+        drawbacks: "License cost; change management for plant IT.",
+        estimatedCost: "€420k over 3 years",
+        estimatedDuration: "18 months phased",
+        riskUncertainty: "Medium — connector migration complexity",
+        isRecommended: true,
+      },
+      {
+        preStudyId: preStudy.id,
+        title: "B — Harden existing IdP in place",
+        description:
+          "Upgrade current federation gateway, add MFA, rewrite the worst plant connectors.",
+        benefits: "Lower license spend; keeps familiar tooling.",
+        drawbacks: "Still carries technical debt; slower path to shop-floor SSO.",
+        estimatedCost: "€260k over 3 years",
+        estimatedDuration: "12 months",
+        riskUncertainty: "High — remaining custom connectors",
+        isRecommended: false,
+      },
+    ],
+  });
+  await db.risk.createMany({
+    data: [
+      {
+        initiativeId: preStudyInit.id,
+        referenceKey: "RSK-IT-01",
+        title: "Undocumented plant AD connectors",
+        description:
+          "Four connectors lack owners; cutover could break contractor access on night shifts.",
+        ownerName: ira.name,
+        ownerResourceId: ira.id,
+        probability: "MEDIUM",
+        impact: "HIGH",
+        status: "OPEN",
+      },
+      {
+        initiativeId: preStudyInit.id,
+        referenceKey: "RSK-IT-02",
+        title: "Budget gate slips into Q2",
+        description: "If cost assessment is late, program start moves past summer shutdown window.",
+        ownerName: sam.name,
+        ownerResourceId: sam.id,
+        probability: "MEDIUM",
+        impact: "MEDIUM",
+        status: "OPEN",
+      },
+    ],
+  });
+
+  // 3) ING — active PoC with measurable success criteria
   const pocInit = await createInitiative({
     key: "INI-IT-POC-01",
-    title: "Zero-trust network access PoC",
+    title: "Zero-trust remote admin access PoC",
     stage: "POC",
     departmentId: ing.id,
     owner: gina,
+    requesterName: "Network Ops",
+    demand: {
+      problemOpportunity:
+        "Remote admins still depend on broad site-to-site VPN, which widens blast radius if a laptop is compromised.",
+      reasonForRequest:
+        "Prove that device posture + SSO can replace VPN for a controlled admin group before plant rollout.",
+      expectedValue:
+        "Safer remote administration and a pattern that identity upgrade (INF) can reuse.",
+      affectedAreas: "ING network, INF identity, plant jump hosts",
+      urgency: "HIGH",
+      strategicAlignment: "Zero-trust / industrial cybersecurity",
+      initialImpact: "Medium scope PoC; high learning value",
+    },
   });
   const poc = await db.poC.create({
     data: {
       initiativeId: pocInit.id,
       title: "ZTA pilot for remote admins",
-      objective: "Prove safer remote admin access without full VPN",
-      hypothesis: "Device posture + SSO reduces open VPN risk",
-      scope: "ING network admins and two jump hosts",
-      outOfScope: "Plant OT networks",
+      objective:
+        "Prove safer remote admin access without full VPN for Network Ops and two jump hosts.",
+      hypothesis:
+        "Device posture checks plus SSO reduce open VPN risk while keeping admin productivity.",
+      scope: "ING network admins, two jump hosts, one non-production plant VLAN",
+      outOfScope: "OT/control networks, production PLC access",
       ownerName: gina.name,
       ownerResourceId: gina.id,
       plannedStart: new Date("2026-09-01"),
@@ -398,42 +589,146 @@ async function main() {
       status: "IN_PROGRESS",
     },
   });
-  await db.poCSuccessCriterion.create({
+  await db.poCSuccessCriterion.createMany({
+    data: [
+      {
+        pocId: poc.id,
+        description: "Successful admin sessions without legacy VPN",
+        measurementMethod: "Weekly access log review",
+        target: "≥ 95%",
+        unit: "%",
+        sortOrder: 1,
+      },
+      {
+        pocId: poc.id,
+        description: "Mean time to connect for admin tasks",
+        measurementMethod: "Stopwatch sample of 20 sessions",
+        target: "≤ 45",
+        unit: "seconds",
+        sortOrder: 2,
+      },
+      {
+        pocId: poc.id,
+        description: "Critical findings from security review",
+        measurementMethod: "Security checklist sign-off",
+        target: "0",
+        unit: "findings",
+        sortOrder: 3,
+      },
+    ],
+  });
+  await db.risk.create({
     data: {
-      pocId: poc.id,
-      description: "Successful admin sessions without legacy VPN",
-      measurementMethod: "Weekly access log review",
-      target: "≥ 95%",
-      unit: "%",
-      sortOrder: 1,
+      initiativeId: pocInit.id,
+      referenceKey: "RSK-IT-03",
+      title: "Jump-host agent compatibility",
+      description: "Older jump hosts may not support the posture agent OS baseline.",
+      ownerName: omar.name,
+      ownerResourceId: omar.id,
+      probability: "MEDIUM",
+      impact: "MEDIUM",
+      status: "MITIGATING",
     },
   });
 
+  // 4) INFF — requirements stage with clear acceptance criteria
   const reqInit = await createInitiative({
     key: "INI-IT-REQ-01",
-    title: "Master data sync for INFF services",
+    title: "Plant master-data sync hub",
     stage: "REQUIREMENTS",
     departmentId: inff.id,
     owner: nora,
+    requesterName: "Plant Logistics IT",
+    demand: {
+      problemOpportunity:
+        "Item and BOM masters arrive late to downstream services, causing picking and kitting mistakes.",
+      reasonForRequest:
+        "Need a near-real-time sync hub owned by INFF that INFB apps can subscribe to.",
+      expectedValue:
+        "Stable ≤5 minute propagation of plant masters; fewer manual data fixes.",
+      affectedAreas: "INFF data services, logistics, maintenance app (INFB)",
+      urgency: "HIGH",
+      strategicAlignment: "Reliable plant data foundation",
+      initialImpact: "High for logistics accuracy",
+    },
+  });
+  const req1 = await db.requirement.create({
+    data: {
+      initiativeId: reqInit.id,
+      referenceKey: "REQ-IT-01",
+      title: "Near-real-time item master feed",
+      description:
+        "Propagate item masters from the plant source system to subscribed INFF consumers within 5 minutes of change.",
+      category: "DATA",
+      status: "APPROVED",
+      priority: "MUST",
+      ownerName: nora.name,
+      source: "Plant Logistics IT",
+    },
+  });
+  await db.acceptanceCriterion.createMany({
+    data: [
+      {
+        requirementId: req1.id,
+        description: "p95 end-to-end latency ≤ 5 minutes over a 7-day sample",
+        sortOrder: 1,
+      },
+      {
+        requirementId: req1.id,
+        description: "Failed messages are retried and visible in an ops dashboard",
+        sortOrder: 2,
+      },
+    ],
   });
   await db.requirement.create({
     data: {
       initiativeId: reqInit.id,
-      referenceKey: "REQ-IT-01",
-      title: "Near-real-time plant master data feed",
-      description: "Propagate item masters to INFF consumers within 5 minutes",
-      category: "FUNCTIONAL",
+      referenceKey: "REQ-IT-02",
+      title: "Schema versioning for consumers",
+      description:
+        "Consumers must receive a versioned payload so INFB apps can upgrade without hard cutovers.",
+      category: "ARCHITECTURE",
+      status: "DRAFT",
+      priority: "SHOULD",
+      ownerName: erik.name,
+      source: "INFF architecture review",
+    },
+  });
+  await db.requirement.create({
+    data: {
+      initiativeId: reqInit.id,
+      referenceKey: "REQ-IT-03",
+      title: "Audit trail for master changes",
+      description:
+        "Every propagated change stores who/when/source system for compliance and troubleshooting.",
+      category: "COMPLIANCE",
       status: "DRAFT",
       priority: "MUST",
+      ownerName: nora.name,
+      source: "Quality / audit",
     },
   });
 
+  // 5) INFB — flagship delivery project with milestones, work, issues, budget
   const projectInit = await createInitiative({
     key: "INI-IT-PROJ-01",
-    title: "Maintenance work-order app (product)",
+    title: "Maintenance work-order mobile app",
     stage: "PROJECT",
     departmentId: infb.id,
     owner: bo,
+    requesterName: "Plant Maintenance",
+    demand: {
+      problemOpportunity:
+        "Technicians lose time walking back to the workshop PC to update work orders; paper notes get lost.",
+      reasonForRequest:
+        "Deliver a mobile work-order app for Plant A maintenance crews, integrated with master data from INFF.",
+      expectedValue:
+        "Faster close-out, better spare-part traceability, and live status for supervisors.",
+      affectedAreas: "INFB apps, INFF master data, Plant A maintenance, INF platforms (SSO)",
+      urgency: "CRITICAL",
+      strategicAlignment: "Digital maintenance excellence",
+      initialImpact: "High for maintenance productivity",
+    },
   });
   const product = await db.project.create({
     data: {
@@ -441,19 +736,258 @@ async function main() {
       organizationId: org.id,
       departmentId: infb.id,
       referenceKey: "PROJ-IT-01",
-      name: "Maintenance work-order app",
-      description: "Mobile work orders for plant maintenance teams",
+      name: "Maintenance work-order mobile app",
+      description:
+        "Flagship INFB delivery for manager demos. Mobile work orders for Plant A maintenance: create/update orders on the floor, attach photos, consume spare parts, and sync via the INFF master-data hub. Uses INF identity once SSO is ready.",
       ownerName: bo.name,
       ownerResourceId: bo.id,
       status: "ACTIVE",
       priority: "HIGH",
       plannedStart: new Date("2026-08-01"),
       plannedEnd: new Date("2027-02-28"),
-      objectives: "Ship MVP for Plant A maintenance crews",
+      estimatedCost: 185000,
+      approvedBudget: 210000,
+      plannedCost: 185000,
+      forecastCost: 192000,
+      actualCost: 74000,
+      currencyCode: "EUR",
+      objectives:
+        "1) MVP for Plant A crews by Dec 2026\n2) Offline-tolerant updates\n3) Supervisor live board\n4) Ready for Plant B rollout in 2027",
     },
   });
-  await db.projectParticipatingDepartment.create({
-    data: { projectId: product.id, departmentId: inf.id },
+  await db.projectParticipatingDepartment.createMany({
+    data: [
+      { projectId: product.id, departmentId: inf.id },
+      { projectId: product.id, departmentId: inff.id },
+    ],
+  });
+
+  await db.projectMilestone.createMany({
+    data: [
+      {
+        projectId: product.id,
+        referenceKey: "MS-01",
+        title: "Field research & UX prototype",
+        description: "Ride-alongs with Plant A technicians; clickable prototype signed off.",
+        ownerName: lina.name,
+        ownerResourceId: lina.id,
+        plannedDate: new Date("2026-09-15"),
+        actualDate: new Date("2026-09-12"),
+        status: "COMPLETED",
+        criticality: true,
+      },
+      {
+        projectId: product.id,
+        referenceKey: "MS-02",
+        title: "MVP backlog locked",
+        description: "Scope freeze for first release with maintenance supervisors.",
+        ownerName: bo.name,
+        ownerResourceId: bo.id,
+        plannedDate: new Date("2026-10-01"),
+        actualDate: new Date("2026-10-03"),
+        status: "COMPLETED",
+        criticality: true,
+      },
+      {
+        projectId: product.id,
+        referenceKey: "MS-03",
+        title: "Alpha on Plant A Wi-Fi",
+        description: "Internal alpha with Apps Ops support on one crew.",
+        ownerName: freja.name,
+        ownerResourceId: freja.id,
+        plannedDate: new Date("2026-11-20"),
+        status: "IN_PROGRESS",
+        criticality: true,
+      },
+      {
+        projectId: product.id,
+        referenceKey: "MS-04",
+        title: "MVP go-live Plant A",
+        description: "Production cutover for Plant A maintenance crews.",
+        ownerName: bo.name,
+        ownerResourceId: bo.id,
+        plannedDate: new Date("2026-12-18"),
+        status: "PLANNED",
+        criticality: true,
+      },
+      {
+        projectId: product.id,
+        referenceKey: "MS-05",
+        title: "Plant B readiness review",
+        description: "Lessons learned + rollout plan for second site.",
+        ownerName: sam.name,
+        ownerResourceId: sam.id,
+        plannedDate: new Date("2027-02-15"),
+        status: "PLANNED",
+        criticality: false,
+      },
+    ],
+  });
+
+  const epicOrders = await db.projectWorkItem.create({
+    data: {
+      projectId: product.id,
+      type: "EPIC",
+      referenceKey: "WI-E01",
+      title: "Work-order lifecycle on mobile",
+      description: "Create, assign, update, and close work orders from the device.",
+      ownerName: freja.name,
+      ownerResourceId: freja.id,
+      status: "IN_PROGRESS",
+      priority: "CRITICAL",
+      estimateHours: 320,
+    },
+  });
+  const epicOffline = await db.projectWorkItem.create({
+    data: {
+      projectId: product.id,
+      type: "EPIC",
+      referenceKey: "WI-E02",
+      title: "Offline-tolerant sync",
+      description: "Queue updates when Wi-Fi drops in basement workshops.",
+      ownerName: freja.name,
+      ownerResourceId: freja.id,
+      status: "READY",
+      priority: "HIGH",
+      estimateHours: 180,
+    },
+  });
+  const epicParts = await db.projectWorkItem.create({
+    data: {
+      projectId: product.id,
+      type: "EPIC",
+      referenceKey: "WI-E03",
+      title: "Spare-parts consumption",
+      description: "Scan and consume parts against the order; sync stock via INFF.",
+      ownerName: nora.name,
+      ownerResourceId: nora.id,
+      status: "BACKLOG",
+      priority: "HIGH",
+      estimateHours: 140,
+    },
+  });
+
+  await db.projectWorkItem.createMany({
+    data: [
+      {
+        projectId: product.id,
+        type: "FEATURE",
+        referenceKey: "WI-F01",
+        title: "Technician order list & filters",
+        parentId: epicOrders.id,
+        ownerName: freja.name,
+        ownerResourceId: freja.id,
+        status: "DONE",
+        priority: "HIGH",
+        estimateHours: 40,
+      },
+      {
+        projectId: product.id,
+        type: "FEATURE",
+        referenceKey: "WI-F02",
+        title: "Photo attachments on close-out",
+        parentId: epicOrders.id,
+        ownerName: freja.name,
+        ownerResourceId: freja.id,
+        status: "IN_PROGRESS",
+        priority: "HIGH",
+        estimateHours: 56,
+      },
+      {
+        projectId: product.id,
+        type: "TASK",
+        referenceKey: "WI-T01",
+        title: "Supervisor live board API",
+        parentId: epicOrders.id,
+        ownerName: viktor.name,
+        ownerResourceId: viktor.id,
+        status: "IN_PROGRESS",
+        priority: "MEDIUM",
+        estimateHours: 32,
+      },
+      {
+        projectId: product.id,
+        type: "FEATURE",
+        referenceKey: "WI-F03",
+        title: "Local queue + conflict resolve UI",
+        parentId: epicOffline.id,
+        ownerName: freja.name,
+        ownerResourceId: freja.id,
+        status: "READY",
+        priority: "HIGH",
+        estimateHours: 64,
+      },
+      {
+        projectId: product.id,
+        type: "TASK",
+        referenceKey: "WI-T02",
+        title: "INFF parts master subscription",
+        parentId: epicParts.id,
+        ownerName: erik.name,
+        ownerResourceId: erik.id,
+        status: "BACKLOG",
+        priority: "MEDIUM",
+        estimateHours: 40,
+      },
+    ],
+  });
+
+  await db.projectIssue.createMany({
+    data: [
+      {
+        organizationId: org.id,
+        projectId: product.id,
+        referenceKey: "ISS-01",
+        title: "Plant A Wi-Fi dead zones in basement workshop",
+        description:
+          "Alpha testers lose connectivity for 2–5 minutes in the south basement. Offline queue is the mitigation path.",
+        severity: "HIGH",
+        status: "IN_PROGRESS",
+        isBlocker: true,
+        ownerName: viktor.name,
+        ownerResourceId: viktor.id,
+      },
+      {
+        organizationId: org.id,
+        projectId: product.id,
+        referenceKey: "ISS-02",
+        title: "SSO hand-off waiting on identity pre-study",
+        description:
+          "Temporary local login works for alpha; production should use INF identity recommendation.",
+        severity: "MEDIUM",
+        status: "OPEN",
+        isBlocker: false,
+        ownerName: ira.name,
+        ownerResourceId: ira.id,
+      },
+      {
+        organizationId: org.id,
+        projectId: product.id,
+        referenceKey: "ISS-03",
+        title: "Photo upload size limits on older devices",
+        description: "Some rugged tablets fail uploads >8 MB; need client-side compression.",
+        severity: "MEDIUM",
+        status: "OPEN",
+        isBlocker: false,
+        ownerName: freja.name,
+        ownerResourceId: freja.id,
+      },
+    ],
+  });
+
+  await db.risk.create({
+    data: {
+      initiativeId: projectInit.id,
+      referenceKey: "RSK-IT-04",
+      title: "MVP date slips if offline epic starts late",
+      description:
+        "Basement Wi-Fi issue makes offline sync critical path for December go-live.",
+      ownerName: bo.name,
+      ownerResourceId: bo.id,
+      probability: "HIGH",
+      impact: "HIGH",
+      status: "OPEN",
+    },
   });
 
   console.log("Creating demo personas + local logins…");
@@ -496,7 +1030,6 @@ async function main() {
     });
   }
 
-  // Link manager resources to persona principals where names match.
   await db.resource.update({
     where: { id: ira.id },
     data: {
@@ -534,20 +1067,27 @@ async function main() {
   });
 
   console.log(`
-IT hierarchy demo ready.
-  Organization: ${org.name} (${org.id})
+IT hierarchy manager demo ready.
+  Organization: ${org.name}
   Section: ${section.name}
-  Departments: INF → INFB, INFF | ING | INA
+  Departments:
+    ${inf.name} → ${infb.name}, ${inff.name}
+    ${ing.name}
+    ${ina.name}
+
+Portfolio (easy manager walkthrough):
+  1) INA  DEMAND        Digital work instructions for assembly operators
+  2) INF  PRE-STUDY     Identity & access platform upgrade
+  3) ING  PoC           Zero-trust remote admin access
+  4) INFF REQUIREMENTS  Plant master-data sync hub
+  5) INFB PROJECT       Maintenance work-order mobile app  ← flagship
 
 Local logins (password: ${DEMO_PERSONA_PASSWORD}):
 ${DEMO_PERSONAS.map((p) => `  - ${p.username}  (${p.levelLabel})`).join("\n")}
 
-Top-bar dropdown: set ALLOW_DEMO_PERSONA_SWITCH=1 (or use local DEV auth),
-sign in as owner/dev, then pick a level to simulate visibility.
+Suggested manager path: sign in → Simulate = Section (IN) → open INFB →
+open project PROJ-IT-01 → show milestones / issues / budget.
 `);
-  void freja;
-  void viktor;
-  void omar;
 }
 
 main()

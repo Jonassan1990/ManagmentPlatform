@@ -1,11 +1,14 @@
 /**
  * IT hierarchy demo catalog — Organization I / Section IN / nested departments.
  * Stable IDs keep re-seeds idempotent and power the persona switcher.
+ *
+ * Names keep the real org codes (I, IN, INF…) and add a short manager-readable
+ * label so walkthroughs are easy to follow without renaming the hierarchy.
  */
 
 export const DEMO_PERSONA_COOKIE = "mp_demo_persona";
-export const DEMO_ORG_NAME = "I";
-export const DEMO_SECTION_NAME = "IN";
+export const DEMO_ORG_NAME = "I — Industrial IT";
+export const DEMO_SECTION_NAME = "IN — IT Section";
 
 /** Shared password for seeded local login personas (demo environments only). */
 export const DEMO_PERSONA_PASSWORD = "DemoLevel2026!";
@@ -24,6 +27,39 @@ export const IT_DEMO_IDS = {
   teamInffData: "a1000000-0000-4000-8000-000000000034",
   teamIngInfra: "a1000000-0000-4000-8000-000000000035",
   teamInaDemand: "a1000000-0000-4000-8000-000000000036",
+} as const;
+
+export const IT_DEMO_DEPTS = {
+  inf: {
+    id: IT_DEMO_IDS.deptInf,
+    name: "INF — Platforms",
+    description:
+      "Parent IT platforms department. Owns shared platforms and sponsors child departments INFB (apps) and INFF (data).",
+  },
+  infb: {
+    id: IT_DEMO_IDS.deptInfb,
+    name: "INFB — Business apps",
+    description:
+      "Business applications delivery & ops under INF. Owns product projects used by plant operations.",
+  },
+  inff: {
+    id: IT_DEMO_IDS.deptInff,
+    name: "INFF — Data & integration",
+    description:
+      "Master data, integration services, and plant-to-enterprise feeds under INF.",
+  },
+  ing: {
+    id: IT_DEMO_IDS.deptIng,
+    name: "ING — Infrastructure",
+    description:
+      "Networks, connectivity, and secure remote access for industrial sites.",
+  },
+  ina: {
+    id: IT_DEMO_IDS.deptIna,
+    name: "INA — Architecture & demand",
+    description:
+      "Demand intake, architecture steering, and early-stage initiative shaping.",
+  },
 } as const;
 
 export type DemoPersonaKey =
@@ -54,7 +90,7 @@ export const DEMO_PERSONAS: DemoPersonaDefinition[] = [
     username: "demo.orgadmin",
     displayName: "Alex Org Admin",
     levelLabel: "Organization (I)",
-    sees: "Everything under organization I",
+    sees: "Full Industrial IT portfolio and organization setup",
     roleKey: "organization.admin",
     scopeType: "ORGANIZATION",
     scopeId: IT_DEMO_IDS.org,
@@ -65,7 +101,7 @@ export const DEMO_PERSONAS: DemoPersonaDefinition[] = [
     username: "demo.inmanager",
     displayName: "Sam IN Manager",
     levelLabel: "Section (IN)",
-    sees: "Overview of INF, ING, INA, INFB, INFF — can deep-dive",
+    sees: "Section overview of INF, ING, INA — drill into any department",
     roleKey: "section.manager",
     scopeType: "SECTION",
     scopeId: IT_DEMO_IDS.sectionIn,
@@ -76,7 +112,7 @@ export const DEMO_PERSONAS: DemoPersonaDefinition[] = [
     username: "demo.infmanager",
     displayName: "Ira INF Manager",
     levelLabel: "Department (INF)",
-    sees: "INF plus child departments INFB and INFF",
+    sees: "INF platforms plus child departments INFB and INFF",
     roleKey: "department.manager",
     scopeType: "DEPARTMENT",
     scopeId: IT_DEMO_IDS.deptInf,
@@ -87,7 +123,7 @@ export const DEMO_PERSONAS: DemoPersonaDefinition[] = [
     username: "demo.infbmanager",
     displayName: "Bo INFB Manager",
     levelLabel: "Department (INFB)",
-    sees: "Full INFB; can open INF initiatives/projects with details",
+    sees: "Full INFB delivery; can open parent INF initiatives for detail",
     roleKey: "department.manager",
     scopeType: "DEPARTMENT",
     scopeId: IT_DEMO_IDS.deptInfb,
@@ -98,7 +134,7 @@ export const DEMO_PERSONAS: DemoPersonaDefinition[] = [
     username: "demo.ingmanager",
     displayName: "Gina ING Manager",
     levelLabel: "Department (ING)",
-    sees: "ING department only",
+    sees: "ING infrastructure portfolio only",
     roleKey: "department.manager",
     scopeType: "DEPARTMENT",
     scopeId: IT_DEMO_IDS.deptIng,
@@ -109,7 +145,7 @@ export const DEMO_PERSONAS: DemoPersonaDefinition[] = [
     username: "demo.inamanager",
     displayName: "Ana INA Manager",
     levelLabel: "Department (INA)",
-    sees: "INA department only",
+    sees: "INA demand intake only",
     roleKey: "department.manager",
     scopeType: "DEPARTMENT",
     scopeId: IT_DEMO_IDS.deptIna,
@@ -120,7 +156,7 @@ export const DEMO_PERSONAS: DemoPersonaDefinition[] = [
     username: "demo.viewer",
     displayName: "Vic Viewer",
     levelLabel: "Viewer (I)",
-    sees: "Read-only across organization I",
+    sees: "Read-only across Industrial IT",
     roleKey: "organization.viewer",
     scopeType: "ORGANIZATION",
     scopeId: IT_DEMO_IDS.org,
