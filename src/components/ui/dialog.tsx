@@ -55,9 +55,9 @@ export function Dialog({
             if (!dismissible) e.preventDefault();
           }}
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 w-[min(100vw-1rem,28rem)] max-w-[calc(100vw-1rem)] -translate-x-1/2 -translate-y-1/2",
+            "fixed left-1/2 top-1/2 z-50 w-[min(100vw-1rem,28rem)] max-w-[calc(100vw-1rem)] -translate-x-1/2 -translate-y-1/2 min-[1920px]:w-[min(100vw-3rem,40rem)]",
             "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5 shadow-[var(--shadow-md)]",
-            "max-h-[min(90dvh,40rem)] overflow-y-auto focus:outline-none",
+            "max-h-[min(90dvh,40rem)] overflow-y-auto focus:outline-none min-[1920px]:max-h-[min(86dvh,48rem)]",
             className,
           )}
         >

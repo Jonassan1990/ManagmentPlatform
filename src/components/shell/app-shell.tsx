@@ -217,7 +217,7 @@ export function AppShell({
         </div>
       </header>
 
-      <div className="flex min-h-[calc(100vh-56px)]">
+      <div className="flex min-h-[calc(100dvh-3.5rem)] min-[1920px]:min-h-[calc(100dvh-4.25rem)]">
         {open ? (
           <button
             type="button"
@@ -230,7 +230,7 @@ export function AppShell({
         <aside
           id={navId}
           ref={navPanelRef}
-          className={`mp-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col overflow-hidden pt-4 text-white transition-transform duration-300 md:sticky md:top-14 md:z-20 md:h-[calc(100vh-3.5rem)] md:w-60 md:translate-x-0 xl:w-[17rem] ${
+          className={`mp-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col overflow-hidden pt-4 text-white transition-transform duration-300 md:sticky md:top-14 md:z-20 md:h-[calc(100dvh-3.5rem)] md:w-60 md:translate-x-0 xl:w-[17rem] min-[1920px]:top-[4.25rem] min-[1920px]:h-[calc(100dvh-4.25rem)] ${
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >

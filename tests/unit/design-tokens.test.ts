@@ -103,6 +103,7 @@ describe("M4B-A design tokens", () => {
     expect(src).toContain("prefers-reduced-motion");
     expect(src).toContain(".ds-status--blocked");
     expect(src).toContain(".ds-field-error");
+    expect(src).toContain('@import "../styles/responsive.css"');
   });
 
   it("keeps brand identity hex values stable", () => {
@@ -111,5 +112,7 @@ describe("M4B-A design tokens", () => {
     expect(src).toMatch(/--accent:\s*#0f4c5c/i);
     expect(src).toMatch(/--bg:\s*#f4f6f8/i);
     expect(src).toMatch(/--surface:\s*#ffffff/i);
+    expect(src).toContain("--bp-tv: 1920px");
+    expect(src).toContain("--bp-uhd: 3840px");
   });
 });

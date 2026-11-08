@@ -6,6 +6,7 @@
 @import "../styles/org-chart.css";
 @import "../styles/resource-management.css";
 @import "../styles/pi-planning.css";
+@import "../styles/responsive.css";
 
 /**
  * Tailwind v4 theme bridge — maps semantic tokens into utility namespaces.
