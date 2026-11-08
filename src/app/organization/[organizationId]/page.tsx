@@ -105,6 +105,12 @@ export default async function OrganizationDetailPage({
             {showConfig ? (
               <>
                 <Link
+                  href={`/organization/${hierarchy.id}/admin`}
+                  className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 text-sm"
+                >
+                  Admin config
+                </Link>
+                <Link
                   href={`/organization/${hierarchy.id}/access`}
                   className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 text-sm"
                 >

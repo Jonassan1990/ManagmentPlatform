@@ -1565,6 +1565,213 @@ export class OrganizationService {
     });
   }
 
+  /**
+   * Admin config roster: people, department/team placement, linked login, and role bindings.
+   * Used to confirm who belongs where before treating the hierarchy as complete.
+   */
+  async getAdminConfigRoster(principal: Principal, organizationId: string) {
+    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_READ, {
+      type: "ORGANIZATION",
+      organizationId,
+    });
+
+    const [resources, bindings, teamRows] = await Promise.all([
+      this.db.resource.findMany({
+        where: {
+          organizationId,
+          status: EntityStatus.ACTIVE,
+          type: ResourceType.PERSON,
+        },
+        orderBy: { name: "asc" },
+        include: {
+          linkedPrincipal: {
+            select: { id: true, displayName: true, email: true },
+          },
+          memberships: {
+            where: { effectiveTo: null },
+            include: {
+              team: {
+                include: {
+                  department: {
+                    include: { section: { select: { id: true, name: true } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.db.roleBinding.findMany({
+        where: {
+          organizationId,
+          OR: [{ effectiveTo: null }, { effectiveTo: { gt: new Date() } }],
+        },
+        include: {
+          roleDefinition: { select: { id: true, key: true, name: true } },
+          principal: { select: { id: true, displayName: true, email: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      this.db.team.findMany({
+        where: {
+          status: EntityStatus.ACTIVE,
+          department: {
+            status: EntityStatus.ACTIVE,
+            section: { organizationId, status: EntityStatus.ACTIVE },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          departmentId: true,
+          department: {
+            select: {
+              id: true,
+              name: true,
+              sectionId: true,
+              section: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+
+    const bindingsByPrincipal = new Map<string, typeof bindings>();
+    for (const binding of bindings) {
+      const list = bindingsByPrincipal.get(binding.principalId) ?? [];
+      list.push(binding);
+      bindingsByPrincipal.set(binding.principalId, list);
+    }
+
+    const people = resources.map((resource) => {
+      const placements = resource.memberships.map((membership) => ({
+        teamId: membership.team.id,
+        teamName: membership.team.name,
+        departmentId: membership.team.department.id,
+        departmentName: membership.team.department.name,
+        sectionId: membership.team.department.section.id,
+        sectionName: membership.team.department.section.name,
+        isPrimary: membership.isPrimary,
+      }));
+      const primary =
+        placements.find((row) => row.isPrimary) ?? placements[0] ?? null;
+      const principalId = resource.linkedPrincipalId;
+      const roleRows = principalId
+        ? (bindingsByPrincipal.get(principalId) ?? [])
+        : [];
+      const gaps: string[] = [];
+      if (placements.length === 0) gaps.push("No department/team");
+      if (!principalId) gaps.push("No login linked");
+      if (principalId && roleRows.length === 0) gaps.push("No role assigned");
+      return {
+        resourceId: resource.id,
+        name: resource.name,
+        functionRole: resource.functionRole,
+        linkedPrincipal: resource.linkedPrincipal
+          ? {
+              id: resource.linkedPrincipal.id,
+              displayName: resource.linkedPrincipal.displayName,
+              email: resource.linkedPrincipal.email,
+            }
+          : null,
+        placements,
+        primaryDepartment: primary
+          ? {
+              sectionName: primary.sectionName,
+              departmentName: primary.departmentName,
+              teamName: primary.teamName,
+            }
+          : null,
+        roles: roleRows.map((binding) => ({
+          bindingId: binding.id,
+          roleName: binding.roleDefinition.name,
+          roleKey: binding.roleDefinition.key,
+          scopeType: binding.scopeType,
+          scopeId: binding.scopeId,
+        })),
+        gaps,
+        confirmed: gaps.length === 0,
+      };
+    });
+
+    const unboundLogins = bindings
+      .filter(
+        (binding) =>
+          !resources.some((resource) => resource.linkedPrincipalId === binding.principalId),
+      )
+      .reduce<
+        Array<{
+          principalId: string;
+          displayName: string | null;
+          email: string | null;
+          roles: string[];
+        }>
+      >((acc, binding) => {
+        const existing = acc.find((row) => row.principalId === binding.principalId);
+        if (existing) {
+          if (!existing.roles.includes(binding.roleDefinition.name)) {
+            existing.roles.push(binding.roleDefinition.name);
+          }
+          return acc;
+        }
+        acc.push({
+          principalId: binding.principalId,
+          displayName: binding.principal.displayName,
+          email: binding.principal.email,
+          roles: [binding.roleDefinition.name],
+        });
+        return acc;
+      }, []);
+
+    const departments = teamRows.reduce<
+      Array<{
+        id: string;
+        name: string;
+        sectionName: string;
+        teams: Array<{ id: string; name: string }>;
+      }>
+    >((acc, team) => {
+      const existing = acc.find((row) => row.id === team.departmentId);
+      if (existing) {
+        existing.teams.push({ id: team.id, name: team.name });
+        return acc;
+      }
+      acc.push({
+        id: team.department.id,
+        name: team.department.name,
+        sectionName: team.department.section.name,
+        teams: [{ id: team.id, name: team.name }],
+      });
+      return acc;
+    }, []);
+
+    return {
+      people,
+      unboundLogins,
+      departments: departments
+        .map((department) => ({
+          ...department,
+          name: `${department.sectionName} / ${department.name}`,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      summary: {
+        peopleCount: people.length,
+        confirmedCount: people.filter((person) => person.confirmed).length,
+        missingPlacement: people.filter((person) =>
+          person.gaps.includes("No department/team"),
+        ).length,
+        missingLogin: people.filter((person) =>
+          person.gaps.includes("No login linked"),
+        ).length,
+        missingRole: people.filter((person) =>
+          person.gaps.includes("No role assigned"),
+        ).length,
+        unboundLoginCount: unboundLogins.length,
+      },
+    };
+  }
+
   private async assertParentDepartment(
     sectionId: string,
     departmentId: string | null,

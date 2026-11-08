@@ -41,7 +41,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "view-vs-config",
         title: "View vs Config",
-        body: "On Organization pages, use View to browse hierarchy, people, projects, and initiatives. Switch to Config only when you need to create or edit structure.",
+        body: "On Organization pages, use View to browse hierarchy, people, projects, and initiatives. Switch to Config only when you need to create or edit structure. Organization admins can also use Admin config for the full setup in one place.",
         href: "/organization",
         hrefLabel: "Open Organization",
       },
@@ -60,6 +60,13 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
         hrefLabel: "Organization structure",
       },
       {
+        id: "org-admin-config",
+        title: "Use Admin config",
+        body: "Open Admin → Admin config to confirm each person has a department, role, and login; build the hierarchy; place people; and assign role packs without jumping between pages.",
+        href: "/admin",
+        hrefLabel: "Admin config",
+      },
+      {
         id: "org-config",
         title: "Use Config mode",
         body: "In Config you add sections, departments (with an optional parent), teams, and people. In View you open a department to see its resources, projects, and initiatives.",
@@ -68,8 +75,8 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
         id: "org-roles",
         title: "Give people access",
         body: "Admins assign roles such as Section manager (sees all departments under the section) or Department manager (own department, and can read parent department work).",
-        href: "/organization",
-        hrefLabel: "Organization hub",
+        href: "/admin",
+        hrefLabel: "Admin config · Roles",
       },
     ],
   },

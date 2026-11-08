@@ -55,5 +55,26 @@ describe("resolveShellNavContext organization-local permissions", () => {
     expect(ctx.capabilities.canViewInitiatives).toBe(true);
     expect(ctx.capabilities.canCreateInitiative).toBe(false);
     expect(ctx.capabilities.canCreatePi).toBe(false);
+    expect(ctx.capabilities.canManageAdminConfig).toBe(false);
+  });
+
+  it("surfaces Admin config for organization-scoped structure managers", async () => {
+    const authz = {
+      ensureSystemRoles: vi.fn(async () => undefined),
+      can: vi.fn(async (_p: unknown, permission: string) => {
+        return permission === PERMISSIONS.ORG_STRUCTURE_MANAGE;
+      }),
+      hasPermissionInOrganization: vi.fn(async () => false),
+    };
+
+    const ctx = await resolveShellNavContext(
+      authz as never,
+      { id: "p3", displayName: "Org Admin", source: "temp" },
+      ["org-1"],
+    );
+
+    expect(ctx.capabilities.canManageAdminConfig).toBe(true);
+    expect(ctx.capabilities.canManageAccess).toBe(false);
+    expect(ctx.organizationId).toBe("org-1");
   });
 });

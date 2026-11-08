@@ -16,7 +16,8 @@ export type NavCapabilityKey =
   | "canViewVacation"
   | "canReviewVacation"
   | "canViewOnboarding"
-  | "canManageOnboarding";
+  | "canManageOnboarding"
+  | "canManageAdminConfig";
 
 export type ShellNavCapabilities = {
   canViewApprovals: boolean;
@@ -31,6 +32,8 @@ export type ShellNavCapabilities = {
   canReviewVacation: boolean;
   canViewOnboarding: boolean;
   canManageOnboarding: boolean;
+  /** Org-scoped structure and/or access admin — unified Admin config hub. */
+  canManageAdminConfig: boolean;
 };
 
 export type NavMatch =

@@ -80,6 +80,7 @@ function emptyCaps(): ShellNavCapabilities {
     canReviewVacation: false,
     canViewOnboarding: false,
     canManageOnboarding: false,
+    canManageAdminConfig: false,
   };
 }
 

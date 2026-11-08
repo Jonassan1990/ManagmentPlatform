@@ -186,7 +186,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
       type: "prefixExclude",
       path: "/organization",
       excludePrefixes: ["/organization/setup"],
-      excludeSegments: ["access", "governance-policy"],
+      excludeSegments: ["access", "governance-policy", "admin"],
     },
     items: [
       {
@@ -197,7 +197,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
           type: "prefixExclude",
           path: "/organization",
           excludePrefixes: ["/organization/setup"],
-          excludeSegments: ["access", "governance-policy"],
+          excludeSegments: ["access", "governance-policy", "admin"],
         },
         capability: "always",
         description: "Browse or configure org hierarchy",
@@ -211,6 +211,26 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
             : null,
         match: { type: "includesSegment", segment: "access" },
         capability: "canManageAccess",
+      },
+    ],
+  },
+  {
+    id: "admin",
+    label: "Admin",
+    hubHref: "/admin",
+    hubMatch: { type: "includesSegment", segment: "admin" },
+    items: [
+      {
+        id: "admin-config",
+        label: "Admin config",
+        href: (ctx) =>
+          ctx.organizationId
+            ? `/organization/${ctx.organizationId}/admin`
+            : "/admin",
+        match: { type: "includesSegment", segment: "admin" },
+        capability: "canManageAdminConfig",
+        description:
+          "Confirm users, roles, departments, and hierarchy in one place",
       },
     ],
   },
@@ -438,6 +458,23 @@ export function resolveNavGroups(
       continue;
     }
 
+    if (group.id === "admin") {
+      const showHub = capabilityAllowed(
+        "canManageAdminConfig",
+        ctx.capabilities,
+      );
+      if (!showHub && items.length === 0) continue;
+      groups.push({
+        id: group.id,
+        label: group.label,
+        hubHref: showHub ? hubHref : undefined,
+        hubActive,
+        items,
+        containsActive: hubActive || items.some((i) => i.active),
+      });
+      continue;
+    }
+
     groups.push({
       id: group.id,
       label: group.label,
@@ -480,4 +517,5 @@ export const DEFAULT_SHELL_CAPABILITIES: ShellNavCapabilities = {
   canReviewVacation: false,
   canViewOnboarding: true,
   canManageOnboarding: false,
+  canManageAdminConfig: false,
 };

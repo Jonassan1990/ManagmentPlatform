@@ -115,6 +115,7 @@ export async function AuthenticatedShell({
         canReviewVacation: false,
         canViewOnboarding: false,
         canManageOnboarding: false,
+        canManageAdminConfig: false,
       },
       organizationId: null,
     };
