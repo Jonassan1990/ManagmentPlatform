@@ -7,7 +7,8 @@ import {
   RoleBindingsTable,
 } from "@/components/organization/access-forms";
 import { buttonClassName } from "@/components/ui/button";
-import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
 
@@ -28,13 +29,60 @@ export default async function OrganizationAccessPage({
     organizationId,
   });
   if (!canManage) {
-    notFound();
+    return (
+      <div>
+        <Breadcrumbs
+          items={[
+            { label: "Overview", href: "/" },
+            { label: "Organization", href: "/organization" },
+            { label: "Access" },
+          ]}
+        />
+        <EmptyState
+          title="Not authorized"
+          description="You need organization-level Access management permission to open this page. Ask an organization admin if you need role changes."
+          action={
+            <Link
+              href="/organization"
+              className={buttonClassName({ variant: "secondary" })}
+            >
+              Back to Organization
+            </Link>
+          }
+        />
+      </div>
+    );
   }
 
   let hierarchy;
   try {
     hierarchy = await organization.getHierarchy(principal, organizationId);
-  } catch {
+  } catch (error) {
+    if (error instanceof AppError && error.code === "FORBIDDEN") {
+      return (
+        <div>
+          <Breadcrumbs
+            items={[
+              { label: "Overview", href: "/" },
+              { label: "Organization", href: "/organization" },
+              { label: "Access" },
+            ]}
+          />
+          <EmptyState
+            title="Not authorized"
+            description="You cannot view this organization’s access settings."
+            action={
+              <Link
+                href="/organization"
+                className={buttonClassName({ variant: "secondary" })}
+              >
+                Back to Organization
+              </Link>
+            }
+          />
+        </div>
+      );
+    }
     notFound();
   }
   if (!hierarchy) notFound();

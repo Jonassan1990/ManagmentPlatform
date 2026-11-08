@@ -21,7 +21,29 @@ export default async function GovernancePolicyPage({
   try {
     org = await organization.getHierarchy(principal, organizationId);
   } catch {
-    notFound();
+    return (
+      <div>
+        <Breadcrumbs
+          items={[
+            { label: "Overview", href: "/" },
+            { label: "Organization", href: "/organization" },
+            { label: "Governance policy" },
+          ]}
+        />
+        <EmptyState
+          title="Not authorized"
+          description="You cannot open governance policy for this organization."
+          action={
+            <Link
+              href="/organization"
+              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+            >
+              Back to Organization
+            </Link>
+          }
+        />
+      </div>
+    );
   }
   if (!org) notFound();
 
@@ -44,6 +66,14 @@ export default async function GovernancePolicyPage({
         <EmptyState
           title="Not authorized"
           description="You do not have permission to view governance policy templates."
+          action={
+            <Link
+              href="/organization"
+              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm"
+            >
+              Back to Organization
+            </Link>
+          }
         />
       </div>
     );

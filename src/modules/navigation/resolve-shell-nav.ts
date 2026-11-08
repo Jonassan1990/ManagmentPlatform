@@ -61,11 +61,23 @@ export async function resolveShellNavContext(
     const check = (p: (typeof PERMISSIONS)[keyof typeof PERMISSIONS]) =>
       authz.hasPermissionInOrganization(principal, p, organizationId);
 
+    // Access / governance-policy pages require ORGANIZATION-scoped grants.
+    // hasPermissionInOrganization is true for section/dept bindings too, which
+    // previously showed sidebar links that then soft-404'd on the page assertCan.
+    const [accessOrgScoped, policyOrgScoped] = await Promise.all([
+      authz.can(principal, PERMISSIONS.ROLE_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId,
+      }),
+      authz.can(principal, PERMISSIONS.GOVERNANCE_POLICY_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId,
+      }),
+    ]);
+
     const [
       approvals,
       decisions,
-      policy,
-      access,
       piView,
       piCreate,
       initView,
@@ -75,8 +87,6 @@ export async function resolveShellNavContext(
     ] = await Promise.all([
       check(PERMISSIONS.APPROVAL_REVIEW),
       check(PERMISSIONS.DECISION_MAKE),
-      check(PERMISSIONS.GOVERNANCE_POLICY_MANAGE),
-      check(PERMISSIONS.ROLE_MANAGE),
       check(PERMISSIONS.PI_VIEW),
       check(PERMISSIONS.PI_CREATE),
       check(PERMISSIONS.INITIATIVE_VIEW),
@@ -87,11 +97,11 @@ export async function resolveShellNavContext(
 
     if (approvals) flags.canViewApprovals = true;
     if (decisions) flags.canViewDecisions = true;
-    if (policy) {
+    if (policyOrgScoped) {
       flags.canManageGovernancePolicy = true;
       policyOrgId ??= organizationId;
     }
-    if (access) {
+    if (accessOrgScoped) {
       flags.canManageAccess = true;
       accessOrgId ??= organizationId;
     }
