@@ -31,6 +31,11 @@ import {
   TEMP_AUTH_ISSUER,
 } from "./temp-auth-constants";
 
+/** Process-local sync so new pack permissions (e.g. onboarding.*) reach prod DBs without an Access page visit. */
+let systemRolesSync: Promise<void> | null = null;
+let systemRolesSyncedAt = 0;
+const SYSTEM_ROLES_SYNC_TTL_MS = 60_000;
+
 export class AuthorizationService {
   /** One in-flight load per principal so parallel can() checks share a query. */
   private bindingLoads = new Map<
@@ -167,22 +172,38 @@ export class AuthorizationService {
   }
 
   async ensureSystemRoles(): Promise<void> {
-    for (const pack of SYSTEM_ROLE_PACKS) {
-      await this.db.roleDefinition.upsert({
-        where: { key: pack.key },
-        create: {
-          key: pack.key,
-          name: pack.name,
-          description: pack.description,
-          permissions: [...pack.permissions],
-        },
-        update: {
-          name: pack.name,
-          description: pack.description,
-          permissions: [...pack.permissions],
-        },
+    const now = Date.now();
+    if (
+      systemRolesSyncedAt > 0 &&
+      now - systemRolesSyncedAt < SYSTEM_ROLES_SYNC_TTL_MS &&
+      !systemRolesSync
+    ) {
+      return;
+    }
+    if (!systemRolesSync) {
+      systemRolesSync = (async () => {
+        for (const pack of SYSTEM_ROLE_PACKS) {
+          await this.db.roleDefinition.upsert({
+            where: { key: pack.key },
+            create: {
+              key: pack.key,
+              name: pack.name,
+              description: pack.description,
+              permissions: [...pack.permissions],
+            },
+            update: {
+              name: pack.name,
+              description: pack.description,
+              permissions: [...pack.permissions],
+            },
+          });
+        }
+        systemRolesSyncedAt = Date.now();
+      })().finally(() => {
+        systemRolesSync = null;
       });
     }
+    await systemRolesSync;
   }
 
   /**

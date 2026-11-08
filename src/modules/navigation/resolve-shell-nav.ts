@@ -22,6 +22,10 @@ export async function resolveShellNavContext(
   principal: Principal,
   organizationIds: string[],
 ): Promise<ShellNavContext> {
+  // Keep system role packs current so new permissions (onboarding, vacation, …)
+  // appear in the sidebar without requiring an Access admin visit first.
+  await authz.ensureSystemRoles();
+
   if (organizationIds.length === 0) {
     return {
       organizationId: null,

@@ -5,13 +5,15 @@ import { PERMISSIONS } from "@/modules/shared/permissions";
 describe("resolveShellNavContext organization-local permissions", () => {
   it("surfaces Initiatives/PI for department-scoped permission holders", async () => {
     const authz = {
+      ensureSystemRoles: vi.fn(async () => undefined),
       can: vi.fn(async () => false),
       hasPermissionInOrganization: vi.fn(
         async (_p: unknown, permission: string) => {
           return (
             permission === PERMISSIONS.INITIATIVE_VIEW ||
             permission === PERMISSIONS.PI_VIEW ||
-            permission === PERMISSIONS.INITIATIVE_CREATE
+            permission === PERMISSIONS.INITIATIVE_CREATE ||
+            permission === PERMISSIONS.ONBOARDING_VIEW
           );
         },
       ),
@@ -26,13 +28,16 @@ describe("resolveShellNavContext organization-local permissions", () => {
     expect(ctx.capabilities.canViewInitiatives).toBe(true);
     expect(ctx.capabilities.canCreateInitiative).toBe(true);
     expect(ctx.capabilities.canViewPi).toBe(true);
+    expect(ctx.capabilities.canViewOnboarding).toBe(true);
     expect(ctx.capabilities.canViewApprovals).toBe(false);
     expect(ctx.capabilities.canManageAccess).toBe(false);
+    expect(authz.ensureSystemRoles).toHaveBeenCalled();
     expect(authz.hasPermissionInOrganization).toHaveBeenCalled();
   });
 
   it("keeps viewer create flags false", async () => {
     const authz = {
+      ensureSystemRoles: vi.fn(async () => undefined),
       can: vi.fn(async () => false),
       hasPermissionInOrganization: vi.fn(
         async (_p: unknown, permission: string) =>
