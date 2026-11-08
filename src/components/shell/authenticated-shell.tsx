@@ -38,7 +38,7 @@ export async function AuthenticatedShell({
     headerList.get("x-matched-path") ||
     "";
 
-  const { authz, identity, organization } = createServices();
+  const { authz, identity, organization, onboarding } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   const env = getEnv();
   const dev = isDevAuthEnabled(env);
@@ -76,6 +76,13 @@ export async function AuthenticatedShell({
         principal,
         orgs.map((o) => o.id),
       );
+      // Assignees still see Onboarding even if their role pack predates the permission.
+      if (!resolved.capabilities.canViewOnboarding) {
+        const assigned = await onboarding.listForPrincipal(principal);
+        if (assigned.length > 0) {
+          resolved.capabilities.canViewOnboarding = true;
+        }
+      }
       nav = {
         capabilities: resolved.capabilities,
         organizationId: resolved.organizationId,
