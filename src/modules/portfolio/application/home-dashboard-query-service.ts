@@ -78,6 +78,8 @@ function emptyCaps(): ShellNavCapabilities {
     canCreateInitiative: false,
     canViewVacation: false,
     canReviewVacation: false,
+    canViewOnboarding: false,
+    canManageOnboarding: false,
   };
 }
 

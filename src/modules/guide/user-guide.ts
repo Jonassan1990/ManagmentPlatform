@@ -179,8 +179,28 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
     ],
   },
   {
+    id: "onboarding",
+    title: "7. Onboarding checklist",
+    summary:
+      "New employee and onboarder must both check every item. Official pass only when both sides are complete.",
+    steps: [
+      {
+        id: "start",
+        title: "Start a checklist",
+        body: "Managers open Onboarding and assign a new employee plus an onboarder. A standard dual-check list is created automatically.",
+        href: "/onboarding",
+        hrefLabel: "Onboarding",
+      },
+      {
+        id: "dual",
+        title: "Both must check",
+        body: "Each item has an Employee check and an Onboarder check. An item is complete only when both are ticked. When every item is dual-checked, status becomes Officially passed.",
+      },
+    ],
+  },
+  {
     id: "vacation",
-    title: "7. Vacation requests",
+    title: "8. Vacation requests",
     summary:
       "Employees request time off; managers accept, reject, or ask for changes. Approved days show on the calendar and yearly totals, with a full audit table.",
     steps: [
@@ -209,7 +229,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
   },
   {
     id: "tips",
-    title: "8. Simple habits",
+    title: "9. Simple habits",
     summary: "Keep the product calm and clear.",
     steps: [
       {

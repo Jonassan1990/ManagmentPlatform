@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/modules/shared/permissions";
 describe("resolveShellNavContext organization-local permissions", () => {
   it("surfaces Initiatives/PI for department-scoped permission holders", async () => {
     const authz = {
+      can: vi.fn(async () => false),
       hasPermissionInOrganization: vi.fn(
         async (_p: unknown, permission: string) => {
           return (
@@ -32,6 +33,7 @@ describe("resolveShellNavContext organization-local permissions", () => {
 
   it("keeps viewer create flags false", async () => {
     const authz = {
+      can: vi.fn(async () => false),
       hasPermissionInOrganization: vi.fn(
         async (_p: unknown, permission: string) =>
           permission === PERMISSIONS.INITIATIVE_VIEW ||

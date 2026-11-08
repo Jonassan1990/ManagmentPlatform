@@ -271,6 +271,23 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
     ],
   },
   {
+    id: "onboarding",
+    label: "Onboarding",
+    hubHref: "/onboarding",
+    hubMatch: { type: "prefix", path: "/onboarding" },
+    items: [
+      {
+        id: "onboarding-list",
+        label: "Checklists",
+        href: "/onboarding",
+        match: { type: "prefix", path: "/onboarding" },
+        capability: "canViewOnboarding",
+        description:
+          "Dual-check onboarding — employee and onboarder must both confirm",
+      },
+    ],
+  },
+  {
     id: "help",
     label: "Help",
     hubHref: "/guide",
@@ -407,6 +424,20 @@ export function resolveNavGroups(
       continue;
     }
 
+    if (group.id === "onboarding") {
+      const showHub = capabilityAllowed("canViewOnboarding", ctx.capabilities);
+      if (!showHub && items.length === 0) continue;
+      groups.push({
+        id: group.id,
+        label: group.label,
+        hubHref: showHub ? hubHref : undefined,
+        hubActive,
+        items,
+        containsActive: hubActive || items.some((i) => i.active),
+      });
+      continue;
+    }
+
     groups.push({
       id: group.id,
       label: group.label,
@@ -447,4 +478,6 @@ export const DEFAULT_SHELL_CAPABILITIES: ShellNavCapabilities = {
   canCreateInitiative: false,
   canViewVacation: true,
   canReviewVacation: false,
+  canViewOnboarding: true,
+  canManageOnboarding: false,
 };

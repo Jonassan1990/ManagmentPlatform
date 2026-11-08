@@ -32,6 +32,8 @@ describe("sidebar destinations have App Router pages", () => {
         canCreatePi: true,
         canCreateInitiative: true,
         canReviewVacation: true,
+        canViewOnboarding: true,
+        canManageOnboarding: true,
       },
       organizationId: null,
       activePiId: null,
@@ -65,6 +67,7 @@ describe("sidebar destinations have App Router pages", () => {
       "/vacation/inbox",
       "/vacation/calendar",
       "/vacation/year",
+      "/onboarding",
       "/guide",
     ];
     for (const href of required) {

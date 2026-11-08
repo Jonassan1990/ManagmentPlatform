@@ -53,6 +53,9 @@ export const PERMISSIONS = {
   VACATION_REQUEST: "vacation.request",
   VACATION_REVIEW: "vacation.review",
   VACATION_VIEW: "vacation.view",
+  // Onboarding checklist (dual ack)
+  ONBOARDING_VIEW: "onboarding.view",
+  ONBOARDING_MANAGE: "onboarding.manage",
 } as const;
 
 export type Permission =

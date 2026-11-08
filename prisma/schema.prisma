@@ -53,6 +53,7 @@ model Organization {
   piReferenceCounter PiReferenceCounter?
   planningDependencies PlanningDependency[]
   vacationRequests VacationRequest[]
+  onboardingChecklists OnboardingChecklist[]
 
   @@index([status])
   @@index([parentOrganizationId])
@@ -1954,4 +1955,86 @@ model VacationRequestAudit {
 
   @@index([vacationRequestId, createdAt])
   @@map("vacation_request_audits")
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding checklist — dual acknowledgment (employee + onboarder)
+// ---------------------------------------------------------------------------
+
+enum OnboardingChecklistStatus {
+  IN_PROGRESS
+  PASSED
+  CANCELLED
+}
+
+enum OnboardingAuditAction {
+  CREATED
+  EMPLOYEE_CHECKED
+  EMPLOYEE_UNCHECKED
+  ONBOARDER_CHECKED
+  ONBOARDER_UNCHECKED
+  PASSED
+  CANCELLED
+}
+
+/// One onboarding run for a new employee with an assigned onboarder ("onboard guy").
+/// Official pass requires every item checked by BOTH parties.
+model OnboardingChecklist {
+  id                   String                     @id @default(uuid()) @db.Uuid
+  organizationId       String                     @db.Uuid
+  title                String                     @db.VarChar(300)
+  employeePrincipalId  String                     @db.Uuid
+  onboarderPrincipalId String                     @db.Uuid
+  status               OnboardingChecklistStatus  @default(IN_PROGRESS)
+  passedAt             DateTime?
+  notes                String?                    @db.VarChar(4000)
+  version              Int                        @default(1)
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  createdByPrincipalId String?                    @db.Uuid
+
+  organization Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  items        OnboardingChecklistItem[]
+  audits       OnboardingChecklistAudit[]
+
+  @@index([organizationId, status])
+  @@index([employeePrincipalId, status])
+  @@index([onboarderPrincipalId, status])
+  @@map("onboarding_checklists")
+}
+
+model OnboardingChecklistItem {
+  id                            String    @id @default(uuid()) @db.Uuid
+  checklistId                   String    @db.Uuid
+  sortOrder                     Int       @default(0)
+  title                         String    @db.VarChar(300)
+  description                   String?   @db.VarChar(2000)
+  employeeCheckedAt             DateTime?
+  employeeCheckedByPrincipalId  String?   @db.Uuid
+  onboarderCheckedAt            DateTime?
+  onboarderCheckedByPrincipalId String?   @db.Uuid
+  version                       Int       @default(1)
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
+
+  checklist OnboardingChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId, sortOrder])
+  @@map("onboarding_checklist_items")
+}
+
+model OnboardingChecklistAudit {
+  id              String                @id @default(uuid()) @db.Uuid
+  checklistId     String                @db.Uuid
+  itemId          String?               @db.Uuid
+  actorPrincipalId String?              @db.Uuid
+  action          OnboardingAuditAction
+  comment         String?               @db.VarChar(4000)
+  payload         Json                  @default("{}")
+  createdAt       DateTime              @default(now())
+
+  checklist OnboardingChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId, createdAt])
+  @@map("onboarding_checklist_audits")
 }

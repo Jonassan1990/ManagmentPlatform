@@ -36,6 +36,8 @@ export async function resolveShellNavContext(
         canCreateInitiative: false,
         canViewVacation: false,
         canReviewVacation: false,
+        canViewOnboarding: false,
+        canManageOnboarding: false,
       },
     };
   }
@@ -51,6 +53,8 @@ export async function resolveShellNavContext(
     canCreateInitiative: false,
     canViewVacation: false,
     canReviewVacation: false,
+    canViewOnboarding: false,
+    canManageOnboarding: false,
   };
 
   let preferredOrgId = organizationIds[0]!;
@@ -84,6 +88,8 @@ export async function resolveShellNavContext(
       initCreate,
       vacationView,
       vacationReview,
+      onboardingView,
+      onboardingManage,
     ] = await Promise.all([
       check(PERMISSIONS.APPROVAL_REVIEW),
       check(PERMISSIONS.DECISION_MAKE),
@@ -93,6 +99,8 @@ export async function resolveShellNavContext(
       check(PERMISSIONS.INITIATIVE_CREATE),
       check(PERMISSIONS.VACATION_VIEW),
       check(PERMISSIONS.VACATION_REVIEW),
+      check(PERMISSIONS.ONBOARDING_VIEW),
+      check(PERMISSIONS.ONBOARDING_MANAGE),
     ]);
 
     if (approvals) flags.canViewApprovals = true;
@@ -111,6 +119,8 @@ export async function resolveShellNavContext(
     if (initCreate) flags.canCreateInitiative = true;
     if (vacationView) flags.canViewVacation = true;
     if (vacationReview) flags.canReviewVacation = true;
+    if (onboardingView) flags.canViewOnboarding = true;
+    if (onboardingManage) flags.canManageOnboarding = true;
   }
 
   // Prefer an org that can open org-scoped admin destinations.
