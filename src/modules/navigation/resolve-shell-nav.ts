@@ -42,6 +42,7 @@ export async function resolveShellNavContext(
         canReviewVacation: false,
         canViewOnboarding: false,
         canManageOnboarding: false,
+        canManageAdminConfig: false,
       },
     };
   }
@@ -59,25 +60,32 @@ export async function resolveShellNavContext(
     canReviewVacation: false,
     canViewOnboarding: false,
     canManageOnboarding: false,
+    canManageAdminConfig: false,
   };
 
   let preferredOrgId = organizationIds[0]!;
   let policyOrgId: string | null = null;
   let accessOrgId: string | null = null;
+  let adminOrgId: string | null = null;
 
   for (const organizationId of organizationIds) {
     const check = (p: (typeof PERMISSIONS)[keyof typeof PERMISSIONS]) =>
       authz.hasPermissionInOrganization(principal, p, organizationId);
 
-    // Access / governance-policy pages require ORGANIZATION-scoped grants.
+    // Access / governance-policy / admin-config pages require ORGANIZATION-scoped grants.
     // hasPermissionInOrganization is true for section/dept bindings too, which
     // previously showed sidebar links that then soft-404'd on the page assertCan.
-    const [accessOrgScoped, policyOrgScoped] = await Promise.all([
+    const [accessOrgScoped, policyOrgScoped, structureOrgScoped] =
+      await Promise.all([
       authz.can(principal, PERMISSIONS.ROLE_MANAGE, {
         type: "ORGANIZATION",
         organizationId,
       }),
       authz.can(principal, PERMISSIONS.GOVERNANCE_POLICY_MANAGE, {
+        type: "ORGANIZATION",
+        organizationId,
+      }),
+      authz.can(principal, PERMISSIONS.ORG_STRUCTURE_MANAGE, {
         type: "ORGANIZATION",
         organizationId,
       }),
@@ -117,6 +125,10 @@ export async function resolveShellNavContext(
       flags.canManageAccess = true;
       accessOrgId ??= organizationId;
     }
+    if (structureOrgScoped || accessOrgScoped) {
+      flags.canManageAdminConfig = true;
+      adminOrgId ??= organizationId;
+    }
     if (piView) flags.canViewPi = true;
     if (piCreate) flags.canCreatePi = true;
     if (initView) flags.canViewInitiatives = true;
@@ -128,7 +140,7 @@ export async function resolveShellNavContext(
   }
 
   // Prefer an org that can open org-scoped admin destinations.
-  preferredOrgId = accessOrgId ?? policyOrgId ?? preferredOrgId;
+  preferredOrgId = accessOrgId ?? adminOrgId ?? policyOrgId ?? preferredOrgId;
 
   return {
     organizationId: preferredOrgId,

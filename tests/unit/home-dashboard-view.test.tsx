@@ -90,6 +90,7 @@ function baseDashboard(
         canReviewVacation: false,
         canViewOnboarding: false,
         canManageOnboarding: false,
+        canManageAdminConfig: false,
       },
       organizations: [
         {
@@ -324,6 +325,7 @@ describe("HomeDashboardView — modes", () => {
           canReviewVacation: false,
           canViewOnboarding: false,
           canManageOnboarding: false,
+          canManageAdminConfig: false,
         },
         roleBindings: [
           {

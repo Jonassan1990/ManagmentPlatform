@@ -33,6 +33,7 @@ describe("AppShell skip link (M4F-D)", () => {
             canReviewVacation: false,
             canViewOnboarding: false,
             canManageOnboarding: false,
+            canManageAdminConfig: false,
           },
           organizationId: "org-1",
         }}
