@@ -281,14 +281,24 @@
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
+  /* Collapsed panels must not intercept clicks meant for links below. */
+  pointer-events: none;
+  visibility: hidden;
   transition:
     grid-template-rows 260ms var(--motion-ease-out),
-    opacity 200ms var(--motion-ease-out);
+    opacity 200ms var(--motion-ease-out),
+    visibility 0ms linear 200ms;
 }
 
 .mp-side-children[data-open="true"] {
   grid-template-rows: 1fr;
   opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition:
+    grid-template-rows 260ms var(--motion-ease-out),
+    opacity 200ms var(--motion-ease-out),
+    visibility 0ms linear 0ms;
 }
 
 .mp-side-children-inner {
