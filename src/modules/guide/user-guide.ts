@@ -81,16 +81,51 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
     ],
   },
   {
-    id: "work",
-    title: "3. Run initiatives and projects",
-    summary: "One initiative journey from idea to delivery.",
+    id: "people",
+    title: "3. People",
+    summary: "Vacation and onboarding live in one People section.",
     steps: [
+      {
+        id: "vacation",
+        title: "Vacation management",
+        body: "Request time off, review as a manager, and check calendar/year views.",
+        href: "/vacation",
+        hrefLabel: "Vacation",
+      },
+      {
+        id: "onboarding-ai",
+        title: "Onboarding with AI help",
+        body: "Create dual-check onboarding checklists. Managers can draft steps with the Vercel AI Gateway, then employee and onboarder both confirm.",
+        href: "/onboarding",
+        hrefLabel: "Onboarding",
+      },
+    ],
+  },
+  {
+    id: "work",
+    title: "4. Delivery — idea to product",
+    summary: "One road map with Go / No go at every step, plus capacity and dependencies.",
+    steps: [
+      {
+        id: "delivery-roadmap",
+        title: "Open the Delivery road map",
+        body: "Idea → Requirements → Pre-study → Governance → PoC → Pilot → Project → Roles & governance → Product. Each step states what Go and No go mean.",
+        href: "/delivery",
+        hrefLabel: "Delivery",
+      },
       {
         id: "create-initiative",
         title: "Create an initiative",
-        body: "Pick the owning department, then move through demand → requirements → pre-study → PoC / pilot → project as your process requires.",
+        body: "Pick the owning department, then move through the road map. Formal gates record Go, Conditional go, No go, Hold, Scale, or Stop.",
         href: "/initiatives",
         hrefLabel: "Initiatives",
+      },
+      {
+        id: "capacity-deps",
+        title: "Check load and dependencies",
+        body: "Use Planning → Capacity & workload for allocations, and Dependencies & health for cross-functional blockers.",
+        href: "/portfolio/capacity",
+        hrefLabel: "Capacity & workload",
       },
       {
         id: "department-hub",
@@ -108,7 +143,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
   },
   {
     id: "planning",
-    title: "4. Plan capacity (PI)",
+    title: "5. Plan capacity (PI)",
     summary: "Program Increments help teams allocate work without overloading people.",
     steps: [
       {
@@ -129,8 +164,8 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
   },
   {
     id: "governance",
-    title: "5. Approvals and decisions",
-    summary: "Governance stays separate from day-to-day delivery lists.",
+    title: "6. Approvals and decisions",
+    summary: "Governance decisions also appear under Delivery; use these inboxes for review work.",
     steps: [
       {
         id: "approvals",
