@@ -1,0 +1,130 @@
+/**
+ * Viewport scale: phone → tablet → laptop → TV / 4K.
+ * Root font-size grows with screen size so rem-based UI stays readable
+ * from a desk and from across a living room.
+ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+.tegel-rm,
+.tegel-canvas,
+.mp-main {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mp-main {
+  overflow-x: auto;
+}
+
+img,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.tegel-rm table {
+  width: 100%;
+}
+
+/* Wide planning surfaces stay usable instead of stretching the page. */
+.pi-plan,
+.org-chart,
+[data-overflow="x"] {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Phone: tighter chrome, full-width actions */
+@media (max-width: 639px) {
+  .mp-shell-actions {
+    max-width: 46vw;
+  }
+
+  .mp-main {
+    width: 100%;
+    padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+  }
+
+  .tegel-card,
+  .mp-main .tegel-card {
+    padding: 0.9rem;
+  }
+}
+
+/* Tablet */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .mp-main {
+    width: min(100%, 72rem);
+  }
+}
+
+/* HD TV and large monitors — readable from a short distance */
+@media (min-width: 1920px) {
+  html {
+    font-size: 112.5%;
+  }
+
+  .mp-sidebar {
+    width: 18.5rem;
+  }
+
+  .mp-main {
+    width: min(100%, 120rem);
+    padding-top: 2rem;
+    padding-inline: 2.75rem;
+    padding-bottom: 3.5rem;
+  }
+
+  .scania-topbar {
+    min-height: 4.25rem;
+  }
+}
+
+/* QHD / living-room TV */
+@media (min-width: 2560px) {
+  html {
+    font-size: 125%;
+  }
+
+  .mp-sidebar {
+    width: 20rem;
+  }
+
+  .mp-main {
+    width: min(100%, 140rem);
+    padding-inline: 3.25rem;
+  }
+}
+
+/* 4K — couch distance */
+@media (min-width: 3840px) {
+  html {
+    font-size: 150%;
+  }
+
+  .mp-sidebar {
+    width: 22rem;
+  }
+
+  .mp-main {
+    width: min(100%, 160rem);
+    padding-inline: 4rem;
+  }
+}

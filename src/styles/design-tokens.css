@@ -162,4 +162,8 @@
   --bp-md: 768px;
   --bp-lg: 1024px;
   --bp-xl: 1280px;
+  --bp-2xl: 1536px;
+  --bp-tv: 1920px;
+  --bp-qhd: 2560px;
+  --bp-uhd: 3840px;
 }

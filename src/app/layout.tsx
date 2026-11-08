@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import { AuthenticatedShell } from "@/components/shell/authenticated-shell";
 import { TegelProvider } from "@/components/tegel/tegel-provider";
@@ -21,6 +21,12 @@ export const metadata: Metadata = {
   title: "Management Platform",
   description:
     "Management, governance, portfolio, and PI Planning platform — Scania Tegel UI",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
