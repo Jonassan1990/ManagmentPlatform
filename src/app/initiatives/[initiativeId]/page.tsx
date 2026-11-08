@@ -5,6 +5,7 @@ import {
   SubmitPreStudyButton,
 } from "@/components/governance/governance-forms";
 import { AdvanceLifecycleButton } from "@/components/initiative/initiative-forms";
+import { DecisionTrackPanel } from "@/components/initiative/decision-track";
 import {
   ActivityHistoryPreview,
   AttentionPanel,
@@ -16,6 +17,7 @@ import {
   SituationOverview,
   resolveOwnershipParty,
 } from "@/components/initiative/workspace";
+import { buildDecisionTrack } from "@/modules/initiative/application/decision-track";
 import {
   ConvertToProjectForm,
   CreatePilotForm,
@@ -206,7 +208,7 @@ export default async function InitiativeOverviewPage({
         updatedAt={item.updatedAt}
       />
 
-      <div className="mb-5">
+      <div className="mb-5 space-y-4">
         <LifecycleRail
           current={item.currentStage}
           ownerName={owner.name}
@@ -220,6 +222,19 @@ export default async function InitiativeOverviewPage({
             openBlockingConditions: openBlocking.length,
             canSubmitPreStudy,
           }}
+        />
+        <DecisionTrackPanel
+          initiativeId={item.id}
+          steps={buildDecisionTrack({
+            currentStage: item.currentStage,
+            status: item.status,
+            decisions: gateItem.decisions,
+            hasProject: Boolean(gateItem.project),
+            projectClosed:
+              gateItem.project?.status === "COMPLETED" ||
+              gateItem.project?.status === "ARCHIVED",
+            openBlockingConditions: openBlocking.length,
+          })}
         />
       </div>
 

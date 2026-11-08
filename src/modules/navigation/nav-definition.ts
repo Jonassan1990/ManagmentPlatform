@@ -9,9 +9,8 @@ import type {
 } from "@/modules/navigation/types";
 
 /**
- * Canonical workflow-oriented navigation tree.
+ * Clear product sections for the sidebar.
  * Only destinations that exist as real App Router pages are included.
- * Contextual PI Board/Compare/Review remain in PiTabs (not global nav).
  */
 export const NAV_GROUPS: NavGroupDefinition[] = [
   {
@@ -22,84 +21,69 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
     items: [],
   },
   {
-    id: "portfolio",
-    label: "Portfolio",
-    hubHref: "/portfolio",
-    hubMatch: {
-      type: "prefixExclude",
-      path: "/portfolio",
-      excludePrefixes: [
-        "/portfolio/explorer",
-        "/portfolio/health",
-        "/portfolio/capacity",
-        "/portfolio/reports",
-      ],
-    },
+    id: "people",
+    label: "People",
     items: [
       {
-        id: "portfolio-overview",
-        label: "Overview",
-        href: "/portfolio",
+        id: "vacation-mine",
+        label: "Vacation",
+        href: "/vacation",
         match: {
           type: "prefixExclude",
-          path: "/portfolio",
+          path: "/vacation",
           excludePrefixes: [
-            "/portfolio/explorer",
-            "/portfolio/health",
-            "/portfolio/capacity",
-            "/portfolio/reports",
+            "/vacation/inbox",
+            "/vacation/calendar",
+            "/vacation/year",
           ],
         },
-        capability: "always",
-        description: "What needs attention across the portfolio",
+        capability: "canViewVacation",
+        description: "Request time off and track status",
       },
       {
-        id: "portfolio-explorer",
-        label: "Find work",
-        href: "/portfolio/explorer",
-        match: { type: "prefix", path: "/portfolio/explorer" },
-        capability: "always",
-        description: "Search initiatives and projects",
+        id: "vacation-inbox",
+        label: "Vacation inbox",
+        href: "/vacation/inbox",
+        match: { type: "prefix", path: "/vacation/inbox" },
+        capability: "canReviewVacation",
+        description: "Accept, reject, or ask for changes",
       },
       {
-        id: "portfolio-health",
-        label: "Health",
-        href: "/portfolio/health",
-        match: { type: "prefix", path: "/portfolio/health" },
-        capability: "always",
-        description: "Delivery risk and blockers",
+        id: "vacation-calendar",
+        label: "Vacation calendar",
+        href: "/vacation/calendar",
+        match: { type: "prefix", path: "/vacation/calendar" },
+        capability: "canViewVacation",
+        description: "Approved vacations by month",
       },
       {
-        id: "portfolio-capacity",
-        label: "Capacity",
-        href: "/portfolio/capacity",
-        match: { type: "prefix", path: "/portfolio/capacity" },
-        capability: "always",
-        description: "People load and dependencies",
-      },
-      {
-        id: "portfolio-reports",
-        label: "Reports",
-        href: "/portfolio/reports",
-        match: { type: "prefix", path: "/portfolio/reports" },
-        capability: "always",
-        description: "Export and print summaries",
+        id: "onboarding-list",
+        label: "Onboarding",
+        href: "/onboarding",
+        match: { type: "prefix", path: "/onboarding" },
+        capability: "canViewOnboarding",
+        description:
+          "Dual-check onboarding with optional AI plan help",
       },
     ],
   },
   {
-    id: "initiatives",
-    label: "Initiatives",
-    hubHref: "/initiatives",
-    hubMatch: {
-      type: "prefixExclude",
-      path: "/initiatives",
-      excludePrefixes: ["/initiatives/new"],
-    },
+    id: "delivery",
+    label: "Delivery",
+    hubHref: "/delivery",
+    hubMatch: { type: "prefix", path: "/delivery" },
     items: [
       {
+        id: "delivery-hub",
+        label: "Road map",
+        href: "/delivery",
+        match: { type: "exact", path: "/delivery" },
+        capability: "canViewInitiatives",
+        description: "Idea → product with Go / No go at each step",
+      },
+      {
         id: "initiatives-all",
-        label: "All",
+        label: "Initiatives",
         href: "/initiatives",
         match: {
           type: "prefixExclude",
@@ -110,48 +94,11 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
       },
       {
         id: "initiatives-create",
-        label: "New",
+        label: "New initiative",
         href: "/initiatives/new",
         match: { type: "exact", path: "/initiatives/new" },
         capability: "canCreateInitiative",
       },
-    ],
-  },
-  {
-    id: "pi-planning",
-    label: "PI Planning",
-    hubHref: "/pi",
-    hubMatch: {
-      type: "prefixExclude",
-      path: "/pi",
-      excludePrefixes: ["/pi/new"],
-    },
-    items: [
-      {
-        id: "pi-list",
-        label: "All PIs",
-        href: "/pi",
-        match: {
-          type: "prefixExclude",
-          path: "/pi",
-          excludePrefixes: ["/pi/new"],
-        },
-        capability: "canViewPi",
-        description: "Open a PI board, capacity, or review",
-      },
-      {
-        id: "pi-create",
-        label: "New",
-        href: "/pi/new",
-        match: { type: "exact", path: "/pi/new" },
-        capability: "canCreatePi",
-      },
-    ],
-  },
-  {
-    id: "governance",
-    label: "Governance",
-    items: [
       {
         id: "gov-approvals",
         label: "Approvals",
@@ -166,15 +113,74 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         match: { type: "prefix", path: "/decisions" },
         capability: "canViewDecisions",
       },
+    ],
+  },
+  {
+    id: "planning",
+    label: "Planning",
+    hubHref: "/portfolio/capacity",
+    hubMatch: {
+      type: "prefixExclude",
+      path: "/portfolio",
+      excludePrefixes: [],
+    },
+    items: [
       {
-        id: "gov-policy",
-        label: "Governance policy",
-        href: (ctx) =>
-          ctx.organizationId
-            ? `/organization/${ctx.organizationId}/governance-policy`
-            : null,
-        match: { type: "includesSegment", segment: "governance-policy" },
-        capability: "canManageGovernancePolicy",
+        id: "portfolio-capacity",
+        label: "Capacity & workload",
+        href: "/portfolio/capacity",
+        match: { type: "prefix", path: "/portfolio/capacity" },
+        capability: "always",
+        description: "People load and allocations",
+      },
+      {
+        id: "portfolio-health",
+        label: "Dependencies & health",
+        href: "/portfolio/health",
+        match: { type: "prefix", path: "/portfolio/health" },
+        capability: "always",
+        description: "Cross-functional blockers and risk",
+      },
+      {
+        id: "portfolio-overview",
+        label: "Portfolio overview",
+        href: "/portfolio",
+        match: {
+          type: "prefixExclude",
+          path: "/portfolio",
+          excludePrefixes: [
+            "/portfolio/explorer",
+            "/portfolio/health",
+            "/portfolio/capacity",
+            "/portfolio/reports",
+          ],
+        },
+        capability: "always",
+      },
+      {
+        id: "portfolio-explorer",
+        label: "Find work",
+        href: "/portfolio/explorer",
+        match: { type: "prefix", path: "/portfolio/explorer" },
+        capability: "always",
+      },
+      {
+        id: "pi-list",
+        label: "PI Planning",
+        href: "/pi",
+        match: {
+          type: "prefixExclude",
+          path: "/pi",
+          excludePrefixes: ["/pi/new"],
+        },
+        capability: "canViewPi",
+      },
+      {
+        id: "pi-create",
+        label: "New PI",
+        href: "/pi/new",
+        match: { type: "exact", path: "/pi/new" },
+        capability: "canCreatePi",
       },
     ],
   },
@@ -212,6 +218,16 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         match: { type: "includesSegment", segment: "access" },
         capability: "canManageAccess",
       },
+      {
+        id: "gov-policy",
+        label: "Governance policy",
+        href: (ctx) =>
+          ctx.organizationId
+            ? `/organization/${ctx.organizationId}/governance-policy`
+            : null,
+        match: { type: "includesSegment", segment: "governance-policy" },
+        capability: "canManageGovernancePolicy",
+      },
     ],
   },
   {
@@ -231,79 +247,6 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         capability: "canManageAdminConfig",
         description:
           "Confirm users, roles, departments, and hierarchy in one place",
-      },
-    ],
-  },
-  {
-    id: "vacation",
-    label: "Vacation",
-    hubHref: "/vacation",
-    hubMatch: {
-      type: "prefixExclude",
-      path: "/vacation",
-      excludePrefixes: [
-        "/vacation/inbox",
-        "/vacation/calendar",
-        "/vacation/year",
-      ],
-    },
-    items: [
-      {
-        id: "vacation-mine",
-        label: "My requests",
-        href: "/vacation",
-        match: {
-          type: "prefixExclude",
-          path: "/vacation",
-          excludePrefixes: [
-            "/vacation/inbox",
-            "/vacation/calendar",
-            "/vacation/year",
-          ],
-        },
-        capability: "canViewVacation",
-        description: "Request time off and track status",
-      },
-      {
-        id: "vacation-inbox",
-        label: "Manager inbox",
-        href: "/vacation/inbox",
-        match: { type: "prefix", path: "/vacation/inbox" },
-        capability: "canReviewVacation",
-        description: "Accept, reject, or ask for changes",
-      },
-      {
-        id: "vacation-calendar",
-        label: "Calendar",
-        href: "/vacation/calendar",
-        match: { type: "prefix", path: "/vacation/calendar" },
-        capability: "canViewVacation",
-        description: "Approved vacations by month",
-      },
-      {
-        id: "vacation-year",
-        label: "By year",
-        href: "/vacation/year",
-        match: { type: "prefix", path: "/vacation/year" },
-        capability: "canViewVacation",
-        description: "Approved days per person for a year",
-      },
-    ],
-  },
-  {
-    id: "onboarding",
-    label: "Onboarding",
-    hubHref: "/onboarding",
-    hubMatch: { type: "prefix", path: "/onboarding" },
-    items: [
-      {
-        id: "onboarding-list",
-        label: "Checklists",
-        href: "/onboarding",
-        match: { type: "prefix", path: "/onboarding" },
-        capability: "canViewOnboarding",
-        description:
-          "Dual-check onboarding — employee and onboarder must both confirm",
       },
     ],
   },
@@ -337,25 +280,20 @@ export function matchNavPath(pathname: string, match: NavMatch): boolean {
     case "prefixExclude": {
       const base = normalizePath(match.path);
       if (!(path === base || path.startsWith(`${base}/`))) return false;
-      for (const ex of match.excludePrefixes ?? []) {
-        const e = normalizePath(ex);
-        if (path === e || path.startsWith(`${e}/`)) return false;
+      for (const prefix of match.excludePrefixes ?? []) {
+        const excluded = normalizePath(prefix);
+        if (path === excluded || path.startsWith(`${excluded}/`)) return false;
       }
-      for (const seg of match.excludeSegments ?? []) {
-        if (pathIncludesSegment(path, seg)) return false;
+      for (const segment of match.excludeSegments ?? []) {
+        if (path.split("/").includes(segment)) return false;
       }
       return true;
     }
     case "includesSegment":
-      return pathIncludesSegment(path, match.segment);
+      return path.split("/").includes(match.segment);
     default:
       return false;
   }
-}
-
-function pathIncludesSegment(path: string, segment: string): boolean {
-  const seg = segment.replace(/^\/+|\/+$/g, "");
-  return path.split("/").includes(seg);
 }
 
 export function capabilityAllowed(
@@ -400,60 +338,68 @@ export function resolveNavGroups(
       ? matchNavPath(pathname, group.hubMatch)
       : false;
 
-    if (group.id === "governance" && items.length === 0) continue;
-
-    if (group.id === "initiatives") {
-      const showHub = capabilityAllowed("canViewInitiatives", ctx.capabilities);
-      if (!showHub && items.length === 0) continue;
+    if (group.id === "people") {
+      const showPeople =
+        capabilityAllowed("canViewVacation", ctx.capabilities) ||
+        capabilityAllowed("canViewOnboarding", ctx.capabilities) ||
+        capabilityAllowed("canReviewVacation", ctx.capabilities);
+      if (!showPeople && items.length === 0) continue;
+      const peopleHub =
+        items.find((i) => i.id === "vacation-mine")?.href ??
+        items.find((i) => i.id === "onboarding-list")?.href;
       groups.push({
         id: group.id,
         label: group.label,
-        hubHref: showHub ? hubHref : undefined,
-        hubActive,
+        hubHref: peopleHub,
+        hubActive: false,
         items,
-        containsActive: hubActive || items.some((i) => i.active),
+        containsActive: items.some((i) => i.active),
       });
       continue;
     }
 
-    if (group.id === "pi-planning") {
-      const showHub = capabilityAllowed("canViewPi", ctx.capabilities);
+    if (group.id === "delivery") {
+      const showHub =
+        capabilityAllowed("canViewInitiatives", ctx.capabilities) ||
+        capabilityAllowed("canViewApprovals", ctx.capabilities) ||
+        capabilityAllowed("canViewDecisions", ctx.capabilities);
       if (!showHub && items.length === 0) continue;
+      // Hub active for /delivery, /initiatives*, /approvals, /decisions
+      const deliveryActive =
+        matchNavPath(pathname, { type: "prefix", path: "/delivery" }) ||
+        matchNavPath(pathname, { type: "prefix", path: "/initiatives" }) ||
+        matchNavPath(pathname, { type: "prefix", path: "/approvals" }) ||
+        matchNavPath(pathname, { type: "prefix", path: "/decisions" });
       groups.push({
         id: group.id,
         label: group.label,
-        hubHref: showHub ? hubHref : undefined,
-        hubActive,
+        hubHref: capabilityAllowed("canViewInitiatives", ctx.capabilities)
+          ? hubHref
+          : undefined,
+        hubActive: deliveryActive && matchNavPath(pathname, { type: "exact", path: "/delivery" }),
         items,
-        containsActive: hubActive || items.some((i) => i.active),
+        containsActive: deliveryActive || items.some((i) => i.active),
       });
       continue;
     }
 
-    if (group.id === "vacation") {
-      const showHub = capabilityAllowed("canViewVacation", ctx.capabilities);
-      if (!showHub && items.length === 0) continue;
+    if (group.id === "planning") {
+      const showPi = capabilityAllowed("canViewPi", ctx.capabilities);
+      const planningActive =
+        matchNavPath(pathname, { type: "prefix", path: "/portfolio" }) ||
+        matchNavPath(pathname, { type: "prefix", path: "/pi" });
       groups.push({
         id: group.id,
         label: group.label,
-        hubHref: showHub ? hubHref : undefined,
-        hubActive,
-        items,
-        containsActive: hubActive || items.some((i) => i.active),
-      });
-      continue;
-    }
-
-    if (group.id === "onboarding") {
-      const showHub = capabilityAllowed("canViewOnboarding", ctx.capabilities);
-      if (!showHub && items.length === 0) continue;
-      groups.push({
-        id: group.id,
-        label: group.label,
-        hubHref: showHub ? hubHref : undefined,
-        hubActive,
-        items,
-        containsActive: hubActive || items.some((i) => i.active),
+        hubHref,
+        hubActive: matchNavPath(pathname, {
+          type: "prefix",
+          path: "/portfolio/capacity",
+        }),
+        items: showPi
+          ? items
+          : items.filter((i) => i.id !== "pi-list" && i.id !== "pi-create"),
+        containsActive: planningActive || items.some((i) => i.active),
       });
       continue;
     }

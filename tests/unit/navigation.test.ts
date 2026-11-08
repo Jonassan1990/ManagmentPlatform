@@ -14,6 +14,7 @@ const fullCtx: NavResolveContext = {
     canManageAccess: true,
     canCreatePi: true,
     canCreateInitiative: true,
+    canManageAdminConfig: true,
   },
   organizationId: "org-1",
   activePiId: null,
@@ -61,12 +62,6 @@ describe("M4C-A navigation matching", () => {
     expect(matchNavPath("/portfolio", hub)).toBe(true);
     expect(matchNavPath("/portfolio/explorer", hub)).toBe(false);
     expect(matchNavPath("/portfolio/reports", hub)).toBe(false);
-    expect(
-      matchNavPath("/portfolio/explorer", {
-        type: "prefix",
-        path: "/portfolio/explorer",
-      }),
-    ).toBe(true);
   });
 
   it("matches org-scoped access and policy segments", () => {
@@ -76,54 +71,49 @@ describe("M4C-A navigation matching", () => {
         segment: "access",
       }),
     ).toBe(true);
-    expect(
-      matchNavPath("/organization/abc/governance-policy", {
-        type: "includesSegment",
-        segment: "governance-policy",
-      }),
-    ).toBe(true);
   });
 });
 
-describe("M4C-A navigation filtering", () => {
-  it("resolves workflow groups with expected destinations", () => {
+describe("clear product sections navigation", () => {
+  it("resolves People, Delivery, and Planning groups", () => {
     const groups = resolveNavGroups("/portfolio/health", fullCtx);
     const ids = groups.map((g) => g.id);
     expect(ids).toContain("home");
-    expect(ids).toContain("portfolio");
-    expect(ids).toContain("governance");
+    expect(ids).toContain("people");
+    expect(ids).toContain("delivery");
+    expect(ids).toContain("planning");
     expect(ids).toContain("organization");
 
-    const portfolio = groups.find((g) => g.id === "portfolio")!;
-    expect(portfolio.containsActive).toBe(true);
-    expect(portfolio.items.find((i) => i.id === "portfolio-health")?.active).toBe(
-      true,
-    );
+    const planning = groups.find((g) => g.id === "planning")!;
+    expect(planning.containsActive).toBe(true);
+    expect(
+      planning.items.find((i) => i.id === "portfolio-health")?.active,
+    ).toBe(true);
 
     const hrefs = listVisibleHrefs(fullCtx);
+    expect(hrefs).toContain("/delivery");
     expect(hrefs).toContain("/portfolio/health");
+    expect(hrefs).toContain("/onboarding");
     expect(hrefs).toContain("/organization/org-1/access");
-    expect(hrefs).toContain("/organization/org-1/governance-policy");
     expect(hrefs).toContain("/guide");
     expect(hrefs).not.toContain("/pi/board");
-
-    const help = groups.find((g) => g.id === "help");
-    expect(help?.items.map((i) => i.id)).toEqual(["user-guide"]);
   });
 
-  it("hides governance and create actions for viewer capabilities", () => {
+  it("hides approvals and create actions for viewer capabilities", () => {
     const groups = resolveNavGroups("/", viewerCtx);
-    expect(groups.find((g) => g.id === "governance")).toBeUndefined();
-    const initiatives = groups.find((g) => g.id === "initiatives")!;
-    expect(initiatives.items.map((i) => i.id)).toEqual(["initiatives-all"]);
-    const pi = groups.find((g) => g.id === "pi-planning")!;
-    expect(pi.items.some((i) => i.id === "pi-create")).toBe(false);
-    expect(groups.find((g) => g.id === "organization")!.items.map((i) => i.id)).toEqual(
-      ["org-hub"],
-    );
+    const delivery = groups.find((g) => g.id === "delivery")!;
+    expect(delivery.items.map((i) => i.id)).toEqual([
+      "delivery-hub",
+      "initiatives-all",
+    ]);
+    const planning = groups.find((g) => g.id === "planning")!;
+    expect(planning.items.some((i) => i.id === "pi-create")).toBe(false);
+    expect(
+      groups.find((g) => g.id === "organization")!.items.map((i) => i.id),
+    ).toEqual(["org-hub"]);
   });
 
-  it("hides Access and Approvals for portfolio-manager-shaped capabilities", () => {
+  it("hides Access for portfolio-manager-shaped capabilities", () => {
     const portfolioMgr: NavResolveContext = {
       capabilities: {
         canViewApprovals: false,
@@ -144,7 +134,6 @@ describe("M4C-A navigation filtering", () => {
       activePiId: null,
     };
     const groups = resolveNavGroups("/", portfolioMgr);
-    expect(groups.find((g) => g.id === "governance")).toBeUndefined();
     const org = groups.find((g) => g.id === "organization")!;
     expect(org.items.some((i) => i.id === "org-access")).toBe(false);
     expect(listVisibleHrefs(portfolioMgr)).toContain("/initiatives/new");
@@ -171,10 +160,9 @@ describe("M4C-A navigation filtering", () => {
       activePiId: null,
     };
     const groups = resolveNavGroups("/", teamMgr);
-    const pi = groups.find((g) => g.id === "pi-planning")!;
-    expect(pi.items.some((i) => i.id === "pi-list")).toBe(true);
-    expect(pi.items.some((i) => i.id === "pi-create")).toBe(false);
-    expect(groups.find((g) => g.id === "governance")).toBeUndefined();
+    const planning = groups.find((g) => g.id === "planning")!;
+    expect(planning.items.some((i) => i.id === "pi-list")).toBe(true);
+    expect(planning.items.some((i) => i.id === "pi-create")).toBe(false);
   });
 
   it("does not invent broken global PI contextual routes", () => {
@@ -195,8 +183,8 @@ describe("M4C-A navigation filtering", () => {
       "/pi/960860ac-c3e0-46b2-84a5-5cde50647584/review",
       fullCtx,
     );
-    const pi = groups.find((g) => g.id === "pi-planning")!;
-    expect(pi.containsActive).toBe(true);
-    expect(pi.items.find((i) => i.id === "pi-list")?.active).toBe(true);
+    const planning = groups.find((g) => g.id === "planning")!;
+    expect(planning.containsActive).toBe(true);
+    expect(planning.items.find((i) => i.id === "pi-list")?.active).toBe(true);
   });
 });

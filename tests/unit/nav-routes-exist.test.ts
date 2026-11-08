@@ -57,6 +57,7 @@ describe("sidebar destinations have App Router pages", () => {
       "/portfolio/health",
       "/portfolio/capacity",
       "/portfolio/reports",
+      "/delivery",
       "/initiatives",
       "/initiatives/new",
       "/pi",
