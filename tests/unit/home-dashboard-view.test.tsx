@@ -227,7 +227,7 @@ function baseDashboard(
           initiativeId: "init-1",
           referenceKey: "PRJ-1",
           name: "Blocked delivery",
-          href: "/initiatives/init-1?tab=project",
+          href: "/initiatives/init-1/project",
           classification: "BLOCKED",
           departmentName: "Dept A",
         },

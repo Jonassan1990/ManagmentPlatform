@@ -770,7 +770,7 @@ export class HomeDashboardQueryService {
             referenceKey: project.referenceKey,
             title: project.name,
             status: project.status,
-            href: `/initiatives/${project.initiativeId}?tab=project`,
+            href: `/initiatives/${project.initiativeId}/project`,
             organizationId: linkedResource.organizationId,
             attribution: attr("PROJECT_OWNER"),
           },
@@ -1131,7 +1131,7 @@ export class HomeDashboardQueryService {
     for (const item of wiItems) {
       const initiativeId = map.get(item.id);
       if (initiativeId) {
-        item.href = `/initiatives/${initiativeId}?tab=project`;
+        item.href = `/initiatives/${initiativeId}/project`;
       }
     }
   }
@@ -1153,7 +1153,7 @@ export class HomeDashboardQueryService {
     for (const item of msItems) {
       const initiativeId = map.get(item.id);
       if (initiativeId) {
-        item.href = `/initiatives/${initiativeId}?tab=project`;
+        item.href = `/initiatives/${initiativeId}/project`;
       }
     }
   }

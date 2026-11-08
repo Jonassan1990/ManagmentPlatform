@@ -38,7 +38,27 @@ export default async function OrganizationDetailPage({
   try {
     hierarchy = await organization.getHierarchy(principal, organizationId);
   } catch {
-    notFound();
+    return (
+      <div>
+        <Breadcrumbs
+          items={[
+            { label: "Overview", href: "/" },
+            { label: "Organization", href: "/organization" },
+            { label: "Unavailable" },
+          ]}
+        />
+        <PageHeader title="Organization unavailable" />
+        <Panel>
+          <Alert tone="error">
+            You do not have access to this organization, or it no longer
+            exists.{" "}
+            <Link href="/organization" className="underline">
+              Back to Organization
+            </Link>
+          </Alert>
+        </Panel>
+      </div>
+    );
   }
   if (!hierarchy) notFound();
 
