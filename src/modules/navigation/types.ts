@@ -14,7 +14,9 @@ export type NavCapabilityKey =
   | "canViewInitiatives"
   | "canCreateInitiative"
   | "canViewVacation"
-  | "canReviewVacation";
+  | "canReviewVacation"
+  | "canViewOnboarding"
+  | "canManageOnboarding";
 
 export type ShellNavCapabilities = {
   canViewApprovals: boolean;
@@ -27,6 +29,8 @@ export type ShellNavCapabilities = {
   canCreateInitiative: boolean;
   canViewVacation: boolean;
   canReviewVacation: boolean;
+  canViewOnboarding: boolean;
+  canManageOnboarding: boolean;
 };
 
 export type NavMatch =
