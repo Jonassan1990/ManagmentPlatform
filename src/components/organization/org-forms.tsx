@@ -22,6 +22,31 @@ import {
   fieldClassName,
   useActionForm,
 } from "@/components/ui/forms";
+import { functionRoleSelectOptions } from "@/modules/organization/domain/function-roles";
+
+function FunctionRoleSelect({
+  id,
+  current,
+}: {
+  id: string;
+  current: string | null;
+}) {
+  return (
+    <select
+      id={id}
+      name="functionRole"
+      className={fieldClassName}
+      defaultValue={current ?? ""}
+    >
+      <option value="">No role yet</option>
+      {functionRoleSelectOptions(current).map((label) => (
+        <option key={label} value={label}>
+          {label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 export function EditOrganizationForm({
   id,
@@ -382,8 +407,8 @@ export function CreateResourceForm({
           <option value="OTHER">Other</option>
         </select>
       </FormField>
-      <FormField label="Function / role label" htmlFor="resource-function">
-        <input id="resource-function" name="functionRole" maxLength={200} className={fieldClassName} />
+      <FormField label="Role" htmlFor="resource-function" hint="Taken from the organization role catalog.">
+        <FunctionRoleSelect id="resource-function" current={null} />
       </FormField>
       <FormField label="Skills" htmlFor="resource-skills" hint="Comma-separated. Extensible later.">
         <input id="resource-skills" name="skills" className={fieldClassName} placeholder="e.g. architecture, integration" />
@@ -456,8 +481,8 @@ export function EditResourceForm(props: {
           <option value="OTHER">Other</option>
         </select>
       </FormField>
-      <FormField label="Function / role label" htmlFor="edit-resource-function">
-        <input id="edit-resource-function" name="functionRole" defaultValue={props.functionRole ?? ""} className={fieldClassName} />
+      <FormField label="Role" htmlFor="edit-resource-function" hint="Taken from the organization role catalog.">
+        <FunctionRoleSelect id="edit-resource-function" current={props.functionRole} />
       </FormField>
       <FormField label="Skills" htmlFor="edit-resource-skills">
         <input id="edit-resource-skills" name="skills" defaultValue={props.skills.join(", ")} className={fieldClassName} />

@@ -95,7 +95,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "onboarding-ai",
         title: "Onboarding with AI help",
-        body: "Managers pick a role template, let AI draft the steps, edit the draft, then create the checklist. Employee and onboarder both confirm.",
+        body: "Managers pick a role from the role catalog, let AI draft the steps, edit the draft, then create the checklist. Employee and onboarder both confirm.",
         href: "/onboarding",
         hrefLabel: "Onboarding",
       },
@@ -229,7 +229,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "start",
         title: "Start a checklist",
-        body: "Managers open Onboarding, pick a role template, draft with AI, edit the steps, then assign the employee and onboarder.",
+        body: "Managers open Onboarding, pick a role from the role catalog, draft with AI, edit the steps, then assign the employee and onboarder.",
         href: "/onboarding",
         hrefLabel: "Onboarding",
       },

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AppError } from "@/modules/shared/errors";
+import { FUNCTION_ROLES } from "@/modules/organization/domain/function-roles";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { withOrgMode } from "@/modules/organization/application/org-ui-mode";
 import { createServices } from "@/server/container";
@@ -192,7 +193,7 @@ export default async function OrganizationAdminConfigPage({
       />
       <PageHeader
         title={`Admin config · ${hierarchy.name}`}
-        description="Confirm users, roles, and departments; place people in the hierarchy; and manage logins and role packs."
+        description="Confirm users, departments, and role packs. A person's job role is chosen from the role catalog."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -469,6 +470,20 @@ export default async function OrganizationAdminConfigPage({
                 organizationId={hierarchy.id}
                 teams={allTeams}
               />
+            </Panel>
+            <Panel>
+              <h2 className="mb-2 font-medium">Role catalog</h2>
+              <p className="mb-3 text-sm text-[var(--muted)]">
+                Job roles for people and onboarding come from this list.
+                Permission role packs stay on the Roles &amp; users tab.
+              </p>
+              <ul className="grid gap-1 text-sm sm:grid-cols-2">
+                {FUNCTION_ROLES.map((role) => (
+                  <li key={role.key} className="text-[var(--ink)]">
+                    {role.label}
+                  </li>
+                ))}
+              </ul>
             </Panel>
             <Panel>
               <AssignDepartmentForm

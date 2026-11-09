@@ -38,11 +38,11 @@ export function OnboardingDraftPanel({
   defaultOrganizationId: string | null;
 }) {
   const router = useRouter();
-  const [roleKey, setRoleKey] = useState(ONBOARDING_ROLE_TEMPLATES[0]?.key ?? "engineer");
+  const [roleKey, setRoleKey] = useState(ONBOARDING_ROLE_TEMPLATES[0]?.key ?? "developer");
   const [departmentName, setDepartmentName] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<EditableOnboardingStep[]>(() =>
-    stepsFromTemplate(ONBOARDING_ROLE_TEMPLATES[0]?.key ?? "engineer"),
+    stepsFromTemplate(ONBOARDING_ROLE_TEMPLATES[0]?.key ?? "developer"),
   );
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,9 +128,9 @@ export function OnboardingDraftPanel({
       <div>
         <h2 className="font-medium text-[var(--ink)]">Role template and draft</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Pick a role. AI drafts the steps for that template. Edit the draft,
-          then create the checklist. Employee and onboarder still both check
-          every step.
+          Pick a role from the role catalog. AI drafts the steps for that role.
+          Edit the draft, then create the checklist. Employee and onboarder
+          still both check every step.
         </p>
         {template ? (
           <p className="mt-1 text-sm text-[var(--muted)]">{template.summary}</p>
@@ -143,7 +143,7 @@ export function OnboardingDraftPanel({
       ) : null}
       {ErrorAlert}
       <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label="Role template" htmlFor="onboarding-role">
+        <FormField label="Role" htmlFor="onboarding-role">
           <select
             id="onboarding-role"
             className={fieldClassName}
