@@ -4,10 +4,13 @@ import {
   type FunctionRoleLabel,
 } from "@/modules/organization/domain/function-roles";
 import { DEFAULT_ONBOARDING_ITEMS } from "./default-items";
+import { INFB_NEW_HIRE_TEMPLATE } from "./infb-new-hire-template";
 
 export type OnboardingPlanItem = {
   title: string;
   description: string;
+  phase?: "PREBOARDING" | "FIRST_WEEK" | "FIRST_30_DAYS" | "FEEDBACK";
+  assigneeLabel?: string;
 };
 
 export type OnboardingRoleTemplate = {
@@ -258,6 +261,7 @@ export function functionRoleFamily(label: string): RoleFamily | null {
 
 export function getOnboardingRoleTemplate(key: string | null | undefined) {
   if (!key) return null;
+  if (key === INFB_NEW_HIRE_TEMPLATE.key) return INFB_NEW_HIRE_TEMPLATE;
   return (
     ONBOARDING_ROLE_TEMPLATES.find((template) => template.key === key) ?? null
   );

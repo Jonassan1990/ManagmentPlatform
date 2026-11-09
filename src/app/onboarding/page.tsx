@@ -65,7 +65,7 @@ export default async function OnboardingPage() {
       />
       <PageHeader
         title="Onboarding checklists"
-        description="New employee and onboarder must both check every item. Official pass happens only when both sides are complete."
+        description="Start from the INFB new hire checklist, or pick a role and draft the steps. Mark each task not started, in progress, or complete."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -135,8 +135,8 @@ export default async function OnboardingPage() {
             />
           ) : (
             <p className="text-sm text-[var(--muted)]">
-              Choose a role from the role catalog. AI drafts the steps, then you
-              edit them and create the checklist.
+              Use the INFB new hire checklist, or choose a role and draft the
+              steps.
             </p>
           )}
         </Panel>

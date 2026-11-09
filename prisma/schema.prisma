@@ -1992,6 +1992,20 @@ enum OnboardingAuditAction {
   PASSED
   CANCELLED
   ITEMS_EDITED
+  TASK_UPDATED
+}
+
+enum OnboardingItemPhase {
+  PREBOARDING
+  FIRST_WEEK
+  FIRST_30_DAYS
+  FEEDBACK
+}
+
+enum OnboardingTaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
 }
 
 /// One onboarding run for a new employee with an assigned onboarder ("onboard guy").
@@ -2005,6 +2019,10 @@ model OnboardingChecklist {
   status               OnboardingChecklistStatus  @default(IN_PROGRESS)
   passedAt             DateTime?
   notes                String?                    @db.VarChar(4000)
+  jobTitle             String?                    @db.VarChar(200)
+  departmentLabel      String?                    @db.VarChar(200)
+  hiringManagerName    String?                    @db.VarChar(200)
+  startDate            DateTime?                  @db.Date
   version              Int                        @default(1)
   createdAt            DateTime                   @default(now())
   updatedAt            DateTime                   @updatedAt
@@ -2026,6 +2044,11 @@ model OnboardingChecklistItem {
   sortOrder                     Int       @default(0)
   title                         String    @db.VarChar(300)
   description                   String?   @db.VarChar(2000)
+  phase                         OnboardingItemPhase?
+  assigneeLabel                 String?   @db.VarChar(160)
+  dueDate                       DateTime? @db.Date
+  taskStatus                    OnboardingTaskStatus @default(NOT_STARTED)
+  notes                         String?   @db.VarChar(2000)
   employeeCheckedAt             DateTime?
   employeeCheckedByPrincipalId  String?   @db.Uuid
   onboarderCheckedAt            DateTime?

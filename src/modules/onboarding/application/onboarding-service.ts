@@ -1,6 +1,7 @@
 import {
   OnboardingAuditAction,
   OnboardingChecklistStatus,
+  OnboardingTaskStatus,
   PrismaClient,
 } from "@prisma/client";
 import type { AuditService } from "@/modules/audit/application/audit-service";
@@ -9,12 +10,16 @@ import type { Principal } from "@/modules/identity-access/domain/types";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { DEFAULT_ONBOARDING_ITEMS } from "./default-items";
-import { getOnboardingRoleTemplate } from "./role-templates";
+import {
+  getOnboardingRoleTemplate,
+  type OnboardingPlanItem,
+} from "./role-templates";
 import {
   cancelOnboardingChecklistSchema,
   createOnboardingChecklistSchema,
   toggleOnboardingItemSchema,
   updateOnboardingItemsSchema,
+  updateOnboardingTaskSchema,
 } from "./schemas";
 
 function itemIsDualComplete(item: {
@@ -22,6 +27,25 @@ function itemIsDualComplete(item: {
   onboarderCheckedAt: Date | null;
 }): boolean {
   return Boolean(item.employeeCheckedAt && item.onboarderCheckedAt);
+}
+
+function itemCountsForPass(item: { phase: string | null }): boolean {
+  return item.phase !== "FEEDBACK";
+}
+
+function itemIsDone(item: {
+  phase: string | null;
+  taskStatus: string;
+  employeeCheckedAt: Date | null;
+  onboarderCheckedAt: Date | null;
+}): boolean {
+  if (!itemCountsForPass(item)) return true;
+  return item.taskStatus === "COMPLETE" || itemIsDualComplete(item);
+}
+
+function dateOnly(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  return new Date(`${value}T00:00:00.000Z`);
 }
 
 export class OnboardingService {
@@ -51,15 +75,18 @@ export class OnboardingService {
     if (!onboarder) throw new AppError("NOT_FOUND", "Onboarder principal not found");
 
     const template = getOnboardingRoleTemplate(parsed.roleTemplate);
-    const sourceItems =
-      parsed.items ??
-      template?.items ??
-      DEFAULT_ONBOARDING_ITEMS;
+    const sourceItems: OnboardingPlanItem[] = parsed.items
+      ? parsed.items.map((item) => ({
+          title: item.title,
+          description: item.description ?? "",
+        }))
+      : (template?.items ?? DEFAULT_ONBOARDING_ITEMS);
+    const personName = employee.displayName ?? "new employee";
     const title =
       parsed.title?.trim() ||
-      `Onboarding — ${employee.displayName ?? "new employee"}${
-        template ? ` — ${template.label}` : ""
-      }`;
+      (template?.key === "infb-new-hire"
+        ? `INFB new hire — ${personName}`
+        : `Onboarding — ${personName}${template ? ` — ${template.label}` : ""}`);
 
     const created = await this.db.$transaction(async (tx) => {
       const checklist = await tx.onboardingChecklist.create({
@@ -69,6 +96,10 @@ export class OnboardingService {
           employeePrincipalId: parsed.employeePrincipalId,
           onboarderPrincipalId: parsed.onboarderPrincipalId,
           notes: parsed.notes?.trim() || null,
+          jobTitle: parsed.jobTitle,
+          departmentLabel: parsed.departmentLabel,
+          hiringManagerName: parsed.hiringManagerName,
+          startDate: dateOnly(parsed.startDate),
           createdByPrincipalId: principal.id,
           status: OnboardingChecklistStatus.IN_PROGRESS,
           items: {
@@ -76,6 +107,8 @@ export class OnboardingService {
               sortOrder: index + 1,
               title: item.title,
               description: item.description?.trim() || null,
+              phase: item.phase ?? null,
+              assigneeLabel: item.assigneeLabel ?? null,
             })),
           },
         },
@@ -202,7 +235,7 @@ export class OnboardingService {
         where: { checklistId: checklist.id },
         orderBy: { sortOrder: "asc" },
       });
-      const allDual = allItems.every(itemIsDualComplete);
+      const allDual = allItems.every(itemIsDone);
       if (allDual) {
         await tx.onboardingChecklist.update({
           where: { id: checklist.id },
@@ -286,6 +319,125 @@ export class OnboardingService {
     return updated;
   }
 
+  async updateTask(principal: Principal, input: unknown) {
+    const parsed = updateOnboardingTaskSchema.parse(input);
+    const checklist = await this.requireChecklist(parsed.checklistId);
+    if (checklist.status !== OnboardingChecklistStatus.IN_PROGRESS) {
+      throw new AppError("CONFLICT", "This onboarding checklist is closed");
+    }
+    if (checklist.version !== parsed.expectedVersion) {
+      throw new AppError("STALE_VERSION", "Checklist was updated by someone else");
+    }
+    const item = checklist.items.find((row) => row.id === parsed.itemId);
+    if (!item) throw new AppError("NOT_FOUND", "Checklist item not found");
+
+    const isParticipant =
+      principal.id === checklist.employeePrincipalId ||
+      principal.id === checklist.onboarderPrincipalId;
+    const canManage = await this.canManage(principal, checklist.organizationId);
+    if (!isParticipant && !canManage) {
+      throw new AppError("FORBIDDEN", "Not allowed to update this task");
+    }
+
+    const now = new Date();
+    const nextStatus = parsed.taskStatus ?? item.taskStatus;
+    const notes =
+      parsed.notes === undefined ? item.notes : parsed.notes?.trim() || null;
+    const dueDate =
+      parsed.dueDate === undefined ? item.dueDate : dateOnly(parsed.dueDate);
+    const markDone = nextStatus === OnboardingTaskStatus.COMPLETE && item.phase !== "FEEDBACK";
+    const clearDone =
+      nextStatus !== OnboardingTaskStatus.COMPLETE && item.phase !== "FEEDBACK";
+
+    const updated = await this.db.$transaction(async (tx) => {
+      await tx.onboardingChecklistItem.update({
+        where: { id: item.id },
+        data: {
+          taskStatus: nextStatus,
+          notes,
+          dueDate,
+          ...(markDone
+            ? {
+                employeeCheckedAt: item.employeeCheckedAt ?? now,
+                employeeCheckedByPrincipalId:
+                  item.employeeCheckedByPrincipalId ?? principal.id,
+                onboarderCheckedAt: item.onboarderCheckedAt ?? now,
+                onboarderCheckedByPrincipalId:
+                  item.onboarderCheckedByPrincipalId ?? principal.id,
+              }
+            : {}),
+          ...(clearDone
+            ? {
+                employeeCheckedAt: null,
+                employeeCheckedByPrincipalId: null,
+                onboarderCheckedAt: null,
+                onboarderCheckedByPrincipalId: null,
+              }
+            : {}),
+          version: { increment: 1 },
+        },
+      });
+
+      await tx.onboardingChecklistAudit.create({
+        data: {
+          checklistId: checklist.id,
+          itemId: item.id,
+          actorPrincipalId: principal.id,
+          action: OnboardingAuditAction.TASK_UPDATED,
+          payload: {
+            title: item.title,
+            taskStatus: nextStatus,
+          },
+        },
+      });
+
+      await tx.onboardingChecklist.update({
+        where: { id: checklist.id, version: checklist.version },
+        data: { version: { increment: 1 } },
+      });
+
+      const allItems = await tx.onboardingChecklistItem.findMany({
+        where: { checklistId: checklist.id },
+      });
+      if (allItems.length > 0 && allItems.every(itemIsDone)) {
+        await tx.onboardingChecklist.update({
+          where: { id: checklist.id },
+          data: {
+            status: OnboardingChecklistStatus.PASSED,
+            passedAt: now,
+            version: { increment: 1 },
+          },
+        });
+        await tx.onboardingChecklistAudit.create({
+          data: {
+            checklistId: checklist.id,
+            actorPrincipalId: principal.id,
+            action: OnboardingAuditAction.PASSED,
+            comment: "All tasks are complete",
+            payload: { itemCount: allItems.length },
+          },
+        });
+      }
+
+      return tx.onboardingChecklist.findUniqueOrThrow({
+        where: { id: checklist.id },
+        include: { items: { orderBy: { sortOrder: "asc" } } },
+      });
+    });
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "onboarding.task_updated",
+      subjectType: "OnboardingChecklist",
+      subjectId: checklist.id,
+      organizationId: checklist.organizationId,
+      payload: { itemId: item.id, taskStatus: nextStatus },
+      result: "success",
+    });
+
+    return updated;
+  }
+
   async updateItems(principal: Principal, input: unknown) {
     const parsed = updateOnboardingItemsSchema.parse(input);
     const checklist = await this.requireChecklist(parsed.checklistId);
@@ -362,7 +514,7 @@ export class OnboardingService {
       const allItems = await tx.onboardingChecklistItem.findMany({
         where: { checklistId: checklist.id },
       });
-      if (allItems.length > 0 && allItems.every(itemIsDualComplete)) {
+      if (allItems.length > 0 && allItems.every(itemIsDone)) {
         await tx.onboardingChecklist.update({
           where: { id: checklist.id },
           data: {

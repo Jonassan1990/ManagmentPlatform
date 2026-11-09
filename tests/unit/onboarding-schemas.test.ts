@@ -3,7 +3,8 @@ import {
   alignOnboardingPlan,
   DEFAULT_ONBOARDING_ITEMS,
 } from "@/modules/onboarding/application/default-items";
-import { ONBOARDING_ROLE_TEMPLATES } from "@/modules/onboarding/application/role-templates";
+import { INFB_NEW_HIRE_ITEMS } from "@/modules/onboarding/application/infb-new-hire-template";
+import { ONBOARDING_ROLE_TEMPLATES, getOnboardingRoleTemplate } from "@/modules/onboarding/application/role-templates";
 import { FUNCTION_ROLES } from "@/modules/organization/domain/function-roles";
 import {
   cancelOnboardingChecklistSchema,
@@ -102,6 +103,24 @@ describe("default onboarding items", () => {
     );
     expect(aligned[0]?.description).toContain("INFB");
     expect(aligned.at(-1)?.title).toBe("Onboarding confirmation");
+  });
+});
+
+describe("INFB new hire template", () => {
+  it("follows the spreadsheet phases and keeps feedback at the end", () => {
+    const template = getOnboardingRoleTemplate("infb-new-hire");
+    expect(template?.label).toBe("INFB new hire");
+    expect(INFB_NEW_HIRE_ITEMS.map((item) => item.phase)).toEqual([
+      ...Array(4).fill("PREBOARDING"),
+      ...Array(10).fill("FIRST_WEEK"),
+      ...Array(12).fill("FIRST_30_DAYS"),
+      ...Array(4).fill("FEEDBACK"),
+    ]);
+    expect(INFB_NEW_HIRE_ITEMS[0]).toMatchObject({
+      title: "Send welcome email",
+      assigneeLabel: "Group Manager",
+    });
+    expect(INFB_NEW_HIRE_ITEMS.at(-1)?.title).toBe("Additional comments");
   });
 });
 
