@@ -62,7 +62,12 @@ export default async function OrganizationDetailPage({
   }
   if (!hierarchy) notFound();
 
-  const chart = await organization.getOrganizationChart(principal, organizationId);
+  let chart = null;
+  try {
+    chart = await organization.getOrganizationChart(principal, organizationId);
+  } catch {
+    chart = null;
+  }
   const visibleOrgs = await organization.listOrganizations(principal);
 
   const canManage = await authz.can(

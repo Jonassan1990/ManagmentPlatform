@@ -109,10 +109,7 @@ export class OrganizationService {
     if (!org || org.status === EntityStatus.ARCHIVED) {
       throw new AppError("NOT_FOUND", "Organization not found.");
     }
-    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_READ, {
-      type: "ORGANIZATION",
-      organizationId: org.id,
-    });
+    await this.assertStructureRead(principal, org.id);
     return org;
   }
 
@@ -1530,10 +1527,7 @@ export class OrganizationService {
   }
 
   async getHierarchy(principal: Principal, organizationId: string) {
-    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_READ, {
-      type: "ORGANIZATION",
-      organizationId,
-    });
+    await this.assertStructureRead(principal, organizationId);
     return this.db.organization.findUnique({
       where: { id: organizationId },
       include: {
@@ -1572,10 +1566,7 @@ export class OrganizationService {
    * Used to confirm who belongs where before treating the hierarchy as complete.
    */
   async getAdminConfigRoster(principal: Principal, organizationId: string) {
-    await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_READ, {
-      type: "ORGANIZATION",
-      organizationId,
-    });
+    await this.assertStructureRead(principal, organizationId);
 
     const [resources, bindings, teamRows] = await Promise.all([
       this.db.resource.findMany({
@@ -1772,6 +1763,31 @@ export class OrganizationService {
         unboundLoginCount: unboundLogins.length,
       },
     };
+  }
+
+  /**
+   * Organization list treats a platform structure reader as able to see every
+   * organization. Hierarchy reads must use the same rule, or Structure 500s
+   * when the chart opens an organization the platform binding can list but
+   * assertCan rejects at organization scope.
+   */
+  private async assertStructureRead(principal: Principal, organizationId: string) {
+    try {
+      await this.authz.assertCan(principal, PERMISSIONS.ORG_STRUCTURE_READ, {
+        type: "ORGANIZATION",
+        organizationId,
+      });
+    } catch (error) {
+      if (!(error instanceof AppError) || error.code !== "FORBIDDEN") {
+        throw error;
+      }
+      const platformRead = await this.authz.can(
+        principal,
+        PERMISSIONS.ORG_STRUCTURE_READ,
+        { type: "PLATFORM" },
+      );
+      if (!platformRead) throw error;
+    }
   }
 
   private async assertParentDepartment(
