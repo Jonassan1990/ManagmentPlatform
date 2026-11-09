@@ -35,6 +35,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
             "/vacation/inbox",
             "/vacation/calendar",
             "/vacation/year",
+            "/vacation/cover",
           ],
         },
         capability: "canViewVacation",
@@ -47,6 +48,14 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         match: { type: "prefix", path: "/vacation/inbox" },
         capability: "canReviewVacation",
         description: "Accept, reject, or ask for changes",
+      },
+      {
+        id: "vacation-cover",
+        label: "Role cover",
+        href: "/vacation/cover",
+        match: { type: "prefix", path: "/vacation/cover" },
+        capability: "canViewVacation",
+        description: "When a whole department role is away",
       },
       {
         id: "vacation-calendar",

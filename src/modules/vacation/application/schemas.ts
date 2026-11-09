@@ -54,6 +54,8 @@ export const vacationCalendarQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
 });
 
+export const vacationCoverQuerySchema = vacationCalendarQuerySchema;
+
 export const vacationYearQuerySchema = z.object({
   organizationId: z.string().uuid(),
   year: z.coerce.number().int().min(2000).max(2100),
