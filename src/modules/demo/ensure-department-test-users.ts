@@ -48,6 +48,17 @@ async function run(): Promise<void> {
     existingPrincipals.length === principalIds.length &&
     existingResources.length === resourceIds.length
   ) {
+    await Promise.all(
+      DEMO_DEPARTMENT_USERS.map((user) =>
+        prisma.resource.update({
+          where: { id: user.resourceId },
+          data: {
+            name: user.displayName,
+            functionRole: user.functionRole,
+          },
+        }),
+      ),
+    );
     return;
   }
 
