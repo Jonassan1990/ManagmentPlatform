@@ -58,8 +58,9 @@ export function AiOnboardingPlanPanel() {
       <div>
         <h2 className="font-medium text-[var(--ink)]">AI onboarding plan</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Uses the Vercel AI Gateway to draft dual-check steps (employee +
-          onboarder). Review before you create the checklist.
+          Drafts a dual-check plan from laptop setup through the product,
+          team interviews, focus-area documents, first tasks, and onboarding
+          confirmation. Review it before you create the checklist.
         </p>
       </div>
       {error ? (
