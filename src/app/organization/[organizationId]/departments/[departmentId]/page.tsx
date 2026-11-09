@@ -18,10 +18,10 @@ import {
   parseOrgUiMode,
   withOrgMode,
 } from "@/modules/organization/application/org-ui-mode";
-import { RoleCoverageList } from "@/components/vacation/vacation-calendar";
+import { RoleCoverCalendar } from "@/components/vacation/role-cover-calendar";
 import { ensureDemoDepartmentUsers } from "@/modules/demo/ensure-department-test-users";
 import { PERMISSIONS } from "@/modules/shared/permissions";
-import type { RoleCoverageGap } from "@/modules/vacation/application/vacation-coverage";
+import type { DayCover } from "@/modules/vacation/application/vacation-coverage";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -40,10 +40,10 @@ export default async function DepartmentPage({
   searchParams,
 }: {
   params: Promise<{ organizationId: string; departmentId: string }>;
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; day?: string }>;
 }) {
   const { organizationId, departmentId } = await params;
-  const { mode: modeParam } = await searchParams;
+  const { mode: modeParam, day: dayParam } = await searchParams;
   const mode = parseOrgUiMode(modeParam);
   const { authz, organization, vacation } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
@@ -84,23 +84,26 @@ export default async function DepartmentPage({
   );
   const showConfig = canManage && mode === "config";
 
-  let roleCover: RoleCoverageGap[] = [];
+  const now = new Date();
+  const coverYear = now.getUTCFullYear();
+  const coverMonth = now.getUTCMonth() + 1;
+  let roleDays: DayCover[] = [];
   if (!showConfig) {
     try {
       await ensureDemoDepartmentUsers();
-      const now = new Date();
       const cover = await vacation.listRoleCover(principal, {
         organizationId,
-        year: now.getUTCFullYear(),
-        month: now.getUTCMonth() + 1,
+        year: coverYear,
+        month: coverMonth,
+        departmentId: department.id,
       });
-      roleCover = cover.coverage.filter(
-        (gap) => gap.departmentId === department.id,
-      );
+      roleDays = cover.days;
     } catch {
-      roleCover = [];
+      roleDays = [];
     }
   }
+  const selectedCoverDay =
+    dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : null;
 
   return (
     <div>
@@ -266,10 +269,22 @@ export default async function DepartmentPage({
               Role cover
             </h2>
             <p className="mb-4 text-sm text-[var(--muted)]">
-              A role in this department is fully away when every person with
-              that role has a full weekday off this month.
+              Green means every role is in. Yellow means at least one person
+              is still available. Red means nobody in this department is
+              available. Open a yellow or red day to see who is off and who
+              is available.
             </p>
-            <RoleCoverageList gaps={roleCover} />
+            <RoleCoverCalendar
+              year={coverYear}
+              month={coverMonth}
+              days={roleDays}
+              selectedDate={selectedCoverDay}
+              hrefForDay={(date) => {
+                const path = `/organization/${org.id}/departments/${department.id}`;
+                if (date === selectedCoverDay) return withOrgMode(path, mode);
+                return withOrgMode(`${path}?day=${date}`, mode);
+              }}
+            />
           </Panel>
 
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">

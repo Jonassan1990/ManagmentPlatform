@@ -30,6 +30,27 @@ export type CoverageAbsence = {
   endDate: string;
   durationKind: "FULL_DAYS" | "HALF_DAY" | "HOURS";
   status: "APPROVED" | "SUBMITTED" | "CHANGES_REQUESTED";
+  dayPart?: "MORNING" | "AFTERNOON" | null;
+  hours?: number | null;
+};
+
+export type DayCoverTone = "green" | "yellow" | "red" | "closed";
+
+export type DayCoverPerson = {
+  principalId: string;
+  displayName: string;
+  departmentId: string;
+  departmentName: string;
+  role: string;
+  availability: "off" | "partial" | "available";
+  note: string | null;
+};
+
+export type DayCover = {
+  date: string;
+  tone: DayCoverTone;
+  off: DayCoverPerson[];
+  available: DayCoverPerson[];
 };
 
 export type RoleCoverageGap = {
@@ -69,6 +90,47 @@ export function departmentRoleCoverage(input: {
   return [...exact, ...families].flatMap((group) =>
     gapsForGroup(group, input.absences, weekdays),
   );
+}
+
+/**
+ * Green: every person is in, so every role is available.
+ * Yellow: someone is off or only partly in, and at least one person is still available.
+ * Red: every person is on a full day off, so no role is available.
+ * A half day or a few hours stays available. Weekends are closed.
+ */
+export function departmentDayCover(input: {
+  people: CoveragePerson[];
+  absences: CoverageAbsence[];
+  rangeStart: string;
+  rangeEnd: string;
+}): DayCover[] {
+  const days: DayCover[] = [];
+  const cursor = toUtcDateOnly(input.rangeStart);
+  const last = toUtcDateOnly(input.rangeEnd).getTime();
+  while (cursor.getTime() <= last) {
+    const date = formatDateOnly(cursor);
+    const weekday = cursor.getUTCDay();
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    if (weekday === 0 || weekday === 6 || input.people.length === 0) {
+      days.push({ date, tone: "closed", off: [], available: [] });
+      continue;
+    }
+    const rows = input.people.map((person) =>
+      personOnDay(person, date, input.absences),
+    );
+    const off = sortPeople(rows.filter((row) => row.availability === "off"));
+    const available = sortPeople(
+      rows.filter((row) => row.availability !== "off"),
+    );
+    const tone: DayCoverTone =
+      off.length === rows.length
+        ? "red"
+        : off.length > 0 || rows.some((row) => row.availability === "partial")
+          ? "yellow"
+          : "green";
+    days.push({ date, tone, off, available });
+  }
+  return days;
 }
 
 export function formatRoleCoverage(gap: RoleCoverageGap): string {
@@ -221,6 +283,66 @@ function gapsForGroup(
     if (byDept !== 0) return byDept;
     if (a.kind !== b.kind) return a.kind === "family" ? 1 : -1;
     return a.role.localeCompare(b.role);
+  });
+}
+
+function personOnDay(
+  person: CoveragePerson,
+  date: string,
+  absences: CoverageAbsence[],
+): DayCoverPerson {
+  let partial: { note: string; waiting: boolean } | null = null;
+  let waitingFull = false;
+  for (const absence of absences) {
+    if (absence.principalId !== person.principalId) continue;
+    if (absence.departmentId && absence.departmentId !== person.departmentId) {
+      continue;
+    }
+    if (date < absence.startDate || date > absence.endDate) continue;
+    const waiting = absence.status !== "APPROVED";
+    if (absence.durationKind === "FULL_DAYS") {
+      if (!waiting) {
+        return { ...person, availability: "off", note: "Full day" };
+      }
+      waitingFull = true;
+      continue;
+    }
+    partial = { note: partialNote(absence), waiting };
+  }
+  if (waitingFull) {
+    return {
+      ...person,
+      availability: "off",
+      note: "Full day, waiting for approval",
+    };
+  }
+  if (partial) {
+    return {
+      ...person,
+      availability: "partial",
+      note: partial.waiting
+        ? `${partial.note}, waiting for approval`
+        : partial.note,
+    };
+  }
+  return { ...person, availability: "available", note: null };
+}
+
+function partialNote(absence: CoverageAbsence): string {
+  if (absence.durationKind === "HALF_DAY") {
+    return absence.dayPart === "AFTERNOON" ? "Afternoon" : "Morning";
+  }
+  const hours = absence.hours ?? 0;
+  return hours === 1 ? "1 hour" : `${hours} hours`;
+}
+
+function sortPeople(people: DayCoverPerson[]): DayCoverPerson[] {
+  return [...people].sort((a, b) => {
+    const byDept = a.departmentName.localeCompare(b.departmentName);
+    if (byDept !== 0) return byDept;
+    const byRole = a.role.localeCompare(b.role);
+    if (byRole !== 0) return byRole;
+    return a.displayName.localeCompare(b.displayName);
   });
 }
 

@@ -88,7 +88,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "vacation",
         title: "Vacation management",
-        body: "Request time off, review as a manager, and open Role cover to see when everyone with the same role in a department is away.",
+        body: "Request time off, review as a manager, and open Role cover. The calendar is green when every role is in, yellow when at least one person is still available, and red when nobody is available.",
         href: "/vacation",
         hrefLabel: "Vacation",
       },

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { RoleCoverageList } from "@/components/vacation/vacation-calendar";
+import { RoleCoverCalendar } from "@/components/vacation/role-cover-calendar";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { buttonClassName } from "@/components/ui/button";
 import { ensureDemoDepartmentUsers } from "@/modules/demo/ensure-department-test-users";
@@ -12,7 +12,13 @@ export const dynamic = "force-dynamic";
 export default async function VacationCoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; month?: string; org?: string }>;
+  searchParams: Promise<{
+    year?: string;
+    month?: string;
+    org?: string;
+    department?: string;
+    day?: string;
+  }>;
 }) {
   const params = await searchParams;
   const { authz, vacation, organization } = createServices();
@@ -39,6 +45,13 @@ export default async function VacationCoverPage({
   const month = Number(params.month) || now.getUTCMonth() + 1;
   const organizationId =
     orgs.find((org) => org.id === params.org)?.id ?? orgs[0]!.id;
+  const departmentParam =
+    params.department &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      params.department,
+    )
+      ? params.department
+      : undefined;
 
   let cover;
   try {
@@ -46,6 +59,7 @@ export default async function VacationCoverPage({
       organizationId,
       year,
       month,
+      departmentId: departmentParam,
     });
   } catch (error) {
     if (error instanceof AppError) {
@@ -66,8 +80,29 @@ export default async function VacationCoverPage({
     { month: "long", year: "numeric", timeZone: "UTC" },
   );
 
-  function hrefFor(y: number, m: number) {
-    return `/vacation/cover?org=${organizationId}&year=${y}&month=${m}`;
+  const departmentId = cover.departmentId;
+  const selectedDay =
+    params.day && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : null;
+
+  function hrefFor(y: number, m: number, department = departmentId) {
+    const query = new URLSearchParams({
+      org: organizationId,
+      year: String(y),
+      month: String(m),
+    });
+    if (department) query.set("department", department);
+    return `/vacation/cover?${query.toString()}`;
+  }
+
+  function hrefForDay(date: string) {
+    const query = new URLSearchParams({
+      org: organizationId,
+      year: String(year),
+      month: String(month),
+    });
+    if (departmentId) query.set("department", departmentId);
+    if (date !== selectedDay) query.set("day", date);
+    return `/vacation/cover?${query.toString()}`;
   }
 
   return (
@@ -81,7 +116,7 @@ export default async function VacationCoverPage({
       />
       <PageHeader
         title="Role cover"
-        description="In People, see when every person with the same role in a department is on a full weekday off."
+        description="Green means every role is in. Yellow means at least one person is still available. Red means nobody is available. Open a yellow or red day to see who is off and who is available."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -118,16 +153,42 @@ export default async function VacationCoverPage({
       ) : null}
 
       <Panel>
-        <h2 className="mb-1 text-base font-semibold text-[var(--ink)]">
+        <h2 className="mb-3 text-base font-semibold text-[var(--ink)]">
           {monthLabel}
         </h2>
-        <p className="mb-4 text-sm text-[var(--muted)]">
-          Developers includes Developer, Software Developer, and the other
-          developer titles. Testers, architects, and every other role are
-          checked the same way. A half day or a few hours still leaves someone
-          partly available.
-        </p>
-        <RoleCoverageList gaps={cover.coverage} />
+        {cover.departments.length > 1 ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Link
+              href={hrefFor(year, month, null)}
+              className={buttonClassName({
+                variant: departmentId ? "secondary" : "primary",
+                size: "sm",
+              })}
+            >
+              All departments
+            </Link>
+            {cover.departments.map((department) => (
+              <Link
+                key={department.id}
+                href={hrefFor(year, month, department.id)}
+                className={buttonClassName({
+                  variant:
+                    department.id === departmentId ? "primary" : "secondary",
+                  size: "sm",
+                })}
+              >
+                {department.name}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+        <RoleCoverCalendar
+          year={year}
+          month={month}
+          days={cover.days}
+          selectedDate={selectedDay}
+          hrefForDay={hrefForDay}
+        />
       </Panel>
     </div>
   );

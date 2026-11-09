@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  departmentDayCover,
   departmentRoleCoverage,
   formatRoleCoverage,
   visibleDepartmentIds,
@@ -159,6 +160,65 @@ describe("department role coverage", () => {
     });
     expect(gaps).toHaveLength(1);
     expect(gaps[0]?.departmentId).toBe("dept-infb");
+  });
+
+  it("colors a weekday green, yellow, or red from who is still available", () => {
+    const people = [
+      person("a", "Ada", "Developer"),
+      person("b", "Bo", "Scrum Master"),
+    ];
+    const mixed = departmentDayCover({
+      people,
+      absences: [away("b", "2026-11-09", "2026-11-10", "SUBMITTED")],
+      rangeStart: "2026-11-07",
+      rangeEnd: "2026-11-10",
+    });
+    expect(mixed.map((day) => [day.date, day.tone])).toEqual([
+      ["2026-11-07", "closed"],
+      ["2026-11-08", "closed"],
+      ["2026-11-09", "yellow"],
+      ["2026-11-10", "yellow"],
+    ]);
+    expect(mixed[2]?.off.map((row) => row.displayName)).toEqual(["Bo"]);
+    expect(mixed[2]?.off[0]?.note).toBe("Full day, waiting for approval");
+    expect(mixed[2]?.available.map((row) => row.displayName)).toEqual(["Ada"]);
+
+    const red = departmentDayCover({
+      people,
+      absences: [
+        away("a", "2026-11-11", "2026-11-11"),
+        away("b", "2026-11-11", "2026-11-11"),
+      ],
+      rangeStart: "2026-11-11",
+      rangeEnd: "2026-11-11",
+    });
+    expect(red[0]?.tone).toBe("red");
+    expect(red[0]?.available).toEqual([]);
+
+    const partial = departmentDayCover({
+      people,
+      absences: [
+        away("a", "2026-11-12", "2026-11-12", "APPROVED", "HALF_DAY"),
+      ],
+      rangeStart: "2026-11-12",
+      rangeEnd: "2026-11-12",
+    });
+    expect(partial[0]?.tone).toBe("yellow");
+    expect(partial[0]?.off).toEqual([]);
+    expect(partial[0]?.available.find((row) => row.principalId === "a")).toMatchObject({
+      availability: "partial",
+      note: "Morning",
+    });
+
+    const green = departmentDayCover({
+      people,
+      absences: [],
+      rangeStart: "2026-11-13",
+      rangeEnd: "2026-11-13",
+    });
+    expect(green[0]?.tone).toBe("green");
+    expect(green[0]?.off).toEqual([]);
+    expect(green[0]?.available).toHaveLength(2);
   });
 
   it("limits department ids to the viewer's sections", () => {
