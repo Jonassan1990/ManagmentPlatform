@@ -2,6 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EditOnboardingItems } from "@/components/onboarding/edit-onboarding-items";
 import {
+  OnboardingSheet,
+  type SheetTask,
+} from "@/components/onboarding/onboarding-sheet";
+import {
   CancelOnboardingButton,
   ToggleOnboardingCheckButton,
 } from "@/components/onboarding/onboarding-forms";
@@ -47,6 +51,29 @@ export default async function OnboardingDetailPage({
 
   const { checklist, audits, capabilities } = detail;
   const badge = mapStatus(checklist.status);
+  const sheetTasks: SheetTask[] = checklist.items.flatMap((item) => {
+    if (
+      item.phase !== "PREBOARDING" &&
+      item.phase !== "FIRST_WEEK" &&
+      item.phase !== "FIRST_30_DAYS" &&
+      item.phase !== "FEEDBACK"
+    ) {
+      return [];
+    }
+    return [
+      {
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        phase: item.phase,
+        assigneeLabel: item.assigneeLabel,
+        dueDate: item.dueDate ? item.dueDate.toISOString().slice(0, 10) : null,
+        taskStatus: item.taskStatus,
+        notes: item.notes,
+      },
+    ];
+  });
+  const useSheet = sheetTasks.length > 0;
 
   return (
     <div>
@@ -63,6 +90,7 @@ export default async function OnboardingDetailPage({
         actions={<StatusBadge status={badge.status} label={badge.label} />}
       />
 
+      {useSheet ? null : (
       <Panel className="mb-6">
         <div className="grid gap-3 sm:grid-cols-4">
           <div className="rounded-md border border-[var(--line)] px-3 py-2">
@@ -106,8 +134,44 @@ export default async function OnboardingDetailPage({
           checklist becomes officially passed.
         </p>
       </Panel>
+      )}
+
+      {useSheet ? (
+        <div className="mb-6">
+          <OnboardingSheet
+            checklistId={checklist.id}
+            expectedVersion={checklist.version}
+            editable={
+              checklist.status === "IN_PROGRESS" &&
+              (capabilities.canToggleEmployee ||
+                capabilities.canToggleOnboarder ||
+                capabilities.canManage)
+            }
+            profile={{
+              employeeName: checklist.employeeDisplayName,
+              jobTitle: checklist.jobTitle,
+              department: checklist.departmentLabel,
+              hiringManager: checklist.hiringManagerName,
+              startDate: checklist.startDate
+                ? checklist.startDate.toISOString().slice(0, 10)
+                : null,
+              onboarderName: checklist.onboarderDisplayName,
+            }}
+            tasks={sheetTasks}
+          />
+          {capabilities.canManage && checklist.status === "IN_PROGRESS" ? (
+            <div className="mt-4">
+              <CancelOnboardingButton
+                checklistId={checklist.id}
+                expectedVersion={checklist.version}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        {useSheet ? null : (
         <Panel>
           <h2 className="mb-4 text-base font-semibold text-[var(--ink)]">
             Checklist items
@@ -175,8 +239,9 @@ export default async function OnboardingDetailPage({
             </div>
           ) : null}
         </Panel>
+        )}
 
-        <Panel>
+        <Panel className={useSheet ? "lg:col-span-2" : undefined}>
           <h2 className="mb-4 text-base font-semibold text-[var(--ink)]">
             Audit history
           </h2>

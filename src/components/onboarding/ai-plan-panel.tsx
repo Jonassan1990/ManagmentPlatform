@@ -15,6 +15,11 @@ import {
   fieldClassName,
   useActionForm,
 } from "@/components/ui/forms";
+import {
+  INFB_NEW_HIRE_ITEMS,
+  PHASE_LABEL,
+  ONBOARDING_PHASES,
+} from "@/modules/onboarding/application/infb-new-hire-template";
 import { ONBOARDING_ROLE_TEMPLATES } from "@/modules/onboarding/application/role-templates";
 
 function stepsFromTemplate(roleKey: string): EditableOnboardingStep[] {
@@ -38,8 +43,12 @@ export function OnboardingDraftPanel({
   defaultOrganizationId: string | null;
 }) {
   const router = useRouter();
+  const [plan, setPlan] = useState<"infb" | "role">("infb");
   const [roleKey, setRoleKey] = useState(ONBOARDING_ROLE_TEMPLATES[0]?.key ?? "developer");
   const [departmentName, setDepartmentName] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [hiringManagerName, setHiringManagerName] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<EditableOnboardingStep[]>(() =>
     stepsFromTemplate(ONBOARDING_ROLE_TEMPLATES[0]?.key ?? "developer"),
@@ -104,7 +113,7 @@ export function OnboardingDraftPanel({
     event.preventDefault();
     const fd = new FormData(event.currentTarget);
     const ready = items.filter((item) => item.title.trim());
-    if (ready.length === 0) {
+    if (plan === "role" && ready.length === 0) {
       setError("Add at least one step with a title.");
       return;
     }
@@ -115,26 +124,49 @@ export function OnboardingDraftPanel({
       employeePrincipalId: String(fd.get("employeePrincipalId") ?? ""),
       onboarderPrincipalId: String(fd.get("onboarderPrincipalId") ?? ""),
       notes: notes || null,
-      roleTemplate: roleKey,
-      items: ready.map((item) => ({
-        title: item.title.trim(),
-        description: item.description.trim() || null,
-      })),
+      jobTitle: jobTitle || null,
+      departmentLabel: departmentName || null,
+      hiringManagerName: hiringManagerName || null,
+      startDate: startDate || null,
+      roleTemplate: plan === "infb" ? "infb-new-hire" : roleKey,
+      ...(plan === "infb"
+        ? {}
+        : {
+            items: ready.map((item) => ({
+              title: item.title.trim(),
+              description: item.description.trim() || null,
+            })),
+          }),
     });
   }
 
   return (
     <form className="space-y-4" onSubmit={createChecklist}>
       <div>
-        <h2 className="font-medium text-[var(--ink)]">Role template and draft</h2>
+        <h2 className="font-medium text-[var(--ink)]">Choose a checklist</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Pick a role from the role catalog. AI drafts the steps for that role.
-          Edit the draft, then create the checklist. Employee and onboarder
-          still both check every step.
+          The INFB new hire checklist follows preboarding, the first week, the
+          first 30 days, and feedback. A role from the catalog can still be
+          drafted and edited.
         </p>
-        {template ? (
-          <p className="mt-1 text-sm text-[var(--muted)]">{template.summary}</p>
-        ) : null}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          aria-pressed={plan === "infb"}
+          className={planButtonClass(plan === "infb")}
+          onClick={() => setPlan("infb")}
+        >
+          INFB new hire
+        </button>
+        <button
+          type="button"
+          aria-pressed={plan === "role"}
+          className={planButtonClass(plan === "role")}
+          onClick={() => setPlan("role")}
+        >
+          Role catalog
+        </button>
       </div>
       {error ? (
         <Alert tone="error" live="assertive">
@@ -142,6 +174,70 @@ export function OnboardingDraftPanel({
         </Alert>
       ) : null}
       {ErrorAlert}
+      {plan === "infb" ? (
+        <div className="space-y-3">
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {ONBOARDING_PHASES.map((phase) => {
+              const count = INFB_NEW_HIRE_ITEMS.filter(
+                (item) => item.phase === phase,
+              ).length;
+              return (
+                <li
+                  key={phase}
+                  className="rounded-md border border-[var(--line)] bg-white px-3 py-2 text-sm"
+                >
+                  <span className="font-semibold text-[var(--ink)]">
+                    {PHASE_LABEL[phase]}
+                  </span>
+                  <span className="text-[var(--muted)]"> · {count} steps</span>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField label="Job title" htmlFor="job-title">
+              <input
+                id="job-title"
+                className={fieldClassName}
+                value={jobTitle}
+                onChange={(event) => setJobTitle(event.target.value)}
+                maxLength={200}
+                placeholder="Senior Developer"
+              />
+            </FormField>
+            <FormField label="Department / team" htmlFor="infb-department">
+              <input
+                id="infb-department"
+                className={fieldClassName}
+                value={departmentName}
+                onChange={(event) => setDepartmentName(event.target.value)}
+                maxLength={200}
+                placeholder="INFB"
+              />
+            </FormField>
+            <FormField label="Hiring manager" htmlFor="hiring-manager">
+              <input
+                id="hiring-manager"
+                className={fieldClassName}
+                value={hiringManagerName}
+                onChange={(event) => setHiringManagerName(event.target.value)}
+                maxLength={200}
+                placeholder="Name"
+              />
+            </FormField>
+            <FormField label="Start date" htmlFor="start-date">
+              <input
+                id="start-date"
+                type="date"
+                className={fieldClassName}
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+              />
+            </FormField>
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="grid gap-3 sm:grid-cols-2">
         <FormField label="Role" htmlFor="onboarding-role">
           <select
@@ -200,6 +296,8 @@ export function OnboardingDraftPanel({
         onChange={setItems}
         disabled={generating || pending}
       />
+      </>
+      )}
       <div className="grid gap-3 border-t border-[var(--line)] pt-4 sm:grid-cols-2">
         <FormField label="Organization" htmlFor="organizationId" required>
           <select
@@ -267,8 +365,16 @@ export function OnboardingDraftPanel({
       <PrimaryButton
         disabled={pending || generating || organizations.length === 0}
       >
-        {pending ? "Creating…" : "Create checklist from draft"}
+        {pending ? "Creating…" : plan === "infb" ? "Create INFB checklist" : "Create checklist from draft"}
       </PrimaryButton>
     </form>
   );
+}
+
+function planButtonClass(selected: boolean): string {
+  return `min-h-11 rounded-full px-4 text-sm font-semibold ${
+    selected
+      ? "bg-[var(--scania-blue-800,#041e42)] text-white"
+      : "bg-white text-[var(--ink)] ring-1 ring-[var(--line)]"
+  }`;
 }

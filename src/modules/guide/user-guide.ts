@@ -95,7 +95,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "onboarding-ai",
         title: "Onboarding with AI help",
-        body: "Managers pick a role from the role catalog, let AI draft the steps, edit the draft, then create the checklist. Employee and onboarder both confirm.",
+        body: "Managers can start the INFB new hire checklist: preboarding, the first week, the first 30 days, and feedback. A role from the catalog can still be drafted and edited. Mark each task not started, in progress, or complete.",
         href: "/onboarding",
         hrefLabel: "Onboarding",
       },
@@ -224,19 +224,19 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
     id: "onboarding",
     title: "7. Onboarding checklist",
     summary:
-      "New employee and onboarder must both check every item. Official pass only when both sides are complete.",
+      "The INFB new hire checklist covers preboarding, the first week, the first 30 days, and feedback.",
     steps: [
       {
         id: "start",
         title: "Start a checklist",
-        body: "Managers open Onboarding, pick a role from the role catalog, draft with AI, edit the steps, then assign the employee and onboarder.",
+        body: "Managers open Onboarding and start the INFB new hire checklist, or pick a role from the catalog and draft the steps. Then assign the employee and onboarder.",
         href: "/onboarding",
         hrefLabel: "Onboarding",
       },
       {
         id: "dual",
         title: "Both must check",
-        body: "Each item has an Employee check and an Onboarder check. An item is complete only when both are ticked. When every item is dual-checked, status becomes Officially passed.",
+        body: "On the INFB checklist, set each task to not started, in progress, or complete, and add a note. Feedback questions are answered by the new hire. A role-catalog checklist still uses an employee check and an onboarder check.",
       },
     ],
   },

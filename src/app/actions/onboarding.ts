@@ -31,6 +31,16 @@ export async function toggleOnboardingItemAction(input: unknown) {
   });
 }
 
+export async function updateOnboardingTaskAction(input: unknown) {
+  return runAction("onboarding.update_task", async () => {
+    const { authz, onboarding } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await onboarding.updateTask(principal, input);
+    revalidateOnboarding(result.id);
+    return result;
+  });
+}
+
 export async function updateOnboardingItemsAction(input: unknown) {
   return runAction("onboarding.update_items", async () => {
     const { authz, onboarding } = createServices();
