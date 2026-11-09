@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { buttonClassName } from "@/components/ui/button";
+import { AppError } from "@/modules/shared/errors";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +34,24 @@ export default async function VacationYearPage({
   const year = Number(params.year) || new Date().getUTCFullYear();
   const organizationId =
     orgs.find((o) => o.id === params.org)?.id ?? orgs[0]!.id;
-  const summary = await vacation.listYearSummary(principal, {
-    organizationId,
-    year,
-    principalId: params.user || undefined,
-  });
+  let summary;
+  try {
+    summary = await vacation.listYearSummary(principal, {
+      organizationId,
+      year,
+      principalId: params.user || undefined,
+    });
+  } catch (error) {
+    if (error instanceof AppError) {
+      return (
+        <div>
+          <PageHeader title="Vacation by year" />
+          <EmptyState title="Year summary unavailable" description={error.message} />
+        </div>
+      );
+    }
+    throw error;
+  }
 
   return (
     <div>
