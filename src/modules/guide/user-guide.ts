@@ -263,7 +263,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "calendar-year",
         title: "Calendar and year view",
-        body: "Approved vacations appear on the month calendar. By year shows each person’s approved working-day total. Open a request to see the audit history table.",
+        body: "Approved vacations appear on the month calendar. Department role cover shows when everyone with the same role in a department is on a full weekday off, including all developer titles together. By year shows each person’s approved total and the same cover gaps.",
         href: "/vacation/calendar",
         hrefLabel: "Calendar",
       },

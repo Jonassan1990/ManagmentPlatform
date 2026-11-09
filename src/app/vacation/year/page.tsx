@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { RoleCoverageList } from "@/components/vacation/vacation-calendar";
 import { buttonClassName } from "@/components/ui/button";
 import { AppError } from "@/modules/shared/errors";
 import {
@@ -69,7 +70,7 @@ export default async function VacationYearPage({
       />
       <PageHeader
         title={`Vacation ${year}`}
-        description="Approved working days by person for the selected year."
+        description="Approved working days by person, and the days when a whole department role is away."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -104,6 +105,18 @@ export default async function VacationYearPage({
           ))}
         </div>
       ) : null}
+
+      <Panel className="mb-6">
+        <h2 className="mb-1 text-base font-semibold text-[var(--ink)]">
+          Department role cover
+        </h2>
+        <p className="mb-4 text-sm text-[var(--muted)]">
+          A role is fully away when every person with that role in the
+          department has a full weekday off. Mixed developer titles are also
+          grouped as Developers.
+        </p>
+        <RoleCoverageList gaps={summary.coverage} />
+      </Panel>
 
       {summary.users.length === 0 ? (
         <EmptyState
