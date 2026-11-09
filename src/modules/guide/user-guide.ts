@@ -263,7 +263,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "plan",
         title: "Department vacation plan",
-        body: "Vacation plan is one month grid per department, with the same colors as the 2026 sheet: vacation, education or a business trip, kompledighet, beredskap, and parental leave. A manager can mark anyone in the department. You can mark your own days. A full-day vacation request shows as vacation until a plan mark replaces it.",
+        body: "Open Vacation and choose 2026 plan, or People → Vacation plan. Pick a department from the IN sheet. Each department is its own month grid, with the sheet colors for vacation, education or a business trip, kompledighet, beredskap, and parental leave.",
         href: "/vacation/plan",
         hrefLabel: "Vacation plan",
       },

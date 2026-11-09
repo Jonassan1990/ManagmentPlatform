@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         href: "/vacation/plan",
         match: { type: "prefix", path: "/vacation/plan" },
         capability: "canViewVacation",
-        description: "Department plan for vacation and other time off",
+        description: "2026 plan, one department at a time",
       },
       {
         id: "vacation-cover",
