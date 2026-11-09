@@ -6,6 +6,7 @@ import {
 } from "@/components/vacation/vacation-calendar";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { buttonClassName } from "@/components/ui/button";
+import { ensureDemoDepartmentUsers } from "@/modules/demo/ensure-department-test-users";
 import { AppError } from "@/modules/shared/errors";
 import { createServices } from "@/server/container";
 
@@ -35,6 +36,7 @@ export default async function VacationCalendarPage({
     );
   }
 
+  await ensureDemoDepartmentUsers();
   const now = new Date();
   const year = Number(params.year) || now.getUTCFullYear();
   const month = Number(params.month) || now.getUTCMonth() + 1;

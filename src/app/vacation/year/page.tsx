@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { RoleCoverageList } from "@/components/vacation/vacation-calendar";
 import { buttonClassName } from "@/components/ui/button";
+import { ensureDemoDepartmentUsers } from "@/modules/demo/ensure-department-test-users";
 import { AppError } from "@/modules/shared/errors";
 import {
   formatDayCount,
@@ -37,6 +38,7 @@ export default async function VacationYearPage({
     );
   }
 
+  await ensureDemoDepartmentUsers();
   const year = Number(params.year) || new Date().getUTCFullYear();
   const organizationId =
     orgs.find((o) => o.id === params.org)?.id ?? orgs[0]!.id;
