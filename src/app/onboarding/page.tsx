@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AiOnboardingPlanPanel } from "@/components/onboarding/ai-plan-panel";
-import { CreateOnboardingForm } from "@/components/onboarding/onboarding-forms";
+import { OnboardingDraftPanel } from "@/components/onboarding/ai-plan-panel";
 import { buttonClassName } from "@/components/ui/button";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -135,18 +134,21 @@ export default async function OnboardingPage() {
               }
             />
           ) : (
-            <CreateOnboardingForm
-              organizations={orgs.map((o) => ({ id: o.id, name: o.name }))}
-              principals={principals}
-              defaultOrganizationId={preferredOrgId}
-            />
+            <p className="text-sm text-[var(--muted)]">
+              Choose a role template below. AI drafts the steps, then you edit
+              them and create the checklist.
+            </p>
           )}
         </Panel>
       </div>
 
-      {canManage ? (
+      {canManage && orgs.length > 0 ? (
         <Panel className="mt-6">
-          <AiOnboardingPlanPanel />
+          <OnboardingDraftPanel
+            organizations={orgs.map((o) => ({ id: o.id, name: o.name }))}
+            principals={principals}
+            defaultOrganizationId={preferredOrgId}
+          />
         </Panel>
       ) : null}
 

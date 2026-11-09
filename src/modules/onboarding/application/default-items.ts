@@ -105,19 +105,20 @@ function titlesAlign(left: string, right: string): boolean {
  */
 export function alignOnboardingPlan(
   generated: Array<{ title: string; description: string }>,
+  required: Array<{ title: string; description: string }> = DEFAULT_ONBOARDING_ITEMS,
 ): Array<{ title: string; description: string }> {
   const used = new Set<number>();
-  const aligned = DEFAULT_ONBOARDING_ITEMS.map((required) => {
+  const aligned = required.map((requiredItem) => {
     const index = generated.findIndex(
       (item, itemIndex) =>
-        !used.has(itemIndex) && titlesAlign(item.title, required.title),
+        !used.has(itemIndex) && titlesAlign(item.title, requiredItem.title),
     );
-    if (index === -1) return required;
+    if (index === -1) return requiredItem;
     used.add(index);
     const description = generated[index]?.description.trim();
     return {
-      title: required.title,
-      description: description || required.description,
+      title: requiredItem.title,
+      description: description || requiredItem.description,
     };
   });
   const extras = generated.filter((_, index) => !used.has(index));
