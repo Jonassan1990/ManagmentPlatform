@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonClassName } from "@/components/ui/button";
 
 export const ADMIN_CONFIG_TABS = [
   { id: "confirm", label: "Confirm roster" },
@@ -33,11 +34,10 @@ export function AdminConfigTabs({
           <Link
             key={tab.id}
             href={href}
-            className={`inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium ${
-              isActive
-                ? "bg-[var(--ink)] text-white"
-                : "border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--surface)]"
-            }`}
+            className={buttonClassName({
+              variant: isActive ? "primary" : "secondary",
+              size: "sm",
+            })}
             aria-current={isActive ? "page" : undefined}
           >
             {tab.label}
