@@ -3,6 +3,7 @@ import { hash as bcryptHash } from "bcryptjs";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import { LOCAL_LOGIN_ISSUER } from "@/modules/identity-access/application/temp-auth-constants";
 import { prisma } from "@/server/db";
+import { ensureVacationSheetRoster } from "@/modules/demo/ensure-vacation-sheet-roster";
 import {
   DEMO_DEPARTMENT_USERS,
   DEMO_PERSONA_PASSWORD,
@@ -32,6 +33,7 @@ export function ensureDemoDepartmentUsers(): Promise<void> {
 }
 
 async function run(): Promise<void> {
+  await ensureVacationSheetRoster();
   const principalIds = DEMO_DEPARTMENT_USERS.map((user) => user.principalId);
   const resourceIds = DEMO_DEPARTMENT_USERS.map((user) => user.resourceId);
   const [existingPrincipals, existingResources] = await Promise.all([

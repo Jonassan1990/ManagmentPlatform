@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   getSheetDepartment,
   listSheetDepartments,
+  parentSheetCode,
   planDepartmentCode,
   sheetPeopleForMonth,
+  vacationSheetRoster,
 } from "@/modules/vacation/application/vacation-plan-sheet";
 
 describe("2026 vacation plan sheet", () => {
@@ -27,5 +29,15 @@ describe("2026 vacation plan sheet", () => {
   it("matches a department name to its sheet code", () => {
     expect(planDepartmentCode("INFB — Business apps")).toBe("INFB");
     expect(planDepartmentCode("INA — Architecture & demand")).toBeNull();
+  });
+
+  it("uses the sheet people as the department roster", () => {
+    const infb = vacationSheetRoster().find((department) => department.code === "INFB");
+    const ing = vacationSheetRoster().find((department) => department.code === "ING");
+    expect(infb?.people.some((person) => person.name === "Ivando Lossio")).toBe(true);
+    expect(ing?.people.some((person) => person.name === "Ivando Lossio")).toBe(false);
+    expect(parentSheetCode("INFB")).toBe("INF");
+    expect(parentSheetCode("INGL")).toBe("ING");
+    expect(parentSheetCode("INF")).toBeNull();
   });
 });

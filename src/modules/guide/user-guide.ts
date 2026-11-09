@@ -263,7 +263,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "plan",
         title: "Department vacation plan",
-        body: "Open Vacation and choose 2026 plan, or People → Vacation plan. Pick a department from the IN sheet. Each department is its own month grid, with the sheet colors for vacation, education or a business trip, kompledighet, beredskap, and parental leave.",
+        body: "Open Vacation and choose 2026 plan, or People → Vacation plan. The departments and people are the same ones as on the 2026 sheet, including on the department page. Each department is its own month grid.",
         href: "/vacation/plan",
         hrefLabel: "Vacation plan",
       },
