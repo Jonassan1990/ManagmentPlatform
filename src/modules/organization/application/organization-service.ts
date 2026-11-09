@@ -1781,12 +1781,19 @@ export class OrganizationService {
       if (!(error instanceof AppError) || error.code !== "FORBIDDEN") {
         throw error;
       }
-      const platformRead = await this.authz.can(
-        principal,
-        PERMISSIONS.ORG_STRUCTURE_READ,
-        { type: "PLATFORM" },
-      );
-      if (!platformRead) throw error;
+      const [inOrg, platformRead] = await Promise.all([
+        this.authz.hasPermissionInOrganization(
+          principal,
+          PERMISSIONS.ORG_STRUCTURE_READ,
+          organizationId,
+        ),
+        this.authz.can(principal, PERMISSIONS.ORG_STRUCTURE_READ, {
+          type: "PLATFORM",
+        }),
+      ]);
+      // Section and department readers belong to the organization. A missing
+      // organization-wide grant must not turn the structure page into an error.
+      if (!inOrg && !platformRead) throw error;
     }
   }
 

@@ -17,6 +17,7 @@ import {
   vacationCalendarQuerySchema,
   vacationYearQuerySchema,
 } from "./schemas";
+import { vacationVisibilityFilter } from "./vacation-visibility";
 import {
   countWorkingDays,
   formatDateOnly,
@@ -42,10 +43,17 @@ export class VacationService {
   async createRequest(principal: Principal, input: unknown) {
     await this.authz.ensureSystemRoles();
     const parsed = createVacationRequestSchema.parse(input);
-    await this.authz.assertCan(principal, PERMISSIONS.VACATION_REQUEST, {
-      type: "ORGANIZATION",
-      organizationId: parsed.organizationId,
-    });
+    const canRequest = await this.authz.hasPermissionInOrganization(
+      principal,
+      PERMISSIONS.VACATION_REQUEST,
+      parsed.organizationId,
+    );
+    if (!canRequest) {
+      throw new AppError(
+        "FORBIDDEN",
+        "Missing permission 'vacation.request' for this organization.",
+      );
+    }
 
     const start = toUtcDateOnly(parsed.startDate as Date | string);
     const end = toUtcDateOnly(parsed.endDate as Date | string);
@@ -352,12 +360,26 @@ export class VacationService {
     const row = await this.requireRequest(requestId);
     const isOwner = row.requesterPrincipalId === principal.id;
     const canReview = await this.canReview(principal, row);
-    const canViewOrg = await this.authz.can(principal, PERMISSIONS.VACATION_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: row.organizationId,
-    });
+    let canView = false;
+    if (!isOwner && !canReview) {
+      try {
+        const visibility = await this.visibilityWhere(
+          principal,
+          row.organizationId,
+        );
+        const visible = await this.db.vacationRequest.findFirst({
+          where: { id: row.id, ...visibility },
+          select: { id: true },
+        });
+        canView = Boolean(visible);
+      } catch (error) {
+        if (!(error instanceof AppError) || error.code !== "FORBIDDEN") {
+          throw error;
+        }
+      }
+    }
 
-    if (!isOwner && !canReview && !canViewOrg) {
+    if (!isOwner && !canReview && !canView) {
       throw new AppError("FORBIDDEN", "Not allowed to view this vacation request");
     }
 
@@ -408,15 +430,15 @@ export class VacationService {
 
   async listCalendar(principal: Principal, input: unknown) {
     const parsed = vacationCalendarQuerySchema.parse(input);
-    await this.authz.assertCan(principal, PERMISSIONS.VACATION_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: parsed.organizationId,
-    });
+    const visibility = await this.visibilityWhere(
+      principal,
+      parsed.organizationId,
+    );
 
     const { start, end } = monthBounds(parsed.year, parsed.month - 1);
     const rows = await this.db.vacationRequest.findMany({
       where: {
-        organizationId: parsed.organizationId,
+        ...visibility,
         status: VacationRequestStatus.APPROVED,
         startDate: { lte: end },
         endDate: { gte: start },
@@ -452,15 +474,15 @@ export class VacationService {
 
   async listYearSummary(principal: Principal, input: unknown) {
     const parsed = vacationYearQuerySchema.parse(input);
-    await this.authz.assertCan(principal, PERMISSIONS.VACATION_VIEW, {
-      type: "ORGANIZATION",
-      organizationId: parsed.organizationId,
-    });
+    const visibility = await this.visibilityWhere(
+      principal,
+      parsed.organizationId,
+    );
 
     const { start, end } = yearBounds(parsed.year);
     const rows = await this.db.vacationRequest.findMany({
       where: {
-        organizationId: parsed.organizationId,
+        ...visibility,
         status: VacationRequestStatus.APPROVED,
         startDate: { lte: end },
         endDate: { gte: start },
@@ -524,6 +546,58 @@ export class VacationService {
         a.displayName.localeCompare(b.displayName),
       ),
     };
+  }
+
+  private async visibilityWhere(principal: Principal, organizationId: string) {
+    const allowed = await this.authz.hasPermissionInOrganization(
+      principal,
+      PERMISSIONS.VACATION_VIEW,
+      organizationId,
+    );
+    if (!allowed) {
+      throw new AppError(
+        "FORBIDDEN",
+        "Missing permission 'vacation.view' for this organization.",
+      );
+    }
+
+    const now = new Date();
+    const bindings = await this.db.roleBinding.findMany({
+      where: {
+        principalId: principal.id,
+        organizationId,
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+        roleDefinition: { permissions: { has: PERMISSIONS.VACATION_VIEW } },
+      },
+      select: { scopeType: true, scopeId: true },
+    });
+    const teamIds = bindings
+      .filter((binding) => binding.scopeType === "TEAM" && binding.scopeId)
+      .map((binding) => binding.scopeId!);
+    const teams = teamIds.length
+      ? await this.db.team.findMany({
+          where: { id: { in: teamIds } },
+          select: { departmentId: true },
+        })
+      : [];
+    const needsDepartments = bindings.some(
+      (binding) =>
+        binding.scopeType === "DEPARTMENT" || binding.scopeType === "TEAM",
+    );
+    const departments = needsDepartments
+      ? await this.db.department.findMany({
+          where: { section: { organizationId } },
+          select: { id: true, sectionId: true, parentDepartmentId: true },
+        })
+      : [];
+
+    return vacationVisibilityFilter({
+      organizationId,
+      principalId: principal.id,
+      bindings,
+      teamDepartmentIds: teams.map((team) => team.departmentId),
+      departments,
+    });
   }
 
   private async requireRequest(id: string) {

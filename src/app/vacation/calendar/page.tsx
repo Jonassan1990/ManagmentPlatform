@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { VacationMonthCalendar } from "@/components/vacation/vacation-calendar";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { buttonClassName } from "@/components/ui/button";
+import { AppError } from "@/modules/shared/errors";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -37,11 +38,24 @@ export default async function VacationCalendarPage({
   const organizationId =
     orgs.find((o) => o.id === params.org)?.id ?? orgs[0]!.id;
 
-  const calendar = await vacation.listCalendar(principal, {
-    organizationId,
-    year,
-    month,
-  });
+  let calendar;
+  try {
+    calendar = await vacation.listCalendar(principal, {
+      organizationId,
+      year,
+      month,
+    });
+  } catch (error) {
+    if (error instanceof AppError) {
+      return (
+        <div>
+          <PageHeader title="Vacation calendar" />
+          <EmptyState title="Vacation calendar unavailable" description={error.message} />
+        </div>
+      );
+    }
+    throw error;
+  }
 
   const prev =
     month === 1
