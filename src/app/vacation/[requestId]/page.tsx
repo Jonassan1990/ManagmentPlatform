@@ -39,6 +39,9 @@ export default async function VacationDetailPage({
 
   const { request, audits, capabilities } = detail;
   const badge = mapVacationStatusBadge(request.status);
+  const approverNames = request.approvers.map((approver) => approver.displayName);
+  const waiting =
+    request.status === "SUBMITTED" || request.status === "CHANGES_REQUESTED";
 
   return (
     <div>
@@ -51,18 +54,68 @@ export default async function VacationDetailPage({
       />
       <PageHeader
         title={`${formatDateOnly(request.startDate)} → ${formatDateOnly(request.endDate)}`}
-        description={`${request.requesterDisplayName} · ${request.workingDays} working day${request.workingDays === 1 ? "" : "s"}`}
+        description={`Owner ${request.requesterDisplayName} · Approver ${
+          approverNames.length > 0 ? approverNames.join(", ") : "not assigned"
+        } · ${request.workingDays} working day${request.workingDays === 1 ? "" : "s"}`}
         actions={<StatusBadge status={badge.status} label={badge.label} />}
       />
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+        <Panel>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+            Owner
+          </p>
+          <p className="mt-1 text-base font-semibold text-[var(--ink)]">
+            {request.requesterDisplayName}
+          </p>
+          <p className="text-sm text-[var(--muted)]">
+            {request.placement ?? "No department assigned"}
+          </p>
+        </Panel>
+        <Panel>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+            Approver
+          </p>
+          {request.approvers.length === 0 ? (
+            <p className="mt-1 text-base font-semibold text-[var(--ink)]">
+              No approver assigned
+            </p>
+          ) : (
+            <ul className="mt-1 space-y-2">
+              {request.approvers.map((approver) => (
+                <li key={approver.principalId}>
+                  <p className="text-base font-semibold text-[var(--ink)]">
+                    {approver.displayName}
+                  </p>
+                  <p className="text-sm text-[var(--muted)]">{approver.roleName}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            {waiting
+              ? "Waiting for approval"
+              : request.reviewerDisplayName
+                ? `Decision by ${request.reviewerDisplayName}`
+                : "No decision recorded"}
+          </p>
+        </Panel>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel>
           <h2 className="mb-4 text-base font-semibold text-[var(--ink)]">Details</h2>
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="text-[var(--muted)]">Requester</dt>
+              <dt className="text-[var(--muted)]">Owner</dt>
               <dd className="font-medium text-[var(--ink)]">
                 {request.requesterDisplayName}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Approver</dt>
+              <dd className="font-medium text-[var(--ink)]">
+                {approverNames.length > 0 ? approverNames.join(", ") : "Not assigned"}
               </dd>
             </div>
             <div>

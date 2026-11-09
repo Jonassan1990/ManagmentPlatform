@@ -6,7 +6,9 @@ import {
 } from "@prisma/client";
 import type { AuditService } from "@/modules/audit/application/audit-service";
 import type { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
+import { scopeMatchesAsync } from "@/modules/identity-access/application/scope-policy";
 import type { Principal } from "@/modules/identity-access/domain/types";
+import { ancestorDepartmentIds } from "@/modules/organization/application/department-tree";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import {
@@ -17,6 +19,7 @@ import {
   vacationCalendarQuerySchema,
   vacationYearQuerySchema,
 } from "./schemas";
+import { selectClosestApprovers } from "./vacation-approvers";
 import { vacationVisibilityFilter } from "./vacation-visibility";
 import {
   countWorkingDays,
@@ -313,10 +316,16 @@ export class VacationService {
   }
 
   async listMine(principal: Principal) {
-    return this.db.vacationRequest.findMany({
+    const rows = await this.db.vacationRequest.findMany({
       where: { requesterPrincipalId: principal.id },
       orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],
     });
+    return Promise.all(
+      rows.map(async (row) => ({
+        ...row,
+        approvers: await this.approversFor(row),
+      })),
+    );
   }
 
   async listInbox(principal: Principal) {
@@ -350,10 +359,13 @@ export class VacationService {
       : [];
     const nameById = new Map(principals.map((p) => [p.id, p.displayName]));
 
-    return visible.map((row) => ({
-      ...row,
-      requesterDisplayName: nameById.get(row.requesterPrincipalId) ?? "Unknown",
-    }));
+    return Promise.all(
+      visible.map(async (row) => ({
+        ...row,
+        requesterDisplayName: nameById.get(row.requesterPrincipalId) ?? "Unknown",
+        approvers: await this.approversFor(row),
+      })),
+    );
   }
 
   async getRequest(principal: Principal, requestId: string) {
@@ -400,6 +412,10 @@ export class VacationService {
         })
       : [];
     const nameById = new Map(principals.map((p) => [p.id, p.displayName]));
+    const [approvers, placement] = await Promise.all([
+      this.approversFor(row),
+      this.placementLabel(row),
+    ]);
 
     return {
       request: {
@@ -408,6 +424,8 @@ export class VacationService {
         reviewerDisplayName: row.reviewedByPrincipalId
           ? (nameById.get(row.reviewedByPrincipalId) ?? "Unknown")
           : null,
+        approvers,
+        placement,
       },
       audits: audits.map((a) => ({
         ...a,
@@ -598,6 +616,105 @@ export class VacationService {
       teamDepartmentIds: teams.map((team) => team.departmentId),
       departments,
     });
+  }
+
+  private async approversFor(row: {
+    organizationId: string;
+    requesterPrincipalId: string;
+    departmentId: string | null;
+    sectionId: string | null;
+  }) {
+    const now = new Date();
+    const [bindings, departments] = await Promise.all([
+      this.db.roleBinding.findMany({
+        where: {
+          organizationId: row.organizationId,
+          principalId: { not: row.requesterPrincipalId },
+          OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+          roleDefinition: { permissions: { has: PERMISSIONS.VACATION_REVIEW } },
+        },
+        select: {
+          principalId: true,
+          scopeType: true,
+          scopeId: true,
+          organizationId: true,
+          roleDefinition: { select: { name: true } },
+          principal: { select: { displayName: true } },
+        },
+      }),
+      this.db.department.findMany({
+        where: { section: { organizationId: row.organizationId } },
+        select: { id: true, sectionId: true, parentDepartmentId: true },
+      }),
+    ]);
+
+    const requested = row.departmentId
+      ? {
+          type: "DEPARTMENT" as const,
+          organizationId: row.organizationId,
+          departmentId: row.departmentId,
+        }
+      : row.sectionId
+        ? {
+            type: "SECTION" as const,
+            organizationId: row.organizationId,
+            sectionId: row.sectionId,
+          }
+        : {
+            type: "ORGANIZATION" as const,
+            organizationId: row.organizationId,
+          };
+
+    const candidates = [];
+    for (const binding of bindings) {
+      const matches = await scopeMatchesAsync(
+        this.db,
+        binding.scopeType,
+        binding.organizationId,
+        binding.scopeId,
+        requested,
+      );
+      if (!matches) continue;
+      candidates.push({
+        principalId: binding.principalId,
+        displayName: binding.principal.displayName?.trim() || "Unknown",
+        roleName: binding.roleDefinition.name,
+        scopeType: binding.scopeType,
+        scopeId: binding.scopeId,
+      });
+    }
+
+    return selectClosestApprovers({
+      departmentId: row.departmentId,
+      sectionId: row.sectionId,
+      parentDepartmentIds: row.departmentId
+        ? ancestorDepartmentIds(row.departmentId, departments)
+        : [],
+      candidates,
+    });
+  }
+
+  private async placementLabel(row: {
+    organizationId: string;
+    departmentId: string | null;
+    sectionId: string | null;
+  }) {
+    if (row.departmentId) {
+      const department = await this.db.department.findUnique({
+        where: { id: row.departmentId },
+        select: { name: true, section: { select: { name: true } } },
+      });
+      if (!department) return null;
+      return `${department.section.name} / ${department.name}`;
+    }
+    if (row.sectionId) {
+      const section = await this.db.section.findUnique({
+        where: { id: row.sectionId },
+        select: { name: true },
+      });
+      return section?.name ?? null;
+    }
+    return null;
   }
 
   private async requireRequest(id: string) {
