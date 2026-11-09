@@ -10,14 +10,25 @@ import {
 } from "@/components/governance/governance-panels";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
+import { hasPermissionInAnyOrganization } from "@/modules/identity-access/application/org-permission";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
 export default async function DecisionsInboxPage() {
-  const { authz, governance } = createServices();
+  const { authz, governance, organization } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
+
+  const orgs = await organization.listOrganizations(principal);
+  const canDecide = await hasPermissionInAnyOrganization(
+    authz,
+    principal,
+    PERMISSIONS.DECISION_MAKE,
+    orgs.map((org) => org.id),
+  );
+  if (!canDecide) redirect("/");
 
   const submissions = await governance.listMyDecisions(principal);
   const orgIds = [...new Set(submissions.map((s) => s.initiative.organizationId))];

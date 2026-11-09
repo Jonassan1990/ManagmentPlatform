@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { CreateInitiativeForm } from "@/components/initiative/initiative-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { hasPermissionInAnyOrganization } from "@/modules/identity-access/application/org-permission";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +14,13 @@ export default async function NewInitiativePage() {
 
   const orgs = await organization.listOrganizations(principal);
   if (orgs.length === 0) redirect("/organization/setup");
+  const canCreate = await hasPermissionInAnyOrganization(
+    authz,
+    principal,
+    PERMISSIONS.INITIATIVE_CREATE,
+    orgs.map((org) => org.id),
+  );
+  if (!canCreate) redirect("/initiatives");
 
   const organizations = [];
   const peopleByOrganization: Record<

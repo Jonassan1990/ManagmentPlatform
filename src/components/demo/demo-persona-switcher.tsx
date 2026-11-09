@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { setDemoPersonaAction } from "@/app/actions/demo-persona";
 import type { DemoPersonaKey } from "@/modules/demo/it-hierarchy-demo";
@@ -22,9 +21,9 @@ export function DemoPersonaSwitcher({
   personas: DemoPersonaOption[];
   activeKey: DemoPersonaKey | null;
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState(activeKey ?? "session");
 
   if (personas.length === 0) return null;
 
@@ -37,23 +36,30 @@ export function DemoPersonaSwitcher({
         id="demo-persona-switcher"
         className="min-h-9 rounded-[4px] border border-white/30 bg-[#0c2340] px-2 text-xs font-semibold text-white outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
         disabled={pending}
-        value={activeKey ?? "session"}
+        value={selected}
         title={
-          personas.find((persona) => persona.key === activeKey)?.sees ??
-          "Simulate what each manager level can see"
+          personas.find((persona) => persona.key === selected)?.sees ??
+          "Simulate what each person can see"
         }
         onChange={(event) => {
           const value = event.target.value;
+          const previous = selected;
+          setSelected(value);
           setError(null);
           startTransition(async () => {
             const result = await setDemoPersonaAction(
               value === "session" ? null : value,
             );
             if (!result.ok) {
+              setSelected(previous);
               setError(result.error);
               return;
             }
-            router.refresh();
+            // Stay on this URL, but load it again so the new role's view
+            // replaces the previous one. router.refresh() keeps the old page.
+            const stay = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            window.location.assign(stay);
           });
         }}
       >

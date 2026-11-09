@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { ReviewVacationForm } from "@/components/vacation/vacation-forms";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { hasPermissionInAnyOrganization } from "@/modules/identity-access/application/org-permission";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { mapVacationStatusBadge } from "@/modules/vacation/application/vacation-status";
 import {
   formatVacationAmount,
@@ -13,10 +15,19 @@ import { createServices } from "@/server/container";
 export const dynamic = "force-dynamic";
 
 export default async function VacationInboxPage() {
-  const { authz, vacation } = createServices();
+  const { authz, vacation, organization } = createServices();
   await authz.ensureSystemRoles();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
+
+  const orgs = await organization.listOrganizations(principal);
+  const canReview = await hasPermissionInAnyOrganization(
+    authz,
+    principal,
+    PERMISSIONS.VACATION_REVIEW,
+    orgs.map((org) => org.id),
+  );
+  if (!canReview) redirect("/vacation");
 
   const inbox = await vacation.listInbox(principal);
 
