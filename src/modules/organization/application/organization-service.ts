@@ -13,6 +13,7 @@ import { assertAllocationPercentsWithinLimit } from "@/modules/pi-planning/appli
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS, ROLE_KEYS } from "@/modules/shared/permissions";
 import { buildOrganizationChart, nestChildOrganizations } from "./organization-chart";
+import { ensureQOrganizationsRetired } from "./retire-q-organizations";
 import {
   archiveEntityInputSchema,
   assignMembershipInputSchema,
@@ -56,6 +57,7 @@ export class OrganizationService {
   ) {}
 
   async listOrganizations(principal: Principal) {
+    await ensureQOrganizationsRetired(this.db);
     await this.authz.ensureBootstrapBinding(principal.id);
     // Read: any principal with platform bootstrap or any org binding can list orgs they can access.
     const bindings = await this.db.roleBinding.findMany({
