@@ -285,11 +285,6 @@ export default async function DepartmentPage({
               month={coverMonth}
               days={roleDays}
               selectedDate={selectedCoverDay}
-              hrefForDay={(date) => {
-                const path = `/organization/${org.id}/departments/${department.id}`;
-                if (date === selectedCoverDay) return withOrgMode(path, mode);
-                return withOrgMode(`${path}?day=${date}`, mode);
-              }}
             />
           </Panel>
 
