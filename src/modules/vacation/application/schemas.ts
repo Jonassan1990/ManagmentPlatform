@@ -58,6 +58,18 @@ export const vacationCoverQuerySchema = vacationCalendarQuerySchema.extend({
   departmentId: z.string().uuid().optional(),
 });
 
+export const vacationPlanQuerySchema = vacationCalendarQuerySchema.extend({
+  departmentId: z.string().uuid().optional(),
+});
+
+export const setVacationPlanMarkSchema = z.object({
+  organizationId: z.string().uuid(),
+  departmentId: z.string().uuid(),
+  principalId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  kind: z.enum(["VACATION", "EDUCATION", "COMPENSATORY", "ON_CALL", "PARENTAL"]).nullable(),
+});
+
 export const vacationYearQuerySchema = z.object({
   organizationId: z.string().uuid(),
   year: z.coerce.number().int().min(2000).max(2100),
