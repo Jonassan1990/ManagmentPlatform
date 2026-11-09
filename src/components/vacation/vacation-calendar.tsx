@@ -1,4 +1,8 @@
 import Link from "next/link";
+import {
+  formatRoleCoverage,
+  type RoleCoverageGap,
+} from "@/modules/vacation/application/vacation-coverage";
 import { formatDateOnly, toUtcDateOnly } from "@/modules/vacation/application/working-days";
 
 export type CalendarEntry = {
@@ -15,10 +19,12 @@ export function VacationMonthCalendar({
   year,
   month,
   entries,
+  coverage = [],
 }: {
   year: number;
   month: number;
   entries: CalendarEntry[];
+  coverage?: RoleCoverageGap[];
 }) {
   const first = new Date(Date.UTC(year, month - 1, 1));
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
@@ -55,6 +61,7 @@ export function VacationMonthCalendar({
         ))}
         {cells.map((cell, index) => {
           const dayEntries = cell.dateKey ? entriesForDay(cell.dateKey) : [];
+          const dayCover = cell.dateKey ? coverageForDay(cell.dateKey, coverage) : [];
           return (
             <div
               key={`${cell.dateKey ?? "empty"}-${index}`}
@@ -65,6 +72,14 @@ export function VacationMonthCalendar({
                   <p className="text-xs font-semibold text-[var(--ink)]">
                     {cell.day}
                   </p>
+                  {dayCover.length > 0 ? (
+                    <p
+                      className="mt-0.5 text-[10px] font-semibold text-[var(--scania-blue-800,#041e42)]"
+                      title={dayCover.map((gap) => formatRoleCoverage(gap)).join("\n")}
+                    >
+                      Full cover
+                    </p>
+                  ) : null}
                   <ul className="mt-1 space-y-1">
                     {dayEntries.slice(0, 3).map((entry) => (
                       <li key={`${entry.id}-${cell.dateKey}`}>
@@ -90,6 +105,42 @@ export function VacationMonthCalendar({
         })}
       </div>
     </div>
+  );
+}
+
+function coverageForDay(dateKey: string, coverage: RoleCoverageGap[]) {
+  const day = toUtcDateOnly(dateKey).getUTCDay();
+  if (day === 0 || day === 6) return [];
+  return coverage.filter(
+    (gap) => dateKey >= gap.startDate && dateKey <= gap.endDate,
+  );
+}
+
+export function RoleCoverageList({ gaps }: { gaps: RoleCoverageGap[] }) {
+  if (gaps.length === 0) {
+    return (
+      <p className="text-sm text-[var(--muted)]">
+        No role is fully away in this period. Half days and hours still leave
+        someone partly available.
+      </p>
+    );
+  }
+  return (
+    <ul className="space-y-3">
+      {gaps.map((gap) => (
+        <li key={`${gap.kind}-${gap.departmentId}-${gap.role}-${gap.startDate}`}>
+          <p className="text-sm font-medium text-[var(--ink)]">
+            {formatRoleCoverage(gap)}
+          </p>
+          <p className="text-sm text-[var(--muted)]">{gap.names.join(", ")}</p>
+          {gap.waiting ? (
+            <p className="text-sm text-[var(--muted)]">
+              Includes a request still waiting for approval.
+            </p>
+          ) : null}
+        </li>
+      ))}
+    </ul>
   );
 }
 

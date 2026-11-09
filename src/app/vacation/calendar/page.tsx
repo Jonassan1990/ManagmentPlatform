@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { VacationMonthCalendar } from "@/components/vacation/vacation-calendar";
+import {
+  RoleCoverageList,
+  VacationMonthCalendar,
+} from "@/components/vacation/vacation-calendar";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { buttonClassName } from "@/components/ui/button";
 import { AppError } from "@/modules/shared/errors";
@@ -86,7 +89,7 @@ export default async function VacationCalendarPage({
       />
       <PageHeader
         title="Vacation calendar"
-        description="Approved vacations for the selected month."
+        description="Approved vacations for the selected month. A department role is fully covered when everyone in that role is off."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -104,6 +107,19 @@ export default async function VacationCalendarPage({
           </div>
         }
       />
+
+      <Panel className="mb-6">
+        <h2 className="mb-1 text-base font-semibold text-[var(--ink)]">
+          Department role cover
+        </h2>
+        <p className="mb-4 text-sm text-[var(--muted)]">
+          Shows when every person with the same role in a department is on a
+          full weekday off. Developers includes Developer, Software Developer,
+          and the other developer titles. The same check runs for every other
+          role.
+        </p>
+        <RoleCoverageList gaps={calendar.coverage} />
+      </Panel>
 
       <Panel>
         <h2 className="mb-4 text-base font-semibold text-[var(--ink)]">
@@ -130,6 +146,7 @@ export default async function VacationCalendarPage({
           year={year}
           month={month}
           entries={calendar.entries}
+          coverage={calendar.coverage}
         />
         {calendar.entries.length === 0 ? (
           <p className="mt-4 text-sm text-[var(--muted)]">

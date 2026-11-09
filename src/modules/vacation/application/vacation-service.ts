@@ -1,6 +1,8 @@
 import {
+  EntityStatus,
   Prisma,
   PrismaClient,
+  ResourceType,
   VacationAuditAction,
   VacationRequestStatus,
 } from "@prisma/client";
@@ -26,6 +28,11 @@ import {
   monthBounds,
   yearBounds,
 } from "./working-days";
+import {
+  departmentRoleCoverage,
+  visibleDepartmentIds,
+  type RoleCoverageGap,
+} from "./vacation-coverage";
 import {
   resolveVacationDuration,
   workingDaysInsideRange,
@@ -475,6 +482,7 @@ export class VacationService {
         workingDays: amountNumber(row.workingDays) ?? 0,
         status: row.status,
       })),
+      coverage: await this.roleCoverage(parsed.organizationId, visibility, start, end),
     };
   }
 
@@ -564,7 +572,124 @@ export class VacationService {
       users: [...byUser.values()].sort((a, b) =>
         a.displayName.localeCompare(b.displayName),
       ),
+      coverage: await this.roleCoverage(
+        parsed.organizationId,
+        visibility,
+        start,
+        end,
+      ),
     };
+  }
+
+  private async roleCoverage(
+    organizationId: string,
+    visibility: Awaited<ReturnType<VacationService["visibilityWhere"]>>,
+    start: Date,
+    end: Date,
+  ): Promise<RoleCoverageGap[]> {
+    const now = new Date();
+    const [resources, departments, absences] = await Promise.all([
+      this.db.resource.findMany({
+        where: {
+          organizationId,
+          type: ResourceType.PERSON,
+          status: EntityStatus.ACTIVE,
+          functionRole: { not: null },
+          linkedPrincipalId: { not: null },
+        },
+        select: {
+          name: true,
+          functionRole: true,
+          linkedPrincipalId: true,
+          memberships: {
+            where: {
+              effectiveFrom: { lte: now },
+              OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+            },
+            select: {
+              isPrimary: true,
+              team: {
+                select: {
+                  department: { select: { id: true, name: true, sectionId: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.db.department.findMany({
+        where: { section: { organizationId } },
+        select: { id: true, sectionId: true },
+      }),
+      this.db.vacationRequest.findMany({
+        where: {
+          ...visibility,
+          status: {
+            in: [
+              VacationRequestStatus.APPROVED,
+              VacationRequestStatus.SUBMITTED,
+              VacationRequestStatus.CHANGES_REQUESTED,
+            ],
+          },
+          durationKind: "FULL_DAYS",
+          startDate: { lte: end },
+          endDate: { gte: start },
+        },
+        select: {
+          requesterPrincipalId: true,
+          departmentId: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+        },
+      }),
+    ]);
+
+    const allowed = visibleDepartmentIds(visibility, departments);
+    const people = [];
+    for (const resource of resources) {
+      const role = resource.functionRole?.trim();
+      const principalId = resource.linkedPrincipalId;
+      if (!role || !principalId) continue;
+      const membership =
+        resource.memberships.find((row) => row.isPrimary) ??
+        resource.memberships[0];
+      const department = membership?.team.department;
+      if (!department) continue;
+      if (allowed && !allowed.has(department.id)) continue;
+      people.push({
+        principalId,
+        displayName: resource.name,
+        departmentId: department.id,
+        departmentName: department.name,
+        role,
+      });
+    }
+
+    return departmentRoleCoverage({
+      people,
+      absences: absences.flatMap((row) => {
+        if (
+          row.status !== "APPROVED" &&
+          row.status !== "SUBMITTED" &&
+          row.status !== "CHANGES_REQUESTED"
+        ) {
+          return [];
+        }
+        return [
+          {
+            principalId: row.requesterPrincipalId,
+            departmentId: row.departmentId,
+            startDate: formatDateOnly(row.startDate),
+            endDate: formatDateOnly(row.endDate),
+            durationKind: "FULL_DAYS" as const,
+            status: row.status,
+          },
+        ];
+      }),
+      rangeStart: formatDateOnly(start),
+      rangeEnd: formatDateOnly(end),
+    });
   }
 
   private async visibilityWhere(principal: Principal, organizationId: string) {

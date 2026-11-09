@@ -1,5 +1,6 @@
 import {
   FUNCTION_ROLES,
+  isFunctionRoleLabel,
   type FunctionRoleLabel,
 } from "@/modules/organization/domain/function-roles";
 import { DEFAULT_ONBOARDING_ITEMS } from "./default-items";
@@ -18,7 +19,7 @@ export type OnboardingRoleTemplate = {
 
 const START_TASKS = "Start getting tasks";
 
-type RoleFamily =
+export type RoleFamily =
   | "manager"
   | "product"
   | "architect"
@@ -249,6 +250,11 @@ export const ONBOARDING_ROLE_TEMPLATES: OnboardingRoleTemplate[] =
     summary: FAMILY_SUMMARY[ROLE_FAMILY[role.label]],
     items: templateFor(role.label),
   }));
+
+export function functionRoleFamily(label: string): RoleFamily | null {
+  if (!isFunctionRoleLabel(label)) return null;
+  return ROLE_FAMILY[label];
+}
 
 export function getOnboardingRoleTemplate(key: string | null | undefined) {
   if (!key) return null;
