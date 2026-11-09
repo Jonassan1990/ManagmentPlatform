@@ -285,9 +285,9 @@
   pointer-events: none;
   visibility: hidden;
   transition:
-    grid-template-rows 260ms var(--motion-ease-out),
-    opacity 200ms var(--motion-ease-out),
-    visibility 0ms linear 200ms;
+    grid-template-rows 140ms var(--motion-ease-out),
+    opacity 100ms var(--motion-ease-out),
+    visibility 0ms linear 100ms;
 }
 
 .mp-side-children[data-open="true"] {
@@ -296,8 +296,8 @@
   pointer-events: auto;
   visibility: visible;
   transition:
-    grid-template-rows 260ms var(--motion-ease-out),
-    opacity 200ms var(--motion-ease-out),
+    grid-template-rows 140ms var(--motion-ease-out),
+    opacity 100ms var(--motion-ease-out),
     visibility 0ms linear 0ms;
 }
 

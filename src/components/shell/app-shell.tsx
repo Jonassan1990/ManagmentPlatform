@@ -11,7 +11,6 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { flushSync } from "react-dom";
 import {
   extractActivePiId,
   resolveNavGroups,
@@ -74,7 +73,7 @@ export function AppShell({
     });
   }, [pathname, nav.capabilities, nav.organizationId]);
 
-  /** Manual expand/collapse; active route groups always stay open. */
+  /** User choice wins, including collapsing the section for the current page. */
   const [manualExpanded, setManualExpanded] = useState<Record<string, boolean>>(
     {},
   );
@@ -122,11 +121,9 @@ export function AppShell({
   }, [open]);
 
   function isGroupExpanded(group: ResolvedNavGroup): boolean {
-    if (group.containsActive) return true;
-    if (manualExpanded[group.id] !== undefined) {
-      return manualExpanded[group.id]!;
-    }
-    return false;
+    const choice = manualExpanded[group.id];
+    if (choice !== undefined) return choice;
+    return group.containsActive;
   }
 
   const label =
@@ -338,8 +335,7 @@ function SideLink({
     if (!el) return;
     const onDown = (event: PointerEvent) => {
       if (!isPlainClick(event)) return;
-      // Commit the highlight before click starts Next's navigation transition.
-      flushSync(() => onArmRef.current(keyRef.current));
+      onArmRef.current(keyRef.current);
       markPressed(el, event.clientX, event.clientY);
     };
     el.addEventListener("pointerdown", onDown);
@@ -348,7 +344,7 @@ function SideLink({
 
   function onClick(event: MouseEvent<HTMLAnchorElement>) {
     if (isPlainClick(event)) {
-      flushSync(() => onArm(selectKey));
+      onArm(selectKey);
       markPressed(event.currentTarget, event.clientX, event.clientY);
     }
     onNavigate();
