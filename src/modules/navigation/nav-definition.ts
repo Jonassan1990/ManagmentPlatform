@@ -55,7 +55,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         href: "/vacation/cover",
         match: { type: "prefix", path: "/vacation/cover" },
         capability: "canViewVacation",
-        description: "When a whole department role is away",
+        description: "Green, yellow, and red days for who is in",
       },
       {
         id: "vacation-calendar",

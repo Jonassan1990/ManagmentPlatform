@@ -30,6 +30,7 @@ import {
   yearBounds,
 } from "./working-days";
 import {
+  departmentDayCover,
   departmentRoleCoverage,
   visibleDepartmentIds,
   type RoleCoverageGap,
@@ -494,18 +495,49 @@ export class VacationService {
       parsed.organizationId,
     );
     const { start, end } = monthBounds(parsed.year, parsed.month - 1);
-    const coverage = await this.roleCoverage(
+    const facts = await this.coverFacts(
       parsed.organizationId,
       visibility,
       start,
       end,
     );
+    const departments = [
+      ...new Map(
+        facts.people.map((person) => [
+          person.departmentId,
+          { id: person.departmentId, name: person.departmentName },
+        ]),
+      ).values(),
+    ].sort((a, b) => a.name.localeCompare(b.name));
+    const departmentId = departments.some(
+      (department) => department.id === parsed.departmentId,
+    )
+      ? parsed.departmentId
+      : undefined;
+    const people = departmentId
+      ? facts.people.filter((person) => person.departmentId === departmentId)
+      : facts.people;
+    const rangeStart = formatDateOnly(start);
+    const rangeEnd = formatDateOnly(end);
     return {
       year: parsed.year,
       month: parsed.month,
-      rangeStart: formatDateOnly(start),
-      rangeEnd: formatDateOnly(end),
-      coverage,
+      rangeStart,
+      rangeEnd,
+      departmentId: departmentId ?? null,
+      departments,
+      coverage: departmentRoleCoverage({
+        people,
+        absences: facts.absences,
+        rangeStart,
+        rangeEnd,
+      }),
+      days: departmentDayCover({
+        people,
+        absences: facts.absences,
+        rangeStart,
+        rangeEnd,
+      }),
     };
   }
 
@@ -610,6 +642,21 @@ export class VacationService {
     start: Date,
     end: Date,
   ): Promise<RoleCoverageGap[]> {
+    const facts = await this.coverFacts(organizationId, visibility, start, end);
+    return departmentRoleCoverage({
+      people: facts.people,
+      absences: facts.absences,
+      rangeStart: formatDateOnly(start),
+      rangeEnd: formatDateOnly(end),
+    });
+  }
+
+  private async coverFacts(
+    organizationId: string,
+    visibility: Awaited<ReturnType<VacationService["visibilityWhere"]>>,
+    start: Date,
+    end: Date,
+  ) {
     const now = new Date();
     const [resources, departments, absences] = await Promise.all([
       this.db.resource.findMany({
@@ -654,7 +701,6 @@ export class VacationService {
               VacationRequestStatus.CHANGES_REQUESTED,
             ],
           },
-          durationKind: "FULL_DAYS",
           startDate: { lte: end },
           endDate: { gte: start },
         },
@@ -663,6 +709,9 @@ export class VacationService {
           departmentId: true,
           startDate: true,
           endDate: true,
+          durationKind: true,
+          dayPart: true,
+          hours: true,
           status: true,
         },
       }),
@@ -689,7 +738,7 @@ export class VacationService {
       });
     }
 
-    return departmentRoleCoverage({
+    return {
       people,
       absences: absences.flatMap((row) => {
         if (
@@ -699,20 +748,27 @@ export class VacationService {
         ) {
           return [];
         }
+        if (
+          row.durationKind !== "FULL_DAYS" &&
+          row.durationKind !== "HALF_DAY" &&
+          row.durationKind !== "HOURS"
+        ) {
+          return [];
+        }
         return [
           {
             principalId: row.requesterPrincipalId,
             departmentId: row.departmentId,
             startDate: formatDateOnly(row.startDate),
             endDate: formatDateOnly(row.endDate),
-            durationKind: "FULL_DAYS" as const,
+            durationKind: row.durationKind,
+            dayPart: row.dayPart,
+            hours: amountNumber(row.hours),
             status: row.status,
           },
         ];
       }),
-      rangeStart: formatDateOnly(start),
-      rangeEnd: formatDateOnly(end),
-    });
+    };
   }
 
   private async visibilityWhere(principal: Principal, organizationId: string) {
