@@ -101,6 +101,14 @@ export default async function VacationPage() {
                         {row.workingDays === 1 ? "" : "s"}
                         {row.reason ? ` · ${row.reason}` : ""}
                       </p>
+                      <p className="text-sm text-[var(--muted)]">
+                        Approver{" "}
+                        {row.approvers.length > 0
+                          ? row.approvers
+                              .map((approver) => approver.displayName)
+                              .join(", ")
+                          : "not assigned"}
+                      </p>
                     </div>
                     <StatusBadge status={badge.status} label={badge.label} />
                   </li>

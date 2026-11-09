@@ -50,7 +50,15 @@ export default async function VacationInboxPage() {
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm text-[var(--muted)]">
-                      {row.requesterDisplayName}
+                      Owner · {row.requesterDisplayName}
+                    </p>
+                    <p className="text-sm text-[var(--muted)]">
+                      Approver ·{" "}
+                      {row.approvers.length > 0
+                        ? row.approvers
+                            .map((approver) => approver.displayName)
+                            .join(", ")
+                        : "not assigned"}
                     </p>
                     <Link
                       href={`/vacation/${row.id}`}
