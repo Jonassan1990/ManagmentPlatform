@@ -867,6 +867,13 @@ export class VacationService {
   }
 
   private async requireRequest(id: string) {
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id,
+      )
+    ) {
+      throw new AppError("NOT_FOUND", "Vacation request not found");
+    }
     const row = await this.db.vacationRequest.findUnique({ where: { id } });
     if (!row) throw new AppError("NOT_FOUND", "Vacation request not found");
     return row;
