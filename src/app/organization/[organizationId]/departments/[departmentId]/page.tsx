@@ -268,6 +268,12 @@ export default async function DepartmentPage({
             <h2 className="mb-1 text-base font-semibold text-[var(--ink)]">
               Role cover
             </h2>
+            <p className="mb-1 text-sm font-medium text-[var(--ink)]">
+              {new Date(Date.UTC(coverYear, coverMonth - 1, 1)).toLocaleString(
+                "en-GB",
+                { month: "long", year: "numeric", timeZone: "UTC" },
+              )}
+            </p>
             <p className="mb-4 text-sm text-[var(--muted)]">
               Green means every role is in. Yellow means at least one person
               is still available. Red means nobody in this department is
