@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { EditOnboardingItems } from "@/components/onboarding/edit-onboarding-items";
 import {
   CancelOnboardingButton,
   ToggleOnboardingCheckButton,
@@ -157,7 +158,16 @@ export default async function OnboardingDetailPage({
             ))}
           </ul>
           {capabilities.canManage && checklist.status === "IN_PROGRESS" ? (
-            <div className="mt-6">
+            <div className="mt-6 space-y-6">
+              <EditOnboardingItems
+                checklistId={checklist.id}
+                expectedVersion={checklist.version}
+                items={checklist.items.map((item) => ({
+                  id: item.id,
+                  title: item.title,
+                  description: item.description,
+                }))}
+              />
               <CancelOnboardingButton
                 checklistId={checklist.id}
                 expectedVersion={checklist.version}

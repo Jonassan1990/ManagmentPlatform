@@ -5,11 +5,13 @@ import {
   alignOnboardingPlan,
   DEFAULT_ONBOARDING_ITEMS,
 } from "@/modules/onboarding/application/default-items";
+import { getOnboardingRoleTemplate } from "@/modules/onboarding/application/role-templates";
 import { createServices } from "@/server/container";
 
 export const runtime = "nodejs";
 
 const bodySchema = z.object({
+  roleKey: z.string().trim().min(1).max(40).optional(),
   roleTitle: z.string().trim().min(1).max(200).optional(),
   departmentName: z.string().trim().min(1).max(200).optional(),
   notes: z.string().trim().max(2000).optional(),
@@ -38,13 +40,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const role = parsed.data.roleTitle?.trim() || "new team member";
+  const template = getOnboardingRoleTemplate(parsed.data.roleKey);
+  const required = template?.items ?? DEFAULT_ONBOARDING_ITEMS;
+  const role =
+    parsed.data.roleTitle?.trim() || template?.label || "new team member";
   const department = parsed.data.departmentName?.trim() || "their department";
   const notes = parsed.data.notes?.trim();
 
-  const stepList = DEFAULT_ONBOARDING_ITEMS.map(
-    (item, index) => `${index + 1}. ${item.title}`,
-  ).join("\n");
+  const stepList = required
+    .map((item, index) => `${index + 1}. ${item.title}`)
+    .join("\n");
 
   try {
     const { text } = await generateText({
@@ -54,6 +59,7 @@ export async function POST(request: Request) {
 Each item must be checkable by BOTH the new employee and the onboarder.
 Return ONLY a JSON array with one object per step, in this exact order.
 Keys: "title" (use the title below unchanged) and "description" (one sentence tailored to the role and department).
+Keep every title. You may add up to 3 extra role-specific steps before the confirmation step.
 No markdown fences.
 Steps:
 ${stepList}
@@ -78,7 +84,10 @@ Role: ${role}. Department: ${department}.${
       .max(20)
       .parse(JSON.parse(cleaned));
 
-    return NextResponse.json({ items: alignOnboardingPlan(generated) });
+    return NextResponse.json({
+      items: alignOnboardingPlan(generated, required),
+      roleKey: template?.key ?? null,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "AI plan generation failed";

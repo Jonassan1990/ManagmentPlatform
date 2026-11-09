@@ -9,10 +9,12 @@ import type { Principal } from "@/modules/identity-access/domain/types";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { DEFAULT_ONBOARDING_ITEMS } from "./default-items";
+import { getOnboardingRoleTemplate } from "./role-templates";
 import {
   cancelOnboardingChecklistSchema,
   createOnboardingChecklistSchema,
   toggleOnboardingItemSchema,
+  updateOnboardingItemsSchema,
 } from "./schemas";
 
 function itemIsDualComplete(item: {
@@ -48,9 +50,16 @@ export class OnboardingService {
     if (!employee) throw new AppError("NOT_FOUND", "Employee principal not found");
     if (!onboarder) throw new AppError("NOT_FOUND", "Onboarder principal not found");
 
+    const template = getOnboardingRoleTemplate(parsed.roleTemplate);
+    const sourceItems =
+      parsed.items ??
+      template?.items ??
+      DEFAULT_ONBOARDING_ITEMS;
     const title =
       parsed.title?.trim() ||
-      `Onboarding — ${employee.displayName ?? "new employee"}`;
+      `Onboarding — ${employee.displayName ?? "new employee"}${
+        template ? ` — ${template.label}` : ""
+      }`;
 
     const created = await this.db.$transaction(async (tx) => {
       const checklist = await tx.onboardingChecklist.create({
@@ -63,10 +72,10 @@ export class OnboardingService {
           createdByPrincipalId: principal.id,
           status: OnboardingChecklistStatus.IN_PROGRESS,
           items: {
-            create: DEFAULT_ONBOARDING_ITEMS.map((item, index) => ({
+            create: sourceItems.map((item, index) => ({
               sortOrder: index + 1,
               title: item.title,
-              description: item.description,
+              description: item.description?.trim() || null,
             })),
           },
         },
@@ -82,6 +91,7 @@ export class OnboardingService {
             employeePrincipalId: checklist.employeePrincipalId,
             onboarderPrincipalId: checklist.onboarderPrincipalId,
             itemCount: checklist.items.length,
+            roleTemplate: template?.key ?? null,
           },
         },
       });
@@ -270,6 +280,121 @@ export class OnboardingService {
       subjectId: updated.id,
       organizationId: updated.organizationId,
       payload: {},
+      result: "success",
+    });
+
+    return updated;
+  }
+
+  async updateItems(principal: Principal, input: unknown) {
+    const parsed = updateOnboardingItemsSchema.parse(input);
+    const checklist = await this.requireChecklist(parsed.checklistId);
+    await this.assertCanManage(principal, checklist.organizationId);
+    if (checklist.status !== OnboardingChecklistStatus.IN_PROGRESS) {
+      throw new AppError("CONFLICT", "Only in-progress checklists can be edited");
+    }
+    if (checklist.version !== parsed.expectedVersion) {
+      throw new AppError("STALE_VERSION", "Checklist was updated by someone else");
+    }
+
+    const existingById = new Map(checklist.items.map((item) => [item.id, item]));
+    for (const item of parsed.items) {
+      if (item.id && !existingById.has(item.id)) {
+        throw new AppError("VALIDATION", "That checklist step was not found");
+      }
+    }
+
+    const keepIds = parsed.items
+      .map((item) => item.id)
+      .filter((id): id is string => Boolean(id));
+
+    const updated = await this.db.$transaction(async (tx) => {
+      if (keepIds.length === 0) {
+        await tx.onboardingChecklistItem.deleteMany({
+          where: { checklistId: checklist.id },
+        });
+      } else {
+        await tx.onboardingChecklistItem.deleteMany({
+          where: { checklistId: checklist.id, id: { notIn: keepIds } },
+        });
+      }
+
+      for (const [index, item] of parsed.items.entries()) {
+        const description = item.description?.trim() || null;
+        if (item.id) {
+          await tx.onboardingChecklistItem.update({
+            where: { id: item.id },
+            data: {
+              title: item.title,
+              description,
+              sortOrder: index + 1,
+            },
+          });
+        } else {
+          await tx.onboardingChecklistItem.create({
+            data: {
+              checklistId: checklist.id,
+              title: item.title,
+              description,
+              sortOrder: index + 1,
+            },
+          });
+        }
+      }
+
+      await tx.onboardingChecklist.update({
+        where: { id: checklist.id, version: checklist.version },
+        data: { version: { increment: 1 } },
+      });
+
+      await tx.onboardingChecklistAudit.create({
+        data: {
+          checklistId: checklist.id,
+          actorPrincipalId: principal.id,
+          action: OnboardingAuditAction.ITEMS_EDITED,
+          payload: {
+            itemCount: parsed.items.length,
+            titles: parsed.items.map((item) => item.title),
+          },
+        },
+      });
+
+      const allItems = await tx.onboardingChecklistItem.findMany({
+        where: { checklistId: checklist.id },
+      });
+      if (allItems.length > 0 && allItems.every(itemIsDualComplete)) {
+        await tx.onboardingChecklist.update({
+          where: { id: checklist.id },
+          data: {
+            status: OnboardingChecklistStatus.PASSED,
+            passedAt: new Date(),
+            version: { increment: 1 },
+          },
+        });
+        await tx.onboardingChecklistAudit.create({
+          data: {
+            checklistId: checklist.id,
+            actorPrincipalId: principal.id,
+            action: OnboardingAuditAction.PASSED,
+            comment: "All remaining items checked by both employee and onboarder",
+            payload: { itemCount: allItems.length },
+          },
+        });
+      }
+
+      return tx.onboardingChecklist.findUniqueOrThrow({
+        where: { id: checklist.id },
+        include: { items: { orderBy: { sortOrder: "asc" } } },
+      });
+    });
+
+    await this.audit.record({
+      actorPrincipalId: principal.id,
+      actionType: "onboarding.items_edited",
+      subjectType: "OnboardingChecklist",
+      subjectId: checklist.id,
+      organizationId: checklist.organizationId,
+      payload: { itemCount: parsed.items.length },
       result: "success",
     });
 
