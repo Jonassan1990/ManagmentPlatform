@@ -62,11 +62,24 @@ export class PiService {
   ) {}
 
   async listProgramIncrements(principal: Principal, organizationId: string) {
-    await this.authz.assertCan(principal, PERMISSIONS.PI_VIEW, {
+    const orgWide = await this.authz.can(principal, PERMISSIONS.PI_VIEW, {
       type: "ORGANIZATION",
       organizationId,
     });
-    return this.db.programIncrement.findMany({
+    if (!orgWide) {
+      const inOrg = await this.authz.hasPermissionInOrganization(
+        principal,
+        PERMISSIONS.PI_VIEW,
+        organizationId,
+      );
+      if (!inOrg) {
+        throw new AppError(
+          "FORBIDDEN",
+          "Missing permission 'pi.view' for this organization.",
+        );
+      }
+    }
+    const rows = await this.db.programIncrement.findMany({
       where: { organizationId },
       include: {
         iterations: { orderBy: { sequence: "asc" } },
@@ -74,6 +87,17 @@ export class PiService {
       },
       orderBy: { startDate: "desc" },
     });
+    if (orgWide) return rows;
+    const visible = [];
+    for (const pi of rows) {
+      const allowed = await this.authz.can(
+        principal,
+        PERMISSIONS.PI_VIEW,
+        piAuthScope(pi.organizationId, pi.sectionId),
+      );
+      if (allowed) visible.push(pi);
+    }
+    return visible;
   }
 
   async getProgramIncrement(principal: Principal, piId: string) {

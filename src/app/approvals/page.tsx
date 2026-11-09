@@ -4,15 +4,26 @@ import { ApprovalDecisionForm } from "@/components/governance/governance-forms";
 import { ApprovalTaskCardHeader } from "@/components/governance/governance-workspace";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { hasPermissionInAnyOrganization } from "@/modules/identity-access/application/org-permission";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
 import { buttonClassName } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
-  const { authz, governance } = createServices();
+  const { authz, governance, organization } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
+
+  const orgs = await organization.listOrganizations(principal);
+  const canReview = await hasPermissionInAnyOrganization(
+    authz,
+    principal,
+    PERMISSIONS.APPROVAL_REVIEW,
+    orgs.map((org) => org.id),
+  );
+  if (!canReview) redirect("/");
 
   const requests = await governance.listMyApprovals(principal);
   const orgIds = [

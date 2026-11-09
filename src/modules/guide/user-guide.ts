@@ -211,7 +211,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "switcher",
         title: "Use the level dropdown",
-        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), sign in then pick Organization, Section IN, INF, INFB, ING, INA, or Viewer to show what each manager can see.",
+        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), sign in and pick a person in the header. The current page reloads as that person: managers see the manager inbox, and requesters stay on their own requests.",
       },
       {
         id: "logins",

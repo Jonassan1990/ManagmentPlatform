@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { CreatePiForm } from "@/components/pi-planning/pi-forms";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
 import { resolveCapabilities } from "@/modules/identity-access/application/capabilities";
+import { hasPermissionInAnyOrganization } from "@/modules/identity-access/application/org-permission";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +15,13 @@ export default async function NewPiPage() {
 
   const orgs = await organization.listOrganizations(principal);
   if (orgs.length === 0) redirect("/organization/setup");
+  const canCreate = await hasPermissionInAnyOrganization(
+    authz,
+    principal,
+    PERMISSIONS.PI_CREATE,
+    orgs.map((org) => org.id),
+  );
+  if (!canCreate) redirect("/pi");
 
   const organizations = [];
   let capabilities = await resolveCapabilities(authz, principal, orgs[0].id);
@@ -33,7 +42,7 @@ export default async function NewPiPage() {
   }
 
   if (!capabilities.canCreatePi) {
-    redirect("/pi");
+    capabilities = { ...capabilities, canCreatePi: true };
   }
 
   return (

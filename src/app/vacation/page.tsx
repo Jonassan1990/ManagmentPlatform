@@ -4,6 +4,8 @@ import { CreateVacationForm } from "@/components/vacation/vacation-forms";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonClassName } from "@/components/ui/button";
+import { hasPermissionInAnyOrganization } from "@/modules/identity-access/application/org-permission";
+import { PERMISSIONS } from "@/modules/shared/permissions";
 import { mapVacationStatusBadge } from "@/modules/vacation/application/vacation-status";
 import {
   formatVacationAmount,
@@ -23,6 +25,12 @@ export default async function VacationPage() {
     vacation.listMine(principal),
     organization.listOrganizations(principal),
   ]);
+  const canReview = await hasPermissionInAnyOrganization(
+    authz,
+    principal,
+    PERMISSIONS.VACATION_REVIEW,
+    orgs.map((org) => org.id),
+  );
 
   return (
     <div>
@@ -49,12 +57,14 @@ export default async function VacationPage() {
             >
               By year
             </Link>
-            <Link
-              href="/vacation/inbox"
-              className={buttonClassName({ variant: "secondary" })}
-            >
-              Manager inbox
-            </Link>
+            {canReview ? (
+              <Link
+                href="/vacation/inbox"
+                className={buttonClassName({ variant: "secondary" })}
+              >
+                Manager inbox
+              </Link>
+            ) : null}
           </div>
         }
       />

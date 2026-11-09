@@ -62,10 +62,17 @@ export default async function PiListPage() {
 
   let canCreateSomewhere = false;
   for (const org of orgs) {
-    const scope = { type: "ORGANIZATION" as const, organizationId: org.id };
     try {
-      const canView = await authz.can(principal, PERMISSIONS.PI_VIEW, scope);
-      const canCreate = await authz.can(principal, PERMISSIONS.PI_CREATE, scope);
+      const canView = await authz.hasPermissionInOrganization(
+        principal,
+        PERMISSIONS.PI_VIEW,
+        org.id,
+      );
+      const canCreate = await authz.hasPermissionInOrganization(
+        principal,
+        PERMISSIONS.PI_CREATE,
+        org.id,
+      );
       if (canCreate) canCreateSomewhere = true;
       if (!canView) continue;
       const list = await planning.listProgramIncrements(principal, org.id);
