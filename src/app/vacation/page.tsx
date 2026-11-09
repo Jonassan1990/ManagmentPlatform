@@ -5,7 +5,10 @@ import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page
 import { StatusBadge } from "@/components/ui/status-badge";
 import { buttonClassName } from "@/components/ui/button";
 import { mapVacationStatusBadge } from "@/modules/vacation/application/vacation-status";
-import { formatDateOnly } from "@/modules/vacation/application/working-days";
+import {
+  formatVacationAmount,
+  formatVacationSpan,
+} from "@/modules/vacation/application/vacation-duration";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +34,7 @@ export default async function VacationPage() {
       />
       <PageHeader
         title="My vacation requests"
-        description="Request time off. Your manager can accept, reject, or ask for changes. Approved days appear on the calendar and yearly summary."
+        description="Request full days, a half day, or a number of hours. Your manager can accept, reject, or ask for changes."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -77,7 +80,7 @@ export default async function VacationPage() {
           {mine.length === 0 ? (
             <EmptyState
               title="No vacation requests yet"
-              description="Submit a request on the left. Working days (Mon–Fri) are counted automatically."
+              description="Submit a request on the left. Choose full days, a half day, or 1–8 hours."
             />
           ) : (
             <ul className="divide-y divide-[var(--line)]">
@@ -93,12 +96,14 @@ export default async function VacationPage() {
                         href={`/vacation/${row.id}`}
                         className="font-medium text-[var(--ink)] hover:underline"
                       >
-                        {formatDateOnly(row.startDate)} →{" "}
-                        {formatDateOnly(row.endDate)}
+                        {formatVacationSpan(
+                          row.startDate,
+                          row.endDate,
+                          row.durationKind,
+                        )}
                       </Link>
                       <p className="text-sm text-[var(--muted)]">
-                        {row.workingDays} working day
-                        {row.workingDays === 1 ? "" : "s"}
+                        {formatVacationAmount(row)}
                         {row.reason ? ` · ${row.reason}` : ""}
                       </p>
                       <p className="text-sm text-[var(--muted)]">

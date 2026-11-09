@@ -12,6 +12,10 @@ import {
   mapVacationAuditLabel,
   mapVacationStatusBadge,
 } from "@/modules/vacation/application/vacation-status";
+import {
+  formatVacationAmount,
+  formatVacationSpan,
+} from "@/modules/vacation/application/vacation-duration";
 import { formatDateOnly } from "@/modules/vacation/application/working-days";
 import { createServices } from "@/server/container";
 
@@ -53,10 +57,14 @@ export default async function VacationDetailPage({
         ]}
       />
       <PageHeader
-        title={`${formatDateOnly(request.startDate)} → ${formatDateOnly(request.endDate)}`}
+        title={formatVacationSpan(
+          request.startDate,
+          request.endDate,
+          request.durationKind,
+        )}
         description={`Owner ${request.requesterDisplayName} · Approver ${
           approverNames.length > 0 ? approverNames.join(", ") : "not assigned"
-        } · ${request.workingDays} working day${request.workingDays === 1 ? "" : "s"}`}
+        } · ${formatVacationAmount(request)}`}
         actions={<StatusBadge status={badge.status} label={badge.label} />}
       />
 
@@ -121,14 +129,17 @@ export default async function VacationDetailPage({
             <div>
               <dt className="text-[var(--muted)]">Dates</dt>
               <dd className="font-medium text-[var(--ink)]">
-                {formatDateOnly(request.startDate)} →{" "}
-                {formatDateOnly(request.endDate)}
+                {formatVacationSpan(
+                  request.startDate,
+                  request.endDate,
+                  request.durationKind,
+                )}
               </dd>
             </div>
             <div>
-              <dt className="text-[var(--muted)]">Working days</dt>
+              <dt className="text-[var(--muted)]">Length</dt>
               <dd className="font-medium text-[var(--ink)]">
-                {request.workingDays}
+                {formatVacationAmount(request)}
               </dd>
             </div>
             <div>
@@ -159,8 +170,11 @@ export default async function VacationDetailPage({
               <ResubmitVacationForm
                 requestId={request.id}
                 expectedVersion={request.version}
+                durationKind={request.durationKind}
                 startDate={formatDateOnly(request.startDate)}
                 endDate={formatDateOnly(request.endDate)}
+                dayPart={request.dayPart}
+                hours={request.hours}
                 reason={request.reason}
               />
             ) : null}

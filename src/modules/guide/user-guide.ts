@@ -244,12 +244,12 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
     id: "vacation",
     title: "8. Vacation requests",
     summary:
-      "Employees request time off; managers accept, reject, or ask for changes. Approved days show on the calendar and yearly totals, with a full audit table.",
+      "Employees request full days, a half day, or hours. Managers accept, reject, or ask for changes. Approved time shows on the calendar and yearly totals, with a full audit table.",
     steps: [
       {
         id: "request",
         title: "Submit a request",
-        body: "Open Vacation → My requests, pick dates and optional reason, then submit. Working days (Mon–Fri) are counted automatically.",
+        body: "Open Vacation → My requests. Choose full days, a half day (morning or afternoon), or 1–8 hours, add an optional reason, then submit. Time is counted on weekdays against an 8-hour day.",
         href: "/vacation",
         hrefLabel: "My vacation",
       },

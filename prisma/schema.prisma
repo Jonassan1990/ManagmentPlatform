@@ -1897,6 +1897,17 @@ enum VacationRequestStatus {
   CANCELLED
 }
 
+enum VacationDurationKind {
+  FULL_DAYS
+  HALF_DAY
+  HOURS
+}
+
+enum VacationDayPart {
+  MORNING
+  AFTERNOON
+}
+
 enum VacationAuditAction {
   CREATED
   UPDATED
@@ -1918,8 +1929,13 @@ model VacationRequest {
   sectionId            String?               @db.Uuid
   startDate            DateTime              @db.Date
   endDate              DateTime              @db.Date
-  /// Inclusive weekday count cached at write time for year summaries.
-  workingDays          Int
+  /// Full weekday range, one half day (morning or afternoon), or 1–8 hours.
+  durationKind         VacationDurationKind  @default(FULL_DAYS)
+  dayPart              VacationDayPart?
+  /// Total hours. A working day is 8 hours; a half day is 4.
+  hours                Decimal?              @db.Decimal(4, 1)
+  /// Weekday amount cached at write time. Hours use 8 hours = 1 day.
+  workingDays          Decimal               @db.Decimal(6, 3)
   reason               String?               @db.VarChar(2000)
   status               VacationRequestStatus @default(SUBMITTED)
   managerComment       String?               @db.VarChar(4000)

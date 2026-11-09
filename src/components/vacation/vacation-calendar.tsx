@@ -6,6 +6,9 @@ export type CalendarEntry = {
   requesterDisplayName: string;
   startDate: string;
   endDate: string;
+  durationKind?: "FULL_DAYS" | "HALF_DAY" | "HOURS";
+  dayPart?: "MORNING" | "AFTERNOON" | null;
+  hours?: number | null;
 };
 
 export function VacationMonthCalendar({
@@ -68,9 +71,9 @@ export function VacationMonthCalendar({
                         <Link
                           href={`/vacation/${entry.id}`}
                           className="block truncate rounded bg-[var(--color-accent-soft,rgba(0,100,80,0.12))] px-1.5 py-0.5 text-[11px] text-[var(--ink)] hover:underline"
-                          title={entry.requesterDisplayName}
+                          title={calendarEntryLabel(entry)}
                         >
-                          {entry.requesterDisplayName}
+                          {calendarEntryLabel(entry)}
                         </Link>
                       </li>
                     ))}
@@ -88,4 +91,15 @@ export function VacationMonthCalendar({
       </div>
     </div>
   );
+}
+
+function calendarEntryLabel(entry: CalendarEntry): string {
+  if (entry.durationKind === "HALF_DAY") {
+    const part = entry.dayPart === "AFTERNOON" ? "PM" : "AM";
+    return `${entry.requesterDisplayName} · ${part}`;
+  }
+  if (entry.durationKind === "HOURS" && entry.hours) {
+    return `${entry.requesterDisplayName} · ${entry.hours}h`;
+  }
+  return entry.requesterDisplayName;
 }

@@ -7,6 +7,7 @@ import {
   reviewVacationRequestAction,
   updateVacationRequestAction,
 } from "@/app/actions/vacation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   FormField,
@@ -16,6 +17,151 @@ import {
   useActionForm,
 } from "@/components/ui/forms";
 
+type DurationKind = "FULL_DAYS" | "HALF_DAY" | "HOURS";
+type DayPart = "MORNING" | "AFTERNOON";
+
+const LENGTH_HINT: Record<DurationKind, string> = {
+  FULL_DAYS: "Weekdays from the start date through the end date. One day is 8 hours.",
+  HALF_DAY: "Four hours on one weekday, morning or afternoon.",
+  HOURS: "1–8 hours on one weekday. A full day is 8 hours.",
+};
+
+function readVacationLength(fd: FormData, durationKind: DurationKind) {
+  const startDate = String(fd.get("startDate") ?? "");
+  if (durationKind === "FULL_DAYS") {
+    return {
+      durationKind,
+      startDate,
+      endDate: String(fd.get("endDate") ?? ""),
+      dayPart: null,
+      hours: null,
+    };
+  }
+  if (durationKind === "HALF_DAY") {
+    return {
+      durationKind,
+      startDate,
+      endDate: startDate,
+      dayPart: String(fd.get("dayPart") ?? ""),
+      hours: null,
+    };
+  }
+  return {
+    durationKind,
+    startDate,
+    endDate: startDate,
+    dayPart: null,
+    hours: Number(fd.get("hours")),
+  };
+}
+
+function VacationLengthFields({
+  idPrefix,
+  durationKind,
+  onDurationKind,
+  startDate,
+  endDate,
+  dayPart,
+  hours,
+}: {
+  idPrefix: string;
+  durationKind: DurationKind;
+  onDurationKind: (kind: DurationKind) => void;
+  startDate?: string;
+  endDate?: string;
+  dayPart?: DayPart | null;
+  hours?: number | null;
+}) {
+  return (
+    <>
+      <FormField
+        label="Length"
+        htmlFor={`${idPrefix}-length`}
+        hint={LENGTH_HINT[durationKind]}
+        required
+      >
+        <select
+          id={`${idPrefix}-length`}
+          className={fieldClassName}
+          value={durationKind}
+          onChange={(event) => onDurationKind(event.target.value as DurationKind)}
+        >
+          <option value="FULL_DAYS">Full days</option>
+          <option value="HALF_DAY">Half day</option>
+          <option value="HOURS">Hours</option>
+        </select>
+      </FormField>
+      {durationKind === "FULL_DAYS" ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Start date" htmlFor={`${idPrefix}-start`} required>
+            <input
+              id={`${idPrefix}-start`}
+              name="startDate"
+              type="date"
+              className={fieldClassName}
+              defaultValue={startDate}
+              required
+            />
+          </FormField>
+          <FormField label="End date" htmlFor={`${idPrefix}-end`} required>
+            <input
+              id={`${idPrefix}-end`}
+              name="endDate"
+              type="date"
+              className={fieldClassName}
+              defaultValue={endDate}
+              required
+            />
+          </FormField>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Date" htmlFor={`${idPrefix}-start`} required>
+            <input
+              id={`${idPrefix}-start`}
+              name="startDate"
+              type="date"
+              className={fieldClassName}
+              defaultValue={startDate}
+              required
+            />
+          </FormField>
+          {durationKind === "HALF_DAY" ? (
+            <FormField label="Part of day" htmlFor={`${idPrefix}-part`} required>
+              <select
+                id={`${idPrefix}-part`}
+                name="dayPart"
+                className={fieldClassName}
+                defaultValue={dayPart ?? "MORNING"}
+                required
+              >
+                <option value="MORNING">Morning</option>
+                <option value="AFTERNOON">Afternoon</option>
+              </select>
+            </FormField>
+          ) : (
+            <FormField label="Hours" htmlFor={`${idPrefix}-hours`} required>
+              <select
+                id={`${idPrefix}-hours`}
+                name="hours"
+                className={fieldClassName}
+                defaultValue={String(hours && hours > 0 ? hours : 1)}
+                required
+              >
+                {Array.from({ length: 8 }, (_, index) => index + 1).map((value) => (
+                  <option key={value} value={value}>
+                    {value} hour{value === 1 ? "" : "s"}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function CreateVacationForm({
   organizations,
   defaultOrganizationId,
@@ -24,6 +170,7 @@ export function CreateVacationForm({
   defaultOrganizationId: string | null;
 }) {
   const router = useRouter();
+  const [durationKind, setDurationKind] = useState<DurationKind>("FULL_DAYS");
   const { pending, ErrorAlert, submit } = useActionForm(
     createVacationRequestAction,
     (data) => {
@@ -40,8 +187,7 @@ export function CreateVacationForm({
         const fd = new FormData(event.currentTarget);
         submit({
           organizationId: String(fd.get("organizationId") ?? ""),
-          startDate: String(fd.get("startDate") ?? ""),
-          endDate: String(fd.get("endDate") ?? ""),
+          ...readVacationLength(fd, durationKind),
           reason: String(fd.get("reason") ?? "") || null,
         });
       }}
@@ -62,26 +208,11 @@ export function CreateVacationForm({
           ))}
         </select>
       </FormField>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label="Start date" htmlFor="startDate" required>
-          <input
-            id="startDate"
-            name="startDate"
-            type="date"
-            className={fieldClassName}
-            required
-          />
-        </FormField>
-        <FormField label="End date" htmlFor="endDate" required>
-          <input
-            id="endDate"
-            name="endDate"
-            type="date"
-            className={fieldClassName}
-            required
-          />
-        </FormField>
-      </div>
+      <VacationLengthFields
+        idPrefix="create"
+        durationKind={durationKind}
+        onDurationKind={setDurationKind}
+      />
       <FormField label="Reason (optional)" htmlFor="reason">
         <textarea
           id="reason"
@@ -102,16 +233,23 @@ export function CreateVacationForm({
 export function ResubmitVacationForm({
   requestId,
   expectedVersion,
+  durationKind: initialKind,
   startDate,
   endDate,
+  dayPart,
+  hours,
   reason,
 }: {
   requestId: string;
   expectedVersion: number;
+  durationKind: DurationKind;
   startDate: string;
   endDate: string;
+  dayPart: DayPart | null;
+  hours: number | null;
   reason: string | null;
 }) {
+  const [durationKind, setDurationKind] = useState<DurationKind>(initialKind);
   const { pending, ErrorAlert, submit } = useActionForm(
     updateVacationRequestAction,
   );
@@ -125,35 +263,21 @@ export function ResubmitVacationForm({
         submit({
           requestId,
           expectedVersion,
-          startDate: String(fd.get("startDate") ?? ""),
-          endDate: String(fd.get("endDate") ?? ""),
+          ...readVacationLength(fd, durationKind),
           reason: String(fd.get("reason") ?? "") || null,
         });
       }}
     >
       {ErrorAlert}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label="Start date" htmlFor="resubmit-start" required>
-          <input
-            id="resubmit-start"
-            name="startDate"
-            type="date"
-            className={fieldClassName}
-            defaultValue={startDate}
-            required
-          />
-        </FormField>
-        <FormField label="End date" htmlFor="resubmit-end" required>
-          <input
-            id="resubmit-end"
-            name="endDate"
-            type="date"
-            className={fieldClassName}
-            defaultValue={endDate}
-            required
-          />
-        </FormField>
-      </div>
+      <VacationLengthFields
+        idPrefix="resubmit"
+        durationKind={durationKind}
+        onDurationKind={setDurationKind}
+        startDate={startDate}
+        endDate={endDate}
+        dayPart={dayPart}
+        hours={hours}
+      />
       <FormField label="Reason" htmlFor="resubmit-reason">
         <textarea
           id="resubmit-reason"
