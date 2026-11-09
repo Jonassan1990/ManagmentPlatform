@@ -88,7 +88,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "vacation",
         title: "Vacation management",
-        body: "Request time off, review as a manager, and open Role cover. The calendar is green when every role is in, yellow when at least one person is still available, and red when nobody is available.",
+        body: "Request time off, review as a manager, and open Role cover. The calendar is green when every role is in, yellow when at least one person is still available, and red when nobody is available. Vacation plan is a separate month grid for each department, using the same colors as the 2026 sheet.",
         href: "/vacation",
         hrefLabel: "Vacation",
       },
@@ -259,6 +259,13 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
         body: "Section and department managers use Vacation → Manager inbox to Accept, Reject, or Ask for changes (comment required for reject/changes).",
         href: "/vacation/inbox",
         hrefLabel: "Manager inbox",
+      },
+      {
+        id: "plan",
+        title: "Department vacation plan",
+        body: "Vacation plan is one month grid per department, with the same colors as the 2026 sheet: vacation, education or a business trip, kompledighet, beredskap, and parental leave. A manager can mark anyone in the department. You can mark your own days. A full-day vacation request shows as vacation until a plan mark replaces it.",
+        href: "/vacation/plan",
+        hrefLabel: "Vacation plan",
       },
       {
         id: "calendar-year",

@@ -4,6 +4,7 @@ import {
   PrismaClient,
   ResourceType,
   VacationAuditAction,
+  VacationPlanKind,
   VacationRequestStatus,
 } from "@prisma/client";
 import type { AuditService } from "@/modules/audit/application/audit-service";
@@ -19,7 +20,9 @@ import {
   reviewVacationRequestSchema,
   updateVacationRequestSchema,
   vacationCalendarQuerySchema,
+  setVacationPlanMarkSchema,
   vacationCoverQuerySchema,
+  vacationPlanQuerySchema,
   vacationYearQuerySchema,
 } from "./schemas";
 import { selectClosestApprovers } from "./vacation-approvers";
@@ -35,6 +38,8 @@ import {
   visibleDepartmentIds,
   type RoleCoverageGap,
 } from "./vacation-coverage";
+import type { VacationPlanKindName } from "./vacation-plan";
+import { planCellKind } from "./vacation-plan";
 import {
   resolveVacationDuration,
   workingDaysInsideRange,
@@ -539,6 +544,124 @@ export class VacationService {
         rangeEnd,
       }),
     };
+  }
+
+  async listVacationPlan(principal: Principal, input: unknown) {
+    const parsed = vacationPlanQuerySchema.parse(input);
+    const visibility = await this.visibilityWhere(principal, parsed.organizationId);
+    const { start, end } = monthBounds(parsed.year, parsed.month - 1);
+    const facts = await this.coverFacts(parsed.organizationId, visibility, start, end);
+    const departments = [
+      ...new Map(
+        facts.people.map((person) => [
+          person.departmentId,
+          { id: person.departmentId, name: person.departmentName },
+        ]),
+      ).values(),
+    ].sort((a, b) => a.name.localeCompare(b.name));
+    const department =
+      departments.find((row) => row.id === parsed.departmentId) ?? departments[0] ?? null;
+    const people = department
+      ? facts.people.filter((person) => person.departmentId === department.id)
+      : [];
+    const principalIds = people.map((person) => person.principalId);
+    const rangeStart = formatDateOnly(start);
+    const rangeEnd = formatDateOnly(end);
+    const marks =
+      department && principalIds.length
+        ? await this.db.vacationPlanMark.findMany({
+            where: {
+              departmentId: department.id,
+              principalId: { in: principalIds },
+              date: { gte: start, lte: end },
+            },
+          })
+        : [];
+    const markByKey = new Map(
+      marks.map((mark) => [
+        `${mark.principalId}:${formatDateOnly(mark.date)}`,
+        mark.kind as VacationPlanKindName,
+      ]),
+    );
+    const canEditAll = await this.authz.hasPermissionInOrganization(
+      principal,
+      PERMISSIONS.VACATION_REVIEW,
+      parsed.organizationId,
+    );
+    const days = eachDate(rangeStart, rangeEnd);
+    return {
+      year: parsed.year,
+      month: parsed.month,
+      departmentId: department?.id ?? null,
+      departmentName: department?.name ?? null,
+      departments,
+      canEditAll,
+      people: people
+        .sort((a, b) => a.displayName.localeCompare(b.displayName))
+        .map((person) => ({
+          principalId: person.principalId,
+          name: person.displayName,
+          role: person.role,
+          editable: canEditAll || person.principalId === principal.id,
+          days: days.map((date) => {
+            const weekend = isWeekend(date);
+            const mark = markByKey.get(`${person.principalId}:${date}`) ?? null;
+            const request = weekend
+              ? null
+              : requestOnDate(person.principalId, department?.id ?? "", date, facts.absences);
+            return {
+              date,
+              weekend,
+              kind: weekend ? null : planCellKind({ mark, request }),
+              fromRequest: !mark && request !== null,
+            };
+          }),
+        })),
+    };
+  }
+
+  async setVacationPlanMark(principal: Principal, input: unknown) {
+    const parsed = setVacationPlanMarkSchema.parse(input);
+    const plan = await this.listVacationPlan(principal, {
+      organizationId: parsed.organizationId,
+      departmentId: parsed.departmentId,
+      year: Number(parsed.date.slice(0, 4)),
+      month: Number(parsed.date.slice(5, 7)),
+    });
+    if (plan.departmentId !== parsed.departmentId) {
+      throw new AppError("FORBIDDEN", "That department is not in your vacation plan");
+    }
+    const person = plan.people.find((row) => row.principalId === parsed.principalId);
+    if (!person?.editable) {
+      throw new AppError("FORBIDDEN", "You cannot change this person's plan");
+    }
+    if (isWeekend(parsed.date)) {
+      throw new AppError("VALIDATION", "Mark a weekday");
+    }
+    const date = new Date(`${parsed.date}T00:00:00.000Z`);
+    if (parsed.kind === null) {
+      await this.db.vacationPlanMark.deleteMany({
+        where: { principalId: parsed.principalId, date },
+      });
+    } else {
+      await this.db.vacationPlanMark.upsert({
+        where: { principalId_date: { principalId: parsed.principalId, date } },
+        create: {
+          organizationId: parsed.organizationId,
+          departmentId: parsed.departmentId,
+          principalId: parsed.principalId,
+          date,
+          kind: parsed.kind as VacationPlanKind,
+          createdByPrincipalId: principal.id,
+        },
+        update: {
+          kind: parsed.kind as VacationPlanKind,
+          departmentId: parsed.departmentId,
+          organizationId: parsed.organizationId,
+        },
+      });
+    }
+    return { ok: true as const };
   }
 
   async listYearSummary(principal: Principal, input: unknown) {
@@ -1055,6 +1178,45 @@ export class VacationService {
       },
     });
   }
+}
+
+function eachDate(start: string, end: string): string[] {
+  const days: string[] = [];
+  const cursor = new Date(`${start}T00:00:00.000Z`);
+  const last = new Date(`${end}T00:00:00.000Z`).getTime();
+  while (cursor.getTime() <= last) {
+    days.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
+}
+
+function isWeekend(date: string): boolean {
+  const day = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+  return day === 0 || day === 6;
+}
+
+function requestOnDate(
+  principalId: string,
+  departmentId: string,
+  date: string,
+  absences: Array<{
+    principalId: string;
+    departmentId: string | null;
+    startDate: string;
+    endDate: string;
+    durationKind: "FULL_DAYS" | "HALF_DAY" | "HOURS";
+  }>,
+): "FULL_DAYS" | "HALF_DAY" | "HOURS" | null {
+  let partial: "HALF_DAY" | "HOURS" | null = null;
+  for (const absence of absences) {
+    if (absence.principalId !== principalId) continue;
+    if (absence.departmentId && absence.departmentId !== departmentId) continue;
+    if (date < absence.startDate || date > absence.endDate) continue;
+    if (absence.durationKind === "FULL_DAYS") return "FULL_DAYS";
+    partial = absence.durationKind;
+  }
+  return partial;
 }
 
 function amountNumber(

@@ -53,6 +53,7 @@ model Organization {
   piReferenceCounter PiReferenceCounter?
   planningDependencies PlanningDependency[]
   vacationRequests VacationRequest[]
+  vacationPlanMarks VacationPlanMark[]
   onboardingChecklists OnboardingChecklist[]
 
   @@index([status])
@@ -99,6 +100,7 @@ model Department {
   projectsOwned Project[]
   projectParticipations ProjectParticipatingDepartment[]
   piParticipations PiParticipatingDepartment[]
+  vacationPlanMarks VacationPlanMark[]
 
   @@unique([sectionId, name])
   @@index([sectionId, status])
@@ -1916,6 +1918,35 @@ enum VacationAuditAction {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+/// Kinds from the department vacation-plan sheet.
+enum VacationPlanKind {
+  VACATION
+  EDUCATION
+  COMPENSATORY
+  ON_CALL
+  PARENTAL
+}
+
+/// One day on a department vacation plan. Separate from the approval request.
+model VacationPlanMark {
+  id                   String           @id @default(uuid()) @db.Uuid
+  organizationId       String           @db.Uuid
+  departmentId         String           @db.Uuid
+  principalId          String           @db.Uuid
+  date                 DateTime         @db.Date
+  kind                 VacationPlanKind
+  createdByPrincipalId String?          @db.Uuid
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  department   Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([principalId, date])
+  @@index([departmentId, date])
+  @@map("vacation_plan_marks")
 }
 
 /// Employee vacation / leave request. Manager may approve, reject, or ask for changes.

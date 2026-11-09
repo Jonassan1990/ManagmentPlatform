@@ -68,6 +68,7 @@ describe("sidebar destinations have App Router pages", () => {
       "/vacation",
       "/vacation/inbox",
       "/vacation/cover",
+      "/vacation/plan",
       "/vacation/calendar",
       "/vacation/year",
       "/onboarding",

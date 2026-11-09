@@ -11,6 +11,7 @@ function revalidateVacation(requestId?: string) {
   revalidatePath("/vacation/inbox");
   revalidatePath("/vacation/calendar");
   revalidatePath("/vacation/year");
+  revalidatePath("/vacation/plan");
   if (requestId) revalidatePath(`/vacation/${requestId}`);
 }
 
@@ -50,6 +51,16 @@ export async function reviewVacationRequestAction(input: unknown) {
     const principal = await authz.requirePrincipal();
     const result = await vacation.reviewRequest(principal, input);
     revalidateVacation(result.id);
+    return result;
+  });
+}
+
+export async function setVacationPlanMarkAction(input: unknown) {
+  return runAction("vacation.plan", async () => {
+    const { authz, vacation } = createServices();
+    const principal = await authz.requirePrincipal();
+    const result = await vacation.setVacationPlanMark(principal, input);
+    revalidatePath("/vacation/plan");
     return result;
   });
 }

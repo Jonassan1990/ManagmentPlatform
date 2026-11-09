@@ -286,6 +286,14 @@ export default async function DepartmentPage({
               days={roleDays}
               selectedDate={selectedCoverDay}
             />
+            <p className="mt-4 text-sm">
+              <Link
+                href={`/vacation/plan?org=${organizationId}&department=${departmentId}&year=${coverYear}&month=${coverMonth}`}
+                className="font-medium text-[var(--color-brand)]"
+              >
+                Open this department’s vacation plan
+              </Link>
+            </p>
           </Panel>
 
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
