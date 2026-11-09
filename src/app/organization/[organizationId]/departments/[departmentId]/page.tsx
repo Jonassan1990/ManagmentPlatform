@@ -18,7 +18,10 @@ import {
   parseOrgUiMode,
   withOrgMode,
 } from "@/modules/organization/application/org-ui-mode";
+import { RoleCoverageList } from "@/components/vacation/vacation-calendar";
+import { ensureDemoDepartmentUsers } from "@/modules/demo/ensure-department-test-users";
 import { PERMISSIONS } from "@/modules/shared/permissions";
+import type { RoleCoverageGap } from "@/modules/vacation/application/vacation-coverage";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +45,7 @@ export default async function DepartmentPage({
   const { organizationId, departmentId } = await params;
   const { mode: modeParam } = await searchParams;
   const mode = parseOrgUiMode(modeParam);
-  const { authz, organization } = createServices();
+  const { authz, organization, vacation } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
 
@@ -80,6 +83,24 @@ export default async function DepartmentPage({
     { type: "ORGANIZATION", organizationId },
   );
   const showConfig = canManage && mode === "config";
+
+  let roleCover: RoleCoverageGap[] = [];
+  if (!showConfig) {
+    try {
+      await ensureDemoDepartmentUsers();
+      const now = new Date();
+      const cover = await vacation.listRoleCover(principal, {
+        organizationId,
+        year: now.getUTCFullYear(),
+        month: now.getUTCMonth() + 1,
+      });
+      roleCover = cover.coverage.filter(
+        (gap) => gap.departmentId === department.id,
+      );
+    } catch {
+      roleCover = [];
+    }
+  }
 
   return (
     <div>
@@ -239,6 +260,17 @@ export default async function DepartmentPage({
             <CountChip label="Initiatives" value={counts.initiatives} />
             <CountChip label="Teams" value={counts.teams} />
           </div>
+
+          <Panel className="mb-4">
+            <h2 className="mb-1 text-base font-semibold text-[var(--ink)]">
+              Role cover
+            </h2>
+            <p className="mb-4 text-sm text-[var(--muted)]">
+              A role in this department is fully away when every person with
+              that role has a full weekday off this month.
+            </p>
+            <RoleCoverageList gaps={roleCover} />
+          </Panel>
 
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4">

@@ -19,6 +19,7 @@ import {
   reviewVacationRequestSchema,
   updateVacationRequestSchema,
   vacationCalendarQuerySchema,
+  vacationCoverQuerySchema,
   vacationYearQuerySchema,
 } from "./schemas";
 import { selectClosestApprovers } from "./vacation-approvers";
@@ -483,6 +484,28 @@ export class VacationService {
         status: row.status,
       })),
       coverage: await this.roleCoverage(parsed.organizationId, visibility, start, end),
+    };
+  }
+
+  async listRoleCover(principal: Principal, input: unknown) {
+    const parsed = vacationCoverQuerySchema.parse(input);
+    const visibility = await this.visibilityWhere(
+      principal,
+      parsed.organizationId,
+    );
+    const { start, end } = monthBounds(parsed.year, parsed.month - 1);
+    const coverage = await this.roleCoverage(
+      parsed.organizationId,
+      visibility,
+      start,
+      end,
+    );
+    return {
+      year: parsed.year,
+      month: parsed.month,
+      rangeStart: formatDateOnly(start),
+      rangeEnd: formatDateOnly(end),
+      coverage,
     };
   }
 

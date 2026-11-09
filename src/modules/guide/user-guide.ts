@@ -88,7 +88,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "vacation",
         title: "Vacation management",
-        body: "Request time off, review as a manager, and check calendar/year views.",
+        body: "Request time off, review as a manager, and open Role cover to see when everyone with the same role in a department is away.",
         href: "/vacation",
         hrefLabel: "Vacation",
       },
