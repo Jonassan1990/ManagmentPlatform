@@ -78,9 +78,15 @@ export default async function OrganizationIndexPage({
     requestedOrgId && orgs.some((org) => org.id === requestedOrgId)
       ? requestedOrgId
       : await organization.findStructuredOrganizationId(orgs.map((org) => org.id));
-  const chart = chartOrgId
-    ? await organization.getOrganizationChart(principal, chartOrgId)
-    : null;
+  let chart = null;
+  let chartError = false;
+  if (chartOrgId) {
+    try {
+      chart = await organization.getOrganizationChart(principal, chartOrgId);
+    } catch {
+      chartError = true;
+    }
+  }
 
   return (
     <div>
@@ -107,6 +113,12 @@ export default async function OrganizationIndexPage({
         />
       ) : (
         <div className="space-y-4">
+          {chartError ? (
+            <Alert tone="error">
+              The hierarchy could not be loaded. The organization list below
+              is still available.
+            </Alert>
+          ) : null}
           {chart ? (
             <Panel>
               <OrganizationChart

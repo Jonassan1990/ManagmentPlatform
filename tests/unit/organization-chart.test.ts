@@ -121,6 +121,37 @@ describe("buildOrganizationChart", () => {
     expect(chart.counts.departments).toBe(2);
   });
 
+  it("keeps a department parent cycle from looping the chart", () => {
+    const otherId = "66666666-6666-4666-8666-666666666666";
+    const chart = buildOrganizationChart({
+      organization: { id: orgId, name: "I", description: null },
+      sections: [
+        {
+          id: sectionId,
+          name: "IN",
+          departments: [
+            {
+              id: departmentId,
+              name: "A",
+              parentDepartmentId: otherId,
+              teams: [],
+            },
+            {
+              id: otherId,
+              name: "B",
+              parentDepartmentId: departmentId,
+              teams: [],
+            },
+          ],
+        },
+      ],
+      people: [],
+      bindings: [],
+    });
+    expect(chart.counts.departments).toBe(2);
+    expect(chart.sections[0]?.departments.length).toBeGreaterThan(0);
+  });
+
   it("carries initiative and project counts onto departments", () => {
     const chart = buildOrganizationChart({
       organization: { id: orgId, name: "Nordic", description: null },

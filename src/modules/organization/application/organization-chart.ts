@@ -188,13 +188,29 @@ function departmentMembers(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function parentChainLoops(
+  departmentId: string,
+  parentId: string,
+  byId: Map<string, ChartDepartment>,
+): boolean {
+  const seen = new Set<string>([departmentId]);
+  let cursor: string | null = parentId;
+  while (cursor) {
+    if (seen.has(cursor)) return true;
+    seen.add(cursor);
+    cursor = byId.get(cursor)?.parentDepartmentId ?? null;
+  }
+  return false;
+}
+
 function nestDepartments(flat: ChartDepartment[]): ChartDepartment[] {
   const byId = new Map(flat.map((department) => [department.id, { ...department, children: [] as ChartDepartment[] }]));
   const roots: ChartDepartment[] = [];
   for (const department of byId.values()) {
     const parentId = department.parentDepartmentId;
-    if (parentId && byId.has(parentId)) {
-      byId.get(parentId)!.children.push(department);
+    const parent = parentId ? byId.get(parentId) : undefined;
+    if (parent && parentId && !parentChainLoops(department.id, parentId, byId)) {
+      parent.children.push(department);
     } else {
       roots.push(department);
     }
@@ -208,7 +224,17 @@ function nestDepartments(flat: ChartDepartment[]): ChartDepartment[] {
 }
 
 function flattenDepartments(nodes: ChartDepartment[]): ChartDepartment[] {
-  return nodes.flatMap((node) => [node, ...flattenDepartments(node.children)]);
+  const seen = new Set<string>();
+  const walk = (list: ChartDepartment[]): ChartDepartment[] => {
+    const out: ChartDepartment[] = [];
+    for (const node of list) {
+      if (seen.has(node.id)) continue;
+      seen.add(node.id);
+      out.push(node, ...walk(node.children));
+    }
+    return out;
+  };
+  return walk(nodes);
 }
 
 export function buildOrganizationChart(input: {
