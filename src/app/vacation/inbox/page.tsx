@@ -4,7 +4,10 @@ import { ReviewVacationForm } from "@/components/vacation/vacation-forms";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { mapVacationStatusBadge } from "@/modules/vacation/application/vacation-status";
-import { formatDateOnly } from "@/modules/vacation/application/working-days";
+import {
+  formatVacationAmount,
+  formatVacationSpan,
+} from "@/modules/vacation/application/vacation-duration";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -64,12 +67,14 @@ export default async function VacationInboxPage() {
                       href={`/vacation/${row.id}`}
                       className="text-lg font-semibold text-[var(--ink)] hover:underline"
                     >
-                      {formatDateOnly(row.startDate)} →{" "}
-                      {formatDateOnly(row.endDate)}
+                      {formatVacationSpan(
+                        row.startDate,
+                        row.endDate,
+                        row.durationKind,
+                      )}
                     </Link>
                     <p className="mt-1 text-sm text-[var(--muted)]">
-                      {row.workingDays} working day
-                      {row.workingDays === 1 ? "" : "s"}
+                      {formatVacationAmount(row)}
                       {row.reason ? ` · ${row.reason}` : ""}
                     </p>
                   </div>

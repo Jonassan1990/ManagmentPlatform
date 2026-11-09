@@ -22,12 +22,15 @@ import {
 import { selectClosestApprovers } from "./vacation-approvers";
 import { vacationVisibilityFilter } from "./vacation-visibility";
 import {
-  countWorkingDays,
   formatDateOnly,
   monthBounds,
-  toUtcDateOnly,
   yearBounds,
 } from "./working-days";
+import {
+  resolveVacationDuration,
+  workingDaysInsideRange,
+  type ResolvedVacationDuration,
+} from "./vacation-duration";
 
 type Placement = {
   organizationId: string;
@@ -58,17 +61,11 @@ export class VacationService {
       );
     }
 
-    const start = toUtcDateOnly(parsed.startDate as Date | string);
-    const end = toUtcDateOnly(parsed.endDate as Date | string);
-    if (end.getTime() < start.getTime()) {
-      throw new AppError("VALIDATION", "End date must be on or after start date");
-    }
-
+    const amount = resolveVacationDuration(parsed);
     const placement = await this.resolvePlacement(
       principal.id,
       parsed.organizationId,
     );
-    const workingDays = countWorkingDays(start, end);
 
     const created = await this.db.$transaction(async (tx) => {
       const row = await tx.vacationRequest.create({
@@ -78,9 +75,12 @@ export class VacationService {
           requesterResourceId: placement.resourceId,
           departmentId: placement.departmentId,
           sectionId: placement.sectionId,
-          startDate: start,
-          endDate: end,
-          workingDays,
+          startDate: amount.start,
+          endDate: amount.end,
+          durationKind: amount.durationKind,
+          dayPart: amount.dayPart,
+          hours: new Prisma.Decimal(amount.hours),
+          workingDays: new Prisma.Decimal(amount.workingDays),
           reason: parsed.reason?.trim() || null,
           status: VacationRequestStatus.SUBMITTED,
         },
@@ -92,12 +92,7 @@ export class VacationService {
         fromStatus: null,
         toStatus: VacationRequestStatus.SUBMITTED,
         comment: null,
-        payload: {
-          startDate: formatDateOnly(start),
-          endDate: formatDateOnly(end),
-          workingDays,
-          reason: row.reason,
-        },
+        payload: durationPayload(amount, row.reason),
       });
       return row;
     });
@@ -108,11 +103,7 @@ export class VacationService {
       subjectType: "VacationRequest",
       subjectId: created.id,
       organizationId: created.organizationId,
-      payload: {
-        startDate: formatDateOnly(start),
-        endDate: formatDateOnly(end),
-        workingDays,
-      },
+      payload: durationPayload(amount, created.reason),
       result: "success",
     });
 
@@ -135,20 +126,18 @@ export class VacationService {
       throw new AppError("STALE_VERSION", "Vacation request was updated by someone else");
     }
 
-    const start = toUtcDateOnly(parsed.startDate as Date | string);
-    const end = toUtcDateOnly(parsed.endDate as Date | string);
-    if (end.getTime() < start.getTime()) {
-      throw new AppError("VALIDATION", "End date must be on or after start date");
-    }
-    const workingDays = countWorkingDays(start, end);
+    const amount = resolveVacationDuration(parsed);
 
     const updated = await this.db.$transaction(async (tx) => {
       const row = await tx.vacationRequest.update({
         where: { id: existing.id, version: existing.version },
         data: {
-          startDate: start,
-          endDate: end,
-          workingDays,
+          startDate: amount.start,
+          endDate: amount.end,
+          durationKind: amount.durationKind,
+          dayPart: amount.dayPart,
+          hours: new Prisma.Decimal(amount.hours),
+          workingDays: new Prisma.Decimal(amount.workingDays),
           reason: parsed.reason?.trim() || null,
           status: VacationRequestStatus.SUBMITTED,
           managerComment: null,
@@ -164,11 +153,7 @@ export class VacationService {
         fromStatus: VacationRequestStatus.CHANGES_REQUESTED,
         toStatus: VacationRequestStatus.SUBMITTED,
         comment: null,
-        payload: {
-          startDate: formatDateOnly(start),
-          endDate: formatDateOnly(end),
-          workingDays,
-        },
+        payload: durationPayload(amount, row.reason),
       });
       return row;
     });
@@ -179,7 +164,7 @@ export class VacationService {
       subjectType: "VacationRequest",
       subjectId: updated.id,
       organizationId: updated.organizationId,
-      payload: { workingDays },
+      payload: durationPayload(amount, updated.reason),
       result: "success",
     });
 
@@ -322,7 +307,7 @@ export class VacationService {
     });
     return Promise.all(
       rows.map(async (row) => ({
-        ...row,
+        ...presentAmounts(row),
         approvers: await this.approversFor(row),
       })),
     );
@@ -361,7 +346,7 @@ export class VacationService {
 
     return Promise.all(
       visible.map(async (row) => ({
-        ...row,
+        ...presentAmounts(row),
         requesterDisplayName: nameById.get(row.requesterPrincipalId) ?? "Unknown",
         approvers: await this.approversFor(row),
       })),
@@ -419,7 +404,7 @@ export class VacationService {
 
     return {
       request: {
-        ...row,
+        ...presentAmounts(row),
         requesterDisplayName: nameById.get(row.requesterPrincipalId) ?? "Unknown",
         reviewerDisplayName: row.reviewedByPrincipalId
           ? (nameById.get(row.reviewedByPrincipalId) ?? "Unknown")
@@ -484,7 +469,10 @@ export class VacationService {
         requesterDisplayName: nameById.get(row.requesterPrincipalId) ?? "Unknown",
         startDate: formatDateOnly(row.startDate),
         endDate: formatDateOnly(row.endDate),
-        workingDays: row.workingDays,
+        durationKind: row.durationKind,
+        dayPart: row.dayPart,
+        hours: amountNumber(row.hours),
+        workingDays: amountNumber(row.workingDays) ?? 0,
         status: row.status,
       })),
     };
@@ -530,6 +518,9 @@ export class VacationService {
           id: string;
           startDate: string;
           endDate: string;
+          durationKind: ResolvedVacationDuration["durationKind"];
+          dayPart: ResolvedVacationDuration["dayPart"];
+          hours: number | null;
           workingDays: number;
           reason: string | null;
         }>;
@@ -537,9 +528,16 @@ export class VacationService {
     >();
 
     for (const row of rows) {
-      const daysInYear = countWorkingDays(
-        row.startDate < start ? start : row.startDate,
-        row.endDate > end ? end : row.endDate,
+      const workingDays = amountNumber(row.workingDays) ?? 0;
+      const daysInYear = workingDaysInsideRange(
+        {
+          durationKind: row.durationKind,
+          startDate: row.startDate,
+          endDate: row.endDate,
+          workingDays,
+        },
+        start,
+        end,
       );
       const bucket = byUser.get(row.requesterPrincipalId) ?? {
         principalId: row.requesterPrincipalId,
@@ -552,7 +550,10 @@ export class VacationService {
         id: row.id,
         startDate: formatDateOnly(row.startDate),
         endDate: formatDateOnly(row.endDate),
-        workingDays: row.workingDays,
+        durationKind: row.durationKind,
+        dayPart: row.dayPart,
+        hours: amountNumber(row.hours),
+        workingDays,
         reason: row.reason,
       });
       byUser.set(row.requesterPrincipalId, bucket);
@@ -843,4 +844,39 @@ export class VacationService {
       },
     });
   }
+}
+
+function amountNumber(
+  value: Prisma.Decimal | number | null | undefined,
+): number | null {
+  if (value == null) return null;
+  return typeof value === "number" ? value : value.toNumber();
+}
+
+function presentAmounts<
+  T extends {
+    workingDays: Prisma.Decimal | number;
+    hours: Prisma.Decimal | number | null;
+  },
+>(row: T) {
+  return {
+    ...row,
+    workingDays: amountNumber(row.workingDays) ?? 0,
+    hours: amountNumber(row.hours),
+  };
+}
+
+function durationPayload(
+  amount: ResolvedVacationDuration,
+  reason: string | null,
+) {
+  return {
+    durationKind: amount.durationKind,
+    dayPart: amount.dayPart,
+    hours: amount.hours,
+    workingDays: amount.workingDays,
+    startDate: formatDateOnly(amount.start),
+    endDate: formatDateOnly(amount.end),
+    reason,
+  };
 }

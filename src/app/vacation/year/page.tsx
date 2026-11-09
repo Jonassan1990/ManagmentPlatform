@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { buttonClassName } from "@/components/ui/button";
 import { AppError } from "@/modules/shared/errors";
+import {
+  formatDayCount,
+  formatVacationAmount,
+  formatVacationSpan,
+} from "@/modules/vacation/application/vacation-duration";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -110,8 +115,8 @@ export default async function VacationYearPage({
           {summary.users.map((user) => (
             <Panel key={user.principalId}>
               <h2 className="mb-4 text-base font-semibold text-[var(--ink)]">
-                {user.displayName} · {user.totalWorkingDays} working day
-                {user.totalWorkingDays === 1 ? "" : "s"}
+                {user.displayName} · {formatDayCount(user.totalWorkingDays)}{" "}
+                working day{user.totalWorkingDays === 1 ? "" : "s"}
               </h2>
               <ul className="divide-y divide-[var(--line)]">
                 {user.requests.map((req) => (
@@ -123,10 +128,14 @@ export default async function VacationYearPage({
                       href={`/vacation/${req.id}`}
                       className="font-medium text-[var(--ink)] hover:underline"
                     >
-                      {req.startDate} → {req.endDate}
+                      {formatVacationSpan(
+                        req.startDate,
+                        req.endDate,
+                        req.durationKind,
+                      )}
                     </Link>
                     <span className="text-[var(--muted)]">
-                      {req.workingDays} day{req.workingDays === 1 ? "" : "s"}
+                      {formatVacationAmount(req)}
                       {req.reason ? ` · ${req.reason}` : ""}
                     </span>
                   </li>
