@@ -22,6 +22,7 @@ import { RoleCoverCalendar } from "@/components/vacation/role-cover-calendar";
 import { ensureDemoDepartmentUsers } from "@/modules/demo/ensure-department-test-users";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import type { DayCover } from "@/modules/vacation/application/vacation-coverage";
+import { planDepartmentCode } from "@/modules/vacation/application/vacation-plan-sheet";
 import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +70,7 @@ export default async function DepartmentPage({
   }
 
   const { department, teams, members, initiatives, projects, counts } = workspace;
+  const sheetCode = planDepartmentCode(department.name);
   const childDepartments = siblingDepartments.filter(
     (row) => row.parentDepartmentId === department.id,
   );
@@ -288,10 +290,16 @@ export default async function DepartmentPage({
             />
             <p className="mt-4 text-sm">
               <Link
-                href={`/vacation/plan?org=${organizationId}&department=${departmentId}&year=${coverYear}&month=${coverMonth}`}
+                href={
+                  sheetCode
+                    ? `/vacation/plan?department=${encodeURIComponent(sheetCode)}&year=${coverYear}&month=${coverMonth}`
+                    : "/vacation/plan"
+                }
                 className="font-medium text-[var(--color-brand)]"
               >
-                Open this department’s vacation plan
+                {sheetCode
+                  ? `Open the 2026 vacation plan for ${sheetCode}`
+                  : "Open the 2026 vacation plan"}
               </Link>
             </p>
           </Panel>

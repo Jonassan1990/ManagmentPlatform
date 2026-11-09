@@ -46,6 +46,12 @@ export default async function VacationPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
+              href="/vacation/plan"
+              className={buttonClassName({ variant: "primary" })}
+            >
+              2026 plan
+            </Link>
+            <Link
               href="/vacation/calendar"
               className={buttonClassName({ variant: "secondary" })}
             >
