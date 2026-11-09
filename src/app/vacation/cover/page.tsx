@@ -94,17 +94,6 @@ export default async function VacationCoverPage({
     return `/vacation/cover?${query.toString()}`;
   }
 
-  function hrefForDay(date: string) {
-    const query = new URLSearchParams({
-      org: organizationId,
-      year: String(year),
-      month: String(month),
-    });
-    if (departmentId) query.set("department", departmentId);
-    if (date !== selectedDay) query.set("day", date);
-    return `/vacation/cover?${query.toString()}`;
-  }
-
   return (
     <div>
       <Breadcrumbs
@@ -187,7 +176,6 @@ export default async function VacationCoverPage({
           month={month}
           days={cover.days}
           selectedDate={selectedDay}
-          hrefForDay={hrefForDay}
         />
       </Panel>
     </div>
