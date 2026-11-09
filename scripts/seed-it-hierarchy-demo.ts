@@ -21,10 +21,12 @@ import { PrismaClient, ScopeType } from "@prisma/client";
 import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
 import { LOCAL_LOGIN_ISSUER } from "@/modules/identity-access/application/temp-auth-constants";
 import {
+  DEMO_DEPARTMENT_USERS,
   DEMO_ORG_NAME,
   DEMO_PERSONA_PASSWORD,
   DEMO_PERSONAS,
   DEMO_SECTION_NAME,
+  DEMO_SWITCH_PERSONAS,
   IT_DEMO_DEPTS,
   IT_DEMO_IDS,
 } from "@/modules/demo/it-hierarchy-demo";
@@ -126,7 +128,7 @@ async function wipePrevious() {
     await db.organization.delete({ where: { id: org.id } });
   }
 
-  for (const persona of DEMO_PERSONAS) {
+  for (const persona of DEMO_SWITCH_PERSONAS) {
     await db.localLoginCredential
       .deleteMany({ where: { principalId: persona.principalId } })
       .catch(() => undefined);
@@ -990,9 +992,9 @@ async function main() {
     },
   });
 
-  console.log("Creating demo personas + local logins…");
+  console.log("Creating demo personas + department test users…");
   const passwordHash = await bcryptHash(DEMO_PERSONA_PASSWORD, 10);
-  for (const persona of DEMO_PERSONAS) {
+  for (const persona of DEMO_SWITCH_PERSONAS) {
     const role = await ensureRole(persona.roleKey);
     await db.principal.create({
       data: {
@@ -1026,6 +1028,29 @@ async function main() {
         organizationId: org.id,
         scopeId:
           persona.scopeType === "ORGANIZATION" ? org.id : persona.scopeId,
+      },
+    });
+  }
+
+  for (const user of DEMO_DEPARTMENT_USERS) {
+    await db.resource.create({
+      data: {
+        id: user.resourceId,
+        organizationId: org.id,
+        name: user.displayName,
+        type: "PERSON",
+        functionRole: user.functionRole,
+        skillsJson: [user.functionRole, user.departmentLabel],
+        capacityHoursPerWeek: 40,
+        status: "ACTIVE",
+        linkedPrincipalId: user.principalId,
+        memberships: {
+          create: {
+            teamId: user.teamId,
+            isPrimary: true,
+            allocationPercent: 100,
+          },
+        },
       },
     });
   }

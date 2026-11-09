@@ -11,6 +11,8 @@ export type DemoPersonaOption = {
   levelLabel: string;
   sees: string;
   username: string;
+  group?: "levels" | "department-users";
+  optionLabel?: string;
 };
 
 export function DemoPersonaSwitcher({
@@ -27,7 +29,7 @@ export function DemoPersonaSwitcher({
   if (personas.length === 0) return null;
 
   return (
-    <div className="flex min-w-0 max-w-[16rem] flex-col items-stretch gap-0.5 sm:max-w-[18rem]">
+    <div className="flex min-w-0 max-w-[11rem] flex-col items-stretch gap-0.5 sm:max-w-[20rem] min-[1920px]:max-w-[28rem]">
       <label className="sr-only" htmlFor="demo-persona-switcher">
         Simulate user level
       </label>
@@ -56,11 +58,26 @@ export function DemoPersonaSwitcher({
         }}
       >
         <option value="session">Signed-in user (no simulation)</option>
-        {personas.map((persona) => (
-          <option key={persona.key} value={persona.key}>
-            {persona.levelLabel} — {persona.displayName}
-          </option>
-        ))}
+        <optgroup label="Manager levels">
+          {personas
+            .filter((persona) => persona.group !== "department-users")
+            .map((persona) => (
+              <option key={persona.key} value={persona.key}>
+                {persona.optionLabel ??
+                  `${persona.levelLabel} — ${persona.displayName}`}
+              </option>
+            ))}
+        </optgroup>
+        <optgroup label="Department test users">
+          {personas
+            .filter((persona) => persona.group === "department-users")
+            .map((persona) => (
+              <option key={persona.key} value={persona.key}>
+                {persona.optionLabel ??
+                  `${persona.displayName} — ${persona.levelLabel}`}
+              </option>
+            ))}
+        </optgroup>
       </select>
       {activeKey ? (
         <p className="hidden truncate text-[10px] text-white/70 lg:block">

@@ -69,7 +69,8 @@ export type DemoPersonaKey =
   | "infb-manager"
   | "ing-manager"
   | "ina-manager"
-  | "viewer";
+  | "viewer"
+  | `dept-${string}`;
 
 export type DemoPersonaDefinition = {
   key: DemoPersonaKey;
@@ -167,9 +168,116 @@ export const DEMO_PERSONA_PRINCIPAL_IDS = new Set(
   DEMO_PERSONAS.map((persona) => persona.principalId),
 );
 
+/** Five test people per department. Dropdown label is name — role — department. */
+export const DEMO_DEPARTMENT_USER_ROLES = [
+  "Engineer",
+  "Analyst",
+  "Technician",
+  "Coordinator",
+  "Specialist",
+] as const;
+
+type DemoDeptKey = keyof typeof IT_DEMO_DEPTS;
+
+const DEMO_DEPARTMENT_USER_NAMES: Record<DemoDeptKey, string[]> = {
+  inf: ["Nora Lind", "Elias Berg", "Maja Holm", "Oscar Nystrom", "Linnea Dahl"],
+  infb: ["Klara Voss", "Henrik Blom", "Sara Ek", "Johan Lindqvist", "Ida Bergstrom"],
+  inff: ["Noah Ekman", "Alva Strand", "Liam Fors", "Ella Holm", "William Aberg"],
+  ing: ["Hugo Nyman", "Alice Roos", "Leo Sand", "Wilma Falk", "Axel Borg"],
+  ina: ["Elsa Vik", "Filip Orn", "Molly Rehn", "Arvid Lund", "Tilde Moss"],
+};
+
+export type DemoDepartmentUser = {
+  key: string;
+  principalId: string;
+  resourceId: string;
+  username: string;
+  displayName: string;
+  functionRole: string;
+  departmentKey: DemoDeptKey;
+  departmentLabel: string;
+  departmentId: string;
+  teamId: string;
+};
+
+const DEMO_DEPT_TEAM: Record<DemoDeptKey, string> = {
+  inf: IT_DEMO_IDS.teamInfPlatform,
+  infb: IT_DEMO_IDS.teamInfbApps,
+  inff: IT_DEMO_IDS.teamInffData,
+  ing: IT_DEMO_IDS.teamIngInfra,
+  ina: IT_DEMO_IDS.teamInaDemand,
+};
+
+function demoUuid(slot: number): string {
+  return `a1000000-0000-4000-8000-${String(slot).padStart(12, "0")}`;
+}
+
+export const DEMO_DEPARTMENT_USERS: DemoDepartmentUser[] = (
+  Object.keys(IT_DEMO_DEPTS) as DemoDeptKey[]
+).flatMap((departmentKey, deptIndex) => {
+  const department = IT_DEMO_DEPTS[departmentKey];
+  const short = department.name.split(" ")[0] ?? departmentKey.toUpperCase();
+  return DEMO_DEPARTMENT_USER_ROLES.map((functionRole, roleIndex) => {
+    const n = deptIndex * 5 + roleIndex;
+    return {
+      key: `dept-${departmentKey}-${roleIndex + 1}`,
+      principalId: demoUuid(200 + n),
+      resourceId: demoUuid(300 + n),
+      username: `demo.${departmentKey}.${roleIndex + 1}`,
+      displayName: DEMO_DEPARTMENT_USER_NAMES[departmentKey][roleIndex]!,
+      functionRole,
+      departmentKey,
+      departmentLabel: short,
+      departmentId: department.id,
+      teamId: DEMO_DEPT_TEAM[departmentKey],
+    };
+  });
+});
+
+export function demoUserOptionLabel(input: {
+  displayName: string;
+  functionRole: string;
+  departmentLabel: string;
+}): string {
+  return `${input.displayName} — ${input.functionRole} — ${input.departmentLabel}`;
+}
+
+export type DemoSwitchPersona = DemoPersonaDefinition & {
+  functionRole: string;
+  departmentLabel: string;
+  group: "levels" | "department-users";
+};
+
+export const DEMO_SWITCH_PERSONAS: DemoSwitchPersona[] = [
+  ...DEMO_PERSONAS.map((persona) => ({
+    ...persona,
+    functionRole: persona.levelLabel,
+    departmentLabel: persona.levelLabel,
+    group: "levels" as const,
+  })),
+  ...DEMO_DEPARTMENT_USERS.map((user) => ({
+    key: user.key as DemoPersonaKey,
+    principalId: user.principalId,
+    username: user.username,
+    displayName: user.displayName,
+    levelLabel: user.departmentLabel,
+    sees: `${user.functionRole} in ${user.departmentLabel}`,
+    roleKey: "organization.viewer",
+    scopeType: "DEPARTMENT" as const,
+    scopeId: user.departmentId,
+    functionRole: user.functionRole,
+    departmentLabel: user.departmentLabel,
+    group: "department-users" as const,
+  })),
+];
+
+export const DEMO_SWITCH_PRINCIPAL_IDS = new Set(
+  DEMO_SWITCH_PERSONAS.map((persona) => persona.principalId),
+);
+
 export function getDemoPersona(key: string | null | undefined) {
   if (!key) return null;
-  return DEMO_PERSONAS.find((persona) => persona.key === key) ?? null;
+  return DEMO_SWITCH_PERSONAS.find((persona) => persona.key === key) ?? null;
 }
 
 export function isDemoPersonaSwitchEnabled(): boolean {
