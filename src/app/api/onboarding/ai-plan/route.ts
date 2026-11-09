@@ -1,6 +1,10 @@
 import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import {
+  alignOnboardingPlan,
+  DEFAULT_ONBOARDING_ITEMS,
+} from "@/modules/onboarding/application/default-items";
 import { createServices } from "@/server/container";
 
 export const runtime = "nodejs";
@@ -38,14 +42,22 @@ export async function POST(request: Request) {
   const department = parsed.data.departmentName?.trim() || "their department";
   const notes = parsed.data.notes?.trim();
 
+  const stepList = DEFAULT_ONBOARDING_ITEMS.map(
+    (item, index) => `${index + 1}. ${item.title}`,
+  ).join("\n");
+
   try {
     const { text } = await generateText({
       model: "openai/gpt-4o-mini",
       temperature: 0.4,
       prompt: `You help managers create dual-acknowledgment onboarding checklists.
-Each item must be checkable by BOTH the new employee and the onboarder ("onboard guy").
-Return ONLY a JSON array of 5 to 8 objects with keys "title" (short) and "description" (one sentence).
-No markdown fences. Role: ${role}. Department: ${department}.${
+Each item must be checkable by BOTH the new employee and the onboarder.
+Return ONLY a JSON array with one object per step, in this exact order.
+Keys: "title" (use the title below unchanged) and "description" (one sentence tailored to the role and department).
+No markdown fences.
+Steps:
+${stepList}
+Role: ${role}. Department: ${department}.${
         notes ? ` Extra context: ${notes}` : ""
       }`,
     });
@@ -55,18 +67,18 @@ No markdown fences. Role: ${role}. Department: ${department}.${
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/i, "")
       .replace(/\s*```$/i, "");
-    const items = z
+    const generated = z
       .array(
         z.object({
           title: z.string().trim().min(1).max(300),
           description: z.string().trim().min(1).max(2000),
         }),
       )
-      .min(3)
-      .max(12)
+      .min(1)
+      .max(20)
       .parse(JSON.parse(cleaned));
 
-    return NextResponse.json({ items });
+    return NextResponse.json({ items: alignOnboardingPlan(generated) });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "AI plan generation failed";
