@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import type { Principal } from "@/modules/identity-access/domain/types";
 import { prisma } from "@/server/db";
+import { ensureDemoDepartmentUsers } from "@/modules/demo/ensure-department-test-users";
 import {
   DEMO_PERSONA_COOKIE,
   DEMO_SWITCH_PERSONAS,
@@ -48,6 +49,7 @@ export async function applyDemoPersonaOverride(
 
 export async function listSeededDemoPersonas() {
   if (!isDemoPersonaSwitchEnabled()) return [];
+  await ensureDemoDepartmentUsers();
   const rows = await prisma.principal.findMany({
     where: { id: { in: [...DEMO_SWITCH_PRINCIPAL_IDS] } },
     select: { id: true },
@@ -62,6 +64,9 @@ export async function listSeededDemoPersonas() {
     sees: persona.sees,
     username: persona.username,
     group: persona.group,
-    optionLabel: demoUserOptionLabel(persona),
+    optionLabel:
+      persona.group === "department-users"
+        ? demoUserOptionLabel(persona)
+        : `${persona.levelLabel} — ${persona.displayName}`,
   }));
 }
