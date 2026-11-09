@@ -135,8 +135,8 @@ export default async function OnboardingPage() {
             />
           ) : (
             <p className="text-sm text-[var(--muted)]">
-              Choose a role template below. AI drafts the steps, then you edit
-              them and create the checklist.
+              Choose a role from the role catalog. AI drafts the steps, then you
+              edit them and create the checklist.
             </p>
           )}
         </Panel>

@@ -6,6 +6,8 @@
  * label so walkthroughs are easy to follow without renaming the hierarchy.
  */
 
+import { functionRoleAt } from "@/modules/organization/domain/function-roles";
+
 export const DEMO_PERSONA_COOKIE = "mp_demo_persona";
 export const DEMO_ORG_NAME = "I — Industrial IT";
 export const DEMO_SECTION_NAME = "IN — IT Section";
@@ -169,13 +171,7 @@ export const DEMO_PERSONA_PRINCIPAL_IDS = new Set(
 );
 
 /** Five test people per department. Dropdown label is name — role — department. */
-export const DEMO_DEPARTMENT_USER_ROLES = [
-  "Engineer",
-  "Analyst",
-  "Technician",
-  "Coordinator",
-  "Specialist",
-] as const;
+export const DEMO_USERS_PER_DEPARTMENT = 5;
 
 type DemoDeptKey = keyof typeof IT_DEMO_DEPTS;
 
@@ -217,8 +213,9 @@ export const DEMO_DEPARTMENT_USERS: DemoDepartmentUser[] = (
 ).flatMap((departmentKey, deptIndex) => {
   const department = IT_DEMO_DEPTS[departmentKey];
   const short = department.name.split(" ")[0] ?? departmentKey.toUpperCase();
-  return DEMO_DEPARTMENT_USER_ROLES.map((functionRole, roleIndex) => {
-    const n = deptIndex * 5 + roleIndex;
+  return Array.from({ length: DEMO_USERS_PER_DEPARTMENT }, (_, roleIndex) => {
+    const n = deptIndex * DEMO_USERS_PER_DEPARTMENT + roleIndex;
+    const functionRole = functionRoleAt(n);
     return {
       key: `dept-${departmentKey}-${roleIndex + 1}`,
       principalId: demoUuid(200 + n),

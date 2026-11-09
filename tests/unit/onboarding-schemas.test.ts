@@ -4,6 +4,7 @@ import {
   DEFAULT_ONBOARDING_ITEMS,
 } from "@/modules/onboarding/application/default-items";
 import { ONBOARDING_ROLE_TEMPLATES } from "@/modules/onboarding/application/role-templates";
+import { FUNCTION_ROLES } from "@/modules/organization/domain/function-roles";
 import {
   cancelOnboardingChecklistSchema,
   createOnboardingChecklistSchema,
@@ -105,20 +106,18 @@ describe("default onboarding items", () => {
 });
 
 describe("role onboarding templates", () => {
-  it("has a distinct draft for each role and keeps the closing confirmation", () => {
-    expect(ONBOARDING_ROLE_TEMPLATES.map((template) => template.label)).toEqual([
-      "Engineer",
-      "Analyst",
-      "Technician",
-      "Coordinator",
-      "Specialist",
-      "Manager",
-    ]);
-    const signatures = ONBOARDING_ROLE_TEMPLATES.map((template) =>
-      template.items.map((item) => item.title).join("|"),
+  it("uses the role catalog and keeps the closing confirmation", () => {
+    expect(ONBOARDING_ROLE_TEMPLATES.map((template) => template.label)).toEqual(
+      FUNCTION_ROLES.map((role) => role.label),
     );
-    expect(new Set(signatures).size).toBe(ONBOARDING_ROLE_TEMPLATES.length);
+    expect(ONBOARDING_ROLE_TEMPLATES.map((template) => template.key)).toEqual(
+      FUNCTION_ROLES.map((role) => role.key),
+    );
+    expect(new Set(ONBOARDING_ROLE_TEMPLATES.map((template) => template.key)).size).toBe(
+      FUNCTION_ROLES.length,
+    );
     for (const template of ONBOARDING_ROLE_TEMPLATES) {
+      expect(template.key.length).toBeLessThanOrEqual(40);
       expect(template.items.at(-1)?.title).toBe("Onboarding confirmation");
       expect(template.items.map((item) => item.title)).toEqual(
         expect.arrayContaining([
@@ -128,6 +127,9 @@ describe("role onboarding templates", () => {
           "Start getting tasks",
         ]),
       );
+      expect(
+        template.items.some((item) => item.description.includes(template.label)),
+      ).toBe(true);
     }
   });
 
@@ -141,7 +143,7 @@ describe("role onboarding templates", () => {
         organizationId: uuid,
         employeePrincipalId: uuid,
         onboarderPrincipalId: uuid2,
-        roleTemplate: "engineer",
+        roleTemplate: "software-developer",
         items,
       }).items,
     ).toHaveLength(2);
