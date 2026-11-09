@@ -49,6 +49,29 @@ const data = planData as {
   departments: RawDepartment[];
 };
 
+export function departmentSheetCode(name: string): string | null {
+  const head = name.split("—")[0]?.trim() ?? "";
+  if (data.departments.some((department) => department.code === head)) return head;
+  return null;
+}
+
+/** INF* departments sit under INF, and ING* departments sit under ING. */
+export function parentSheetCode(code: string): "INF" | "ING" | null {
+  if (code.startsWith("INF") && code !== "INF") return "INF";
+  if (code.startsWith("ING") && code !== "ING") return "ING";
+  return null;
+}
+
+export function vacationSheetRoster() {
+  return data.departments.map((department) => ({
+    code: department.code,
+    people: department.people.map((person) => ({
+      name: person.name,
+      group: person.group,
+    })),
+  }));
+}
+
 export function listSheetDepartments() {
   return data.departments.map((department) => ({
     code: department.code,
@@ -58,8 +81,7 @@ export function listSheetDepartments() {
 }
 
 export function planDepartmentCode(name: string): string | null {
-  const code = name.split("—")[0]?.trim() ?? "";
-  return data.departments.some((department) => department.code === code) ? code : null;
+  return departmentSheetCode(name);
 }
 
 export function getSheetDepartment(code: string | undefined) {

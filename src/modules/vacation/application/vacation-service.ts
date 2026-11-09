@@ -788,9 +788,9 @@ export class VacationService {
           type: ResourceType.PERSON,
           status: EntityStatus.ACTIVE,
           functionRole: { not: null },
-          linkedPrincipalId: { not: null },
         },
         select: {
+          id: true,
           name: true,
           functionRole: true,
           linkedPrincipalId: true,
@@ -844,8 +844,8 @@ export class VacationService {
     const people = [];
     for (const resource of resources) {
       const role = resource.functionRole?.trim();
-      const principalId = resource.linkedPrincipalId;
-      if (!role || !principalId) continue;
+      const principalId = resource.linkedPrincipalId ?? resource.id;
+      if (!role) continue;
       const membership =
         resource.memberships.find((row) => row.isPrimary) ??
         resource.memberships[0];
