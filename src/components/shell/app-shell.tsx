@@ -23,7 +23,6 @@ import {
   DemoPersonaSwitcher,
   type DemoPersonaOption,
 } from "@/components/demo/demo-persona-switcher";
-import type { DemoPersonaKey } from "@/modules/demo/it-hierarchy-demo";
 import { RouteFocusMain } from "./route-focus-main";
 import { SignOutButton } from "./sign-out-button";
 
@@ -41,7 +40,7 @@ export type ShellNavProps = {
 
 export type ShellDemoPersonaProps = {
   personas: DemoPersonaOption[];
-  activeKey: DemoPersonaKey | null;
+  activeKey: string | null;
 };
 
 /**

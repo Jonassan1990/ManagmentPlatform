@@ -263,7 +263,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "plan",
         title: "Department vacation plan",
-        body: "Open Vacation and choose 2026 plan, or People → Vacation plan. The departments and people are the same ones as on the 2026 sheet, including on the department page. Each department is its own month grid.",
+        body: "Open Vacation and choose 2026 plan. Search for a person, or pick a department. The people, jobs, and days match the department. A department manager signs in as sheet plus the department code, for example sheet.infb, and can mark days. Other people see their own row. Public holidays are closed. Waiting requests turn into vacation when accepted.",
         href: "/vacation/plan",
         hrefLabel: "Vacation plan",
       },

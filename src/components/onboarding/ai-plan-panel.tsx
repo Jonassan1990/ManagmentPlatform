@@ -39,15 +39,40 @@ export function OnboardingDraftPanel({
   defaultOrganizationId,
 }: {
   organizations: Array<{ id: string; name: string }>;
-  principals: Array<{ id: string; displayName: string | null }>;
+  principals: Array<{
+    id: string;
+    displayName: string | null;
+    role?: string | null;
+    departmentCode?: string | null;
+  }>;
   defaultOrganizationId: string | null;
 }) {
   const router = useRouter();
   const [plan, setPlan] = useState<"infb" | "role">("infb");
   const [roleKey, setRoleKey] = useState(ONBOARDING_ROLE_TEMPLATES[0]?.key ?? "developer");
-  const [departmentName, setDepartmentName] = useState("");
+  const departmentCodes = useMemo(() => {
+    const codes = new Set(
+      principals.flatMap((person) =>
+        person.departmentCode ? [person.departmentCode] : [],
+      ),
+    );
+    return [...codes].sort((a, b) => a.localeCompare(b));
+  }, [principals]);
+  const [departmentCode, setDepartmentCode] = useState(
+    departmentCodes.includes("INFB") ? "INFB" : (departmentCodes[0] ?? ""),
+  );
+  const [departmentName, setDepartmentName] = useState(
+    departmentCodes.includes("INFB") ? "INFB" : (departmentCodes[0] ?? ""),
+  );
   const [jobTitle, setJobTitle] = useState("");
-  const [hiringManagerName, setHiringManagerName] = useState("");
+  const [hiringManagerName, setHiringManagerName] = useState(() => {
+    const code = departmentCodes.includes("INFB") ? "INFB" : (departmentCodes[0] ?? "");
+    return (
+      principals.find(
+        (person) => person.departmentCode === code && person.role === "Manager",
+      )?.displayName ?? ""
+    );
+  });
   const [startDate, setStartDate] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<EditableOnboardingStep[]>(() =>
@@ -205,15 +230,28 @@ export function OnboardingDraftPanel({
                 placeholder="Senior Developer"
               />
             </FormField>
-            <FormField label="Department / team" htmlFor="infb-department">
-              <input
+            <FormField label="Department" htmlFor="infb-department">
+              <select
                 id="infb-department"
                 className={fieldClassName}
-                value={departmentName}
-                onChange={(event) => setDepartmentName(event.target.value)}
-                maxLength={200}
-                placeholder="INFB"
-              />
+                value={departmentCode}
+                onChange={(event) => {
+                  const code = event.target.value;
+                  setDepartmentCode(code);
+                  setDepartmentName(code);
+                  const manager = principals.find(
+                    (person) =>
+                      person.departmentCode === code && person.role === "Manager",
+                  );
+                  setHiringManagerName(manager?.displayName ?? "");
+                }}
+              >
+                {departmentCodes.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
             </FormField>
             <FormField label="Hiring manager" htmlFor="hiring-manager">
               <input
@@ -329,16 +367,27 @@ export function OnboardingDraftPanel({
           <select
             id="employeePrincipalId"
             name="employeePrincipalId"
+            key={`employee-${departmentCode}`}
             className={fieldClassName}
             required
             defaultValue=""
+            onChange={(event) => {
+              const person = principals.find((row) => row.id === event.target.value);
+              if (person?.role) setJobTitle(person.role);
+            }}
           >
             <option value="" disabled>
               Select employee
             </option>
-            {principals.map((person) => (
+            {principals
+              .filter(
+                (person) =>
+                  !departmentCode || person.departmentCode === departmentCode,
+              )
+              .map((person) => (
               <option key={person.id} value={person.id}>
                 {person.displayName ?? person.id}
+                {person.role ? ` · ${person.role}` : ""}
               </option>
             ))}
           </select>
@@ -347,6 +396,7 @@ export function OnboardingDraftPanel({
           <select
             id="onboarderPrincipalId"
             name="onboarderPrincipalId"
+            key={`onboarder-${departmentCode}`}
             className={fieldClassName}
             required
             defaultValue=""
@@ -354,9 +404,15 @@ export function OnboardingDraftPanel({
             <option value="" disabled>
               Select onboarder
             </option>
-            {principals.map((person) => (
-              <option key={person.id} value={person.id}>
+            {principals
+              .filter(
+                (person) =>
+                  !departmentCode || person.departmentCode === departmentCode,
+              )
+              .map((person) => (
+              <option key={`onboarder-${person.id}`} value={person.id}>
                 {person.displayName ?? person.id}
+                {person.role ? ` · ${person.role}` : ""}
               </option>
             ))}
           </select>

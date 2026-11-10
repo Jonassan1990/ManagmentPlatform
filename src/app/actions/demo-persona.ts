@@ -30,7 +30,10 @@ export async function getDemoPersonaSwitcherStateAction() {
   return {
     enabled: true as const,
     personas,
-    activeKey: getDemoPersona(activeKey)?.key ?? null,
+    activeKey:
+      activeKey?.startsWith("sheet-manager:")
+        ? activeKey
+        : (getDemoPersona(activeKey)?.key ?? null),
   };
 }
 
@@ -47,6 +50,17 @@ export async function setDemoPersonaAction(personaKey: string | null) {
   const jar = await cookies();
   if (!personaKey || personaKey === "session") {
     jar.delete(DEMO_PERSONA_COOKIE);
+  } else if (personaKey.startsWith("sheet-manager:")) {
+    const seeded = await listSeededDemoPersonas();
+    if (!seeded.some((row) => row.key === personaKey)) {
+      return { ok: false as const, error: "That department manager is not ready yet." };
+    }
+    jar.set(DEMO_PERSONA_COOKIE, personaKey, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 12,
+    });
   } else {
     const persona = getDemoPersona(personaKey);
     if (!persona) {

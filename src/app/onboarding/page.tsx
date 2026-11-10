@@ -31,7 +31,12 @@ export default async function OnboardingPage() {
 
   let canManage = false;
   let managed: Awaited<ReturnType<typeof onboarding.listManaged>> = [];
-  let principals: Array<{ id: string; displayName: string | null }> = [];
+  let principals: Array<{
+    id: string;
+    displayName: string | null;
+    role: string | null;
+    departmentCode: string | null;
+  }> = [];
   const preferredOrgId = orgs[0]?.id ?? null;
 
   if (preferredOrgId) {
