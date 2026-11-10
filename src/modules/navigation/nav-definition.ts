@@ -21,6 +21,13 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
     items: [],
   },
   {
+    id: "approvals",
+    label: "Approvals",
+    hubHref: "/approvals",
+    hubMatch: { type: "prefix", path: "/approvals" },
+    items: [],
+  },
+  {
     id: "people",
     label: "People",
     items: [
@@ -108,14 +115,6 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         href: "/initiatives/new",
         match: { type: "exact", path: "/initiatives/new" },
         capability: "canCreateInitiative",
-      },
-      {
-        id: "gov-approvals",
-        label: "Approvals",
-        href: "/approvals",
-        match: { type: "prefix", path: "/approvals" },
-        capability: "canViewApprovals",
-        description: "Vacation and delivery reviews waiting for you",
       },
       {
         id: "gov-decisions",
@@ -331,14 +330,7 @@ export function resolveNavGroups(
   for (const group of NAV_GROUPS) {
     const items: ResolvedNavItem[] = [];
     for (const item of group.items) {
-      if (item.id === "gov-approvals") {
-        if (
-          !capabilityAllowed("canViewApprovals", ctx.capabilities) &&
-          !capabilityAllowed("canReviewVacation", ctx.capabilities)
-        ) {
-          continue;
-        }
-      } else if (!capabilityAllowed(item.capability, ctx.capabilities)) {
+      if (!capabilityAllowed(item.capability, ctx.capabilities)) {
         continue;
       }
       const href =
@@ -358,11 +350,30 @@ export function resolveNavGroups(
       ? matchNavPath(pathname, group.hubMatch)
       : false;
 
+    if (group.id === "approvals") {
+      const showApprovals =
+        capabilityAllowed("canViewApprovals", ctx.capabilities) ||
+        capabilityAllowed("canReviewVacation", ctx.capabilities);
+      if (!showApprovals) continue;
+      const approvalsActive = matchNavPath(pathname, {
+        type: "prefix",
+        path: "/approvals",
+      });
+      groups.push({
+        id: group.id,
+        label: group.label,
+        hubHref: "/approvals",
+        hubActive: approvalsActive,
+        items: [],
+        containsActive: approvalsActive,
+      });
+      continue;
+    }
+
     if (group.id === "people") {
       const showPeople =
         capabilityAllowed("canViewVacation", ctx.capabilities) ||
-        capabilityAllowed("canViewOnboarding", ctx.capabilities) ||
-        capabilityAllowed("canReviewVacation", ctx.capabilities);
+        capabilityAllowed("canViewOnboarding", ctx.capabilities);
       if (!showPeople && items.length === 0) continue;
       const peopleHub =
         items.find((i) => i.id === "vacation-mine")?.href ??
@@ -381,15 +392,12 @@ export function resolveNavGroups(
     if (group.id === "delivery") {
       const showHub =
         capabilityAllowed("canViewInitiatives", ctx.capabilities) ||
-        capabilityAllowed("canViewApprovals", ctx.capabilities) ||
-        capabilityAllowed("canReviewVacation", ctx.capabilities) ||
         capabilityAllowed("canViewDecisions", ctx.capabilities);
       if (!showHub && items.length === 0) continue;
-      // Hub active for /delivery, /initiatives*, /approvals, /decisions
+      // Hub active for /delivery, /initiatives*, /decisions — Approvals is its own top item
       const deliveryActive =
         matchNavPath(pathname, { type: "prefix", path: "/delivery" }) ||
         matchNavPath(pathname, { type: "prefix", path: "/initiatives" }) ||
-        matchNavPath(pathname, { type: "prefix", path: "/approvals" }) ||
         matchNavPath(pathname, { type: "prefix", path: "/decisions" });
       groups.push({
         id: group.id,

@@ -407,10 +407,11 @@ function NavGlyph({ id }: { id: string }) {
       </svg>
     );
   }
-  if (id === "governance") {
+  if (id === "governance" || id === "approvals") {
     return (
       <svg {...common}>
         <path d="M8 2.4 13 4.6v3.4c0 3-2.1 4.8-5 5.6-2.9-.8-5-2.6-5-5.6V4.6L8 2.4Z" />
+        <path d="M5.6 7.6 7.2 9.2 10.6 5.8" />
       </svg>
     );
   }
@@ -458,7 +459,14 @@ function NavGroupBlock({
         <span className="mp-side-icon">
           <NavGlyph id={group.id} />
         </span>
-        {group.label}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="min-w-0 truncate">{group.label}</span>
+          {group.id === "approvals" && approvalsCount > 0 ? (
+            <span className="inline-flex min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] px-1.5 text-[10px] font-semibold text-white">
+              {approvalsCount > 99 ? "99+" : approvalsCount}
+            </span>
+          ) : null}
+        </span>
       </SideLink>
     );
   }
@@ -530,14 +538,7 @@ function NavGroupBlock({
                     onArm={onArm}
                     onNavigate={onNavigate}
                   >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="min-w-0 truncate">{item.label}</span>
-                      {item.id === "gov-approvals" && approvalsCount > 0 ? (
-                        <span className="inline-flex min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] px-1.5 text-[10px] font-semibold text-white">
-                          {approvalsCount > 99 ? "99+" : approvalsCount}
-                        </span>
-                      ) : null}
-                    </span>
+                    <span className="min-w-0 truncate">{item.label}</span>
                   </SideLink>
                 </li>
               ))}

@@ -75,14 +75,16 @@ describe("M4C-A navigation matching", () => {
 });
 
 describe("clear product sections navigation", () => {
-  it("resolves People, Delivery, and Planning groups", () => {
+  it("resolves Approvals as a top sidebar item beside People and Delivery", () => {
     const groups = resolveNavGroups("/portfolio/health", fullCtx);
     const ids = groups.map((g) => g.id);
     expect(ids).toContain("home");
+    expect(ids).toContain("approvals");
     expect(ids).toContain("people");
     expect(ids).toContain("delivery");
     expect(ids).toContain("planning");
     expect(ids).toContain("organization");
+    expect(ids.indexOf("approvals")).toBeLessThan(ids.indexOf("people"));
 
     const planning = groups.find((g) => g.id === "planning")!;
     expect(planning.containsActive).toBe(true);
@@ -91,16 +93,27 @@ describe("clear product sections navigation", () => {
     ).toBe(true);
 
     const hrefs = listVisibleHrefs(fullCtx);
+    expect(hrefs).toContain("/approvals");
     expect(hrefs).toContain("/delivery");
     expect(hrefs).toContain("/portfolio/health");
     expect(hrefs).toContain("/onboarding");
     expect(hrefs).toContain("/organization/org-1/access");
     expect(hrefs).toContain("/guide");
     expect(hrefs).not.toContain("/pi/board");
+    expect(
+      groups.find((g) => g.id === "delivery")!.items.some((i) => i.id === "gov-approvals"),
+    ).toBe(false);
   });
 
-  it("hides approvals and create actions for viewer capabilities", () => {
+  it("activates top Approvals without marking Delivery active", () => {
+    const groups = resolveNavGroups("/approvals", fullCtx);
+    expect(groups.find((g) => g.id === "approvals")?.hubActive).toBe(true);
+    expect(groups.find((g) => g.id === "delivery")?.containsActive).toBe(false);
+  });
+
+  it("hides Approvals and create actions for viewer capabilities", () => {
     const groups = resolveNavGroups("/", viewerCtx);
+    expect(groups.some((g) => g.id === "approvals")).toBe(false);
     const delivery = groups.find((g) => g.id === "delivery")!;
     expect(delivery.items.map((i) => i.id)).toEqual([
       "delivery-hub",
