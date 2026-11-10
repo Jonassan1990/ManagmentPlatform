@@ -12,6 +12,9 @@ function revalidateVacation(requestId?: string) {
   revalidatePath("/vacation/calendar");
   revalidatePath("/vacation/year");
   revalidatePath("/vacation/plan");
+  revalidatePath("/vacation/cover");
+  revalidatePath("/approvals");
+  revalidatePath("/organization", "layout");
   if (requestId) revalidatePath(`/vacation/${requestId}`);
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { setVacationPlanMarkAction } from "@/app/actions/vacation";
 import { Dialog } from "@/components/ui/dialog";
 import { useActionForm } from "@/components/ui/forms";
+import { ReviewVacationForm } from "@/components/vacation/vacation-forms";
 import {
   SHEET_KIND_COLOR,
   SHEET_KIND_LABEL,
@@ -30,6 +31,7 @@ export type SheetGridPerson = {
     holiday: string | null;
     kind: ShownPlanKind | null;
     waiting: boolean;
+    pendingRequest: { id: string; version: number } | null;
   }>;
 };
 
@@ -63,6 +65,7 @@ export function VacationSheetGrid({
     date: string;
     kind: ShownPlanKind | null;
     waiting: boolean;
+    pendingRequest: { id: string; version: number } | null;
   } | null>(null);
   const { pending, error, submit } = useActionForm(setVacationPlanMarkAction, () =>
     setSelected(null),
@@ -225,8 +228,14 @@ export function VacationSheetGrid({
                     showGroup={Boolean(showGroup)}
                     columnCount={dates.length + 1}
                     highlighted={highlight === person.name}
-                    onOpen={(date, kind, waiting) =>
-                      setSelected({ person, date, kind, waiting })
+                    onOpen={(date, kind, waiting, pendingRequest) =>
+                      setSelected({
+                        person,
+                        date,
+                        kind,
+                        waiting,
+                        pendingRequest,
+                      })
                     }
                   />
                 );
@@ -260,7 +269,17 @@ export function VacationSheetGrid({
               </p>
             ) : null}
             {error ? <p className="text-sm text-[var(--color-danger)]">{error}</p> : null}
-            {canEdit && selected.person.principalId && departmentId ? (
+            {canEdit && selected.waiting && selected.pendingRequest ? (
+              <ReviewVacationForm
+                requestId={selected.pendingRequest.id}
+                expectedVersion={selected.pendingRequest.version}
+                onDone={() => setSelected(null)}
+              />
+            ) : null}
+            {canEdit &&
+            selected.person.principalId &&
+            departmentId &&
+            !selected.waiting ? (
               <div className="grid gap-2">
                 {(["VACATION", "EDUCATION", "COMPENSATORY", "ON_CALL", "PARENTAL"] as const).map(
                   (kind) => (
@@ -312,7 +331,12 @@ function SheetRow({
   showGroup: boolean;
   columnCount: number;
   highlighted: boolean;
-  onOpen: (date: string, kind: ShownPlanKind | null, waiting: boolean) => void;
+  onOpen: (
+    date: string,
+    kind: ShownPlanKind | null,
+    waiting: boolean,
+    pendingRequest: { id: string; version: number } | null,
+  ) => void;
 }) {
   return (
     <>
@@ -359,7 +383,9 @@ function SheetRow({
                 }}
                 aria-label={`${person.name}, ${day.date}, ${label}`}
                 title={label}
-                onClick={() => onOpen(day.date, day.kind, day.waiting)}
+                onClick={() =>
+                  onOpen(day.date, day.kind, day.waiting, day.pendingRequest)
+                }
               />
             </td>
           );

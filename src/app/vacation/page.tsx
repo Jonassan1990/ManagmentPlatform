@@ -65,10 +65,10 @@ export default async function VacationPage() {
             </Link>
             {canReview ? (
               <Link
-                href="/vacation/inbox"
+                href="/approvals"
                 className={buttonClassName({ variant: "secondary" })}
               >
-                Manager inbox
+                Approvals
               </Link>
             ) : null}
           </div>

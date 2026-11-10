@@ -43,14 +43,6 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         description: "Request time off and track status",
       },
       {
-        id: "vacation-inbox",
-        label: "Vacation inbox",
-        href: "/vacation/inbox",
-        match: { type: "prefix", path: "/vacation/inbox" },
-        capability: "canReviewVacation",
-        description: "Accept, reject, or ask for changes",
-      },
-      {
         id: "vacation-plan",
         label: "Vacation plan",
         href: "/vacation/plan",
@@ -123,6 +115,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         href: "/approvals",
         match: { type: "prefix", path: "/approvals" },
         capability: "canViewApprovals",
+        description: "Vacation and delivery reviews waiting for you",
       },
       {
         id: "gov-decisions",
@@ -338,7 +331,16 @@ export function resolveNavGroups(
   for (const group of NAV_GROUPS) {
     const items: ResolvedNavItem[] = [];
     for (const item of group.items) {
-      if (!capabilityAllowed(item.capability, ctx.capabilities)) continue;
+      if (item.id === "gov-approvals") {
+        if (
+          !capabilityAllowed("canViewApprovals", ctx.capabilities) &&
+          !capabilityAllowed("canReviewVacation", ctx.capabilities)
+        ) {
+          continue;
+        }
+      } else if (!capabilityAllowed(item.capability, ctx.capabilities)) {
+        continue;
+      }
       const href =
         typeof item.href === "function" ? item.href(ctx) : item.href;
       if (!href) continue;
@@ -380,6 +382,7 @@ export function resolveNavGroups(
       const showHub =
         capabilityAllowed("canViewInitiatives", ctx.capabilities) ||
         capabilityAllowed("canViewApprovals", ctx.capabilities) ||
+        capabilityAllowed("canReviewVacation", ctx.capabilities) ||
         capabilityAllowed("canViewDecisions", ctx.capabilities);
       if (!showHub && items.length === 0) continue;
       // Hub active for /delivery, /initiatives*, /approvals, /decisions
