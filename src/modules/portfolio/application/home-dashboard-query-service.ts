@@ -477,7 +477,7 @@ export class HomeDashboardQueryService {
       {
         id: "user-guide",
         label: "User guide",
-        href: "/guide",
+        href: "/help/user-guide",
         authorizationBasis: "shell.help",
         primary: true,
       },

@@ -1,0 +1,40 @@
+---
+title: Design
+summary: Visual language, layout rules, and how Help and product screens should feel.
+audience: Designers and product
+order: 2
+---
+
+# Design
+
+Management Platform uses **Scania Tegel** as the component foundation, with product chrome that stays calm and operational.
+
+## Brand and first viewport
+
+- The product name is a hero-level signal on branded surfaces such as login.
+- Landing and promotional screens keep a tight first viewport: brand, one headline, one short line, one CTA group, one dominant visual.
+- Prefer atmosphere (gradients, subtle patterns) over flat single-color pages — without purple-on-white AI clichés.
+
+## Layout principles
+
+- **One job per section** — one purpose, one headline, usually one supporting sentence.
+- **No card clutter** — cards only when they hold interaction; never in a hero.
+- **Sidebar first** — primary destinations (Home, Approvals, People, Delivery, Planning, Organization, Help) stay obvious.
+- **Approvals** is a main sidebar destination, not buried under Delivery.
+
+## Typography and color
+
+- Expressive display type for page titles; body copy stays readable at desk and TV scales.
+- CSS variables define brand, accent, line, and muted tones.
+- Status uses clear badges (approved, pending, cancelled) instead of decorative chips.
+
+## Motion and responsive
+
+- Motion supports hierarchy (soft rises, fades), not noise.
+- Phone: hamburger drawer over content.
+- Tablet and laptop: sticky sidebar.
+- Wide tables (for example Recent decisions) scroll horizontally inside a bounded region — they must not stretch the page.
+
+## Help documentation
+
+Help content lives in MDX under `docs/help/`. Articles should stay short, scannable, and linked to real routes (`/approvals`, `/vacation/plan`, …).

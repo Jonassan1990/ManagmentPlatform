@@ -82,7 +82,7 @@ export function buildHomeQuickLinks(input: {
     {
       id: "guide",
       label: "User guide",
-      href: "/guide",
+      href: "/help/user-guide",
       primary: true,
     },
     {

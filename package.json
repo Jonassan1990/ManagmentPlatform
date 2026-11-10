@@ -26,8 +26,10 @@
     "@scania/tegel": "^1.65.0",
     "ai": "^5.0.286",
     "bcryptjs": "^3.0.3",
+    "gray-matter": "^4.0.3",
     "next": "16.3.6",
     "next-auth": "^5.0.0-beta.32",
+    "next-mdx-remote": "^6.0.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zod": "^4.6.5"
@@ -38,6 +40,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/bcryptjs": "^2.4.6",
+    "@types/mdx": "^2.0.14",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
