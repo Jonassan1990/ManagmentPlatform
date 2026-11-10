@@ -211,12 +211,12 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "switcher",
         title: "Use the level dropdown",
-        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), sign in and pick a person in the header. The current page reloads as that person: managers see the manager inbox, and requesters stay on their own requests.",
+        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), use the header search to open a real person from the vacation plan. Managers can mark the plan and accept vacation; other people see their own row.",
       },
       {
         id: "logins",
-        title: "Or sign in as a demo user",
-        body: "Local usernames demo.orgadmin, demo.inmanager, demo.infmanager, demo.infbmanager, demo.ingmanager, demo.inamanager, demo.viewer — password DemoLevel2026!",
+        title: "Or sign in as a person from the plan",
+        body: "Department managers use sheet plus the department code, for example sheet.infb. Other people use sheet plus the department and their name, for example sheet.infb.conny-friborg. The password is the same DemoLevel password already used for local login.",
       },
     ],
   },
