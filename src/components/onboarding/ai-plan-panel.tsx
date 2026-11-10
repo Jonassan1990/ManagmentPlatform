@@ -44,6 +44,7 @@ export function OnboardingDraftPanel({
     displayName: string | null;
     role?: string | null;
     departmentCode?: string | null;
+    manager?: boolean;
   }>;
   defaultOrganizationId: string | null;
 }) {
@@ -69,7 +70,7 @@ export function OnboardingDraftPanel({
     const code = departmentCodes.includes("INFB") ? "INFB" : (departmentCodes[0] ?? "");
     return (
       principals.find(
-        (person) => person.departmentCode === code && person.role === "Manager",
+        (person) => person.departmentCode === code && person.manager,
       )?.displayName ?? ""
     );
   });
@@ -240,8 +241,7 @@ export function OnboardingDraftPanel({
                   setDepartmentCode(code);
                   setDepartmentName(code);
                   const manager = principals.find(
-                    (person) =>
-                      person.departmentCode === code && person.role === "Manager",
+                    (person) => person.departmentCode === code && person.manager,
                   );
                   setHiringManagerName(manager?.displayName ?? "");
                 }}

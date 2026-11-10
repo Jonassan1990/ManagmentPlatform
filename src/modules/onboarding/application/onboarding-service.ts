@@ -604,6 +604,20 @@ export class OnboardingService {
         referenceCode: true,
       },
     });
+    const ids = resources.flatMap((resource) =>
+      resource.linkedPrincipalId ? [resource.linkedPrincipalId] : [],
+    );
+    const accounts = ids.length
+      ? await this.db.principal.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, externalSubject: true },
+        })
+      : [];
+    const managerIds = new Set(
+      accounts.flatMap((account) =>
+        account.externalSubject?.startsWith("sheet-manager:") ? [account.id] : [],
+      ),
+    );
     return resources.flatMap((resource) => {
       if (!resource.linkedPrincipalId) return [];
       return [
@@ -612,6 +626,7 @@ export class OnboardingService {
           displayName: resource.name,
           role: resource.functionRole,
           departmentCode: codeFromSheetReference(resource.referenceCode),
+          manager: managerIds.has(resource.linkedPrincipalId),
         },
       ];
     });
