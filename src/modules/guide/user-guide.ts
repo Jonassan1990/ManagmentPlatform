@@ -165,12 +165,13 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
   {
     id: "governance",
     title: "6. Approvals and decisions",
-    summary: "Governance decisions also appear under Delivery; use these inboxes for review work.",
+    summary:
+      "Approvals is a top sidebar destination for every review waiting on you; Decisions stay under Delivery.",
     steps: [
       {
         id: "approvals",
         title: "Approvals",
-        body: "If your role can review, open Approvals for items waiting on you.",
+        body: "Open Approvals in the main sidebar for vacation and delivery reviews waiting on you. Recent decisions stay listed there with audit links.",
         href: "/approvals",
         hrefLabel: "Approvals",
       },
@@ -263,7 +264,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "plan",
         title: "Department vacation plan",
-        body: "Open Vacation and choose 2026 plan. Search for a person, or pick a department. The people, jobs, and days match the department. A department manager signs in as sheet plus the department code, for example sheet.infb, and can mark days or accept a waiting request on that day. Other people see their own row. Public holidays are closed. Waiting requests also appear under Approvals and on the section page.",
+        body: "Open Vacation and choose 2026 plan. Search for a person, or pick a department. The people, jobs, and days match the department. A department manager signs in as sheet plus the department code (for example sheet.infb) and can mark days or accept a waiting request on that day. Other people see their own row. Public holidays are closed. Waiting requests also appear in Approvals.",
         href: "/vacation/plan",
         hrefLabel: "Vacation plan",
       },
