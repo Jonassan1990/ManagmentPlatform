@@ -35,7 +35,9 @@ export default async function ApprovalsPage() {
 
   const preferredOrgId = orgs[0]?.id ?? null;
   const sections = preferredOrgId
-    ? await organization.listSections(principal, preferredOrgId)
+    ? await organization
+        .listSections(principal, preferredOrgId)
+        .catch(() => [])
     : [];
   const sectionHref =
     preferredOrgId && sections[0]
@@ -44,12 +46,12 @@ export default async function ApprovalsPage() {
 
   const [vacationInbox, vacationHistory] = canReviewVacation
     ? await Promise.all([
-        vacation.listInbox(principal),
-        vacation.listRecentDecisions(principal, { limit: 40 }),
+        vacation.listInbox(principal).catch(() => []),
+        vacation.listRecentDecisions(principal, { limit: 40 }).catch(() => []),
       ])
     : [[], []];
   const governanceRequests = canReviewGovernance
-    ? await governance.listMyApprovals(principal)
+    ? await governance.listMyApprovals(principal).catch(() => [])
     : [];
   const governanceOrgIds = [
     ...new Set(
