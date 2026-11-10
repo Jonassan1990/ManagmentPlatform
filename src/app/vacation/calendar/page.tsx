@@ -91,7 +91,7 @@ export default async function VacationCalendarPage({
       />
       <PageHeader
         title="Vacation calendar"
-        description="Approved vacations for the selected month. A department role is fully covered when everyone in that role is off."
+        description="Approved vacations for the selected month. A role has no availability when everyone with that role is off."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -112,7 +112,7 @@ export default async function VacationCalendarPage({
 
       <Panel className="mb-6">
         <h2 className="mb-1 text-base font-semibold text-[var(--ink)]">
-          Department role cover
+          Availability
         </h2>
         <p className="mb-4 text-sm text-[var(--muted)]">
           Shows when every person with the same role in a department is on a

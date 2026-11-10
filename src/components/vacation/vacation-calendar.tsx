@@ -77,7 +77,7 @@ export function VacationMonthCalendar({
                       className="mt-0.5 text-[10px] font-semibold text-[var(--scania-blue-800,#041e42)]"
                       title={dayCover.map((gap) => formatRoleCoverage(gap)).join("\n")}
                     >
-                      Full cover
+                      None available
                     </p>
                   ) : null}
                   <ul className="mt-1 space-y-1">

@@ -60,7 +60,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
       },
       {
         id: "vacation-cover",
-        label: "Role cover",
+        label: "Availability",
         href: "/vacation/cover",
         match: { type: "prefix", path: "/vacation/cover" },
         capability: "canViewVacation",

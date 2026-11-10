@@ -109,7 +109,7 @@ export function RoleCoverCalendar({
         onOpenChange={(next) => {
           if (!next) setOpenDate(null);
         }}
-        title={popup ? dayLabel(popup.date) : "Role cover"}
+        title={popup ? dayLabel(popup.date) : "Availability"}
         description={
           popup
             ? popup.tone === "red"

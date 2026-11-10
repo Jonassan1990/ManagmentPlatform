@@ -110,7 +110,7 @@ export default async function VacationYearPage({
 
       <Panel className="mb-6">
         <h2 className="mb-1 text-base font-semibold text-[var(--ink)]">
-          Department role cover
+          Availability
         </h2>
         <p className="mb-4 text-sm text-[var(--muted)]">
           A role is fully away when every person with that role in the
