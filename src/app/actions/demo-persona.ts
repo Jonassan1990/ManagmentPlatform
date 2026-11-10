@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
   DEMO_PERSONA_COOKIE,
-  getDemoPersona,
   isDemoPersonaSwitchEnabled,
 } from "@/modules/demo/it-hierarchy-demo";
 import {
@@ -12,6 +11,10 @@ import {
   readDemoPersonaCookie,
 } from "@/modules/demo/demo-persona-runtime";
 import { createServices } from "@/server/container";
+
+function isSheetPersonaKey(key: string): boolean {
+  return key.startsWith("sheet-manager:") || key.startsWith("sheet-user:");
+}
 
 export async function getDemoPersonaSwitcherStateAction() {
   if (!isDemoPersonaSwitchEnabled()) {
@@ -30,16 +33,13 @@ export async function getDemoPersonaSwitcherStateAction() {
   return {
     enabled: true as const,
     personas,
-    activeKey:
-      activeKey?.startsWith("sheet-manager:")
-        ? activeKey
-        : (getDemoPersona(activeKey)?.key ?? null),
+    activeKey: isSheetPersonaKey(activeKey ?? "") ? activeKey : null,
   };
 }
 
 export async function setDemoPersonaAction(personaKey: string | null) {
   if (!isDemoPersonaSwitchEnabled()) {
-    return { ok: false as const, error: "Demo persona switch is disabled." };
+    return { ok: false as const, error: "Person switch is disabled." };
   }
   const { authz } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
@@ -50,36 +50,22 @@ export async function setDemoPersonaAction(personaKey: string | null) {
   const jar = await cookies();
   if (!personaKey || personaKey === "session") {
     jar.delete(DEMO_PERSONA_COOKIE);
-  } else if (personaKey.startsWith("sheet-manager:")) {
-    const seeded = await listSeededDemoPersonas();
-    if (!seeded.some((row) => row.key === personaKey)) {
-      return { ok: false as const, error: "That department manager is not ready yet." };
-    }
-    jar.set(DEMO_PERSONA_COOKIE, personaKey, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 12,
-    });
-  } else {
-    const persona = getDemoPersona(personaKey);
-    if (!persona) {
-      return { ok: false as const, error: "Unknown demo level." };
-    }
-    const seeded = await listSeededDemoPersonas();
-    if (!seeded.some((row) => row.key === persona.key)) {
-      return {
-        ok: false as const,
-        error: "Demo data is not seeded. Run npm run demo:seed-it",
-      };
-    }
-    jar.set(DEMO_PERSONA_COOKIE, persona.key, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 12,
-    });
+    revalidatePath("/", "layout");
+    return { ok: true as const };
   }
+  if (!isSheetPersonaKey(personaKey)) {
+    return { ok: false as const, error: "Choose a person from the vacation plan." };
+  }
+  const seeded = await listSeededDemoPersonas();
+  if (!seeded.some((row) => row.key === personaKey)) {
+    return { ok: false as const, error: "That person is not ready yet." };
+  }
+  jar.set(DEMO_PERSONA_COOKIE, personaKey, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 12,
+  });
 
   revalidatePath("/", "layout");
   return { ok: true as const };
