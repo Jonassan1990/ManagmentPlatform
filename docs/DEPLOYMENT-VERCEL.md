@@ -31,6 +31,18 @@ Prisma Client is generated via `postinstall` (`prisma generate`).
 | `RESEND_API_KEY` | Optional | Sends vacation-approval emails to managers |
 | `MAIL_FROM` | Optional | From address for Resend (defaults to Resend onboarding sender) |
 | `NOTIFY_EMAIL_DOMAIN` | Optional | Builds `sheet.*@domain` emails for vacation-sheet managers |
+| `ALLOW_DEMO_PERSONA_SWITCH` | Must be unset in production | Demo header person switch — pilot only |
+
+## Production cutover checklist
+
+Use `/api/health` → `checks.productionPosture` and `checks.auth`.
+
+1. **Unset** `ALLOW_DEMO_PERSONA_SWITCH` on Production (required for non-demo use).
+2. Configure **OIDC** (`OIDC_ISSUER` / `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET`) then remove all `TEMP_AUTH_*`.
+3. Set **mail** (`RESEND_API_KEY`, `MAIL_FROM`, `NOTIFY_EMAIL_DOMAIN`) so managers get vacation approval emails.
+4. Confirm Postgres **backups / PITR** in the Prisma/Neon console and record RPO.
+5. Redeploy after env changes; verify `enterpriseReady: true` only when OIDC is on and temp/demo auth are off.
+6. Optional: wire Sentry/OTEL later — process fatal errors are already logged via `instrumentation.ts`.
 
 ## Database
 
