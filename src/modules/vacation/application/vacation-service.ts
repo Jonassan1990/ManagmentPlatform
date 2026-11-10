@@ -57,6 +57,7 @@ import {
   workingDaysInsideRange,
   type ResolvedVacationDuration,
 } from "./vacation-duration";
+import { notifyVacationApprovers } from "@/modules/notifications/application/vacation-approval-mail";
 
 type Placement = {
   organizationId: string;
@@ -133,6 +134,7 @@ export class VacationService {
       result: "success",
     });
 
+    await this.notifyApprovers(created, principal.displayName ?? "Someone");
     return created;
   }
 
@@ -194,6 +196,7 @@ export class VacationService {
       result: "success",
     });
 
+    await this.notifyApprovers(updated, principal.displayName ?? "Someone");
     return updated;
   }
 
@@ -1204,7 +1207,7 @@ export class VacationService {
           scopeId: true,
           organizationId: true,
           roleDefinition: { select: { name: true } },
-          principal: { select: { displayName: true } },
+          principal: { select: { displayName: true, email: true } },
         },
       }),
       this.db.department.findMany({
@@ -1243,6 +1246,7 @@ export class VacationService {
       candidates.push({
         principalId: binding.principalId,
         displayName: binding.principal.displayName?.trim() || "Unknown",
+        email: binding.principal.email,
         roleName: binding.roleDefinition.name,
         scopeType: binding.scopeType,
         scopeId: binding.scopeId,
@@ -1257,6 +1261,62 @@ export class VacationService {
         : [],
       candidates,
     });
+  }
+
+  async countPendingApprovals(principal: Principal): Promise<number> {
+    const inbox = await this.listInbox(principal);
+    return inbox.length;
+  }
+
+  private async notifyApprovers(
+    row: {
+      id: string;
+      organizationId: string;
+      requesterPrincipalId: string;
+      departmentId: string | null;
+      sectionId: string | null;
+      startDate: Date;
+      endDate: Date;
+      durationKind: string;
+      dayPart: string | null;
+      hours: Prisma.Decimal | number | null;
+      workingDays: Prisma.Decimal | number;
+      reason: string | null;
+    },
+    requesterName: string,
+  ) {
+    try {
+      const [approvers, label] = await Promise.all([
+        this.approversFor(row),
+        this.placementLabel(row),
+      ]);
+      const durationKind =
+        row.durationKind === "HALF_DAY" || row.durationKind === "HOURS"
+          ? row.durationKind
+          : "FULL_DAYS";
+      const dayPart =
+        row.dayPart === "MORNING" || row.dayPart === "AFTERNOON"
+          ? row.dayPart
+          : null;
+      await notifyVacationApprovers({
+        requesterName,
+        approvers,
+        requestId: row.id,
+        startDate: row.startDate,
+        endDate: row.endDate,
+        durationKind,
+        dayPart,
+        hours: amountNumber(row.hours),
+        workingDays: amountNumber(row.workingDays) ?? 0,
+        reason: row.reason,
+        departmentLabel: label,
+      });
+    } catch (error) {
+      console.error(
+        "[mail] vacation approval notify failed",
+        error instanceof Error ? error.name : "unknown",
+      );
+    }
   }
 
   private async placementLabel(row: {

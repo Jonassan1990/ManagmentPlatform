@@ -36,6 +36,8 @@ export type ShellPrincipal = {
 export type ShellNavProps = {
   capabilities: ShellNavCapabilities;
   organizationId: string | null;
+  /** Waiting manager approvals (vacation + later kinds). */
+  approvalsCount?: number;
 };
 
 export type ShellDemoPersonaProps = {
@@ -252,6 +254,7 @@ export function AppShell({
                   group={group}
                   expanded={isGroupExpanded(group)}
                   pendingKey={pendingKey}
+                  approvalsCount={nav.approvalsCount ?? 0}
                   onArm={(key) => setPendingKey(key)}
                   onToggle={() =>
                     setManualExpanded((prev) => ({
@@ -424,6 +427,7 @@ function NavGroupBlock({
   group,
   expanded,
   pendingKey,
+  approvalsCount,
   onArm,
   onToggle,
   onNavigate,
@@ -431,6 +435,7 @@ function NavGroupBlock({
   group: ResolvedNavGroup;
   expanded: boolean;
   pendingKey: string | null;
+  approvalsCount: number;
   onArm: (key: string) => void;
   onToggle: () => void;
   onNavigate: () => void;
@@ -525,7 +530,14 @@ function NavGroupBlock({
                     onArm={onArm}
                     onNavigate={onNavigate}
                   >
-                    {item.label}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="min-w-0 truncate">{item.label}</span>
+                      {item.id === "gov-approvals" && approvalsCount > 0 ? (
+                        <span className="inline-flex min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] px-1.5 text-[10px] font-semibold text-white">
+                          {approvalsCount > 99 ? "99+" : approvalsCount}
+                        </span>
+                      ) : null}
+                    </span>
                   </SideLink>
                 </li>
               ))}

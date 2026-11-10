@@ -38,7 +38,8 @@ export async function AuthenticatedShell({
     headerList.get("x-matched-path") ||
     "";
 
-  const { authz, identity, organization, onboarding } = createServices();
+  const { authz, identity, organization, onboarding, vacation, governance } =
+    createServices();
   const principal = await authz.resolveCurrentPrincipal();
   const env = getEnv();
   const dev = isDevAuthEnabled(env);
@@ -66,6 +67,7 @@ export async function AuthenticatedShell({
   let nav = {
     capabilities: DEFAULT_SHELL_CAPABILITIES,
     organizationId: null as string | null,
+    approvalsCount: 0,
   };
 
   if (principal && hasAccess) {
@@ -83,9 +85,28 @@ export async function AuthenticatedShell({
           resolved.capabilities.canViewOnboarding = true;
         }
       }
+      let approvalsCount = 0;
+      if (
+        resolved.capabilities.canReviewVacation ||
+        resolved.capabilities.canViewApprovals
+      ) {
+        const [vacationCount, governanceCount] = await Promise.all([
+          resolved.capabilities.canReviewVacation
+            ? vacation.countPendingApprovals(principal)
+            : Promise.resolve(0),
+          resolved.capabilities.canViewApprovals
+            ? governance
+                .listMyApprovals(principal)
+                .then((rows) => rows.length)
+                .catch(() => 0)
+            : Promise.resolve(0),
+        ]);
+        approvalsCount = vacationCount + governanceCount;
+      }
       nav = {
         capabilities: resolved.capabilities,
         organizationId: resolved.organizationId,
+        approvalsCount,
       };
     } catch {
       // Fail soft for chrome — pages still enforce AuthZ.
@@ -98,6 +119,7 @@ export async function AuthenticatedShell({
           canCreateInitiative: false,
         },
         organizationId: null,
+        approvalsCount: 0,
       };
     }
   } else if (!principal) {
@@ -118,6 +140,7 @@ export async function AuthenticatedShell({
         canManageAdminConfig: false,
       },
       organizationId: null,
+      approvalsCount: 0,
     };
   }
 

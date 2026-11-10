@@ -43,6 +43,7 @@ describe("vacation approvers", () => {
       {
         principalId: "dept",
         displayName: "Bo INFB Manager",
+        email: null,
         roleName: "Department Manager",
       },
     ]);

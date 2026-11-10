@@ -248,6 +248,26 @@ async function syncSheetAccounts(
       },
     }),
   ]);
+  const people = roster.flatMap((department) =>
+    department.people.map((person, index) => {
+      const reference = sheetReferenceCode(department.code, person.name);
+      const manager = index === 0;
+      return {
+        reference,
+        name: person.name.slice(0, 200),
+        role: sheetJob(index),
+        username: sheetUsername(department.code, index, person.name),
+        principalId: sheetPrincipalId(reference),
+        externalSubject: manager
+          ? `sheet-manager:${department.code}`
+          : `sheet-user:${reference}`,
+        manager,
+        departmentId: byCode.get(department.code)?.id ?? null,
+      };
+    }),
+  );
+  await repairSheetManagerNotifyEmails(people);
+
   if (
     linked >= roster.length &&
     managers >= roster.length &&
@@ -267,30 +287,13 @@ async function syncSheetAccounts(
   if (!managerRole || !viewerRole) return;
 
   const passwordHash = await bcryptHash(DEMO_PERSONA_PASSWORD, 10);
-  const people = roster.flatMap((department) =>
-    department.people.map((person, index) => {
-      const reference = sheetReferenceCode(department.code, person.name);
-      const manager = index === 0;
-      return {
-        reference,
-        name: person.name.slice(0, 200),
-        role: sheetJob(index),
-        username: sheetUsername(department.code, index, person.name),
-        principalId: sheetPrincipalId(reference),
-        externalSubject: manager
-          ? `sheet-manager:${department.code}`
-          : `sheet-user:${reference}`,
-        manager,
-        departmentId: byCode.get(department.code)?.id ?? null,
-      };
-    }),
-  );
-
+  const notifyDomain = process.env.NOTIFY_EMAIL_DOMAIN?.trim().toLowerCase();
   await prisma.principal.createMany({
     data: people.map((person) => ({
       id: person.principalId,
       displayName: person.name,
       externalSubject: person.externalSubject,
+      email: notifyDomain ? `${person.username}@${notifyDomain}` : null,
     })),
     skipDuplicates: true,
   });
@@ -372,6 +375,39 @@ async function syncSheetAccounts(
   });
   if (bindings.length > 0) {
     await prisma.roleBinding.createMany({ data: bindings });
+  }
+}
+
+async function repairSheetManagerNotifyEmails(
+  people: Array<{
+    principalId: string;
+    name: string;
+    username: string;
+    externalSubject: string;
+    manager: boolean;
+  }>,
+): Promise<void> {
+  const notifyDomain = process.env.NOTIFY_EMAIL_DOMAIN?.trim().toLowerCase();
+  if (!notifyDomain) return;
+  const managers = people.filter((person) => person.manager);
+  if (managers.length === 0) return;
+  const managerSubjects = managers.map((person) => person.externalSubject);
+  await prisma.principal.updateMany({
+    where: {
+      externalSubject: { in: managerSubjects },
+      id: { notIn: managers.map((person) => person.principalId) },
+    },
+    data: { externalSubject: null },
+  });
+  for (const person of managers) {
+    await prisma.principal.updateMany({
+      where: { id: person.principalId },
+      data: {
+        displayName: person.name,
+        externalSubject: person.externalSubject,
+        email: `${person.username}@${notifyDomain}`,
+      },
+    });
   }
 }
 

@@ -28,6 +28,9 @@ Prisma Client is generated via `postinstall` (`prisma generate`).
 | `BOOTSTRAP_SETUP_TOKEN` | For first admin only | One-time; see runbook |
 | `ALLOW_DEV_AUTH` | Must be unset/false | Production fail-closed |
 | `DEV_AUTH_PRINCIPAL_ID` | Must be unset | Not for production |
+| `RESEND_API_KEY` | Optional | Sends vacation-approval emails to managers |
+| `MAIL_FROM` | Optional | From address for Resend (defaults to Resend onboarding sender) |
+| `NOTIFY_EMAIL_DOMAIN` | Optional | Builds `sheet.*@domain` emails for vacation-sheet managers |
 
 ## Database
 
