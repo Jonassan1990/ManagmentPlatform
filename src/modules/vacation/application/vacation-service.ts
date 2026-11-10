@@ -3,6 +3,7 @@ import {
   Prisma,
   PrismaClient,
   ResourceType,
+  ScopeType,
   VacationAuditAction,
   VacationPlanKind,
   VacationRequestStatus,
@@ -391,7 +392,8 @@ export class VacationService {
 
   /**
    * Recent decided vacation requests in this manager's review scope
-   * (for Approvals history / audit follow-up).
+   * (for Approvals history / audit follow-up). Uses role bindings in one
+   * query — no per-row AuthZ loop (that timed out Approvals on Vercel).
    */
   async listRecentDecisions(
     principal: Principal,
@@ -403,6 +405,51 @@ export class VacationService {
   ) {
     await this.authz.ensureSystemRoles();
     const limit = Math.min(Math.max(options?.limit ?? 40, 1), 100);
+    const now = new Date();
+    const bindings = await this.db.roleBinding.findMany({
+      where: {
+        principalId: principal.id,
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+        roleDefinition: { permissions: { has: PERMISSIONS.VACATION_REVIEW } },
+        ...(options?.organizationId
+          ? { organizationId: options.organizationId }
+          : {}),
+      },
+      select: { scopeType: true, scopeId: true, organizationId: true },
+    });
+
+    const departmentIds = new Set<string>();
+    const sectionIds = new Set<string>();
+    const organizationIds = new Set<string>();
+    for (const binding of bindings) {
+      if (binding.scopeType === ScopeType.DEPARTMENT && binding.scopeId) {
+        departmentIds.add(binding.scopeId);
+      } else if (binding.scopeType === ScopeType.SECTION && binding.scopeId) {
+        sectionIds.add(binding.scopeId);
+      } else if (
+        binding.scopeType === ScopeType.ORGANIZATION &&
+        binding.organizationId
+      ) {
+        organizationIds.add(binding.organizationId);
+      }
+    }
+    if (options?.sectionId) {
+      sectionIds.add(options.sectionId);
+    }
+
+    const scopeOr: Prisma.VacationRequestWhereInput[] = [
+      { reviewedByPrincipalId: principal.id },
+    ];
+    if (departmentIds.size > 0) {
+      scopeOr.push({ departmentId: { in: [...departmentIds] } });
+    }
+    if (sectionIds.size > 0) {
+      scopeOr.push({ sectionId: { in: [...sectionIds] } });
+    }
+    if (organizationIds.size > 0) {
+      scopeOr.push({ organizationId: { in: [...organizationIds] } });
+    }
+
     const decided = await this.db.vacationRequest.findMany({
       where: {
         status: {
@@ -412,30 +459,20 @@ export class VacationService {
             VacationRequestStatus.CANCELLED,
           ],
         },
+        requesterPrincipalId: { not: principal.id },
+        OR: scopeOr,
         ...(options?.organizationId
           ? { organizationId: options.organizationId }
           : {}),
         ...(options?.sectionId ? { sectionId: options.sectionId } : {}),
       },
       orderBy: [{ updatedAt: "desc" }],
-      take: limit * 8,
+      take: limit,
     });
-
-    const visible = [];
-    for (const row of decided) {
-      if (row.requesterPrincipalId === principal.id) continue;
-      if (
-        row.reviewedByPrincipalId === principal.id ||
-        (await this.canReview(principal, row))
-      ) {
-        visible.push(row);
-      }
-      if (visible.length >= limit) break;
-    }
 
     const principalIds = [
       ...new Set(
-        visible.flatMap((row) =>
+        decided.flatMap((row) =>
           [row.requesterPrincipalId, row.reviewedByPrincipalId].filter(
             (id): id is string => Boolean(id),
           ),
@@ -450,7 +487,7 @@ export class VacationService {
       : [];
     const nameById = new Map(principals.map((p) => [p.id, p.displayName]));
 
-    return visible.map((row) => ({
+    return decided.map((row) => ({
       ...presentAmounts(row),
       requesterDisplayName: nameById.get(row.requesterPrincipalId) ?? "Unknown",
       reviewerDisplayName: row.reviewedByPrincipalId
