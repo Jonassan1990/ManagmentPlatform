@@ -256,14 +256,14 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "manager",
         title: "Manager review",
-        body: "Section and department managers use Vacation → Manager inbox to Accept, Reject, or Ask for changes (comment required for reject/changes).",
-        href: "/vacation/inbox",
-        hrefLabel: "Manager inbox",
+        body: "Managers open Approvals, or their section page, to Accept, Reject, or Ask for changes. Waiting days on the vacation plan can also be accepted there. A comment is required when rejecting or asking for changes.",
+        href: "/approvals",
+        hrefLabel: "Approvals",
       },
       {
         id: "plan",
         title: "Department vacation plan",
-        body: "Open Vacation and choose 2026 plan. Search for a person, or pick a department. The people, jobs, and days match the department. A department manager signs in as sheet plus the department code, for example sheet.infb, and can mark days. Other people see their own row. Public holidays are closed. Waiting requests turn into vacation when accepted.",
+        body: "Open Vacation and choose 2026 plan. Search for a person, or pick a department. The people, jobs, and days match the department. A department manager signs in as sheet plus the department code, for example sheet.infb, and can mark days or accept a waiting request on that day. Other people see their own row. Public holidays are closed. Waiting requests also appear under Approvals and on the section page.",
         href: "/vacation/plan",
         hrefLabel: "Vacation plan",
       },

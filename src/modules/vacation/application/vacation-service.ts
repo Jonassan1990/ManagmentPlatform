@@ -339,7 +339,10 @@ export class VacationService {
     );
   }
 
-  async listInbox(principal: Principal) {
+  async listInbox(
+    principal: Principal,
+    options?: { sectionId?: string; organizationId?: string },
+  ) {
     await this.authz.ensureSystemRoles();
     const pending = await this.db.vacationRequest.findMany({
       where: {
@@ -349,6 +352,10 @@ export class VacationService {
             VacationRequestStatus.CHANGES_REQUESTED,
           ],
         },
+        ...(options?.organizationId
+          ? { organizationId: options.organizationId }
+          : {}),
+        ...(options?.sectionId ? { sectionId: options.sectionId } : {}),
       },
       orderBy: [{ createdAt: "asc" }],
     });
@@ -615,6 +622,8 @@ export class VacationService {
               endDate: { gte: start },
             },
             select: {
+              id: true,
+              version: true,
               requesterPrincipalId: true,
               startDate: true,
               endDate: true,
@@ -685,6 +694,10 @@ export class VacationService {
               holiday,
               kind: resolved.kind,
               waiting: resolved.waiting,
+              pendingRequest:
+                resolved.waiting && request?.requestId && request.version != null
+                  ? { id: request.requestId, version: request.version }
+                  : null,
             };
           }),
         },
@@ -1424,6 +1437,8 @@ function requestOnPlanDate(
   principalId: string,
   date: string,
   requests: Array<{
+    id?: string;
+    version?: number;
     requesterPrincipalId: string;
     startDate: Date;
     endDate: Date;
@@ -1433,6 +1448,8 @@ function requestOnPlanDate(
 ): {
   duration: "FULL_DAYS" | "HALF_DAY" | "HOURS";
   status: "APPROVED" | "SUBMITTED" | "CHANGES_REQUESTED";
+  requestId?: string;
+  version?: number;
 } | null {
   let approved: (typeof requests)[number] | null = null;
   for (const request of requests) {
@@ -1451,7 +1468,12 @@ function requestOnPlanDate(
       if (request.status !== "SUBMITTED" && request.status !== "CHANGES_REQUESTED") {
         continue;
       }
-      return { duration: request.durationKind, status: request.status };
+      return {
+        duration: request.durationKind,
+        status: request.status,
+        requestId: request.id,
+        version: request.version,
+      };
     }
     approved = request;
   }
@@ -1463,7 +1485,12 @@ function requestOnPlanDate(
   ) {
     return null;
   }
-  return { duration: approved.durationKind, status: "APPROVED" };
+  return {
+    duration: approved.durationKind,
+    status: "APPROVED",
+    requestId: approved.id,
+    version: approved.version,
+  };
 }
 
 function requestOnDate(

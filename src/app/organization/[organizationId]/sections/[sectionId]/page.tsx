@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
+import { ManagerApprovalsPanel } from "@/components/manager/manager-approvals-panel";
 import {
   CreateDepartmentForm,
   EditSectionForm,
@@ -8,13 +9,14 @@ import {
 import { OrgModeToggle } from "@/components/organization/org-mode-toggle";
 import { Alert } from "@/components/ui/alert";
 import { Breadcrumbs, PageHeader, Panel } from "@/components/ui/page";
+import { buttonClassName } from "@/components/ui/button";
 import { buildOrganizationTrail } from "@/modules/navigation/breadcrumbs";
 import {
   parseOrgUiMode,
   withOrgMode,
 } from "@/modules/organization/application/org-ui-mode";
 import { PERMISSIONS } from "@/modules/shared/permissions";
-import { createOrganizationService } from "@/server/container";
+import { createServices } from "@/server/container";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,7 @@ export default async function SectionPage({
   const { organizationId, sectionId } = await params;
   const { mode: modeParam } = await searchParams;
   const mode = parseOrgUiMode(modeParam);
-  const { authz, organization } = createOrganizationService();
+  const { authz, organization, vacation, governance } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
 
@@ -50,6 +52,39 @@ export default async function SectionPage({
     { type: "ORGANIZATION", organizationId },
   );
   const showConfig = canManage && mode === "config";
+  const [canReviewVacation, canReviewGovernance] = await Promise.all([
+    authz.hasPermissionInOrganization(
+      principal,
+      PERMISSIONS.VACATION_REVIEW,
+      organizationId,
+    ),
+    authz.hasPermissionInOrganization(
+      principal,
+      PERMISSIONS.APPROVAL_REVIEW,
+      organizationId,
+    ),
+  ]);
+  const vacationInbox =
+    !showConfig && canReviewVacation
+      ? await vacation.listInbox(principal, {
+          organizationId,
+          sectionId,
+        })
+      : [];
+  const governanceRequests =
+    !showConfig && canReviewGovernance
+      ? await governance.listMyApprovals(principal)
+      : [];
+  const governanceCaps =
+    governanceRequests.length > 0
+      ? await governance.getPrincipalCapabilities(principal, organizationId)
+      : undefined;
+  const governanceRows = governanceRequests.map((request) => ({
+    ...request,
+    capabilities: governanceCaps,
+  }));
+  const showApprovals =
+    !showConfig && (canReviewVacation || canReviewGovernance);
 
   return (
     <div>
@@ -134,6 +169,30 @@ export default async function SectionPage({
         </div>
       ) : (
         <div className="space-y-4">
+          {showApprovals ? (
+            <Panel>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-medium">Approvals</h2>
+                  <p className="text-sm text-[var(--muted)]">
+                    Everything waiting for you in this section. Accept vacation
+                    here, or open the full Approvals list.
+                  </p>
+                </div>
+                <Link
+                  href="/approvals"
+                  className={buttonClassName({ variant: "secondary", size: "sm" })}
+                >
+                  All approvals
+                </Link>
+              </div>
+              <ManagerApprovalsPanel
+                vacation={vacationInbox}
+                governance={governanceRows}
+                emptyDescription="Nothing is waiting for you in this section."
+              />
+            </Panel>
+          ) : null}
           <Panel>
             <h2 className="mb-3 font-medium">Departments</h2>
             {departments.length === 0 ? (

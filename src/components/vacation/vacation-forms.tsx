@@ -325,17 +325,21 @@ export function CancelVacationButton({
 export function ReviewVacationForm({
   requestId,
   expectedVersion,
+  onDone,
 }: {
   requestId: string;
   expectedVersion: number;
+  onDone?: () => void;
 }) {
+  const commentId = `manager-comment-${requestId}`;
   const { pending, ErrorAlert, submit } = useActionForm(
     reviewVacationRequestAction,
+    () => onDone?.(),
   );
 
   function decide(decision: "APPROVE" | "REJECT" | "REQUEST_CHANGES") {
     const commentEl = document.getElementById(
-      "manager-comment",
+      commentId,
     ) as HTMLTextAreaElement | null;
     submit({
       requestId,
@@ -350,11 +354,11 @@ export function ReviewVacationForm({
       {ErrorAlert}
       <FormField
         label="Manager comment"
-        htmlFor="manager-comment"
+        htmlFor={commentId}
         hint="Required when rejecting or asking for changes"
       >
         <textarea
-          id="manager-comment"
+          id={commentId}
           name="comment"
           rows={3}
           className={fieldClassName}

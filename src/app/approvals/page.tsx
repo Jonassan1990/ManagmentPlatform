@@ -1,43 +1,72 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ApprovalDecisionForm } from "@/components/governance/governance-forms";
-import { ApprovalTaskCardHeader } from "@/components/governance/governance-workspace";
+import { ManagerApprovalsPanel } from "@/components/manager/manager-approvals-panel";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { buttonClassName } from "@/components/ui/button";
 import { hasPermissionInAnyOrganization } from "@/modules/identity-access/application/org-permission";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
-import { buttonClassName } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
-  const { authz, governance, organization } = createServices();
+  const { authz, governance, organization, vacation } = createServices();
   const principal = await authz.resolveCurrentPrincipal();
   if (!principal) redirect("/");
 
   const orgs = await organization.listOrganizations(principal);
-  const canReview = await hasPermissionInAnyOrganization(
-    authz,
-    principal,
-    PERMISSIONS.APPROVAL_REVIEW,
-    orgs.map((org) => org.id),
-  );
-  if (!canReview) redirect("/");
+  const orgIds = orgs.map((org) => org.id);
+  const [canReviewVacation, canReviewGovernance] = await Promise.all([
+    hasPermissionInAnyOrganization(
+      authz,
+      principal,
+      PERMISSIONS.VACATION_REVIEW,
+      orgIds,
+    ),
+    hasPermissionInAnyOrganization(
+      authz,
+      principal,
+      PERMISSIONS.APPROVAL_REVIEW,
+      orgIds,
+    ),
+  ]);
+  if (!canReviewVacation && !canReviewGovernance) redirect("/");
 
-  const requests = await governance.listMyApprovals(principal);
-  const orgIds = [
+  const preferredOrgId = orgs[0]?.id ?? null;
+  const sections = preferredOrgId
+    ? await organization.listSections(principal, preferredOrgId)
+    : [];
+  const sectionHref =
+    preferredOrgId && sections[0]
+      ? `/organization/${preferredOrgId}/sections/${sections[0].id}`
+      : null;
+
+  const vacationInbox = canReviewVacation
+    ? await vacation.listInbox(principal)
+    : [];
+  const governanceRequests = canReviewGovernance
+    ? await governance.listMyApprovals(principal)
+    : [];
+  const governanceOrgIds = [
     ...new Set(
-      requests.map((r) => r.submission.initiative.organizationId),
+      governanceRequests.map((row) => row.submission.initiative.organizationId),
     ),
   ];
   const capsEntries = await Promise.all(
-    orgIds.map(async (organizationId) => [
-      organizationId,
-      await governance.getPrincipalCapabilities(principal, organizationId),
-    ] as const),
+    governanceOrgIds.map(async (organizationId) =>
+      [
+        organizationId,
+        await governance.getPrincipalCapabilities(principal, organizationId),
+      ] as const,
+    ),
   );
   const capsByOrg = Object.fromEntries(capsEntries);
+  const governanceRows = governanceRequests.map((request) => ({
+    ...request,
+    capabilities: capsByOrg[request.submission.initiative.organizationId],
+  }));
+
+  const total = vacationInbox.length + governanceRows.length;
 
   return (
     <div>
@@ -48,98 +77,41 @@ export default async function ApprovalsPage() {
         ]}
       />
       <PageHeader
-        title="My Approvals"
-        description="Authority reviews waiting for your outcome. Approvals are immutable once recorded."
+        title="Approvals"
+        description="Everything waiting for you as a manager: vacation requests and delivery gate reviews. Your section page shows the same list for that section."
+        actions={
+          sectionHref ? (
+            <Link
+              href={sectionHref}
+              className={buttonClassName({ variant: "secondary" })}
+            >
+              Open section
+            </Link>
+          ) : null
+        }
       />
 
-      {requests.length === 0 ? (
+      {total === 0 ? (
         <EmptyState
           title="Nothing waiting for your approval"
-          description="When initiatives are submitted for governance and your authority is required, they appear here."
+          description="When people ask for vacation, or a delivery gate needs your review, it appears here and on your section page."
           action={
             <Link
-              href="/initiatives"
+              href="/vacation/plan"
               className={buttonClassName({ variant: "primary" })}
             >
-              Browse initiatives
+              Open vacation plan
             </Link>
           }
         />
       ) : (
-        <div className="space-y-4">
-          {requests.map((request) => {
-            const caps =
-              capsByOrg[request.submission.initiative.organizationId];
-            const canReview = caps?.canReviewApprovals !== false;
-
-            return (
-              <Panel key={request.id}>
-                <ApprovalTaskCardHeader
-                  referenceKey={request.submission.initiative.referenceKey}
-                  title={request.submission.initiative.title}
-                  gateType={request.submission.gate.gateType}
-                  reviewLabel={request.label}
-                  revision={request.submission.revision}
-                  status={request.status}
-                  initiativeId={request.submission.initiativeId}
-                />
-
-                <div className="mb-4 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-md border border-[var(--line)] px-3 py-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                      What requires review
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-[var(--ink)]">
-                      {request.label}
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-[var(--line)] px-3 py-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                      Evidence summary
-                    </p>
-                    <p className="mt-1 text-sm text-[var(--ink)]">
-                      Frozen on revision {request.submission.revision}.{" "}
-                      <Link
-                        href={`/initiatives/${request.submission.initiativeId}/governance`}
-                        className="text-[var(--color-accent)] underline"
-                      >
-                        Inspect evidence in gate workspace
-                      </Link>
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-[var(--line)] px-3 py-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                      Allowed action
-                    </p>
-                    <div className="mt-1">
-                      {canReview ? (
-                        <StatusBadge
-                          status="pending"
-                          label="Approve / Reject / Request changes"
-                          size="compact"
-                        />
-                      ) : (
-                        <StatusBadge
-                          status="blocked"
-                          label="Read-only — no approval permission"
-                          size="compact"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <ApprovalDecisionForm
-                  approvalRequestId={request.id}
-                  expectedVersion={request.version}
-                  initiativeId={request.submission.initiativeId}
-                  label={request.label}
-                  capabilities={caps}
-                />
-              </Panel>
-            );
-          })}
-        </div>
+        <Panel>
+          <ManagerApprovalsPanel
+            vacation={vacationInbox}
+            governance={governanceRows}
+            emptyDescription="Nothing waiting for your approval."
+          />
+        </Panel>
       )}
     </div>
   );

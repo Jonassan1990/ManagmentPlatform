@@ -121,7 +121,7 @@ export function buildHomeQuickLinks(input: {
       });
     }
   }
-  if (caps.canViewApprovals) {
+  if (caps.canViewApprovals || caps.canReviewVacation) {
     links.push({ id: "approvals", label: "Approvals", href: "/approvals" });
   }
   if (caps.canViewDecisions) {
