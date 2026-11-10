@@ -389,6 +389,77 @@ export class VacationService {
     );
   }
 
+  /**
+   * Recent decided vacation requests in this manager's review scope
+   * (for Approvals history / audit follow-up).
+   */
+  async listRecentDecisions(
+    principal: Principal,
+    options?: {
+      sectionId?: string;
+      organizationId?: string;
+      limit?: number;
+    },
+  ) {
+    await this.authz.ensureSystemRoles();
+    const limit = Math.min(Math.max(options?.limit ?? 40, 1), 100);
+    const decided = await this.db.vacationRequest.findMany({
+      where: {
+        status: {
+          in: [
+            VacationRequestStatus.APPROVED,
+            VacationRequestStatus.REJECTED,
+            VacationRequestStatus.CANCELLED,
+          ],
+        },
+        ...(options?.organizationId
+          ? { organizationId: options.organizationId }
+          : {}),
+        ...(options?.sectionId ? { sectionId: options.sectionId } : {}),
+      },
+      orderBy: [{ updatedAt: "desc" }],
+      take: limit * 8,
+    });
+
+    const visible = [];
+    for (const row of decided) {
+      if (row.requesterPrincipalId === principal.id) continue;
+      if (
+        row.reviewedByPrincipalId === principal.id ||
+        (await this.canReview(principal, row))
+      ) {
+        visible.push(row);
+      }
+      if (visible.length >= limit) break;
+    }
+
+    const principalIds = [
+      ...new Set(
+        visible.flatMap((row) =>
+          [row.requesterPrincipalId, row.reviewedByPrincipalId].filter(
+            (id): id is string => Boolean(id),
+          ),
+        ),
+      ),
+    ];
+    const principals = principalIds.length
+      ? await this.db.principal.findMany({
+          where: { id: { in: principalIds } },
+          select: { id: true, displayName: true },
+        })
+      : [];
+    const nameById = new Map(principals.map((p) => [p.id, p.displayName]));
+
+    return visible.map((row) => ({
+      ...presentAmounts(row),
+      requesterDisplayName: nameById.get(row.requesterPrincipalId) ?? "Unknown",
+      reviewerDisplayName: row.reviewedByPrincipalId
+        ? (nameById.get(row.reviewedByPrincipalId) ?? "Unknown")
+        : null,
+      decidedAt: row.updatedAt,
+    }));
+  }
+
   async getRequest(principal: Principal, requestId: string) {
     const row = await this.requireRequest(requestId);
     const isOwner = row.requesterPrincipalId === principal.id;
