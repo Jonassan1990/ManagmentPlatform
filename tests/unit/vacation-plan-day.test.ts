@@ -121,7 +121,7 @@ describe("swedish holidays", () => {
     expect(swedishHolidayName("2026-01-07")).toBeNull();
   });
 
-  it("closes a public holiday on role cover", () => {
+  it("closes a public holiday on availability", () => {
     const days = departmentDayCover({
       people: [
         {

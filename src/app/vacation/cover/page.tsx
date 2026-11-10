@@ -30,7 +30,7 @@ export default async function VacationCoverPage({
   if (orgs.length === 0) {
     return (
       <div>
-        <PageHeader title="Role cover" />
+        <PageHeader title="Availability" />
         <EmptyState
           title="No organization yet"
           description="Join an organization to see when a whole role is away."
@@ -65,8 +65,8 @@ export default async function VacationCoverPage({
     if (error instanceof AppError) {
       return (
         <div>
-          <PageHeader title="Role cover" />
-          <EmptyState title="Role cover unavailable" description={error.message} />
+          <PageHeader title="Availability" />
+          <EmptyState title="Availability could not be loaded" description={error.message} />
         </div>
       );
     }
@@ -100,11 +100,11 @@ export default async function VacationCoverPage({
         items={[
           { label: "Overview", href: "/" },
           { label: "People", href: "/vacation" },
-          { label: "Role cover" },
+          { label: "Availability" },
         ]}
       />
       <PageHeader
-        title="Role cover"
+        title="Availability"
         description="Green means every role is in. Yellow means at least one person is still available. Red means nobody is available. Open a yellow or red day to see who is off and who is available."
         actions={
           <div className="flex flex-wrap gap-2">

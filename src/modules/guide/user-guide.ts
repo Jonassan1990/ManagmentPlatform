@@ -88,7 +88,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "vacation",
         title: "Vacation management",
-        body: "Request time off, review as a manager, and open Role cover. The calendar is green when every role is in, yellow when at least one person is still available, and red when nobody is available. Vacation plan is a separate month grid for each department, using the same colors as the 2026 sheet.",
+        body: "Request time off, review as a manager, and open Availability. The calendar is green when every role is in, yellow when at least one person is still available, and red when nobody is available. Vacation plan is a separate month grid for each department, using the same colors as the 2026 sheet.",
         href: "/vacation",
         hrefLabel: "Vacation",
       },
@@ -270,7 +270,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "calendar-year",
         title: "Calendar and year view",
-        body: "Approved vacations appear on the month calendar. Department role cover shows when everyone with the same role in a department is on a full weekday off, including all developer titles together. By year shows each person’s approved total and the same cover gaps.",
+        body: "Approved vacations appear on the month calendar. Availability shows when everyone with the same role in a department is on a full weekday off, including all developer titles together. By year shows each person’s approved total and the same gaps.",
         href: "/vacation/calendar",
         hrefLabel: "Calendar",
       },

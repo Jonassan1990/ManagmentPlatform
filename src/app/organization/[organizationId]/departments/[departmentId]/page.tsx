@@ -268,7 +268,7 @@ export default async function DepartmentPage({
 
           <Panel className="mb-4">
             <h2 className="mb-1 text-base font-semibold text-[var(--ink)]">
-              Role cover
+              Availability
             </h2>
             <p className="mb-1 text-sm font-medium text-[var(--ink)]">
               {new Date(Date.UTC(coverYear, coverMonth - 1, 1)).toLocaleString(
