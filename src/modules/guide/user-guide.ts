@@ -256,7 +256,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "manager",
         title: "Manager review",
-        body: "Managers open Approvals, or their section page, to Accept, Reject, or Ask for changes. The Approvals menu shows how many are waiting. When someone asks for vacation, the closest manager also gets an email if mail is configured. Waiting days on the vacation plan can be accepted there too.",
+        body: "Managers open Approvals, or their section page, to Accept, Reject, or Ask for changes. The Approvals menu shows how many are waiting. Recent decided vacation stays listed for follow-up, and each request has a full audit trail. When someone asks for vacation, the closest manager also gets an email if mail is configured.",
         href: "/approvals",
         hrefLabel: "Approvals",
       },

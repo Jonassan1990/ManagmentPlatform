@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ManagerApprovalsHistory } from "@/components/manager/manager-approvals-history";
 import { ManagerApprovalsPanel } from "@/components/manager/manager-approvals-panel";
 import { Breadcrumbs, EmptyState, PageHeader, Panel } from "@/components/ui/page";
 import { buttonClassName } from "@/components/ui/button";
@@ -41,9 +42,12 @@ export default async function ApprovalsPage() {
       ? `/organization/${preferredOrgId}/sections/${sections[0].id}`
       : null;
 
-  const vacationInbox = canReviewVacation
-    ? await vacation.listInbox(principal)
-    : [];
+  const [vacationInbox, vacationHistory] = canReviewVacation
+    ? await Promise.all([
+        vacation.listInbox(principal),
+        vacation.listRecentDecisions(principal, { limit: 40 }),
+      ])
+    : [[], []];
   const governanceRequests = canReviewGovernance
     ? await governance.listMyApprovals(principal)
     : [];
@@ -78,7 +82,7 @@ export default async function ApprovalsPage() {
       />
       <PageHeader
         title="Approvals"
-        description="Everything waiting for you as a manager: vacation requests and delivery gate reviews. Your section page shows the same list for that section."
+        description="Waiting work for you as a manager, plus recent decided vacation with an audit trail on each request. Your section page shows the same waiting list for that section."
         actions={
           sectionHref ? (
             <Link
@@ -113,6 +117,19 @@ export default async function ApprovalsPage() {
           />
         </Panel>
       )}
+
+      {canReviewVacation ? (
+        <Panel className="mt-6">
+          <h2 className="mb-2 text-base font-semibold text-[var(--ink)]">
+            Recent decisions
+          </h2>
+          <p className="mb-4 text-sm text-[var(--muted)]">
+            Trackable history in your scope. Open a row for the full audit
+            trail (who submitted, approved, rejected, or asked for changes).
+          </p>
+          <ManagerApprovalsHistory vacation={vacationHistory} />
+        </Panel>
+      ) : null}
     </div>
   );
 }
