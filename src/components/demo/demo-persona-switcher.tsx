@@ -2,15 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { setDemoPersonaAction } from "@/app/actions/demo-persona";
-import type { DemoPersonaKey } from "@/modules/demo/it-hierarchy-demo";
 
 export type DemoPersonaOption = {
-  key: DemoPersonaKey;
+  key: string;
   displayName: string;
   levelLabel: string;
   sees: string;
   username: string;
-  group?: "levels" | "department-users";
+  group?: "levels" | "department-users" | "sheet-managers";
   optionLabel?: string;
 };
 
@@ -19,7 +18,7 @@ export function DemoPersonaSwitcher({
   activeKey,
 }: {
   personas: DemoPersonaOption[];
-  activeKey: DemoPersonaKey | null;
+  activeKey: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +63,19 @@ export function DemoPersonaSwitcher({
         }}
       >
         <option value="session">Signed-in user (no simulation)</option>
+        <optgroup label="Department managers from the plan">
+          {personas
+            .filter((persona) => persona.group === "sheet-managers")
+            .map((persona) => (
+              <option key={persona.key} value={persona.key}>
+                {persona.optionLabel ??
+                  `${persona.levelLabel} — ${persona.displayName}`}
+              </option>
+            ))}
+        </optgroup>
         <optgroup label="Manager levels">
           {personas
-            .filter((persona) => persona.group !== "department-users")
+            .filter((persona) => !persona.group || persona.group === "levels")
             .map((persona) => (
               <option key={persona.key} value={persona.key}>
                 {persona.optionLabel ??

@@ -67,7 +67,9 @@ export const setVacationPlanMarkSchema = z.object({
   departmentId: z.string().uuid(),
   principalId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  kind: z.enum(["VACATION", "EDUCATION", "COMPENSATORY", "ON_CALL", "PARENTAL"]).nullable(),
+  kind: z
+    .enum(["VACATION", "EDUCATION", "COMPENSATORY", "ON_CALL", "PARENTAL", "IN_OFFICE"])
+    .nullable(),
 });
 
 export const vacationYearQuerySchema = z.object({

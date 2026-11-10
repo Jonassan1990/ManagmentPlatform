@@ -30,9 +30,10 @@ export const PLAN_KIND_COLOR: Record<PlanCellKind, { background: string; color: 
 };
 
 export function planCellKind(input: {
-  mark: VacationPlanKindName | null;
+  mark: VacationPlanKindName | "IN_OFFICE" | null;
   request: "FULL_DAYS" | "HALF_DAY" | "HOURS" | null;
 }): PlanCellKind | null {
+  if (input.mark === "IN_OFFICE") return null;
   if (input.mark) return input.mark;
   if (input.request === "FULL_DAYS") return "VACATION";
   if (input.request === "HALF_DAY" || input.request === "HOURS") return "PARTIAL";

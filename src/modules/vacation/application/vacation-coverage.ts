@@ -1,6 +1,7 @@
 import type { RoleFamily } from "@/modules/onboarding/application/role-templates";
 import { functionRoleFamily } from "@/modules/onboarding/application/role-templates";
 import type { VacationVisibilityFilter } from "./vacation-visibility";
+import { swedishHolidayName } from "./swedish-holidays";
 import { formatDateOnly, toUtcDateOnly } from "./working-days";
 
 const FAMILY_LABEL: Record<RoleFamily, string> = {
@@ -111,7 +112,12 @@ export function departmentDayCover(input: {
     const date = formatDateOnly(cursor);
     const weekday = cursor.getUTCDay();
     cursor.setUTCDate(cursor.getUTCDate() + 1);
-    if (weekday === 0 || weekday === 6 || input.people.length === 0) {
+    if (
+      weekday === 0 ||
+      weekday === 6 ||
+      swedishHolidayName(date) ||
+      input.people.length === 0
+    ) {
       days.push({ date, tone: "closed", off: [], available: [] });
       continue;
     }
@@ -370,7 +376,8 @@ function eachWeekday(start: string, end: string): string[] {
   const last = toUtcDateOnly(end).getTime();
   while (cursor.getTime() <= last) {
     const day = cursor.getUTCDay();
-    if (day !== 0 && day !== 6) days.push(formatDateOnly(cursor));
+    const iso = formatDateOnly(cursor);
+    if (day !== 0 && day !== 6 && !swedishHolidayName(iso)) days.push(iso);
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return days;

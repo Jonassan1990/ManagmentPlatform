@@ -1,9 +1,18 @@
-import { createHash } from "node:crypto";
+import { ScopeType } from "@prisma/client";
+import { hash as bcryptHash } from "bcryptjs";
 import { prisma } from "@/server/db";
-import { IT_DEMO_IDS } from "@/modules/demo/it-hierarchy-demo";
+import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
+import { LOCAL_LOGIN_ISSUER } from "@/modules/identity-access/application/temp-auth-constants";
+import { DEMO_PERSONA_PASSWORD, IT_DEMO_IDS } from "@/modules/demo/it-hierarchy-demo";
+import { ROLE_KEYS } from "@/modules/shared/permissions";
 import {
+  codeFromSheetReference,
   departmentSheetCode,
   parentSheetCode,
+  sheetJob,
+  sheetPrincipalId,
+  sheetReferenceCode,
+  sheetUsername,
   vacationSheetRoster,
 } from "@/modules/vacation/application/vacation-plan-sheet";
 
@@ -26,13 +35,6 @@ export function ensureVacationSheetRoster(): Promise<void> {
     });
   }
   return pending;
-}
-
-function sheetReference(code: string, name: string): string {
-  const base = `${SHEET_PREFIX}${code}:${name}`;
-  if (base.length <= 100) return base;
-  const hash = createHash("sha256").update(base).digest("hex").slice(0, 8);
-  return `${SHEET_PREFIX}${code}:${name.slice(0, 50)}:${hash}`.slice(0, 100);
 }
 
 async function run(): Promise<void> {
@@ -103,6 +105,7 @@ async function run(): Promise<void> {
   ]);
   if (have >= expected && memberCount >= expected) {
     await closeOtherMembers(departmentIds);
+    await syncSheetAccounts(section.organizationId, byCode);
     return;
   }
 
@@ -148,12 +151,12 @@ async function run(): Promise<void> {
     existingResources.map((resource) => [resource.referenceCode, resource.id]),
   );
   const resourceRows = roster.flatMap((department) =>
-    department.people.map((person) => ({
+    department.people.map((person, index) => ({
       organizationId: section.organizationId,
       name: person.name.slice(0, 200),
-      referenceCode: sheetReference(department.code, person.name),
+      referenceCode: sheetReferenceCode(department.code, person.name),
       type: "PERSON" as const,
-      functionRole: (person.group ?? "Employee").slice(0, 200),
+      functionRole: sheetJob(index).slice(0, 200),
       capacityHoursPerWeek: 40,
       status: "ACTIVE" as const,
     })),
@@ -174,11 +177,11 @@ async function run(): Promise<void> {
   }
 
   const wanted = resourceRows.flatMap((row) => {
-    const code = row.referenceCode.slice(SHEET_PREFIX.length).split(":")[0] ?? "";
+    const code = codeFromSheetReference(row.referenceCode) ?? "";
     const department = byCode.get(code);
     const person = roster
       .find((item) => item.code === code)
-      ?.people.find((item) => sheetReference(code, item.name) === row.referenceCode);
+      ?.people.find((item) => sheetReferenceCode(code, item.name) === row.referenceCode);
     if (!department || !person) return [];
     const teamId = teamByKey.get(`${department.id}:${person.group ?? "Team"}`);
     const resourceId = resourceByCode.get(row.referenceCode);
@@ -210,6 +213,166 @@ async function run(): Promise<void> {
   }
 
   await closeOtherMembers(departmentIds);
+  await syncSheetAccounts(section.organizationId, byCode);
+}
+
+async function syncSheetAccounts(
+  organizationId: string,
+  byCode: Map<string, { id: string; parentDepartmentId: string | null }>,
+): Promise<void> {
+  const roster = vacationSheetRoster();
+  const expected = roster.reduce((sum, department) => sum + department.people.length, 0);
+  const [linked, managers, managerRoles, boundCount] = await Promise.all([
+    prisma.resource.count({
+      where: {
+        organizationId,
+        referenceCode: { startsWith: SHEET_PREFIX },
+        linkedPrincipalId: { not: null },
+        functionRole: "Manager",
+      },
+    }),
+    prisma.principal.count({
+      where: { externalSubject: { startsWith: "sheet-manager:" } },
+    }),
+    prisma.resource.count({
+      where: {
+        organizationId,
+        referenceCode: { startsWith: SHEET_PREFIX },
+        functionRole: { notIn: ["Employee", "SCANIA ITS", "SIGMA", "Asociety"] },
+      },
+    }),
+    prisma.roleBinding.count({
+      where: {
+        organizationId,
+        principal: { externalSubject: { startsWith: "sheet-" } },
+      },
+    }),
+  ]);
+  if (
+    linked >= roster.length &&
+    managers >= roster.length &&
+    managerRoles >= expected &&
+    boundCount >= expected
+  ) {
+    return;
+  }
+
+  await new AuthorizationService(prisma).ensureSystemRoles();
+  const roleRows = await prisma.roleDefinition.findMany({
+    where: { key: { in: [ROLE_KEYS.DEPARTMENT_MANAGER, ROLE_KEYS.VIEWER] } },
+    select: { id: true, key: true },
+  });
+  const managerRole = roleRows.find((role) => role.key === ROLE_KEYS.DEPARTMENT_MANAGER);
+  const viewerRole = roleRows.find((role) => role.key === ROLE_KEYS.VIEWER);
+  if (!managerRole || !viewerRole) return;
+
+  const passwordHash = await bcryptHash(DEMO_PERSONA_PASSWORD, 10);
+  const people = roster.flatMap((department) =>
+    department.people.map((person, index) => {
+      const reference = sheetReferenceCode(department.code, person.name);
+      const manager = index === 0;
+      return {
+        reference,
+        name: person.name.slice(0, 200),
+        role: sheetJob(index),
+        username: sheetUsername(department.code, index, person.name),
+        principalId: sheetPrincipalId(reference),
+        externalSubject: manager
+          ? `sheet-manager:${department.code}`
+          : `sheet-user:${reference}`,
+        manager,
+        departmentId: byCode.get(department.code)?.id ?? null,
+      };
+    }),
+  );
+
+  await prisma.principal.createMany({
+    data: people.map((person) => ({
+      id: person.principalId,
+      displayName: person.name,
+      externalSubject: person.externalSubject,
+    })),
+    skipDuplicates: true,
+  });
+  await prisma.externalIdentity.createMany({
+    data: people.map((person) => ({
+      issuer: LOCAL_LOGIN_ISSUER,
+      subject: person.username,
+      principalId: person.principalId,
+      displayNameSnapshot: person.name,
+    })),
+    skipDuplicates: true,
+  });
+  await prisma.localLoginCredential.createMany({
+    data: people.map((person) => ({
+      principalId: person.principalId,
+      username: person.username,
+      passwordHash,
+      displayName: person.name,
+    })),
+    skipDuplicates: true,
+  });
+
+  const byRole = new Map<string, string[]>();
+  for (const person of people) {
+    const codes = byRole.get(person.role) ?? [];
+    codes.push(person.reference);
+    byRole.set(person.role, codes);
+  }
+  for (const [role, references] of byRole) {
+    await prisma.resource.updateMany({
+      where: { organizationId, referenceCode: { in: references } },
+      data: { functionRole: role },
+    });
+  }
+
+  await prisma.$executeRaw`
+    UPDATE "resources" AS r
+    SET "linkedPrincipalId" = p.id
+    FROM "principals" AS p
+    WHERE r."organizationId" = ${organizationId}::uuid
+      AND r."linkedPrincipalId" IS NULL
+      AND p."externalSubject" = 'sheet-user:' || r."referenceCode"
+  `;
+  const managersToLink = people.filter((person) => person.manager);
+  for (const person of managersToLink) {
+    await prisma.resource.updateMany({
+      where: {
+        organizationId,
+        referenceCode: person.reference,
+        linkedPrincipalId: null,
+      },
+      data: { linkedPrincipalId: person.principalId },
+    });
+  }
+
+  const existingBindings = await prisma.roleBinding.findMany({
+    where: { principalId: { in: people.map((person) => person.principalId) } },
+    select: { principalId: true, roleDefinitionId: true, scopeId: true },
+  });
+  const bound = new Set(
+    existingBindings.map(
+      (binding) => `${binding.principalId}:${binding.roleDefinitionId}:${binding.scopeId}`,
+    ),
+  );
+  const bindings = people.flatMap((person) => {
+    if (!person.departmentId) return [];
+    const roleId = person.manager ? managerRole.id : viewerRole.id;
+    const key = `${person.principalId}:${roleId}:${person.departmentId}`;
+    if (bound.has(key)) return [];
+    return [
+      {
+        principalId: person.principalId,
+        roleDefinitionId: roleId,
+        scopeType: ScopeType.DEPARTMENT,
+        organizationId,
+        scopeId: person.departmentId,
+      },
+    ];
+  });
+  if (bindings.length > 0) {
+    await prisma.roleBinding.createMany({ data: bindings });
+  }
 }
 
 async function closeOtherMembers(departmentIds: string[]): Promise<void> {

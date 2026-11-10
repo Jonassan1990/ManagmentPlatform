@@ -1927,6 +1927,8 @@ enum VacationPlanKind {
   COMPENSATORY
   ON_CALL
   PARENTAL
+  /// Manager marked the day as a normal working day, hiding the sheet color.
+  IN_OFFICE
 }
 
 /// One day on a department vacation plan. Separate from the approval request.

@@ -31,6 +31,18 @@ export async function applyDemoPersonaOverride(
 ): Promise<Principal | null> {
   if (!base || !isDemoPersonaSwitchEnabled()) return base;
   const key = await readDemoPersonaCookie();
+  if (key?.startsWith("sheet-manager:")) {
+    const manager = await prisma.principal.findFirst({
+      where: { externalSubject: key },
+    });
+    if (!manager) return base;
+    return {
+      id: manager.id,
+      displayName: manager.displayName,
+      email: manager.email,
+      source: "demo",
+    };
+  }
   const persona = getDemoPersona(key);
   if (!persona || !DEMO_SWITCH_PRINCIPAL_IDS.has(persona.principalId)) {
     return base;
@@ -55,18 +67,41 @@ export async function listSeededDemoPersonas() {
     select: { id: true },
   });
   const present = new Set(rows.map((row) => row.id));
-  return DEMO_SWITCH_PERSONAS.filter((persona) =>
-    present.has(persona.principalId),
-  ).map((persona) => ({
-    key: persona.key as DemoPersonaKey,
-    displayName: persona.displayName,
-    levelLabel: persona.levelLabel,
-    sees: persona.sees,
-    username: persona.username,
-    group: persona.group,
-    optionLabel:
-      persona.group === "department-users"
-        ? demoUserOptionLabel(persona)
-        : `${persona.levelLabel} — ${persona.displayName}`,
-  }));
+  const sheetManagers = await prisma.principal.findMany({
+    where: { externalSubject: { startsWith: "sheet-manager:" } },
+    select: { externalSubject: true, displayName: true },
+    orderBy: { displayName: "asc" },
+  });
+  return [
+    ...DEMO_SWITCH_PERSONAS.filter((persona) =>
+      present.has(persona.principalId),
+    ).map((persona) => ({
+      key: persona.key as DemoPersonaKey,
+      displayName: persona.displayName,
+      levelLabel: persona.levelLabel,
+      sees: persona.sees,
+      username: persona.username,
+      group: persona.group,
+      optionLabel:
+        persona.group === "department-users"
+          ? demoUserOptionLabel(persona)
+          : `${persona.levelLabel} — ${persona.displayName}`,
+    })),
+    ...sheetManagers.flatMap((manager) => {
+      const code = manager.externalSubject?.slice("sheet-manager:".length) ?? "";
+      if (!code) return [];
+      const username = `sheet.${code.toLowerCase().replace(/[^a-z0-9]+/g, "")}`;
+      return [
+        {
+          key: manager.externalSubject ?? "",
+          displayName: manager.displayName ?? code,
+          levelLabel: code,
+          sees: `Manager for ${code}. Can mark the plan and accept vacation.`,
+          username,
+          group: "sheet-managers" as const,
+          optionLabel: `${code} — ${manager.displayName ?? "Manager"}`,
+        },
+      ];
+    }),
+  ];
 }

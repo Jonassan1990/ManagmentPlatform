@@ -61,6 +61,9 @@ export async function setVacationPlanMarkAction(input: unknown) {
     const principal = await authz.requirePrincipal();
     const result = await vacation.setVacationPlanMark(principal, input);
     revalidatePath("/vacation/plan");
+    revalidatePath("/vacation/cover");
+    revalidatePath("/vacation/calendar");
+    revalidatePath("/vacation/year");
     return result;
   });
 }

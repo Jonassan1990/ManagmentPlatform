@@ -40,6 +40,18 @@ import {
 } from "./vacation-coverage";
 import type { VacationPlanKindName } from "./vacation-plan";
 import { planCellKind } from "./vacation-plan";
+import { buildPlanAbsences, resolvePlanDay } from "./vacation-plan-day";
+import type { StoredPlanKind } from "./vacation-plan-day";
+import { swedishHolidayName } from "./swedish-holidays";
+import {
+  codeFromSheetReference,
+  departmentSheetCode,
+  getSheetDepartment,
+  groupedSheetDepartments,
+  sheetJob,
+  sheetReferenceCode,
+  vacationSheetRoster,
+} from "./vacation-plan-sheet";
 import {
   resolveVacationDuration,
   workingDaysInsideRange,
@@ -546,6 +558,156 @@ export class VacationService {
     };
   }
 
+  async describeSheetPlan(
+    principal: Principal,
+    input: { organizationId: string; department?: string; year: number; month: number },
+  ) {
+    const sheet = getSheetDepartment(input.department);
+    const { start, end } = monthBounds(input.year, input.month - 1);
+    const departments = await this.db.department.findMany({
+      where: { section: { organizationId: input.organizationId } },
+      select: { id: true, name: true, sectionId: true },
+    });
+    const record = departments.find(
+      (department) => departmentSheetCode(department.name) === sheet.code,
+    );
+    const references = sheet.people.map((person) =>
+      sheetReferenceCode(sheet.code, person.name),
+    );
+    const resources = await this.db.resource.findMany({
+      where: { organizationId: input.organizationId, referenceCode: { in: references } },
+      select: {
+        referenceCode: true,
+        functionRole: true,
+        linkedPrincipalId: true,
+      },
+    });
+    const resourceByRef = new Map(
+      resources.flatMap((resource) =>
+        resource.referenceCode ? [[resource.referenceCode, resource] as const] : [],
+      ),
+    );
+    const principalIds = resources.flatMap((resource) =>
+      resource.linkedPrincipalId ? [resource.linkedPrincipalId] : [],
+    );
+    const [marks, requests, ownResource] = await Promise.all([
+      this.db.vacationPlanMark.findMany({
+        where: {
+          organizationId: input.organizationId,
+          principalId: { in: principalIds },
+          date: { gte: start, lte: end },
+        },
+        select: { principalId: true, date: true, kind: true },
+      }),
+      principalIds.length
+        ? this.db.vacationRequest.findMany({
+            where: {
+              organizationId: input.organizationId,
+              requesterPrincipalId: { in: principalIds },
+              status: {
+                in: [
+                  VacationRequestStatus.APPROVED,
+                  VacationRequestStatus.SUBMITTED,
+                  VacationRequestStatus.CHANGES_REQUESTED,
+                ],
+              },
+              startDate: { lte: end },
+              endDate: { gte: start },
+            },
+            select: {
+              requesterPrincipalId: true,
+              startDate: true,
+              endDate: true,
+              durationKind: true,
+              status: true,
+            },
+          })
+        : Promise.resolve([]),
+      this.db.resource.findFirst({
+        where: {
+          linkedPrincipalId: principal.id,
+          referenceCode: { startsWith: "sheet:" },
+        },
+        select: { referenceCode: true },
+      }),
+    ]);
+    const canEdit = record
+      ? await this.canReview(principal, {
+          organizationId: input.organizationId,
+          sectionId: record.sectionId,
+          departmentId: record.id,
+        })
+      : false;
+    const markByKey = new Map(
+      marks.map((mark) => [
+        `${mark.principalId}:${formatDateOnly(mark.date)}`,
+        mark.kind as StoredPlanKind,
+      ]),
+    );
+    const days = eachDate(formatDateOnly(start), formatDateOnly(end));
+    const rows = sheet.people.flatMap((person, index) => {
+      const resource = resourceByRef.get(sheetReferenceCode(sheet.code, person.name));
+      const principalId = resource?.linkedPrincipalId ?? null;
+      if (!canEdit && principalId !== principal.id) return [];
+      return [
+        {
+          principalId,
+          name: person.name,
+          role: resource?.functionRole ?? sheetJob(index),
+          group: person.group,
+          manager: index === 0,
+          days: days.map((date) => {
+            const holiday = swedishHolidayName(date);
+            const weekend = isWeekend(date);
+            const request = principalId
+              ? requestOnPlanDate(principalId, date, requests)
+              : null;
+            const mark = principalId
+              ? (markByKey.get(`${principalId}:${date}`) ?? null)
+              : null;
+            const sheetKind = (person.marks.find((markRow) => markRow[0] === date)?.[1] ??
+              null) as
+              | "VACATION"
+              | "PROBABLE"
+              | "EDUCATION"
+              | "COMPENSATORY"
+              | "ON_CALL"
+              | "PARENTAL"
+              | "OTHER"
+              | null;
+            const resolved =
+              weekend || holiday
+                ? { kind: null, waiting: false }
+                : resolvePlanDay({ sheet: sheetKind, mark, request });
+            return {
+              date,
+              weekend,
+              holiday,
+              kind: resolved.kind,
+              waiting: resolved.waiting,
+            };
+          }),
+        },
+      ];
+    });
+    return {
+      code: sheet.code,
+      departmentId: record?.id ?? null,
+      year: input.year,
+      month: input.month,
+      canEdit,
+      ownDepartment: codeFromSheetReference(ownResource?.referenceCode),
+      groups: groupedSheetDepartments(),
+      search: vacationSheetRoster().flatMap((department) =>
+        department.people.map((person) => ({
+          name: person.name,
+          code: department.code,
+        })),
+      ),
+      people: rows,
+    };
+  }
+
   async listVacationPlan(principal: Principal, input: unknown) {
     const parsed = vacationPlanQuerySchema.parse(input);
     const visibility = await this.visibilityWhere(principal, parsed.organizationId);
@@ -639,6 +801,19 @@ export class VacationService {
       throw new AppError("VALIDATION", "Mark a weekday");
     }
     const date = new Date(`${parsed.date}T00:00:00.000Z`);
+    const department = await this.db.department.findUnique({
+      where: { id: parsed.departmentId },
+      select: { id: true, sectionId: true },
+    });
+    if (!department) throw new AppError("NOT_FOUND", "Department not found");
+    const allowed = await this.canReview(principal, {
+      organizationId: parsed.organizationId,
+      sectionId: department.sectionId,
+      departmentId: department.id,
+    });
+    if (!allowed) {
+      throw new AppError("FORBIDDEN", "You cannot change this person's plan");
+    }
     if (parsed.kind === null) {
       await this.db.vacationPlanMark.deleteMany({
         where: { principalId: parsed.principalId, date },
@@ -794,6 +969,7 @@ export class VacationService {
           name: true,
           functionRole: true,
           linkedPrincipalId: true,
+          referenceCode: true,
           memberships: {
             where: {
               effectiveFrom: { lte: now },
@@ -858,39 +1034,87 @@ export class VacationService {
         departmentId: department.id,
         departmentName: department.name,
         role,
+        referenceCode: resource.referenceCode,
       });
     }
 
-    return {
-      people,
-      absences: absences.flatMap((row) => {
-        if (
-          row.status !== "APPROVED" &&
-          row.status !== "SUBMITTED" &&
-          row.status !== "CHANGES_REQUESTED"
-        ) {
-          return [];
-        }
-        if (
-          row.durationKind !== "FULL_DAYS" &&
-          row.durationKind !== "HALF_DAY" &&
-          row.durationKind !== "HOURS"
-        ) {
-          return [];
-        }
+    const requestAbsences = absences.flatMap((row) => {
+      if (
+        row.status !== "APPROVED" &&
+        row.status !== "SUBMITTED" &&
+        row.status !== "CHANGES_REQUESTED"
+      ) {
+        return [];
+      }
+      if (
+        row.durationKind !== "FULL_DAYS" &&
+        row.durationKind !== "HALF_DAY" &&
+        row.durationKind !== "HOURS"
+      ) {
+        return [];
+      }
+      return [
+        {
+          principalId: row.requesterPrincipalId,
+          departmentId: row.departmentId,
+          startDate: formatDateOnly(row.startDate),
+          endDate: formatDateOnly(row.endDate),
+          durationKind: row.durationKind,
+          dayPart: row.dayPart,
+          hours: amountNumber(row.hours),
+          status: row.status,
+        },
+      ];
+    });
+
+    const rosterByPerson = new Map(
+      vacationSheetRoster().flatMap((department) =>
+        department.people.map((person) => [
+          `${department.code}:${person.name}`,
+          person.marks,
+        ] as const),
+      ),
+    );
+    const planMarks = await this.db.vacationPlanMark.findMany({
+      where: {
+        organizationId,
+        date: { gte: start, lte: end },
+      },
+      select: { principalId: true, date: true, kind: true },
+    });
+    const planAbsences = buildPlanAbsences({
+      people: people.flatMap((person) => {
+        const code = codeFromSheetReference(person.referenceCode);
+        if (!code) return [];
+        const name = person.referenceCode?.slice(`sheet:${code}:`.length) ?? "";
         return [
           {
-            principalId: row.requesterPrincipalId,
-            departmentId: row.departmentId,
-            startDate: formatDateOnly(row.startDate),
-            endDate: formatDateOnly(row.endDate),
-            durationKind: row.durationKind,
-            dayPart: row.dayPart,
-            hours: amountNumber(row.hours),
-            status: row.status,
+            principalId: person.principalId,
+            departmentId: person.departmentId,
+            referenceCode: person.referenceCode,
+            sheetMarks: rosterByPerson.get(`${code}:${name}`) ?? [],
           },
         ];
       }),
+      marks: planMarks.map((mark) => ({
+        principalId: mark.principalId,
+        date: formatDateOnly(mark.date),
+        kind: mark.kind as StoredPlanKind,
+      })),
+      requests: requestAbsences,
+      rangeStart: formatDateOnly(start),
+      rangeEnd: formatDateOnly(end),
+    });
+
+    return {
+      people: people.map((person) => ({
+        principalId: person.principalId,
+        displayName: person.displayName,
+        departmentId: person.departmentId,
+        departmentName: person.departmentName,
+        role: person.role,
+      })),
+      absences: [...requestAbsences, ...planAbsences],
     };
   }
 
@@ -1194,6 +1418,52 @@ function eachDate(start: string, end: string): string[] {
 function isWeekend(date: string): boolean {
   const day = new Date(`${date}T00:00:00.000Z`).getUTCDay();
   return day === 0 || day === 6;
+}
+
+function requestOnPlanDate(
+  principalId: string,
+  date: string,
+  requests: Array<{
+    requesterPrincipalId: string;
+    startDate: Date;
+    endDate: Date;
+    durationKind: string;
+    status: string;
+  }>,
+): {
+  duration: "FULL_DAYS" | "HALF_DAY" | "HOURS";
+  status: "APPROVED" | "SUBMITTED" | "CHANGES_REQUESTED";
+} | null {
+  let approved: (typeof requests)[number] | null = null;
+  for (const request of requests) {
+    if (request.requesterPrincipalId !== principalId) continue;
+    const start = formatDateOnly(request.startDate);
+    const end = formatDateOnly(request.endDate);
+    if (date < start || date > end) continue;
+    if (
+      request.durationKind !== "FULL_DAYS" &&
+      request.durationKind !== "HALF_DAY" &&
+      request.durationKind !== "HOURS"
+    ) {
+      continue;
+    }
+    if (request.status !== "APPROVED") {
+      if (request.status !== "SUBMITTED" && request.status !== "CHANGES_REQUESTED") {
+        continue;
+      }
+      return { duration: request.durationKind, status: request.status };
+    }
+    approved = request;
+  }
+  if (!approved) return null;
+  if (
+    approved.durationKind !== "FULL_DAYS" &&
+    approved.durationKind !== "HALF_DAY" &&
+    approved.durationKind !== "HOURS"
+  ) {
+    return null;
+  }
+  return { duration: approved.durationKind, status: "APPROVED" };
 }
 
 function requestOnDate(

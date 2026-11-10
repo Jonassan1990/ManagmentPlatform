@@ -9,6 +9,7 @@ import type { AuthorizationService } from "@/modules/identity-access/application
 import type { Principal } from "@/modules/identity-access/domain/types";
 import { AppError } from "@/modules/shared/errors";
 import { PERMISSIONS } from "@/modules/shared/permissions";
+import { codeFromSheetReference } from "@/modules/vacation/application/vacation-plan-sheet";
 import { DEFAULT_ONBOARDING_ITEMS } from "./default-items";
 import {
   getOnboardingRoleTemplate,
@@ -588,21 +589,31 @@ export class OnboardingService {
   /** People selectable as employee/onboarder — requires ONBOARDING_MANAGE, not ROLE_MANAGE. */
   async listAssignablePrincipals(principal: Principal, organizationId: string) {
     await this.assertCanManage(principal, organizationId);
-    const bindings = await this.db.roleBinding.findMany({
+    const resources = await this.db.resource.findMany({
       where: {
         organizationId,
-        OR: [{ effectiveTo: null }, { effectiveTo: { gt: new Date() } }],
+        type: "PERSON",
+        status: "ACTIVE",
+        linkedPrincipalId: { not: null },
       },
-      select: { principalId: true },
-      distinct: ["principalId"],
-      take: 500,
+      orderBy: { name: "asc" },
+      select: {
+        name: true,
+        functionRole: true,
+        linkedPrincipalId: true,
+        referenceCode: true,
+      },
     });
-    const ids = bindings.map((b) => b.principalId);
-    if (ids.length === 0) return [];
-    return this.db.principal.findMany({
-      where: { id: { in: ids } },
-      orderBy: { displayName: "asc" },
-      select: { id: true, displayName: true },
+    return resources.flatMap((resource) => {
+      if (!resource.linkedPrincipalId) return [];
+      return [
+        {
+          id: resource.linkedPrincipalId,
+          displayName: resource.name,
+          role: resource.functionRole,
+          departmentCode: codeFromSheetReference(resource.referenceCode),
+        },
+      ];
     });
   }
 
