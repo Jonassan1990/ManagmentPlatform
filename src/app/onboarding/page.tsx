@@ -36,6 +36,7 @@ export default async function OnboardingPage() {
     displayName: string | null;
     role: string | null;
     departmentCode: string | null;
+    manager: boolean;
   }> = [];
   const preferredOrgId = orgs[0]?.id ?? null;
 
