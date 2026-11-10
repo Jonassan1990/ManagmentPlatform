@@ -1,6 +1,7 @@
 export type VacationApproverCandidate = {
   principalId: string;
   displayName: string;
+  email?: string | null;
   roleName: string;
   scopeType: string;
   scopeId: string | null;
@@ -9,6 +10,7 @@ export type VacationApproverCandidate = {
 export type VacationApprover = {
   principalId: string;
   displayName: string;
+  email: string | null;
   roleName: string;
 };
 
@@ -44,6 +46,7 @@ export function selectClosestApprovers(input: {
     .map((candidate) => ({
       principalId: candidate.principalId,
       displayName: candidate.displayName,
+      email: candidate.email ?? null,
       roleName: candidate.roleName,
     }));
 }
