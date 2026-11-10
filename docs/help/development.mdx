@@ -1,0 +1,52 @@
+---
+title: Development
+summary: Modular monolith layout, AuthZ, audit, deploy, and how to extend Help MDX.
+audience: Engineers
+order: 3
+---
+
+# Development
+
+The application is a **modular monolith**: Next.js App Router UI → server actions / pages → `createServices()` → domain modules → Prisma / PostgreSQL.
+
+## Module map
+
+| Module | Responsibility |
+| --- | --- |
+| `identity-access` | Principals, roles, scoped permissions |
+| `organization` | Org tree, teams, resources |
+| `initiative` / `governance` / `project` | Delivery lifecycle |
+| `pi-planning` / `portfolio` | Capacity, scenarios, health |
+| `vacation` / `onboarding` | People workflows |
+| `notifications` | Optional Resend mail |
+| `audit` | Cross-cutting audit events |
+| `help` | Loads MDX articles for in-app Help |
+
+Cross-cutting **AuthZ** and **Audit** are injected into services. Prefer permissions + scope checks in the service layer, not only in the UI.
+
+## Local loop
+
+```bash
+npm install
+npx prisma migrate deploy
+npm run dev
+```
+
+Use `.env.example` as the template. Production forbids `ALLOW_DEV_AUTH=true`.
+
+## Production posture
+
+- Health: `GET /api/health` exposes `checks.auth` and `checks.productionPosture`.
+- Prisma reuses a global client and applies a serverless `connection_limit`.
+- Optional mail: `RESEND_API_KEY`, `MAIL_FROM`, `NOTIFY_EMAIL_DOMAIN`.
+- Enterprise cutover: configure OIDC, then remove `TEMP_AUTH_*`. Unset `ALLOW_DEMO_PERSONA_SWITCH`.
+
+See also `docs/DEPLOYMENT-VERCEL.md` and `docs/PRODUCTION-AUTH-RUNBOOK.md`.
+
+## Extending Help (MDX)
+
+1. Add a file under `docs/help/<slug>.mdx` with frontmatter: `title`, `summary`, `audience`, `order`.
+2. It appears automatically on `/help` and at `/help/<slug>`.
+3. Keep articles short; link to product routes instead of duplicating screenshots of every step.
+
+Engineering ADRs and phase acceptance docs stay in the root `docs/` tree; Help MDX is the **user-visible** subset.

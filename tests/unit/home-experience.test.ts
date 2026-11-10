@@ -163,7 +163,7 @@ describe("buildHomeQuickLinks", () => {
     expect(links.find((l) => l.id === "portfolio")?.href).toBe(
       "/portfolio?organizationId=org-42",
     );
-    expect(links.find((l) => l.id === "guide")?.href).toBe("/guide");
+    expect(links.find((l) => l.id === "guide")?.href).toBe("/help/user-guide");
   });
 
   it("footer links are a capability-filtered subset", () => {

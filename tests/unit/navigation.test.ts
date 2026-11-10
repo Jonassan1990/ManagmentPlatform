@@ -98,7 +98,10 @@ describe("clear product sections navigation", () => {
     expect(hrefs).toContain("/portfolio/health");
     expect(hrefs).toContain("/onboarding");
     expect(hrefs).toContain("/organization/org-1/access");
-    expect(hrefs).toContain("/guide");
+    expect(hrefs).toContain("/help");
+    expect(hrefs).toContain("/help/user-guide");
+    expect(hrefs).toContain("/help/design");
+    expect(hrefs).toContain("/help/development");
     expect(hrefs).not.toContain("/pi/board");
     expect(
       groups.find((g) => g.id === "delivery")!.items.some((i) => i.id === "gov-approvals"),

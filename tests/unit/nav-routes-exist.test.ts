@@ -15,6 +15,10 @@ function hrefToPageFile(href: string): string | null {
   const segments = clean.split("/").filter(Boolean);
   // Dynamic org-scoped destinations from nav use a real uuid in tests — skip file map.
   if (segments.some((s) => /^[0-9a-f-]{36}$/i.test(s))) return null;
+  // Help articles are served by /help/[slug]
+  if (segments[0] === "help" && segments.length === 2) {
+    return path.join(APP_ROOT, "help", "[slug]", "page.tsx");
+  }
 
   if (segments.length === 0) {
     return path.join(APP_ROOT, "page.tsx");
@@ -74,6 +78,10 @@ describe("sidebar destinations have App Router pages", () => {
       "/onboarding",
       "/admin",
       "/guide",
+      "/help",
+      "/help/user-guide",
+      "/help/design",
+      "/help/development",
     ];
     for (const href of required) {
       const file = hrefToPageFile(href);

@@ -31,10 +31,10 @@ export default function NotFound() {
           Vacation
         </Link>
         <Link
-          href="/guide"
+          href="/help"
           className={buttonClassName({ variant: "secondary" })}
         >
-          User guide
+          Help
         </Link>
       </div>
     </div>

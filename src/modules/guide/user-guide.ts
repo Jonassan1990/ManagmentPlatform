@@ -295,9 +295,9 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "help-again",
         title: "Come back to this guide",
-        body: "Help → User guide is always in the sidebar when you need a refresher.",
-        href: "/guide",
-        hrefLabel: "This guide",
+        body: "Help in the sidebar opens MDX docs: user guide, design, and development.",
+        href: "/help",
+        hrefLabel: "Open Help",
       },
     ],
   },

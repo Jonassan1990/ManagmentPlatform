@@ -1,21 +1,6 @@
-import { Breadcrumbs, PageHeader } from "@/components/ui/page";
-import { UserGuideView } from "@/components/guide/user-guide-view";
-import { USER_GUIDE_INTRO } from "@/modules/guide/user-guide";
-import { homeCrumb } from "@/modules/navigation/breadcrumbs";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default function UserGuidePage() {
-  return (
-    <div>
-      <Breadcrumbs
-        items={[homeCrumb(), { label: USER_GUIDE_INTRO.title }]}
-      />
-      <PageHeader
-        title={USER_GUIDE_INTRO.title}
-        description="One guide for setup, daily work, planning, and governance."
-      />
-      <UserGuideView />
-    </div>
-  );
+/** Legacy User guide URL — Help MDX lives under /help. */
+export default function UserGuideRedirectPage() {
+  redirect("/help/user-guide");
 }
