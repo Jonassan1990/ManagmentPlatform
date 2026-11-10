@@ -23,6 +23,7 @@ import {
   modeDescription,
   modeHeadline,
   PRIMARY_QUICK_START_IDS,
+  publicUnavailableReason,
   roleContextLabel,
   workKindLabel,
 } from "./home-labels";
@@ -89,7 +90,9 @@ function AvailabilityPanel({
         {availabilityTitle(state)}
       </h3>
       {reason ? (
-        <p className="mt-1 text-sm text-[var(--muted)]">{reason}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          {publicUnavailableReason(reason)}
+        </p>
       ) : null}
       {nextSteps ? <div className="mt-3">{nextSteps}</div> : null}
       {state === "unavailable" ? (
@@ -127,7 +130,7 @@ function KpiCard({
           —
         </p>
         <p className="mt-2 text-xs text-[var(--muted)]">
-          {metric.unavailableReason ?? "Unavailable"}
+          {publicUnavailableReason(metric.unavailableReason)}
         </p>
       </Panel>
     );
@@ -898,7 +901,7 @@ function Warnings({ dash }: { dash: HomeDashboardResponse }) {
     <div className="space-y-2" role="status">
       {dash.warnings.map((w) => (
         <Alert key={w.code} tone="info">
-          {w.message}
+          {publicUnavailableReason(w.message)}
         </Alert>
       ))}
     </div>

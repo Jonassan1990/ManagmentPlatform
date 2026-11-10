@@ -110,6 +110,20 @@ export function availabilityTitle(state: HomeAvailabilityState): string {
   }
 }
 
+/** Never surface raw DB/Prisma diagnostics in the UI. */
+export function publicUnavailableReason(reason?: string | null): string {
+  const text = reason?.trim();
+  if (!text) return "Temporarily unavailable";
+  if (
+    /prisma|fatal|too many connections|econn|etimedout|connection_limit|pool_timeout|datasource/i.test(
+      text,
+    )
+  ) {
+    return "Temporarily unavailable — please retry in a moment.";
+  }
+  return text;
+}
+
 /** Primary Quick Start action ids for manager first-screen emphasis. */
 export const PRIMARY_QUICK_START_IDS = new Set([
   "user-guide",
