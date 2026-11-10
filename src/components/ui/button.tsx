@@ -41,9 +41,11 @@ export function buttonClassName({
   };
   const sizeClass: Record<ButtonSize, string> = {
     // WCAG 2.2 AA 2.5.5 / 2.5.8: interactive controls meet ≥44×44 CSS px.
-    sm: "tegel-btn-sm",
-    md: "tegel-btn-md",
-    lg: "tegel-btn-lg",
+    // Keep min-h-11 on the element (in addition to tegel size tokens) so
+    // Tailwind/a11y checks and design-system CSS stay aligned.
+    sm: "tegel-btn-sm min-h-11",
+    md: "tegel-btn-md min-h-11",
+    lg: "tegel-btn-lg min-h-11",
   };
   return cn(variantClass[variant], sizeClass[size], className);
 }

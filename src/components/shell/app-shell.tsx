@@ -103,6 +103,7 @@ export function AppShell({
   }, [open]);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
     const desktop = window.matchMedia("(min-width: 768px)");
     const closeIfDocked = () => {
       if (desktop.matches) setOpen(false);
