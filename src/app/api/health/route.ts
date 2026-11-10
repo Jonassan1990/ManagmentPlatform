@@ -48,6 +48,27 @@ export async function GET(request: Request) {
     // Coerced false in production even if flag set
     devAuthEnabled: isDevAuthEnabled(env),
   };
+  const mailConfigured = Boolean(process.env.RESEND_API_KEY?.trim());
+  const notifyDomainConfigured = Boolean(
+    process.env.NOTIFY_EMAIL_DOMAIN?.trim(),
+  );
+  const demoPersonaSwitch =
+    process.env.ALLOW_DEMO_PERSONA_SWITCH === "true" ||
+    process.env.ALLOW_DEMO_PERSONA_SWITCH === "1";
+  const production = process.env.NODE_ENV === "production";
+  const productionPosture = {
+    production,
+    demoPersonaSwitch,
+    mailConfigured,
+    notifyDomainConfigured,
+    // Soft guidance for operators — does not fail readiness by itself.
+    enterpriseReady:
+      production &&
+      auth.oidcConfigured &&
+      !auth.devAuthEnabled &&
+      !demoPersonaSwitch &&
+      !auth.tempAuthConfigured,
+  };
 
   const ready = database === "ok";
   const status = ready ? "ok" : "fail";
@@ -59,6 +80,7 @@ export async function GET(request: Request) {
       database,
       databaseLatencyMs,
       auth,
+      productionPosture,
     },
     requestId,
     durationMs: Date.now() - started,
