@@ -169,14 +169,14 @@ export function AppShell({
             <div className="tegel-shell-mark" aria-hidden>
               M
             </div>
-            <div className="tegel-shell-brand min-w-0">
+            <div className="tegel-shell-brand min-w-0 max-w-[7.5rem] sm:max-w-none">
               Management
-              <small>Scania Tegel · Resource Ops</small>
+              <small className="hidden sm:inline">Scania Tegel · Resource Ops</small>
             </div>
           </Link>
         </div>
         <div className="mp-shell-actions flex shrink-0 items-center justify-end gap-2">
-          {demoPersona && demoPersona.personas.length > 0 ? (
+          {demoPersona ? (
             <AdminPersonDrawer
               personas={demoPersona.personas}
               activeKey={demoPersona.activeKey}

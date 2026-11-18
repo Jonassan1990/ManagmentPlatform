@@ -92,27 +92,30 @@ export function AdminPersonDrawer({
     });
   }
 
-  if (personas.length === 0) return null;
-
   return (
     <>
-      <div className="relative flex min-w-0 max-w-[14rem] flex-col items-stretch gap-0.5 sm:max-w-[18rem]">
+      <div className="relative flex min-w-0 max-w-[9.5rem] flex-col items-stretch gap-0.5 xs:max-w-[12rem] sm:max-w-[18rem]">
         <button
           type="button"
           disabled={pending}
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={open ? "admin-person-drawer" : undefined}
-          className="flex min-h-9 items-center justify-between gap-2 rounded-[4px] border border-white/30 bg-[#0c2340] px-2 text-left text-xs font-semibold text-white outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
+          className="flex min-h-10 min-w-[5.75rem] items-center justify-between gap-1.5 rounded-[4px] border border-amber-200/50 bg-amber-400/20 px-2 text-left text-xs font-semibold text-amber-50 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60 sm:min-h-9"
           title="Open admin drawer — search people and view the app as them"
           onClick={() => setOpen(true)}
         >
           <span className="min-w-0 truncate">
             {active
               ? `As: ${active.displayName}`
-              : "View as person…"}
+              : (
+                <>
+                  <span className="sm:hidden">View as</span>
+                  <span className="hidden sm:inline">View as person…</span>
+                </>
+              )}
           </span>
-          <span aria-hidden className="shrink-0 text-white/70">
+          <span aria-hidden className="shrink-0 text-amber-50/80">
             ▸
           </span>
         </button>
@@ -183,28 +186,36 @@ export function AdminPersonDrawer({
                 Signed-in user (exit simulation)
               </button>
 
-              <PersonSection
-                title="Org levels"
-                rows={matches.levels}
-                shownKey={shownKey}
-                onChoose={choose}
-              />
-              <PersonSection
-                title="Department managers"
-                rows={matches.managers}
-                shownKey={shownKey}
-                onChoose={choose}
-              />
-              <PersonSection
-                title="People"
-                rows={matches.people}
-                shownKey={shownKey}
-                onChoose={choose}
-              />
-
-              {matches.total === 0 ? (
-                <p className="px-4 py-6 text-sm text-white/65">No match.</p>
-              ) : null}
+              {personas.length === 0 ? (
+                <p className="px-4 py-6 text-sm text-white/75">
+                  No people are ready yet. Open Vacation plan once (or seed the
+                  IT demo) so the roster can sync, then reopen this drawer.
+                </p>
+              ) : (
+                <>
+                  <PersonSection
+                    title="Org levels"
+                    rows={matches.levels}
+                    shownKey={shownKey}
+                    onChoose={choose}
+                  />
+                  <PersonSection
+                    title="Department managers"
+                    rows={matches.managers}
+                    shownKey={shownKey}
+                    onChoose={choose}
+                  />
+                  <PersonSection
+                    title="People"
+                    rows={matches.people}
+                    shownKey={shownKey}
+                    onChoose={choose}
+                  />
+                  {matches.total === 0 ? (
+                    <p className="px-4 py-6 text-sm text-white/65">No match.</p>
+                  ) : null}
+                </>
+              )}
             </div>
 
             {active ? (
