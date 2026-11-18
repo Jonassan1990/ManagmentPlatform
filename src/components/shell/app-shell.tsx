@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -20,9 +21,10 @@ import type {
   ShellNavCapabilities,
 } from "@/modules/navigation/types";
 import {
-  DemoPersonaSwitcher,
+  AdminPersonDrawer,
   type DemoPersonaOption,
-} from "@/components/demo/demo-persona-switcher";
+} from "@/components/demo/admin-person-drawer";
+import { setDemoPersonaAction } from "@/app/actions/demo-persona";
 import { RouteFocusMain } from "./route-focus-main";
 import { SignOutButton } from "./sign-out-button";
 
@@ -175,7 +177,7 @@ export function AppShell({
         </div>
         <div className="mp-shell-actions flex shrink-0 items-center justify-end gap-2">
           {demoPersona && demoPersona.personas.length > 0 ? (
-            <DemoPersonaSwitcher
+            <AdminPersonDrawer
               personas={demoPersona.personas}
               activeKey={demoPersona.activeKey}
             />
@@ -201,7 +203,7 @@ export function AppShell({
               ) : null}
               {principal?.source === "demo" ? (
                 <span className="rounded-[4px] border border-amber-300/40 bg-amber-400/20 px-2 py-1 text-xs font-semibold text-amber-50">
-                  DEMO
+                  VIEW AS
                 </span>
               ) : null}
             </>
@@ -215,6 +217,13 @@ export function AppShell({
           )}
         </div>
       </header>
+
+      {demoPersona?.activeKey ? (
+        <ViewingAsBanner
+          personas={demoPersona.personas}
+          activeKey={demoPersona.activeKey}
+        />
+      ) : null}
 
       <div className="flex min-h-[calc(100dvh-3.5rem)] min-[1920px]:min-h-[calc(100dvh-4.25rem)]">
         {open ? (
@@ -283,6 +292,50 @@ export function AppShell({
           </main>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ViewingAsBanner({
+  personas,
+  activeKey,
+}: {
+  personas: DemoPersonaOption[];
+  activeKey: string;
+}) {
+  const [pending, startTransition] = useTransition();
+  const person = personas.find((row) => row.key === activeKey) ?? null;
+  const name = person?.displayName ?? "another person";
+
+  function exit() {
+    startTransition(async () => {
+      await setDemoPersonaAction(null);
+      const stay = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(stay);
+    });
+  }
+
+  return (
+    <div
+      className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-950 sm:px-4 lg:px-6"
+      role="status"
+    >
+      <p className="min-w-0">
+        <span className="font-semibold">Viewing as {name}.</span>{" "}
+        <span className="text-amber-900/80">
+          Dashboard, vacation requests, and approvals use their permissions
+          {person?.sees ? ` — ${person.sees}` : "."}
+        </span>
+      </p>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={exit}
+        className="inline-flex min-h-9 shrink-0 items-center rounded-[4px] border border-amber-700/30 bg-white px-3 text-xs font-semibold text-amber-950 hover:bg-amber-100 disabled:opacity-60"
+      >
+        {pending ? "Exiting…" : "Exit to signed-in user"}
+      </button>
     </div>
   );
 }

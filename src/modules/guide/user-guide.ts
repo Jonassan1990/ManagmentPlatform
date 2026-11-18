@@ -211,8 +211,8 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       },
       {
         id: "switcher",
-        title: "Use the level dropdown",
-        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), use the header search to open a real person from the vacation plan. Managers can mark the plan and accept vacation; other people see their own row.",
+        title: "Use the admin person drawer",
+        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), open View as person… in the header. Search anyone, enter their dashboard, submit vacation as them, then switch to their manager to see how approval works. The amber banner shows who you are viewing as.",
       },
       {
         id: "logins",
