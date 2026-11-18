@@ -10,11 +10,8 @@ import {
   listSeededDemoPersonas,
   readDemoPersonaCookie,
 } from "@/modules/demo/demo-persona-runtime";
+import { isImpersonationKey } from "@/modules/demo/persona-keys";
 import { createServices } from "@/server/container";
-
-function isSheetPersonaKey(key: string): boolean {
-  return key.startsWith("sheet-manager:") || key.startsWith("sheet-user:");
-}
 
 export async function getDemoPersonaSwitcherStateAction() {
   if (!isDemoPersonaSwitchEnabled()) {
@@ -33,7 +30,7 @@ export async function getDemoPersonaSwitcherStateAction() {
   return {
     enabled: true as const,
     personas,
-    activeKey: isSheetPersonaKey(activeKey ?? "") ? activeKey : null,
+    activeKey: isImpersonationKey(activeKey) ? activeKey : null,
   };
 }
 
@@ -53,8 +50,8 @@ export async function setDemoPersonaAction(personaKey: string | null) {
     revalidatePath("/", "layout");
     return { ok: true as const };
   }
-  if (!isSheetPersonaKey(personaKey)) {
-    return { ok: false as const, error: "Choose a person from the vacation plan." };
+  if (!isImpersonationKey(personaKey)) {
+    return { ok: false as const, error: "Choose a person from the list." };
   }
   const seeded = await listSeededDemoPersonas();
   if (!seeded.some((row) => row.key === personaKey)) {
