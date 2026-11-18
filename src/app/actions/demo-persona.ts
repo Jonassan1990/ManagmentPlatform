@@ -23,10 +23,9 @@ export async function getDemoPersonaSwitcherStateAction() {
     return { enabled: false as const, personas: [], activeKey: null };
   }
   const personas = await listSeededDemoPersonas();
-  if (personas.length === 0) {
-    return { enabled: false as const, personas: [], activeKey: null };
-  }
   const activeKey = await readDemoPersonaCookie();
+  // Keep the drawer available whenever the flag is on, even before people
+  // are synced — otherwise mobile/desktop hide the control with no clue why.
   return {
     enabled: true as const,
     personas,
