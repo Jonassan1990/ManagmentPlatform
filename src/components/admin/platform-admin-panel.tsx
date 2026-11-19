@@ -36,8 +36,11 @@ export function PlatformAdminPanel({
         setError(result.error.message);
         return;
       }
+      const story = result.data.story;
       setMessage(
-        `Ready: ${result.data.peopleCount} people synced in ${result.data.departmentCount} departments.`,
+        story
+          ? `Demo ready: ${story.castCount} cast members, ${story.pendingVacations} pending leave requests, ${story.initiatives} initiatives${story.projectReady ? ", delivery project with blockers" : ""}.`
+          : `Ready: ${result.data.peopleCount} people synced in ${result.data.departmentCount} departments.`,
       );
       router.refresh();
     });
@@ -53,8 +56,8 @@ export function PlatformAdminPanel({
           Platform setup
         </h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Configure the organization, people, and roles so View as person and
-          vacation approvals work.
+          Prepare a manager demo story: pending leave approvals, coverage
+          conflicts, portfolio intake, and a delivery project with blockers.
         </p>
 
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -72,7 +75,7 @@ export function PlatformAdminPanel({
           />
           <StatusRow
             ok={peopleOk}
-            label={`View-as people with roles (${status.sheetPeopleCount} people / ${status.sheetBindingCount} roles)`}
+            label={`People with roles (${status.sheetPeopleCount} / ${status.sheetBindingCount})`}
           />
           <StatusRow
             ok={status.personaSwitchEnabled}
@@ -87,11 +90,7 @@ export function PlatformAdminPanel({
             onClick={prepare}
             className={buttonClassName({ variant: "primary" })}
           >
-            {pending
-              ? "Preparing…"
-              : peopleOk
-                ? "Refresh people & roles"
-                : "Prepare org, people & roles"}
+            {pending ? "Preparing demo…" : "Prepare manager demo data"}
           </button>
           {status.demoOrganization ? (
             <Link
@@ -102,10 +101,10 @@ export function PlatformAdminPanel({
             </Link>
           ) : null}
           <Link
-            href="/organization/setup"
+            href="/approvals"
             className={buttonClassName({ variant: "secondary" })}
           >
-            Create organization
+            Open Approvals
           </Link>
         </div>
 
@@ -123,22 +122,40 @@ export function PlatformAdminPanel({
 
       <Panel>
         <h2 className="mb-2 text-base font-semibold text-[var(--ink)]">
-          How to use after setup
+          Manager demo walkthrough
         </h2>
+        <p className="mb-3 text-sm text-[var(--muted)]">
+          After Prepare, use the amber <strong>View as</strong> button and
+          search these names:
+        </p>
         <ol className="list-decimal space-y-2 pl-5 text-sm text-[var(--ink)]">
           <li>
-            Click <strong>Prepare org, people & roles</strong> once.
+            <strong>Freja (Demo Developer)</strong> — see her pending leave
+            request (employee view).
           </li>
           <li>
-            Use the amber <strong>View as</strong> button in the header, pick an
-            employee, and open Vacation to request leave.
+            <strong>Bo (Demo Manager)</strong> — open{" "}
+            <Link href="/approvals" className="underline">
+              Approvals
+            </Link>{" "}
+            to accept Freja + Klara (their dates overlap = coverage conflict).
           </li>
           <li>
-            Switch to their manager in View as, then open Approvals to accept.
+            Still as Bo — open{" "}
+            <Link href="/vacation/plan" className="underline">
+              Vacation plan
+            </Link>{" "}
+            and{" "}
+            <Link href="/portfolio" className="underline">
+              Portfolio
+            </Link>{" "}
+            / the demo project with a blocking Wi-Fi issue.
           </li>
           <li>
-            For roles, departments, and logins use{" "}
-            <strong>Open org admin config</strong>.
+            Password for story logins if you sign in directly:{" "}
+            <code className="rounded bg-[var(--scania-grey-50)] px-1">
+              DemoLevel2026!
+            </code>
           </li>
         </ol>
       </Panel>
