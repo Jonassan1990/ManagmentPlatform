@@ -49,7 +49,15 @@ export async function preparePlatformAdminReadyAction() {
     revalidatePath("/admin");
     revalidatePath("/organization");
     revalidatePath("/vacation");
+    revalidatePath("/approvals");
+    revalidatePath("/portfolio");
+    revalidatePath("/initiatives");
+    revalidatePath("/delivery");
+    revalidatePath(`/organization/${result.organizationId}`);
     revalidatePath(`/organization/${result.organizationId}/admin`);
+    revalidatePath(
+      `/portfolio?organizationId=${result.organizationId}&departmentId=a1000000-0000-4000-8000-000000000022`,
+    );
     return result;
   });
 }
