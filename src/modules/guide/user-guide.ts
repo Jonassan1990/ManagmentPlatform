@@ -212,7 +212,7 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "admin-config",
         title: "Open Admin config first",
-        body: "Sign in as owner, open Admin, and click Prepare manager demo data. That seeds Bo (manager), Freja/Klara/Henrik, pending leave overlaps, portfolio intake, and a delivery project with blockers.",
+        body: "Sign in as owner, open Admin, and click Prepare INFB manager demo. That seeds Bo/Freja/Klara/Henrik, pending leave, and an INFB pipeline across Demand → Requirements → Pre-study → PoC → Projects with owners, status, and cost. Then open Portfolio filtered to INFB or View as Bo.",
         href: "/admin",
         hrefLabel: "Admin config",
       },

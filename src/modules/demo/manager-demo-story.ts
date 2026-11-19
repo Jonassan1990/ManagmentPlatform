@@ -1,13 +1,14 @@
 /**
- * Focused manager-visibility demo cast for INFB.
+ * Focused manager-visibility demo cast + INFB portfolio for demos.
  * Idempotent stable IDs — safe to re-run from Admin → Prepare.
  */
 
 export const MANAGER_DEMO_PASSWORD = "DemoLevel2026!";
 
 export const MANAGER_DEMO_IDS = {
-  org: "a1000000-0000-4000-8000-000000000001", // same Industrial IT org
+  org: "a1000000-0000-4000-8000-000000000001",
   sectionIn: "a1000000-0000-4000-8000-000000000010",
+  deptInf: "a1000000-0000-4000-8000-000000000021",
   deptInfb: "a1000000-0000-4000-8000-000000000022",
   teamApps: "a1000000-0000-4000-8000-000000000032",
   managerPrincipal: "b2000000-0000-4000-8000-000000000001",
@@ -22,10 +23,83 @@ export const MANAGER_DEMO_IDS = {
   vacationPendingKlara: "b2000000-0000-4000-8000-000000000102",
   vacationApprovedHenrik: "b2000000-0000-4000-8000-000000000103",
   vacationHoursFreja: "b2000000-0000-4000-8000-000000000104",
-  initiativeDemand: "b2000000-0000-4000-8000-000000000201",
-  initiativeProject: "b2000000-0000-4000-8000-000000000202",
-  project: "b2000000-0000-4000-8000-000000000301",
 } as const;
+
+/** INFB pipeline items across lifecycle stages (shown in Portfolio / Initiatives). */
+export const INFB_DEMO_PIPELINE = [
+  {
+    referenceKey: "INFB-DEMAND-01",
+    title: "Spare-parts QR labels on the line",
+    stage: "DEMAND" as const,
+    owner: "klara" as const,
+    requester: "Plant Logistics",
+    urgency: "MEDIUM" as const,
+    budgetHintEur: 45000,
+  },
+  {
+    referenceKey: "INFB-REQ-01",
+    title: "Shift handover checklist app",
+    stage: "REQUIREMENTS" as const,
+    owner: "freja" as const,
+    requester: "Production Supervisors",
+    urgency: "HIGH" as const,
+    budgetHintEur: 90000,
+  },
+  {
+    referenceKey: "INFB-PRESTUDY-01",
+    title: "Technician skill matrix platform",
+    stage: "PRE_STUDY" as const,
+    owner: "manager" as const,
+    requester: "HR / Maintenance",
+    urgency: "MEDIUM" as const,
+    budgetHintEur: 160000,
+  },
+  {
+    referenceKey: "INFB-POC-01",
+    title: "AR work-instruction glasses PoC",
+    stage: "POC" as const,
+    owner: "henrik" as const,
+    requester: "Plant A Continuous Improvement",
+    urgency: "HIGH" as const,
+    budgetHintEur: 35000,
+  },
+  {
+    referenceKey: "INFB-PROJ-01",
+    title: "Maintenance work-order mobile app",
+    stage: "PROJECT" as const,
+    owner: "manager" as const,
+    requester: "Plant Maintenance",
+    urgency: "CRITICAL" as const,
+    budgetHintEur: 210000,
+    project: {
+      referenceKey: "PRJ-INFB-01",
+      approvedBudget: 210000,
+      plannedCost: 185000,
+      forecastCost: 198000,
+      actualCost: 82000,
+      priority: "HIGH" as const,
+      status: "ACTIVE" as const,
+    },
+  },
+  {
+    referenceKey: "INFB-PROJ-02",
+    title: "Supervisor live board",
+    stage: "PROJECT" as const,
+    owner: "klara" as const,
+    requester: "Plant Maintenance",
+    urgency: "HIGH" as const,
+    budgetHintEur: 75000,
+    project: {
+      referenceKey: "PRJ-INFB-02",
+      approvedBudget: 75000,
+      plannedCost: 62000,
+      forecastCost: 68000,
+      actualCost: 21000,
+      priority: "MEDIUM" as const,
+      status: "ACTIVE" as const,
+    },
+  },
+] as const;
 
 export const MANAGER_DEMO_CAST = [
   {
@@ -36,7 +110,7 @@ export const MANAGER_DEMO_CAST = [
     displayName: "Bo (Demo Manager)",
     role: "Department Manager",
     manager: true,
-    sees: "Approvals queue, team vacation coverage, and INFB delivery project.",
+    sees: "Approvals queue, team vacation coverage, and INFB delivery portfolio.",
   },
   {
     key: "freja",
@@ -66,8 +140,20 @@ export const MANAGER_DEMO_CAST = [
     displayName: "Henrik (Demo Ops)",
     role: "Ops Engineer",
     manager: false,
-    sees: "Already-approved leave so the plan shows green coverage.",
+    sees: "Already-approved leave so the plan shows coverage taken.",
   },
 ] as const;
 
 export type ManagerDemoCastMember = (typeof MANAGER_DEMO_CAST)[number];
+
+export function castResourceId(
+  key: ManagerDemoCastMember["key"],
+): string {
+  return MANAGER_DEMO_CAST.find((row) => row.key === key)!.resourceId;
+}
+
+export function castDisplayName(
+  key: ManagerDemoCastMember["key"],
+): string {
+  return MANAGER_DEMO_CAST.find((row) => row.key === key)!.displayName;
+}

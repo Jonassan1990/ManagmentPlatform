@@ -21,6 +21,7 @@ export type PlatformAdminReadyResult = {
     castCount: number;
     pendingVacations: number;
     initiatives: number;
+    projects: number;
     projectReady: boolean;
   };
 };
@@ -147,7 +148,7 @@ export async function ensurePlatformAdminReady(
 
   await authz.grantOrganizationAdmin(actorPrincipalId, org.id);
 
-  // Focused manager walkthrough data first (fast, idempotent).
+  // Focused manager walkthrough data first (fast, idempotent, must succeed).
   const { ensureManagerDemoStory } = await import(
     "@/modules/demo/ensure-manager-demo-story"
   );

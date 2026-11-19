@@ -17,6 +17,8 @@ export type PlatformAdminStatusView = {
   personaSwitchEnabled: boolean;
 };
 
+const INFB_DEPT = "a1000000-0000-4000-8000-000000000022";
+
 export function PlatformAdminPanel({
   status,
 }: {
@@ -26,6 +28,9 @@ export function PlatformAdminPanel({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(
+    status.demoOrganization?.id ?? null,
+  );
 
   function prepare() {
     setError(null);
@@ -37,17 +42,22 @@ export function PlatformAdminPanel({
         return;
       }
       const story = result.data.story;
+      setOrgId(result.data.organizationId);
       setMessage(
         story
-          ? `Demo ready: ${story.castCount} cast members, ${story.pendingVacations} pending leave requests, ${story.initiatives} initiatives${story.projectReady ? ", delivery project with blockers" : ""}.`
-          : `Ready: ${result.data.peopleCount} people synced in ${result.data.departmentCount} departments.`,
+          ? `INFB demo ready: ${story.initiatives} initiatives, ${story.projects ?? 0} projects, ${story.pendingVacations} pending leave, ${story.castCount} people.`
+          : `Ready: ${result.data.peopleCount} people synced.`,
       );
       router.refresh();
     });
   }
 
-  const peopleOk =
-    status.sheetPeopleCount > 0 && status.sheetBindingCount > 0;
+  const portfolioHref = orgId
+    ? `/portfolio?organizationId=${orgId}&departmentId=${INFB_DEPT}`
+    : "/portfolio";
+  const initiativesHref = orgId
+    ? `/initiatives?organizationId=${orgId}`
+    : "/initiatives";
 
   return (
     <div className="space-y-4">
@@ -56,8 +66,8 @@ export function PlatformAdminPanel({
           Platform setup
         </h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Prepare a manager demo story: pending leave approvals, coverage
-          conflicts, portfolio intake, and a delivery project with blockers.
+          Seed the INFB team portfolio: Demand → Requirements → Pre-study → PoC
+          → Projects with owners, status, and cost.
         </p>
 
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -74,10 +84,6 @@ export function PlatformAdminPanel({
             label={`Organizations (${status.organizationCount})`}
           />
           <StatusRow
-            ok={peopleOk}
-            label={`People with roles (${status.sheetPeopleCount} / ${status.sheetBindingCount})`}
-          />
-          <StatusRow
             ok={status.personaSwitchEnabled}
             label="View as person switch enabled"
           />
@@ -90,16 +96,20 @@ export function PlatformAdminPanel({
             onClick={prepare}
             className={buttonClassName({ variant: "primary" })}
           >
-            {pending ? "Preparing demo…" : "Prepare manager demo data"}
+            {pending ? "Seeding INFB demo…" : "Prepare INFB manager demo"}
           </button>
-          {status.demoOrganization ? (
-            <Link
-              href={`/organization/${status.demoOrganization.id}/admin`}
-              className={buttonClassName({ variant: "secondary" })}
-            >
-              Open org admin config
-            </Link>
-          ) : null}
+          <Link
+            href={portfolioHref}
+            className={buttonClassName({ variant: "secondary" })}
+          >
+            Open INFB Portfolio
+          </Link>
+          <Link
+            href={initiativesHref}
+            className={buttonClassName({ variant: "secondary" })}
+          >
+            Open Initiatives
+          </Link>
           <Link
             href="/approvals"
             className={buttonClassName({ variant: "secondary" })}
@@ -122,42 +132,32 @@ export function PlatformAdminPanel({
 
       <Panel>
         <h2 className="mb-2 text-base font-semibold text-[var(--ink)]">
-          Manager demo walkthrough
+          What gets created for INFB
         </h2>
-        <p className="mb-3 text-sm text-[var(--muted)]">
-          After Prepare, use the amber <strong>View as</strong> button and
-          search these names:
+        <ul className="space-y-2 text-sm text-[var(--ink)]">
+          <li>
+            <strong>Demand</strong> — Spare-parts QR labels (~€45k)
+          </li>
+          <li>
+            <strong>Requirements</strong> — Shift handover checklist (~€90k)
+          </li>
+          <li>
+            <strong>Pre-study</strong> — Technician skill matrix (~€160k) with
+            buy vs build alternatives
+          </li>
+          <li>
+            <strong>PoC</strong> — AR work-instruction glasses (~€35k)
+          </li>
+          <li>
+            <strong>Projects</strong> — Maintenance mobile app (€210k budget /
+            €198k forecast / €82k actual) and Supervisor live board (€75k)
+            with milestones, work items, owners, and blockers
+          </li>
+        </ul>
+        <p className="mt-3 text-sm text-[var(--muted)]">
+          After Prepare: View as <strong>Bo (Demo Manager)</strong>, open
+          Portfolio filtered to INFB — or use the buttons above.
         </p>
-        <ol className="list-decimal space-y-2 pl-5 text-sm text-[var(--ink)]">
-          <li>
-            <strong>Freja (Demo Developer)</strong> — see her pending leave
-            request (employee view).
-          </li>
-          <li>
-            <strong>Bo (Demo Manager)</strong> — open{" "}
-            <Link href="/approvals" className="underline">
-              Approvals
-            </Link>{" "}
-            to accept Freja + Klara (their dates overlap = coverage conflict).
-          </li>
-          <li>
-            Still as Bo — open{" "}
-            <Link href="/vacation/plan" className="underline">
-              Vacation plan
-            </Link>{" "}
-            and{" "}
-            <Link href="/portfolio" className="underline">
-              Portfolio
-            </Link>{" "}
-            / the demo project with a blocking Wi-Fi issue.
-          </li>
-          <li>
-            Password for story logins if you sign in directly:{" "}
-            <code className="rounded bg-[var(--scania-grey-50)] px-1">
-              DemoLevel2026!
-            </code>
-          </li>
-        </ol>
       </Panel>
     </div>
   );

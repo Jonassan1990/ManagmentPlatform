@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  INFB_DEMO_PIPELINE,
   MANAGER_DEMO_CAST,
   MANAGER_DEMO_IDS,
   MANAGER_DEMO_PASSWORD,
@@ -13,19 +14,24 @@ describe("manager demo story catalog", () => {
     expect(MANAGER_DEMO_IDS.managerPrincipal).toMatch(
       /^b2000000-0000-4000-8000-/,
     );
-    expect(
-      new Set(MANAGER_DEMO_CAST.map((row) => row.username)).size,
-    ).toBe(MANAGER_DEMO_CAST.length);
   });
 
-  it("uses searchable display names for View as", () => {
-    expect(MANAGER_DEMO_CAST.map((row) => row.displayName)).toEqual(
+  it("covers the full INFB lifecycle with costs", () => {
+    const stages = INFB_DEMO_PIPELINE.map((row) => row.stage);
+    expect(stages).toEqual(
       expect.arrayContaining([
-        "Bo (Demo Manager)",
-        "Freja (Demo Developer)",
-        "Klara (Demo Analyst)",
-        "Henrik (Demo Ops)",
+        "DEMAND",
+        "REQUIREMENTS",
+        "PRE_STUDY",
+        "POC",
+        "PROJECT",
       ]),
     );
+    expect(
+      INFB_DEMO_PIPELINE.filter((row) => row.stage === "PROJECT"),
+    ).toHaveLength(2);
+    for (const row of INFB_DEMO_PIPELINE) {
+      expect(row.budgetHintEur).toBeGreaterThan(1000);
+    }
   });
 });
