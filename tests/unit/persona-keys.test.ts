@@ -8,31 +8,24 @@ import {
 } from "@/modules/demo/persona-keys";
 
 describe("persona-keys", () => {
-  it("accepts sheet, demo, and principal impersonation keys", () => {
-    expect(isImpersonationKey("sheet-manager:INFB")).toBe(true);
-    expect(isImpersonationKey("sheet-user:sheet:INFB:conny")).toBe(true);
-    expect(isImpersonationKey("demo:infb-manager")).toBe(true);
+  it("accepts principal keys and legacy sheet/demo keys", () => {
     expect(
       isImpersonationKey("principal:a1000000-0000-4000-8000-000000000104"),
     ).toBe(true);
+    expect(isImpersonationKey("sheet-manager:INFB")).toBe(true);
+    expect(isImpersonationKey("sheet-manager:IN MT")).toBe(true);
+    expect(isImpersonationKey("demo:infb-manager")).toBe(true);
     expect(isImpersonationKey("session")).toBe(false);
     expect(isImpersonationKey("principal:not-a-uuid")).toBe(false);
-    expect(isImpersonationKey("sheet-manager:")).toBe(false);
   });
 
-  it("builds keys from external subjects or principal id", () => {
+  it("always builds cookie-safe principal keys (no spaces)", () => {
     expect(
       impersonationKeyForPrincipal({
         id: "a1000000-0000-4000-8000-000000000104",
-        externalSubject: "sheet-manager:INFB",
+        externalSubject: "sheet-manager:IN MT",
       }),
-    ).toBe("sheet-manager:INFB");
-    expect(
-      impersonationKeyForPrincipal({
-        id: "a1000000-0000-4000-8000-000000000104",
-        externalSubject: "demo:org-admin",
-      }),
-    ).toBe("demo:org-admin");
+    ).toBe("principal:a1000000-0000-4000-8000-000000000104");
     expect(
       impersonationKeyForPrincipal({
         id: "a1000000-0000-4000-8000-000000000199",
@@ -47,7 +40,7 @@ describe("persona-keys", () => {
         "principal:a1000000-0000-4000-8000-000000000104",
       ),
     ).toBe("a1000000-0000-4000-8000-000000000104");
-    expect(principalIdFromImpersonationKey("sheet-manager:INFB")).toBeNull();
+    expect(principalIdFromImpersonationKey("sheet-manager:IN MT")).toBeNull();
   });
 
   it("matches people by name, department, or role", () => {

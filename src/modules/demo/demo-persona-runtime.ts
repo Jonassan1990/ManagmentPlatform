@@ -12,6 +12,9 @@ import {
   principalIdFromImpersonationKey,
 } from "@/modules/demo/persona-keys";
 import { codeFromSheetReference } from "@/modules/vacation/application/vacation-plan-sheet";
+import { AuthorizationService } from "@/modules/identity-access/application/authorization-service";
+import { ROLE_KEYS } from "@/modules/shared/permissions";
+import { ScopeType } from "@prisma/client";
 
 export type SheetPersonaOption = {
   key: string;
@@ -23,6 +26,8 @@ export type SheetPersonaOption = {
   optionLabel: string;
   departmentCode: string | null;
   role: string | null;
+  principalId: string;
+  hasAccess: boolean;
 };
 
 export async function readDemoPersonaCookie(): Promise<string | null> {
@@ -33,6 +38,16 @@ export async function readDemoPersonaCookie(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+export function demoPersonaCookieOptions(maxAge = 60 * 60 * 12) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge,
+    secure: process.env.NODE_ENV === "production",
+  };
 }
 
 /**
@@ -46,10 +61,7 @@ export async function applyDemoPersonaOverride(
   const key = await readDemoPersonaCookie();
   if (!isImpersonationKey(key)) return base;
 
-  const byId = principalIdFromImpersonationKey(key);
-  const person = byId
-    ? await prisma.principal.findFirst({ where: { id: byId } })
-    : await prisma.principal.findFirst({ where: { externalSubject: key } });
+  const person = await resolveImpersonationPrincipal(key);
   if (!person) return base;
   return {
     id: person.id,
@@ -59,10 +71,71 @@ export async function applyDemoPersonaOverride(
   };
 }
 
+export async function resolveImpersonationPrincipal(key: string) {
+  const byId = principalIdFromImpersonationKey(key);
+  if (byId) {
+    return prisma.principal.findFirst({ where: { id: byId } });
+  }
+  // Legacy sheet-/demo- subject cookies
+  return prisma.principal.findFirst({ where: { externalSubject: key } });
+}
+
+/**
+ * Guarantee the impersonated person can open the app (has any role binding).
+ * Called when an admin switches View as.
+ */
+export async function ensurePersonaHasAccess(principalId: string): Promise<void> {
+  const now = new Date();
+  const existing = await prisma.roleBinding.count({
+    where: {
+      principalId,
+      OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+    },
+  });
+  if (existing > 0) return;
+
+  const authz = new AuthorizationService(prisma);
+  await authz.ensureSystemRoles();
+  const viewer = await prisma.roleDefinition.findUniqueOrThrow({
+    where: { key: ROLE_KEYS.VIEWER },
+  });
+
+  let organizationId =
+    (
+      await prisma.resource.findFirst({
+        where: { linkedPrincipalId: principalId },
+        select: { organizationId: true },
+      })
+    )?.organizationId ?? null;
+
+  if (!organizationId) {
+    organizationId =
+      (
+        await prisma.organization.findFirst({
+          where: { status: "ACTIVE" },
+          orderBy: { createdAt: "asc" },
+          select: { id: true },
+        })
+      )?.id ?? null;
+  }
+  if (!organizationId) return;
+
+  await prisma.roleBinding.create({
+    data: {
+      principalId,
+      roleDefinitionId: viewer.id,
+      scopeType: ScopeType.ORGANIZATION,
+      organizationId,
+      scopeId: organizationId,
+    },
+  });
+}
+
 /** Everyone who can be opened in the admin person drawer. */
 export async function listSeededDemoPersonas(): Promise<SheetPersonaOption[]> {
   if (!isDemoPersonaSwitchEnabled()) return [];
   await ensureDemoDepartmentUsers();
+  const now = new Date();
   const rows = await prisma.principal.findMany({
     where: {
       OR: [
@@ -70,6 +143,13 @@ export async function listSeededDemoPersonas(): Promise<SheetPersonaOption[]> {
         { externalSubject: { startsWith: "sheet-user:" } },
         { externalSubject: { startsWith: "demo:" } },
         { localLoginCredential: { isNot: null } },
+        {
+          roleBindings: {
+            some: {
+              OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+            },
+          },
+        },
       ],
     },
     select: {
@@ -81,12 +161,17 @@ export async function listSeededDemoPersonas(): Promise<SheetPersonaOption[]> {
         select: { functionRole: true, referenceCode: true },
       },
       roleBindings: {
-        where: { roleDefinition: { key: { contains: "manager" } } },
-        take: 1,
-        select: { id: true },
+        where: {
+          OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+        },
+        select: {
+          id: true,
+          roleDefinition: { select: { key: true } },
+        },
       },
     },
     orderBy: { displayName: "asc" },
+    take: 2000,
   });
 
   const seen = new Set<string>();
@@ -99,7 +184,9 @@ export async function listSeededDemoPersonas(): Promise<SheetPersonaOption[]> {
     const manager =
       subject.startsWith("sheet-manager:") ||
       subject.includes("-manager") ||
-      row.roleBindings.length > 0;
+      row.roleBindings.some((binding) =>
+        binding.roleDefinition.key.includes("manager"),
+      );
     const departmentCode = subject.startsWith("sheet-manager:")
       ? subject.slice("sheet-manager:".length)
       : subject.startsWith("demo:")
@@ -115,9 +202,12 @@ export async function listSeededDemoPersonas(): Promise<SheetPersonaOption[]> {
       : manager
         ? "managers"
         : "people";
-    const sees = manager
-      ? `Manager view${departmentCode ? ` for ${departmentCode}` : ""}. Can review vacation and mark the plan.`
-      : `${name}${departmentCode ? ` in ${departmentCode}` : ""}. Sees their own dashboard and can request vacation.`;
+    const hasAccess = row.roleBindings.length > 0;
+    const sees = !hasAccess
+      ? `${name} has no role yet — switch will grant Viewer automatically.`
+      : manager
+        ? `Manager view${departmentCode ? ` for ${departmentCode}` : ""}. Can review vacation and mark the plan.`
+        : `${name}${departmentCode ? ` in ${departmentCode}` : ""}. Sees their own dashboard and can request vacation.`;
 
     return [
       {
@@ -132,6 +222,8 @@ export async function listSeededDemoPersonas(): Promise<SheetPersonaOption[]> {
           : name,
         departmentCode,
         role,
+        principalId: row.id,
+        hasAccess,
       },
     ];
   });

@@ -310,9 +310,8 @@ function ViewingAsBanner({
   function exit() {
     startTransition(async () => {
       await setDemoPersonaAction(null);
-      const stay = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.assign(stay);
+      window.location.href = "/";
     });
   }
 

@@ -7,10 +7,16 @@ import {
   isDemoPersonaSwitchEnabled,
 } from "@/modules/demo/it-hierarchy-demo";
 import {
+  demoPersonaCookieOptions,
+  ensurePersonaHasAccess,
   listSeededDemoPersonas,
   readDemoPersonaCookie,
+  resolveImpersonationPrincipal,
 } from "@/modules/demo/demo-persona-runtime";
-import { isImpersonationKey } from "@/modules/demo/persona-keys";
+import {
+  impersonationKeyForPrincipal,
+  isImpersonationKey,
+} from "@/modules/demo/persona-keys";
 import { createServices } from "@/server/container";
 
 export async function getDemoPersonaSwitcherStateAction() {
@@ -24,12 +30,17 @@ export async function getDemoPersonaSwitcherStateAction() {
   }
   const personas = await listSeededDemoPersonas();
   const activeKey = await readDemoPersonaCookie();
-  // Keep the drawer available whenever the flag is on, even before people
-  // are synced — otherwise mobile/desktop hide the control with no clue why.
+  const normalized =
+    isImpersonationKey(activeKey) &&
+    personas.some((row) => row.key === activeKey)
+      ? activeKey
+      : isImpersonationKey(activeKey)
+        ? activeKey
+        : null;
   return {
     enabled: true as const,
     personas,
-    activeKey: isImpersonationKey(activeKey) ? activeKey : null,
+    activeKey: normalized,
   };
 }
 
@@ -45,6 +56,10 @@ export async function setDemoPersonaAction(personaKey: string | null) {
 
   const jar = await cookies();
   if (!personaKey || personaKey === "session") {
+    jar.set(DEMO_PERSONA_COOKIE, "", {
+      ...demoPersonaCookieOptions(0),
+      maxAge: 0,
+    });
     jar.delete(DEMO_PERSONA_COOKIE);
     revalidatePath("/", "layout");
     return { ok: true as const };
@@ -52,32 +67,32 @@ export async function setDemoPersonaAction(personaKey: string | null) {
   if (!isImpersonationKey(personaKey)) {
     return { ok: false as const, error: "Choose a person from the list." };
   }
-  let seeded = await listSeededDemoPersonas();
-  if (!seeded.some((row) => row.key === personaKey)) {
-    // One more sync attempt — people may not have been prepared yet.
+
+  let person = await resolveImpersonationPrincipal(personaKey);
+  if (!person) {
     try {
       const { ensurePlatformAdminReady } = await import(
         "@/modules/demo/ensure-platform-admin-ready"
       );
       await ensurePlatformAdminReady(principal.id);
-      seeded = await listSeededDemoPersonas();
+      person = await resolveImpersonationPrincipal(personaKey);
     } catch {
-      // fall through to the not-ready error
+      // fall through
     }
   }
-  if (!seeded.some((row) => row.key === personaKey)) {
+  if (!person) {
     return {
       ok: false as const,
-      error: "That person is not ready yet. Open Admin and prepare people first.",
+      error: "That person was not found. Open Admin → Prepare people, then retry.",
     };
   }
-  jar.set(DEMO_PERSONA_COOKIE, personaKey, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 12,
-  });
+
+  // Always store principal:<uuid> so cookies never contain spaces (e.g. IN MT).
+  const safeKey = impersonationKeyForPrincipal(person);
+  await ensurePersonaHasAccess(person.id);
+
+  jar.set(DEMO_PERSONA_COOKIE, safeKey, demoPersonaCookieOptions());
 
   revalidatePath("/", "layout");
-  return { ok: true as const };
+  return { ok: true as const, key: safeKey };
 }
