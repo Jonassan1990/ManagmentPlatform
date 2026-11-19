@@ -55,14 +55,14 @@ export default async function NewInitiativePage() {
     <div>
       <Breadcrumbs
         items={[
-          { label: "Overview", href: "/" },
-          { label: "Initiatives", href: "/initiatives" },
-          { label: "New" },
+          { label: "Home", href: "/" },
+          { label: "Ideas & initiatives", href: "/initiatives" },
+          { label: "New idea" },
         ]}
       />
       <PageHeader
-        title="New initiative"
-        description="Create a durable initiative root. Demand, requirements, and pre-study stay attached to this identity."
+        title="New idea"
+        description="Name the need, pick a department, and assign requester + business owner. After save you document the demand, then seek approval before the next stage."
       />
       <Panel className="max-w-3xl">
         <CreateInitiativeForm

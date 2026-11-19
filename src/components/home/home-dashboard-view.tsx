@@ -27,6 +27,7 @@ import {
   roleContextLabel,
   workKindLabel,
 } from "./home-labels";
+import { SimpleWorkHub } from "./simple-work-hub";
 
 function homeHref(href: string, organizationId: string | null): string {
   if (!organizationId) return href;
@@ -957,6 +958,7 @@ export type HomeDashboardViewProps = {
 
 /**
  * Role-aware Home composition. Server-component safe.
+ * Primary UI is the simple four-job hub; detailed KPI sections stay available below.
  */
 export function HomeDashboardView({ dashboard }: HomeDashboardViewProps) {
   const orgId = dashboard.userContext.preferredOrganizationId;
@@ -982,32 +984,28 @@ export function HomeDashboardView({ dashboard }: HomeDashboardViewProps) {
     ),
   };
 
-  // Mixed: attention + my work side-by-side on large screens.
-  if (dashboard.userContext.mode === "mixed") {
-    return (
-      <div className="mp-stagger space-y-8">
-        <WelcomeHeader dash={dashboard} />
-        <Warnings dash={dashboard} />
-        <div className="grid gap-6 lg:grid-cols-2">
-          {sections.attention}
-          {sections.myWork}
-        </div>
-        {order
-          .filter((k) => k !== "attention" && k !== "myWork")
-          .map((key) => (
+  return (
+    <div className="space-y-10">
+      <SimpleWorkHub dashboard={dashboard} />
+      <Warnings dash={dashboard} />
+      <details className="group rounded-md border border-[var(--line)] bg-[var(--surface)] open:pb-4">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-[var(--ink)] marker:content-none [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-2">
+            More detail (portfolio, PI, capacity metrics)
+            <span className="text-xs font-normal text-[var(--muted)] group-open:hidden">
+              Show
+            </span>
+            <span className="hidden text-xs font-normal text-[var(--muted)] group-open:inline">
+              Hide
+            </span>
+          </span>
+        </summary>
+        <div className="mp-stagger space-y-8 border-t border-[var(--line)] px-4 pt-6">
+          {order.map((key) => (
             <div key={key}>{sections[key]}</div>
           ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="mp-stagger space-y-8">
-      <WelcomeHeader dash={dashboard} />
-      <Warnings dash={dashboard} />
-      {order.map((key) => (
-        <div key={key}>{sections[key]}</div>
-      ))}
+        </div>
+      </details>
     </div>
   );
 }

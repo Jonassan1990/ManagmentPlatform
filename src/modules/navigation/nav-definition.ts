@@ -29,7 +29,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
   },
   {
     id: "people",
-    label: "People",
+    label: "People & leave",
     items: [
       {
         id: "vacation-mine",
@@ -50,28 +50,20 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         description: "Request time off and track status",
       },
       {
-        id: "vacation-plan",
-        label: "Vacation plan",
-        href: "/vacation/plan",
-        match: { type: "prefix", path: "/vacation/plan" },
-        capability: "canViewVacation",
-        description: "2026 plan, one department at a time",
-      },
-      {
         id: "vacation-cover",
-        label: "Availability",
+        label: "Cover & handover",
         href: "/vacation/cover",
         match: { type: "prefix", path: "/vacation/cover" },
         capability: "canViewVacation",
-        description: "Green, yellow, and red days for who is in",
+        description: "Who is in — green / yellow / red",
       },
       {
-        id: "vacation-calendar",
-        label: "Vacation calendar",
-        href: "/vacation/calendar",
-        match: { type: "prefix", path: "/vacation/calendar" },
+        id: "vacation-plan",
+        label: "Team vacation plan",
+        href: "/vacation/plan",
+        match: { type: "prefix", path: "/vacation/plan" },
         capability: "canViewVacation",
-        description: "Approved vacations by month",
+        description: "Plan leave for one department",
       },
       {
         id: "onboarding-list",
@@ -79,28 +71,27 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         href: "/onboarding",
         match: { type: "prefix", path: "/onboarding" },
         capability: "canViewOnboarding",
-        description:
-          "Dual-check onboarding with optional AI plan help",
+        description: "New hire checklist",
       },
     ],
   },
   {
     id: "delivery",
-    label: "Delivery",
-    hubHref: "/delivery",
-    hubMatch: { type: "prefix", path: "/delivery" },
+    label: "Ideas & delivery",
+    hubHref: "/initiatives",
+    hubMatch: { type: "prefix", path: "/initiatives" },
     items: [
       {
-        id: "delivery-hub",
-        label: "Road map",
-        href: "/delivery",
-        match: { type: "exact", path: "/delivery" },
-        capability: "canViewInitiatives",
-        description: "Idea → product with Go / No go at each step",
+        id: "initiatives-create",
+        label: "New idea",
+        href: "/initiatives/new",
+        match: { type: "exact", path: "/initiatives/new" },
+        capability: "canCreateInitiative",
+        description: "Capture a need — then approve stage by stage",
       },
       {
         id: "initiatives-all",
-        label: "Initiatives",
+        label: "Ideas & initiatives",
         href: "/initiatives",
         match: {
           type: "prefixExclude",
@@ -108,13 +99,7 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
           excludePrefixes: ["/initiatives/new"],
         },
         capability: "canViewInitiatives",
-      },
-      {
-        id: "initiatives-create",
-        label: "New initiative",
-        href: "/initiatives/new",
-        match: { type: "exact", path: "/initiatives/new" },
-        capability: "canCreateInitiative",
+        description: "List by stage — Demand to Project",
       },
       {
         id: "gov-decisions",
@@ -122,12 +107,21 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         href: "/decisions",
         match: { type: "prefix", path: "/decisions" },
         capability: "canViewDecisions",
+        description: "Record Go / No go with ownership",
+      },
+      {
+        id: "delivery-hub",
+        label: "How stages work",
+        href: "/delivery",
+        match: { type: "exact", path: "/delivery" },
+        capability: "canViewInitiatives",
+        description: "Idea → product with Go / No go at each step",
       },
     ],
   },
   {
     id: "planning",
-    label: "Planning",
+    label: "Resources & budget",
     hubHref: "/portfolio/capacity",
     hubMatch: {
       type: "prefixExclude",
@@ -144,16 +138,8 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
         description: "People load and allocations",
       },
       {
-        id: "portfolio-health",
-        label: "Dependencies & health",
-        href: "/portfolio/health",
-        match: { type: "prefix", path: "/portfolio/health" },
-        capability: "always",
-        description: "Cross-functional blockers and risk",
-      },
-      {
         id: "portfolio-overview",
-        label: "Portfolio overview",
+        label: "Portfolio & budget",
         href: "/portfolio",
         match: {
           type: "prefixExclude",
@@ -166,13 +152,22 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
           ],
         },
         capability: "always",
+        description: "Cost and status across initiatives",
       },
       {
         id: "portfolio-explorer",
-        label: "Find work",
+        label: "Find initiative / project",
         href: "/portfolio/explorer",
         match: { type: "prefix", path: "/portfolio/explorer" },
         capability: "always",
+      },
+      {
+        id: "portfolio-health",
+        label: "Blockers & health",
+        href: "/portfolio/health",
+        match: { type: "prefix", path: "/portfolio/health" },
+        capability: "always",
+        description: "Cross-team blockers and risk",
       },
       {
         id: "pi-list",
@@ -184,13 +179,6 @@ export const NAV_GROUPS: NavGroupDefinition[] = [
           excludePrefixes: ["/pi/new"],
         },
         capability: "canViewPi",
-      },
-      {
-        id: "pi-create",
-        label: "New PI",
-        href: "/pi/new",
-        match: { type: "exact", path: "/pi/new" },
-        capability: "canCreatePi",
       },
     ],
   },
@@ -429,7 +417,13 @@ export function resolveNavGroups(
         hubHref: capabilityAllowed("canViewInitiatives", ctx.capabilities)
           ? hubHref
           : undefined,
-        hubActive: deliveryActive && matchNavPath(pathname, { type: "exact", path: "/delivery" }),
+        hubActive:
+          deliveryActive &&
+          matchNavPath(pathname, {
+            type: "prefixExclude",
+            path: "/initiatives",
+            excludePrefixes: ["/initiatives/new"],
+          }),
         items,
         containsActive: deliveryActive || items.some((i) => i.active),
       });

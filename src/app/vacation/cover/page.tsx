@@ -30,10 +30,10 @@ export default async function VacationCoverPage({
   if (orgs.length === 0) {
     return (
       <div>
-        <PageHeader title="Availability" />
+        <PageHeader title="Cover & handover" />
         <EmptyState
           title="No organization yet"
-          description="Join an organization to see when a whole role is away."
+          description="Join an organization to see who is away and who can cover."
         />
       </div>
     );
@@ -65,8 +65,11 @@ export default async function VacationCoverPage({
     if (error instanceof AppError) {
       return (
         <div>
-          <PageHeader title="Availability" />
-          <EmptyState title="Availability could not be loaded" description={error.message} />
+          <PageHeader title="Cover & handover" />
+          <EmptyState
+            title="Cover could not be loaded"
+            description={error.message}
+          />
         </div>
       );
     }
@@ -98,14 +101,14 @@ export default async function VacationCoverPage({
     <div>
       <Breadcrumbs
         items={[
-          { label: "Overview", href: "/" },
-          { label: "People", href: "/vacation" },
-          { label: "Availability" },
+          { label: "Home", href: "/" },
+          { label: "People & leave", href: "/vacation" },
+          { label: "Cover & handover" },
         ]}
       />
       <PageHeader
-        title="Availability"
-        description="Green means every role is in. Yellow means at least one person is still available. Red means nobody is available. Open a yellow or red day to see who is off and who is available."
+        title="Cover & handover"
+        description="Green = every role is covered. Yellow = someone is still available. Red = nobody available for that role. Open a yellow or red day before approving leave so handover is clear."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link

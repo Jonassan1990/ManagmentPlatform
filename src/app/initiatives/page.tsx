@@ -80,15 +80,15 @@ export default async function InitiativesPage({
         items={[homeCrumb(), { label: initiativesHubCrumb().label }]}
       />
       <PageHeader
-        title="Initiatives"
-        description="One initiative journey: Discovery → Governance → Validation → Delivery."
+        title="Ideas & initiatives"
+        description="Filter by stage. Open one to document progress, get approval, then move to the next step with a named owner."
         actions={
           canCreate ? (
             <Link
               href="/initiatives/new"
               className={buttonClassName({ variant: "primary" })}
             >
-              New initiative
+              New idea
             </Link>
           ) : undefined
         }
