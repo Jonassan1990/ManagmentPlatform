@@ -26,6 +26,10 @@ export async function resolveShellNavContext(
   // appear in the sidebar without requiring an Access admin visit first.
   await authz.ensureSystemRoles();
 
+  const platformAdmin = await authz.can(principal, PERMISSIONS.ROLE_MANAGE, {
+    type: "PLATFORM",
+  });
+
   if (organizationIds.length === 0) {
     return {
       organizationId: null,
@@ -38,11 +42,11 @@ export async function resolveShellNavContext(
         canCreatePi: false,
         canViewInitiatives: false,
         canCreateInitiative: false,
-        canViewVacation: false,
+        canViewVacation: platformAdmin,
         canReviewVacation: false,
         canViewOnboarding: false,
         canManageOnboarding: false,
-        canManageAdminConfig: false,
+        canManageAdminConfig: platformAdmin,
       },
     };
   }
@@ -141,6 +145,9 @@ export async function resolveShellNavContext(
 
   // Prefer an org that can open org-scoped admin destinations.
   preferredOrgId = accessOrgId ?? adminOrgId ?? policyOrgId ?? preferredOrgId;
+  if (platformAdmin) {
+    flags.canManageAdminConfig = true;
+  }
 
   return {
     organizationId: preferredOrgId,

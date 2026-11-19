@@ -210,9 +210,16 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
         hrefLabel: "Open Portfolio",
       },
       {
+        id: "admin-config",
+        title: "Open Admin config first",
+        body: "Sign in as owner, open Admin in the sidebar, and click Prepare org, people & roles. That creates the demo organization and gives View-as people their roles so dashboards are not empty.",
+        href: "/admin",
+        hrefLabel: "Admin config",
+      },
+      {
         id: "switcher",
         title: "Use the admin person drawer",
-        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), open View as person… in the header. Search anyone, enter their dashboard, submit vacation as them, then switch to their manager to see how approval works. The amber banner shows who you are viewing as.",
+        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), open View as in the header. Search anyone, enter their dashboard, submit vacation as them, then switch to their manager to see how approval works. The amber banner shows who you are viewing as.",
       },
       {
         id: "logins",

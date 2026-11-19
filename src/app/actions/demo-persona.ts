@@ -52,9 +52,24 @@ export async function setDemoPersonaAction(personaKey: string | null) {
   if (!isImpersonationKey(personaKey)) {
     return { ok: false as const, error: "Choose a person from the list." };
   }
-  const seeded = await listSeededDemoPersonas();
+  let seeded = await listSeededDemoPersonas();
   if (!seeded.some((row) => row.key === personaKey)) {
-    return { ok: false as const, error: "That person is not ready yet." };
+    // One more sync attempt — people may not have been prepared yet.
+    try {
+      const { ensurePlatformAdminReady } = await import(
+        "@/modules/demo/ensure-platform-admin-ready"
+      );
+      await ensurePlatformAdminReady(principal.id);
+      seeded = await listSeededDemoPersonas();
+    } catch {
+      // fall through to the not-ready error
+    }
+  }
+  if (!seeded.some((row) => row.key === personaKey)) {
+    return {
+      ok: false as const,
+      error: "That person is not ready yet. Open Admin and prepare people first.",
+    };
   }
   jar.set(DEMO_PERSONA_COOKIE, personaKey, {
     httpOnly: true,
