@@ -212,9 +212,14 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
       {
         id: "admin-config",
         title: "Open Admin config first",
-        body: "Sign in as owner, open Admin in the sidebar, and click Prepare org, people & roles. That creates the demo organization and gives View-as people their roles so dashboards are not empty.",
+        body: "Sign in as owner, open Admin, and click Prepare manager demo data. That seeds Bo (manager), Freja/Klara/Henrik, pending leave overlaps, portfolio intake, and a delivery project with blockers.",
         href: "/admin",
         hrefLabel: "Admin config",
+      },
+      {
+        id: "manager-story",
+        title: "Manager visibility walkthrough",
+        body: "View as Freja to see an employee leave request, then View as Bo and open Approvals (Freja + Klara overlap). Check Vacation plan and the demo maintenance project for milestones, work, and a blocking Wi-Fi issue.",
       },
       {
         id: "switcher",

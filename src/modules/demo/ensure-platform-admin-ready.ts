@@ -17,6 +17,12 @@ export type PlatformAdminReadyResult = {
   peopleReady: boolean;
   peopleCount: number;
   grantedOrgAdmin: boolean;
+  story?: {
+    castCount: number;
+    pendingVacations: number;
+    initiatives: number;
+    projectReady: boolean;
+  };
 };
 
 /**
@@ -140,13 +146,29 @@ export async function ensurePlatformAdminReady(
   }
 
   await authz.grantOrganizationAdmin(actorPrincipalId, org.id);
-  await ensureVacationSheetRoster();
+
+  // Focused manager walkthrough data first (fast, idempotent).
+  const { ensureManagerDemoStory } = await import(
+    "@/modules/demo/ensure-manager-demo-story"
+  );
+  const story = await ensureManagerDemoStory();
+
+  // Best-effort full vacation-sheet roster (can be large; do not fail prepare).
+  try {
+    await ensureVacationSheetRoster();
+  } catch (error) {
+    console.error(
+      "[demo] vacation sheet roster sync skipped",
+      error instanceof Error ? error.message : "unknown",
+    );
+  }
 
   const peopleCount = await prisma.principal.count({
     where: {
       OR: [
         { externalSubject: { startsWith: "sheet-manager:" } },
         { externalSubject: { startsWith: "sheet-user:" } },
+        { externalSubject: { startsWith: "demo:story-" } },
       ],
     },
   });
@@ -157,6 +179,7 @@ export async function ensurePlatformAdminReady(
         OR: [
           { externalSubject: { startsWith: "sheet-manager:" } },
           { externalSubject: { startsWith: "sheet-user:" } },
+          { externalSubject: { startsWith: "demo:story-" } },
         ],
       },
       OR: [{ effectiveTo: null }, { effectiveTo: { gt: new Date() } }],
@@ -170,6 +193,7 @@ export async function ensurePlatformAdminReady(
     peopleReady: peopleCount > 0 && boundCount > 0,
     peopleCount,
     grantedOrgAdmin: true,
+    story,
   };
 }
 
