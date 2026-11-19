@@ -18,10 +18,12 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page";
+import { IT_DEMO_IDS } from "@/modules/demo/it-hierarchy-demo";
 import { buildPortfolioTrail } from "@/modules/navigation/breadcrumbs";
 import type { DeliveryHealthClassification } from "@/modules/portfolio/domain/types";
 import { PERMISSIONS } from "@/modules/shared/permissions";
 import { createServices } from "@/server/container";
+import { getTempAuthEnv } from "@/server/env";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +68,35 @@ export default async function PortfolioPage({
         : "Unable to list organizations for portfolio.";
   }
 
+  // Platform admin alone cannot see portfolio (ADR-022). Grant org admin +
+  // seed INFB when the temp owner / platform operator opens Portfolio empty.
+  const temp = getTempAuthEnv();
+  const isTempOwner = temp?.TEMP_AUTH_PRINCIPAL_ID === principal.id;
+  const canPlatform = await authz.can(principal, PERMISSIONS.ROLE_MANAGE, {
+    type: "PLATFORM",
+  });
+  if (isTempOwner || canPlatform) {
+    try {
+      const { ensurePlatformAdminReady } = await import(
+        "@/modules/demo/ensure-platform-admin-ready"
+      );
+      await ensurePlatformAdminReady(principal.id, {
+        syncVacationSheetRoster: false,
+      });
+      orgs = (await organization.listOrganizations(principal)).map((o) => ({
+        id: o.id,
+        name: o.name,
+      }));
+    } catch (error) {
+      if (!orgListError) {
+        orgListError =
+          error instanceof Error
+            ? error.message
+            : "Unable to prepare demo portfolio data.";
+      }
+    }
+  }
+
   if (orgs.length === 0) {
     return (
       <div>
@@ -79,13 +110,13 @@ export default async function PortfolioPage({
         ) : (
           <EmptyState
             title="Organization required"
-            description="Configure an organization before viewing the portfolio dashboard."
+            description="Open Admin config and click Prepare INFB manager demo, then return here."
             action={
               <Link
-                href="/organization/setup"
+                href="/admin"
                 className={buttonClassName({ variant: "primary" })}
               >
-                Set up organization
+                Open Admin config
               </Link>
             }
           />
@@ -94,10 +125,13 @@ export default async function PortfolioPage({
     );
   }
 
+  const demoOrgId = IT_DEMO_IDS.org;
   const organizationId =
     params.organizationId && orgs.some((o) => o.id === params.organizationId)
       ? params.organizationId
-      : orgs[0]!.id;
+      : orgs.some((o) => o.id === demoOrgId)
+        ? demoOrgId
+        : orgs[0]!.id;
   const organizationName =
     orgs.find((o) => o.id === organizationId)?.name ?? "Organization";
 

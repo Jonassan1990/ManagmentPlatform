@@ -26,15 +26,22 @@ export type PlatformAdminReadyResult = {
   };
 };
 
+export type EnsurePlatformAdminReadyOptions = {
+  /** Default false — sheet roster is huge and used to time out Prepare. */
+  syncVacationSheetRoster?: boolean;
+};
+
 /**
  * Idempotent setup for the admin config page:
  * ensure Industrial IT org + section + departments, grant the actor
- * organization.admin, then sync vacation-sheet people and their roles.
+ * organization.admin, then seed the INFB manager portfolio story.
  * Never wipes existing data.
  */
 export async function ensurePlatformAdminReady(
   actorPrincipalId: string,
+  options: EnsurePlatformAdminReadyOptions = {},
 ): Promise<PlatformAdminReadyResult> {
+  const syncVacationSheetRoster = options.syncVacationSheetRoster === true;
   const authz = new AuthorizationService(prisma);
   await authz.ensureSystemRoles();
   await authz.ensurePlatformBootstrapAdmin(actorPrincipalId);
@@ -154,14 +161,14 @@ export async function ensurePlatformAdminReady(
   );
   const story = await ensureManagerDemoStory();
 
-  // Best-effort full vacation-sheet roster (can be large; do not fail prepare).
-  try {
-    await ensureVacationSheetRoster();
-  } catch (error) {
-    console.error(
-      "[demo] vacation sheet roster sync skipped",
-      error instanceof Error ? error.message : "unknown",
-    );
+  // Optional / never block Prepare: full sheet roster is hundreds of people.
+  if (syncVacationSheetRoster) {
+    void ensureVacationSheetRoster().catch((error) => {
+      console.error(
+        "[demo] vacation sheet roster sync skipped",
+        error instanceof Error ? error.message : "unknown",
+      );
+    });
   }
 
   const peopleCount = await prisma.principal.count({
@@ -255,6 +262,11 @@ export async function getPlatformAdminStatus(actorPrincipalId: string) {
     select: { id: true, name: true },
   });
 
+  const { getManagerDemoPortfolioStatus } = await import(
+    "@/modules/demo/ensure-manager-demo-story"
+  );
+  const portfolio = await getManagerDemoPortfolioStatus();
+
   return {
     organizationCount: orgCount,
     sheetPeopleCount: sheetPeople,
@@ -262,6 +274,7 @@ export async function getPlatformAdminStatus(actorPrincipalId: string) {
     hasPlatformAdmin: hasPlatformAdmin > 0,
     hasOrganizationAdmin: orgAdminOrgs > 0,
     demoOrganization: demoOrg,
+    portfolio,
     personaSwitchEnabled:
       process.env.ALLOW_DEMO_PERSONA_SWITCH === "true" ||
       process.env.ALLOW_DEMO_PERSONA_SWITCH === "1",

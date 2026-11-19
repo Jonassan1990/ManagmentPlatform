@@ -12,6 +12,7 @@ import {
   Panel,
 } from "@/components/ui/page";
 import {
+  ensurePlatformAdminReady,
   ensureTempAuthOwnerPlatformAccess,
   getPlatformAdminStatus,
 } from "@/modules/demo/ensure-platform-admin-ready";
@@ -98,6 +99,19 @@ export default async function AdminIndexPage() {
     );
   }
 
+  // Always seed the INFB manager story when Admin opens — Prepare used to
+  // time out on the vacation-sheet roster before data was visible.
+  let prepareError: string | null = null;
+  try {
+    await ensurePlatformAdminReady(principal.id, {
+      syncVacationSheetRoster: false,
+    });
+  } catch (error) {
+    prepareError =
+      error instanceof Error ? error.message : "Could not prepare demo data.";
+    console.error("[admin] auto-prepare failed", prepareError);
+  }
+
   const status = (await getPlatformAdminStatus(
     principal.id,
   )) as PlatformAdminStatusView;
@@ -139,6 +153,15 @@ export default async function AdminIndexPage() {
         title="Admin config"
         description="Set up the application, sync people for View as, and open organization admin tools."
       />
+
+      {prepareError ? (
+        <Panel className="mb-4">
+          <p className="text-sm text-red-700" role="alert">
+            Auto-prepare failed: {prepareError}. Use the Prepare button below
+            and check the error message.
+          </p>
+        </Panel>
+      ) : null}
 
       <PlatformAdminPanel status={status} />
 
