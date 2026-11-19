@@ -279,6 +279,36 @@ export class AuthorizationService {
   }
 
   /**
+   * Grant PLATFORM bootstrap admin when missing. Used for the configured
+   * TEMP_AUTH owner recovery path and the platform admin config page.
+   * Returns true when a new binding was created.
+   */
+  async ensurePlatformBootstrapAdmin(principalId: string): Promise<boolean> {
+    await this.ensureSystemRoles();
+    const role = await this.db.roleDefinition.findUniqueOrThrow({
+      where: { key: ROLE_KEYS.PLATFORM_BOOTSTRAP_ADMIN },
+    });
+    const existing = await this.db.roleBinding.findFirst({
+      where: {
+        principalId,
+        roleDefinitionId: role.id,
+        scopeType: ScopeType.PLATFORM,
+        effectiveTo: null,
+      },
+    });
+    if (existing) return false;
+    await this.db.roleBinding.create({
+      data: {
+        principalId,
+        roleDefinitionId: role.id,
+        scopeType: ScopeType.PLATFORM,
+      },
+    });
+    this.clearBindingCache(principalId);
+    return true;
+  }
+
+  /**
    * Deny-by-default authorization: Permission + Scope (+ optional Ownership relationship).
    */
   async assertCan(

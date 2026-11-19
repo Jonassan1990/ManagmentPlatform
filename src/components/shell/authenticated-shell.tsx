@@ -12,11 +12,14 @@ const OPEN_WHEN_NO_ACCESS = new Set([
   "/login",
   "/access-not-configured",
   "/setup/bootstrap",
+  "/admin",
+  "/organization/setup",
 ]);
 
 function pathAllowedWithoutAccess(pathname: string): boolean {
   if (OPEN_WHEN_NO_ACCESS.has(pathname)) return true;
   if (pathname.startsWith("/api/auth")) return true;
+  if (pathname.startsWith("/admin")) return true;
   return false;
 }
 
@@ -46,6 +49,25 @@ export async function AuthenticatedShell({
 
   let hasAccess = false;
   if (principal) {
+    // TEMP_AUTH owner recovery: grant platform admin so /admin is usable.
+    if (!principal.source || principal.source !== "demo") {
+      try {
+        const { ensureTempAuthOwnerPlatformAccess } = await import(
+          "@/modules/demo/ensure-platform-admin-ready"
+        );
+        // Only for the real signed-in owner — skip while View as is active.
+        const { readDemoPersonaCookie } = await import(
+          "@/modules/demo/demo-persona-runtime"
+        );
+        const viewingAs = await readDemoPersonaCookie();
+        if (!viewingAs) {
+          await ensureTempAuthOwnerPlatformAccess(principal.id);
+        }
+      } catch {
+        // Fail soft — pages still enforce AuthZ.
+      }
+    }
+
     hasAccess = await identity.hasAnyAccess(principal.id);
     if (!hasAccess && (dev || env.NODE_ENV === "test")) {
       await authz.ensureBootstrapBinding(principal.id);
