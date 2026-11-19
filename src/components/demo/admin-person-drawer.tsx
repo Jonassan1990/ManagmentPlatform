@@ -17,6 +17,8 @@ export type DemoPersonaOption = {
   optionLabel?: string;
   departmentCode?: string | null;
   role?: string | null;
+  principalId?: string;
+  hasAccess?: boolean;
 };
 
 /**
@@ -75,20 +77,29 @@ export function AdminPersonDrawer({
     const previous = selected;
     setSelected(value);
     setError(null);
-    setOpen(false);
-    setQuery("");
     startTransition(async () => {
-      const result = await setDemoPersonaAction(
-        value === "session" ? null : value,
-      );
-      if (!result.ok) {
+      try {
+        const result = await setDemoPersonaAction(
+          value === "session" ? null : value,
+        );
+        if (!result.ok) {
+          setSelected(previous);
+          setError(result.error);
+          setOpen(true);
+          return;
+        }
+        setOpen(false);
+        setQuery("");
+        // Full reload so the httpOnly cookie is sent on the next document request.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.href = "/";
+      } catch (error) {
         setSelected(previous);
-        setError(result.error);
-        return;
+        setOpen(true);
+        setError(
+          error instanceof Error ? error.message : "Could not switch person.",
+        );
       }
-      const stay = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.assign(stay);
     });
   }
 

@@ -1,7 +1,7 @@
 /**
  * Cookie keys for the admin "view as person" drawer.
- * sheet-* / demo-* map to Principal.externalSubject;
- * principal:<uuid> maps to Principal.id for everyone else.
+ * Always prefer principal:<uuid> so values never contain spaces
+ * (department codes like "IN MT" break raw cookie values).
  */
 
 const UUID_RE =
@@ -9,14 +9,15 @@ const UUID_RE =
 
 export function isImpersonationKey(key: string | null | undefined): key is string {
   if (!key) return false;
+  if (key.startsWith("principal:")) {
+    return UUID_RE.test(key.slice("principal:".length));
+  }
+  // Legacy cookie values (may fail in browsers when they contain spaces).
   if (key.startsWith("sheet-manager:") || key.startsWith("sheet-user:")) {
     return key.length > "sheet-manager:".length;
   }
   if (key.startsWith("demo:")) {
     return key.length > "demo:".length;
-  }
-  if (key.startsWith("principal:")) {
-    return UUID_RE.test(key.slice("principal:".length));
   }
   return false;
 }
@@ -29,18 +30,11 @@ export function principalIdFromImpersonationKey(
   return null;
 }
 
+/** Stable cookie-safe key — never embed department codes with spaces. */
 export function impersonationKeyForPrincipal(input: {
   id: string;
-  externalSubject: string | null;
+  externalSubject?: string | null;
 }): string {
-  const subject = input.externalSubject?.trim() ?? "";
-  if (
-    subject.startsWith("sheet-manager:") ||
-    subject.startsWith("sheet-user:") ||
-    subject.startsWith("demo:")
-  ) {
-    return subject;
-  }
   return `principal:${input.id}`;
 }
 
