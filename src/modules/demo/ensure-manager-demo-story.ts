@@ -30,6 +30,47 @@ export type ManagerDemoStoryResult = {
   projectReady: boolean;
 };
 
+export type ManagerDemoPortfolioStatus = {
+  organizationId: string;
+  departmentId: string;
+  initiativeCount: number;
+  projectCount: number;
+  pipelineKeys: string[];
+  ready: boolean;
+};
+
+/** Cheap readiness check used by Admin / Portfolio before seeding. */
+export async function getManagerDemoPortfolioStatus(): Promise<ManagerDemoPortfolioStatus> {
+  const [initiatives, projects] = await Promise.all([
+    prisma.initiative.findMany({
+      where: {
+        organizationId: MANAGER_DEMO_IDS.org,
+        departmentId: MANAGER_DEMO_IDS.deptInfb,
+        referenceKey: { startsWith: "INFB-" },
+        status: { not: "ARCHIVED" },
+      },
+      select: { referenceKey: true },
+      orderBy: { referenceKey: "asc" },
+    }),
+    prisma.project.count({
+      where: {
+        organizationId: MANAGER_DEMO_IDS.org,
+        departmentId: MANAGER_DEMO_IDS.deptInfb,
+        referenceKey: { startsWith: "PRJ-INFB-" },
+        status: { not: "ARCHIVED" },
+      },
+    }),
+  ]);
+  return {
+    organizationId: MANAGER_DEMO_IDS.org,
+    departmentId: MANAGER_DEMO_IDS.deptInfb,
+    initiativeCount: initiatives.length,
+    projectCount: projects,
+    pipelineKeys: initiatives.map((row) => row.referenceKey),
+    ready: initiatives.length >= 4 && projects >= 1,
+  };
+}
+
 function isoDate(daysFromToday: number): Date {
   const d = new Date();
   d.setUTCHours(12, 0, 0, 0);

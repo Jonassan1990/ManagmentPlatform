@@ -12,6 +12,7 @@ const PUBLIC_PREFIXES = [
   "/login",
   "/api/auth",
   "/api/health",
+  "/api/demo/prepare",
   "/access-not-configured",
   "/_next",
   "/favicon.ico",

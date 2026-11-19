@@ -44,7 +44,9 @@ export async function getPlatformAdminStatusAction() {
 export async function preparePlatformAdminReadyAction() {
   return runAction("platformAdmin.prepare", async () => {
     const principal = await assertCanConfigurePlatform();
-    const result = await ensurePlatformAdminReady(principal.id);
+    const result = await ensurePlatformAdminReady(principal.id, {
+      syncVacationSheetRoster: false,
+    });
     revalidatePath("/", "layout");
     revalidatePath("/admin");
     revalidatePath("/organization");

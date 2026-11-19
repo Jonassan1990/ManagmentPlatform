@@ -15,6 +15,14 @@ export type PlatformAdminStatusView = {
   hasOrganizationAdmin: boolean;
   demoOrganization: { id: string; name: string } | null;
   personaSwitchEnabled: boolean;
+  portfolio?: {
+    organizationId: string;
+    departmentId: string;
+    initiativeCount: number;
+    projectCount: number;
+    pipelineKeys: string[];
+    ready: boolean;
+  };
 };
 
 const INFB_DEPT = "a1000000-0000-4000-8000-000000000022";
@@ -31,6 +39,7 @@ export function PlatformAdminPanel({
   const [orgId, setOrgId] = useState<string | null>(
     status.demoOrganization?.id ?? null,
   );
+  const [portfolio, setPortfolio] = useState(status.portfolio ?? null);
 
   function prepare() {
     setError(null);
@@ -48,6 +57,16 @@ export function PlatformAdminPanel({
           ? `INFB demo ready: ${story.initiatives} initiatives, ${story.projects ?? 0} projects, ${story.pendingVacations} pending leave, ${story.castCount} people.`
           : `Ready: ${result.data.peopleCount} people synced.`,
       );
+      if (story) {
+        setPortfolio({
+          organizationId: result.data.organizationId,
+          departmentId: INFB_DEPT,
+          initiativeCount: story.initiatives,
+          projectCount: story.projects ?? 0,
+          pipelineKeys: [],
+          ready: story.projectReady,
+        });
+      }
       router.refresh();
     });
   }
@@ -58,6 +77,9 @@ export function PlatformAdminPanel({
   const initiativesHref = orgId
     ? `/initiatives?organizationId=${orgId}`
     : "/initiatives";
+  const explorerHref = orgId
+    ? `/portfolio/explorer?organizationId=${orgId}&departmentId=${INFB_DEPT}`
+    : "/portfolio/explorer";
 
   return (
     <div className="space-y-4">
@@ -84,10 +106,24 @@ export function PlatformAdminPanel({
             label={`Organizations (${status.organizationCount})`}
           />
           <StatusRow
+            ok={Boolean(portfolio?.ready)}
+            label={
+              portfolio
+                ? `INFB portfolio (${portfolio.initiativeCount} initiatives, ${portfolio.projectCount} projects)`
+                : "INFB portfolio (not seeded yet)"
+            }
+          />
+          <StatusRow
             ok={status.personaSwitchEnabled}
             label="View as person switch enabled"
           />
         </ul>
+
+        {portfolio?.pipelineKeys && portfolio.pipelineKeys.length > 0 ? (
+          <p className="mt-3 text-xs text-[var(--muted)]">
+            Pipeline keys: {portfolio.pipelineKeys.join(", ")}
+          </p>
+        ) : null}
 
         <div className="mt-5 flex flex-wrap gap-2">
           <button
@@ -103,6 +139,12 @@ export function PlatformAdminPanel({
             className={buttonClassName({ variant: "secondary" })}
           >
             Open INFB Portfolio
+          </Link>
+          <Link
+            href={explorerHref}
+            className={buttonClassName({ variant: "secondary" })}
+          >
+            Open Explorer
           </Link>
           <Link
             href={initiativesHref}
@@ -155,8 +197,9 @@ export function PlatformAdminPanel({
           </li>
         </ul>
         <p className="mt-3 text-sm text-[var(--muted)]">
-          After Prepare: View as <strong>Bo (Demo Manager)</strong>, open
-          Portfolio filtered to INFB — or use the buttons above.
+          After Prepare: open Portfolio / Explorer filtered to INFB, or View as{" "}
+          <strong>Bo (Demo Manager)</strong>. Platform admin alone cannot see
+          portfolio rows until org admin is granted (Prepare does that).
         </p>
       </Panel>
     </div>
