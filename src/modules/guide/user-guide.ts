@@ -20,21 +20,21 @@ export type GuideSection = {
 
 export const USER_GUIDE_INTRO = {
   title: "User guide",
-  tagline: "How to use the Management Platform in a few clear steps.",
+  tagline: "Four jobs: ideas, decisions, people & budget, vacation & handover.",
   audience:
-    "Built for managers and teams: set up the organization, run initiatives and projects, plan capacity, and govern decisions — without mixing browse and setup.",
+    "Start on Home. Capture an idea, get it approved stage by stage, track ownership and spend, and handle leave with cover.",
 };
 
 export const USER_GUIDE_SECTIONS: GuideSection[] = [
   {
     id: "start",
     title: "1. Start here",
-    summary: "Sign in, then use Home for what needs attention.",
+    summary: "Sign in, then use Home’s four jobs.",
     steps: [
       {
         id: "sign-in",
         title: "Sign in",
-        body: "Open the app and sign in with your account. Home shows only what your role is allowed to see.",
+        body: "Open the app and sign in. Home shows Ideas, Decisions & approvals, People/workload/budget, and Vacation & handover.",
         href: "/",
         hrefLabel: "Go to Home",
       },
@@ -185,51 +185,45 @@ export const USER_GUIDE_SECTIONS: GuideSection[] = [
     ],
   },
   {
-    id: "demo",
-    title: "6. Manager demo (Industrial IT)",
+    id: "simple-path",
+    title: "6. The simple path (use this)",
     summary:
-      "A structured walkthrough for showing managers the real org codes (I → IN → INF/INFB/INFF/ING/INA) with a clearer industrial-IT portfolio.",
+      "Home is four jobs: Ideas → Decisions & approvals → People/workload/budget → Vacation & handover.",
     steps: [
       {
-        id: "seed",
-        title: "Seed Organization I",
-        body: "Run npm run demo:seed-it (or set DEMO_SEED_IT=1 on Vercel once). Creates I — Industrial IT with section IN, departments INF→INFB/INFF, ING, INA, people, and a five-stage portfolio.",
+        id: "home",
+        title: "Start on Home",
+        body: "Use the four panels. Ignore “More detail” until you need deeper metrics.",
+        href: "/",
+        hrefLabel: "Home",
       },
       {
-        id: "walkthrough",
-        title: "Suggested manager path",
-        body: "1) Simulate Section (IN) for the overview. 2) Open INFB — Business apps. 3) Open project PROJ-IT-01 Maintenance work-order mobile app — show milestones, budget, issues, and work. 4) Switch to INF to show the identity pre-study. 5) Switch to INA/ING to show demand vs PoC scopes.",
-        href: "/organization",
-        hrefLabel: "Open Organization",
+        id: "idea",
+        title: "New idea → approve → next stage",
+        body: "Create an idea, document the stage, submit for approval, record Go/No go with an owner, then advance. Repeat per stage.",
+        href: "/initiatives/new",
+        hrefLabel: "New idea",
       },
       {
-        id: "portfolio",
-        title: "What is in the portfolio",
-        body: "INA Demand: digital work instructions. INF Pre-study: identity & access upgrade (assessments + alternatives). ING PoC: zero-trust remote admin. INFF Requirements: plant master-data sync hub. INFB Project: maintenance work-order mobile app (flagship).",
-        href: "/portfolio",
-        hrefLabel: "Open Portfolio",
+        id: "resources",
+        title: "People, workload, budget",
+        body: "Capacity & workload for allocations; Portfolio & budget for cost; open a project for milestones and spend.",
+        href: "/portfolio/capacity",
+        hrefLabel: "Capacity",
+      },
+      {
+        id: "leave",
+        title: "Vacation & handover",
+        body: "Request leave under Vacation. Before approving, check Cover & handover. Leave waiting on you is in Approvals.",
+        href: "/vacation/cover",
+        hrefLabel: "Cover & handover",
       },
       {
         id: "admin-config",
-        title: "Open Admin config first",
-        body: "Sign in as owner, open Admin, and click Prepare INFB manager demo. That seeds Bo/Freja/Klara/Henrik, pending leave, and an INFB pipeline across Demand → Requirements → Pre-study → PoC → Projects with owners, status, and cost. Then open Portfolio filtered to INFB or View as Bo.",
+        title: "Demo data (optional)",
+        body: "Admin → Prepare INFB manager demo seeds Bo/Freja/Klara/Henrik, leave overlaps, and an INFB pipeline with owners and cost.",
         href: "/admin",
         hrefLabel: "Admin config",
-      },
-      {
-        id: "manager-story",
-        title: "Manager visibility walkthrough",
-        body: "View as Freja to see an employee leave request, then View as Bo and open Approvals (Freja + Klara overlap). Check Vacation plan and the demo maintenance project for milestones, work, and a blocking Wi-Fi issue.",
-      },
-      {
-        id: "switcher",
-        title: "Use the admin person drawer",
-        body: "With ALLOW_DEMO_PERSONA_SWITCH=1 (or local DEV auth), open View as in the header. Search anyone, enter their dashboard, submit vacation as them, then switch to their manager to see how approval works. The amber banner shows who you are viewing as.",
-      },
-      {
-        id: "logins",
-        title: "Or sign in as a person from the plan",
-        body: "Department managers use sheet plus the department code, for example sheet.infb. Other people use sheet plus the department and their name, for example sheet.infb.conny-friborg. The password is the same DemoLevel password already used for local login.",
       },
     ],
   },

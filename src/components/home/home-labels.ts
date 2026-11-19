@@ -11,22 +11,22 @@ import type {
 export function modeHeadline(mode: HomeDashboardMode): string {
   switch (mode) {
     case "manager":
-      return "Management overview";
+      return "Manager workspace";
     case "employee":
       return "Your work";
     case "mixed":
-      return "Your work & management overview";
+      return "Your work & approvals";
   }
 }
 
 export function modeDescription(mode: HomeDashboardMode): string {
   switch (mode) {
     case "manager":
-      return "See what needs attention, review portfolio health, and start the next planning or delivery action.";
+      return "Approve what is waiting, advance ideas stage by stage, and watch people, workload, and budget.";
     case "employee":
-      return "Open the work you own, check relevant planning context, and jump to authorized destinations.";
+      return "Open what you own, request vacation, and see cover when someone is away.";
     case "mixed":
-      return "Track your owned work alongside management attention, portfolio signals, and Quick Start actions.";
+      return "Do your own work and also approve, decide, and watch team load.";
   }
 }
 

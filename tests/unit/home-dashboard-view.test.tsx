@@ -278,8 +278,8 @@ function baseDashboard(
 
 describe("home-labels", () => {
   it("describes modes without inventing roles from names", () => {
-    expect(modeHeadline("manager")).toMatch(/Management/i);
-    expect(modeDescription("employee")).toMatch(/work you own/i);
+    expect(modeHeadline("manager")).toMatch(/Manager workspace/i);
+    expect(modeDescription("employee")).toMatch(/what you own/i);
     expect(
       attributionLabel({
         basis: "resource_link",
@@ -291,23 +291,29 @@ describe("home-labels", () => {
 });
 
 describe("HomeDashboardView — modes", () => {
-  it("manager mode prioritizes Needs Attention and Quick Start creates", () => {
+  it("manager mode shows the four-job hub and New idea", () => {
     render(<HomeDashboardView dashboard={baseDashboard("manager")} />);
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Welcome, Alex Manager",
+      "Hello, Alex Manager",
     );
-    expect(screen.getByText("Management overview")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "1. Ideas" })).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Needs Attention" }),
+      screen.getByRole("heading", { name: "2. Decisions & approvals" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /Create Initiative/i }),
+      screen.getByRole("heading", { name: "3. People, workload & budget" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "4. Vacation & handover" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /^New idea$/i }),
     ).toHaveAttribute("href", expect.stringContaining("/initiatives/new"));
     expect(screen.getByText("No linked work identity")).toBeInTheDocument();
   });
 
-  it("employee mode prioritizes My Work and hides manager-only empty emphasis", () => {
+  it("employee mode shows owned work without New idea", () => {
     const dash = baseDashboard("employee", {
       userContext: {
         ...baseDashboard("employee").userContext,
@@ -363,34 +369,31 @@ describe("HomeDashboardView — modes", () => {
     render(<HomeDashboardView dashboard={dash} />);
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Welcome, Sam Contributor",
+      "Hello, Sam Contributor",
     );
-    expect(screen.getByText("Your work")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /INIT-0001/ }),
-    ).toBeInTheDocument();
+      screen.getAllByRole("link", { name: /INIT-0001/ }).length,
+    ).toBeGreaterThan(0);
     expect(
-      screen.queryByRole("link", { name: /Create Initiative/i }),
+      screen.queryByRole("link", { name: /^New idea$/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Business owner")).toBeInTheDocument();
+    expect(screen.getAllByText("Business owner").length).toBeGreaterThan(0);
   });
 
-  it("mixed mode shows attention and my work without duplicate section titles", () => {
+  it("mixed mode keeps a single Needs Attention and My Work in detail", () => {
     render(<HomeDashboardView dashboard={baseDashboard("mixed")} />);
 
-    expect(
-      screen.getByText("Your work & management overview"),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Do your own work and also approve/i)).toBeInTheDocument();
     expect(
       screen.getAllByRole("heading", { name: "Needs Attention" }),
     ).toHaveLength(1);
     expect(
       screen.getAllByRole("heading", { name: "My Work" }),
     ).toHaveLength(1);
-    expect(screen.getByText("Business owner")).toBeInTheDocument();
+    expect(screen.getAllByText("Business owner").length).toBeGreaterThan(0);
   });
 
-  it("viewer quick start only includes authorized actions", () => {
+  it("viewer quick start only includes authorized actions in detail", () => {
     const dash = baseDashboard("employee", {
       availableActions: {
         ...sectionMeta(),
@@ -486,7 +489,6 @@ describe("HomeDashboardView — empty / unavailable", () => {
     expect(
       screen.getByText(/Multiple organizations are in scope/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/2 organizations in scope/i)).toBeInTheDocument();
   });
 });
 

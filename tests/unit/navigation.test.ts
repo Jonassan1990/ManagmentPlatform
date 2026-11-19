@@ -75,7 +75,7 @@ describe("M4C-A navigation matching", () => {
 });
 
 describe("clear product sections navigation", () => {
-  it("resolves Approvals as a top sidebar item beside People and Delivery", () => {
+  it("resolves Approvals as a top sidebar item beside People and Ideas & delivery", () => {
     const groups = resolveNavGroups("/portfolio/health", fullCtx);
     const ids = groups.map((g) => g.id);
     expect(ids).toContain("home");
@@ -86,6 +86,14 @@ describe("clear product sections navigation", () => {
     expect(ids).toContain("organization");
     expect(ids.indexOf("approvals")).toBeLessThan(ids.indexOf("people"));
 
+    expect(groups.find((g) => g.id === "people")!.label).toBe("People & leave");
+    expect(groups.find((g) => g.id === "delivery")!.label).toBe(
+      "Ideas & delivery",
+    );
+    expect(groups.find((g) => g.id === "planning")!.label).toBe(
+      "Resources & budget",
+    );
+
     const planning = groups.find((g) => g.id === "planning")!;
     expect(planning.containsActive).toBe(true);
     expect(
@@ -95,20 +103,24 @@ describe("clear product sections navigation", () => {
     const hrefs = listVisibleHrefs(fullCtx);
     expect(hrefs).toContain("/approvals");
     expect(hrefs).toContain("/delivery");
+    expect(hrefs).toContain("/initiatives/new");
     expect(hrefs).toContain("/portfolio/health");
     expect(hrefs).toContain("/onboarding");
+    expect(hrefs).toContain("/vacation/cover");
+    expect(hrefs).not.toContain("/vacation/calendar");
     expect(hrefs).toContain("/organization/org-1/access");
     expect(hrefs).toContain("/help");
     expect(hrefs).toContain("/help/user-guide");
     expect(hrefs).toContain("/help/design");
     expect(hrefs).toContain("/help/development");
     expect(hrefs).not.toContain("/pi/board");
+    expect(hrefs).not.toContain("/pi/new");
     expect(
       groups.find((g) => g.id === "delivery")!.items.some((i) => i.id === "gov-approvals"),
     ).toBe(false);
   });
 
-  it("activates top Approvals without marking Delivery active", () => {
+  it("activates top Approvals without marking Ideas & delivery active", () => {
     const groups = resolveNavGroups("/approvals", fullCtx);
     expect(groups.find((g) => g.id === "approvals")?.hubActive).toBe(true);
     expect(groups.find((g) => g.id === "delivery")?.containsActive).toBe(false);
@@ -119,8 +131,8 @@ describe("clear product sections navigation", () => {
     expect(groups.some((g) => g.id === "approvals")).toBe(false);
     const delivery = groups.find((g) => g.id === "delivery")!;
     expect(delivery.items.map((i) => i.id)).toEqual([
-      "delivery-hub",
       "initiatives-all",
+      "delivery-hub",
     ]);
     const planning = groups.find((g) => g.id === "planning")!;
     expect(planning.items.some((i) => i.id === "pi-create")).toBe(false);

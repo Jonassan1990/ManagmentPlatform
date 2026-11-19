@@ -72,8 +72,8 @@ export default async function HomePage() {
       <HomeDashboardView dashboard={dash} />
       <Panel className="mt-8">
         <p className="text-xs text-[var(--muted)]">
-          Metrics and lists come from authorized live records. Unavailable
-          sections are never shown as zero. Updated{" "}
+          Start from the four jobs on Home. Deeper metrics stay under “More
+          detail”. Updated{" "}
           <time dateTime={dash.asOf}>
             {new Date(dash.asOf).toLocaleString()}
           </time>
